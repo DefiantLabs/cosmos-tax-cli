@@ -1,0 +1,11 @@
+#postgresql
+[database]
+host = ""
+port = ""
+database = ""
+user = ""
+password = ""
+
+#Cosmos Chain API
+[api]
+host = ""
