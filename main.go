@@ -8,15 +8,32 @@ import (
 )
 
 //setup does pre-run setup configurations.
-//	* Loads the application config from config.tml and parses
+//	* Loads the application config from config.tml, cli args and parses/merges
 //	* Connects to the database and returns the db object
 //	* Returns various values used throughout the application
 func setup() (string, *gorm.DB, error) {
-	config, err := GetConfig("./config.toml")
+
+	argConfig, err := ParseArgs(os.Stderr, os.Args[1:])
+
+	if err != nil {
+		return "", nil, err
+	}
+
+	var location string
+	if argConfig.ConfigFileLocation != "" {
+		location = argConfig.ConfigFileLocation
+	} else {
+		location = "./config.toml"
+	}
+
+	fileConfig, err := GetConfig(location)
+
 	if err != nil {
 		fmt.Println("Error opening configuration file", err)
 		return "", nil, err
 	}
+
+	config := MergeConfigs(fileConfig, argConfig)
 
 	apiHost := config.Api.Host
 
@@ -35,16 +52,18 @@ func setup() (string, *gorm.DB, error) {
 
 func main() {
 
-	apiHost, _, err := setup()
+	apiHost, db, err := setup()
 
 	if err != nil {
 		fmt.Println("Error during application setup, exiting")
 		os.Exit(1)
 	}
 
-	blocks := []int{5700793, 5700794, 5700795, 5700796}
+	dbConn, _ := db.DB()
 
-	for _, block := range blocks {
+	defer dbConn.Close()
+
+	for block := 5700793; block < 5701060; block++ {
 		result, _ := GetBlockByHeight(apiHost, block)
 
 		for _, v := range result.Block.BlockData.Txs {

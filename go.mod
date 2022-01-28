@@ -1,4 +1,4 @@
-module example1
+module cosmos-exporter
 
 go 1.17
 
@@ -6,6 +6,7 @@ require gorm.io/gorm v1.22.5
 
 require (
 	github.com/BurntSushi/toml v1.0.0 // indirect
+	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgconn v1.10.1 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect
