@@ -64,12 +64,21 @@ func main() {
 	defer dbConn.Close()
 
 	for block := 5700793; block < 5701060; block++ {
-		result, _ := GetBlockByHeight(apiHost, block)
+		result, err := GetBlockByHeight(apiHost, block)
+
+		if err != nil {
+			fmt.Println("Error getting block by height", err)
+			os.Exit(1)
+		}
 
 		for _, v := range result.Block.BlockData.Txs {
 			txhash := GetTxHash(v)
 
 			tx, _ := GetTxByHash(apiHost, txhash)
+			if err != nil {
+				fmt.Println("Error getting transaction by hash", err)
+				os.Exit(1)
+			}
 			fmt.Printf("%+v\n", tx)
 		}
 	}
