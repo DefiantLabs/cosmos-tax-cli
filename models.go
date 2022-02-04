@@ -2,15 +2,17 @@ package main
 
 import "time"
 
-type BlockModel struct {
+type Blocks struct {
 	ID     uint
 	Height uint64
 }
 
-type TxModel struct {
+type Txs struct {
 	ID        uint
 	TimeStamp time.Time
 	Hash      string
-	FeeDenom  string
-	FeeAmount string
+	Fees      string
+	//foreign key relation between blocks and txs
+	BlocksId int
+	Blocks   Blocks
 }

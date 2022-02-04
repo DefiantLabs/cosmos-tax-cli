@@ -7,14 +7,13 @@ import (
 	"net/http"
 )
 
-//
 var apiEndpoints = map[string]string{
 	"blocks_endpoint": "/cosmos/base/tendermint/v1beta1/blocks/%d",
 	"txs_endpoint":    "/cosmos/tx/v1beta1/txs/%s",
 }
 
 //GetBlockByHeight makes a request to the Cosmos REST API to get a block by height
-func GetBlockByHeight(host string, height int) (GetBlockByHeightResponse, error) {
+func GetBlockByHeight(host string, height uint64) (GetBlockByHeightResponse, error) {
 
 	var result GetBlockByHeightResponse
 

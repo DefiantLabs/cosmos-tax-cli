@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -63,23 +65,53 @@ func main() {
 
 	defer dbConn.Close()
 
-	for block := 5700793; block < 5701060; block++ {
-		result, err := GetBlockByHeight(apiHost, block)
+	highestBlock := GetHighestBlock(db)
 
+	var startHeight uint64 = 1
+	if highestBlock.Height == 0 {
+		fmt.Println("No blocks indexed, starting at block height 1")
+	} else {
+		fmt.Println("Found highest indexed block", highestBlock.Height)
+		startHeight = highestBlock.Height + 1
+	}
+
+	for currBlock := startHeight; currBlock < startHeight+10000; currBlock++ {
+
+		result, err := GetBlockByHeight(apiHost, currBlock)
+
+		//consider optimizing by using block variable instead of parsing out (dangers?)
+		height, err := strconv.ParseUint(result.Block.BlockHeader.Height, 10, 64)
+		fmt.Println("Found block with height", result.Block.BlockHeader.Height)
+
+		newBlock := Blocks{Height: height}
+
+		db.Create(&newBlock)
+
+		time.Sleep(time.Second)
 		if err != nil {
 			fmt.Println("Error getting block by height", err)
 			os.Exit(1)
 		}
 
-		for _, v := range result.Block.BlockData.Txs {
-			txhash := GetTxHash(v)
+		if len(result.Block.BlockData.Txs) == 0 {
+			fmt.Println("Block has no transactions")
+		} else {
 
-			tx, _ := GetTxByHash(apiHost, txhash)
-			if err != nil {
-				fmt.Println("Error getting transaction by hash", err)
-				os.Exit(1)
+			for _, v := range result.Block.BlockData.Txs {
+				txhash := GetTxHash(v)
+
+				tx, _ := GetTxByHash(apiHost, txhash)
+				fmt.Println("Found Transaction with hash", tx.TxResponse.TxHash)
+
+				IndexNewTx(db, tx, newBlock)
+
+				if err != nil {
+					fmt.Println("Error getting transaction by hash", err)
+					os.Exit(1)
+				}
+				time.Sleep(time.Second)
 			}
-			fmt.Printf("%+v\n", tx)
 		}
+
 	}
 }

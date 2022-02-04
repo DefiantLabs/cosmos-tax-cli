@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -16,7 +17,34 @@ func PostgresDbConnect(host string, port string, database string, user string, p
 //MigrateModels runs the gorm automigrations with all the db models. This will migrate as needed and do nothing if nothing has changed.
 func MigrateModels(db *gorm.DB) error {
 	return db.AutoMigrate(
-		&BlockModel{},
-		&TxModel{},
+		&Blocks{},
+		&Txs{},
 	)
+}
+
+func GetHighestBlock(db *gorm.DB) Blocks {
+	var block Blocks
+	//this can potentially be optimized by getting max first and selecting it (this gets translated into a select * limit 1)
+	db.Table("blocks").Order("height desc").First(&block)
+	return block
+}
+
+func IndexNewTx(db *gorm.DB, tx GetTxByHashResponse, block Blocks) {
+	timeStamp, _ := time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
+
+	var fees string = ""
+
+	//can be multiple fees, make comma delimited list of fees
+	//should consider separate table?
+	numFees := len(tx.Tx.AuthInfo.TxFee.TxFeeAmount)
+	for i, fee := range tx.Tx.AuthInfo.TxFee.TxFeeAmount {
+		newFee := fmt.Sprintf("%s%s", fee.Amount, fee.Denom)
+		if i+1 != numFees {
+			newFee = newFee + ","
+		}
+		fees = fees + newFee
+	}
+
+	newTx := Txs{TimeStamp: timeStamp, Hash: tx.TxResponse.TxHash, Fees: fees, Blocks: block}
+	db.Create(&newTx)
 }

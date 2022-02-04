@@ -6,7 +6,8 @@ type GetBlockByHeightResponse struct {
 }
 
 type Block struct {
-	BlockData BlockData `json:"data"`
+	BlockData   BlockData   `json:"data"`
+	BlockHeader BlockHeader `json:"header"`
 }
 
 type BlockId struct {
@@ -15,6 +16,10 @@ type BlockId struct {
 
 type BlockData struct {
 	Txs []string `json:"txs"`
+}
+
+type BlockHeader struct {
+	Height string `json:"height"`
 }
 
 type GetTxByHashResponse struct {
