@@ -9,9 +9,10 @@ import (
 )
 
 var apiEndpoints = map[string]string{
-	"blocks_endpoint":     "/cosmos/base/tendermint/v1beta1/blocks/%d",
-	"txs_endpoint":        "/cosmos/tx/v1beta1/txs/%s",
-	"txs_by_block_height": "/cosmos/tx/v1beta1/txs?events=tx.height=%d&pagination.limit=100&order_by=ORDER_BY_UNSPECIFIED",
+	"blocks_endpoint":              "/cosmos/base/tendermint/v1beta1/blocks/%d",
+	"latest_block_endpoint":        "/blocks/latest",
+	"txs_endpoint":                 "/cosmos/tx/v1beta1/txs/%s",
+	"txs_by_block_height_endpoint": "/cosmos/tx/v1beta1/txs?events=tx.height=%d&pagination.limit=100&order_by=ORDER_BY_UNSPECIFIED",
 }
 
 //GetBlockByHeight makes a request to the Cosmos REST API to get a block by height
@@ -51,7 +52,42 @@ func GetTxsByBlockHeight(host string, height uint64) (GetTxByBlockHeightResponse
 
 	var result GetTxByBlockHeightResponse
 
-	requestEndpoint := fmt.Sprintf(apiEndpoints["txs_by_block_height"], height)
+	requestEndpoint := fmt.Sprintf(apiEndpoints["txs_by_block_height_endpoint"], height)
+
+	resp, err := http.Get(fmt.Sprintf("%s%s", host, requestEndpoint))
+
+	if err != nil {
+		return result, err
+	}
+
+	defer resp.Body.Close()
+
+	err = checkResponseErrorCode(requestEndpoint, resp)
+
+	if err != nil {
+		return result, err
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return result, err
+	}
+
+	err = json.Unmarshal(body, &result)
+
+	if err != nil {
+		return result, err
+	}
+
+	return result, nil
+}
+
+func GetLatestBlock(host string) (GetLatestBlockResponse, error) {
+
+	var result GetLatestBlockResponse
+
+	requestEndpoint := apiEndpoints["latest_block_endpoint"]
 
 	resp, err := http.Get(fmt.Sprintf("%s%s", host, requestEndpoint))
 

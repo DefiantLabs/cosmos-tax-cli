@@ -22,7 +22,7 @@ func MigrateModels(db *gorm.DB) error {
 	)
 }
 
-func GetHighestBlock(db *gorm.DB) Block {
+func GetHighestIndexedBlock(db *gorm.DB) Block {
 	var block Block
 	//this can potentially be optimized by getting max first and selecting it (this gets translated into a select * limit 1)
 	db.Table("blocks").Order("height desc").First(&block)

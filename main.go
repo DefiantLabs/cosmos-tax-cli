@@ -69,9 +69,28 @@ func main() {
 
 	dbConn, _ := db.DB()
 
+	//is this needed? probably handled by gorm but no idea
 	defer dbConn.Close()
 
-	highestBlock := GetHighestBlock(db)
+	var latestBlock uint64 = 1
+
+	resp, err := GetLatestBlock(apiHost)
+
+	if err != nil {
+		fmt.Println("Error getting latest block", err)
+		os.Exit(1)
+	}
+
+	latestBlock, err = strconv.ParseUint(resp.Block.BlockHeader.Height, 10, 64)
+
+	if err != nil {
+		fmt.Println("Error getting latest block", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("Found latest block", latestBlock)
+
+	highestBlock := GetHighestIndexedBlock(db)
 
 	var startHeight uint64 = startingBlock
 	if highestBlock.Height == 0 {
@@ -81,7 +100,37 @@ func main() {
 		startHeight = highestBlock.Height + 1
 	}
 
-	for currBlock := startHeight; currBlock < startHeight+10000; currBlock++ {
+	currBlock := startHeight
+	for ; ; currBlock++ {
+
+		//need to sleep for a bit to wait for next block to be indexed
+		//could do the following instead? when highest block reached, subscribe to
+		//new block event on node and start indexing that way instead
+		if currBlock == latestBlock {
+			for {
+				resp, err := GetLatestBlock(apiHost)
+
+				if err != nil {
+					fmt.Println("Error getting latest block", err)
+					os.Exit(1)
+				}
+
+				newLatestBlock, err := strconv.ParseUint(resp.Block.BlockHeader.Height, 10, 64)
+
+				if err != nil {
+					fmt.Println("Error getting latest block", err)
+					os.Exit(1)
+				}
+
+				if currBlock == newLatestBlock {
+					time.Sleep(1)
+				} else {
+					fmt.Printf("New hightest block found %d, restarting indexer\n", newLatestBlock)
+					latestBlock = newLatestBlock
+					break
+				}
+			}
+		}
 
 		result, err := GetBlockByHeight(apiHost, currBlock)
 
@@ -110,7 +159,7 @@ func main() {
 				os.Exit(1)
 			}
 
-			fmt.Printf("Block has %s transcations\n", result.Pagination.Total)
+			fmt.Printf("Block has %s transcation(s)\n", result.Pagination.Total)
 
 			for i, v := range result.Txs {
 

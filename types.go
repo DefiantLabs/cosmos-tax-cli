@@ -69,3 +69,8 @@ type SingleTx struct {
 	Tx         TxStruct
 	TxResponse TxResponseStruct
 }
+
+type GetLatestBlockResponse struct {
+	BlockId BlockId       `json:"block_id"`
+	Block   BlockResponse `json:"block"`
+}
