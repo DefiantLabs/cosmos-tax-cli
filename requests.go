@@ -11,7 +11,6 @@ import (
 var apiEndpoints = map[string]string{
 	"blocks_endpoint":              "/cosmos/base/tendermint/v1beta1/blocks/%d",
 	"latest_block_endpoint":        "/blocks/latest",
-	"txs_endpoint":                 "/cosmos/tx/v1beta1/txs/%s",
 	"txs_by_block_height_endpoint": "/cosmos/tx/v1beta1/txs?events=tx.height=%d&pagination.limit=100&order_by=ORDER_BY_UNSPECIFIED",
 }
 
@@ -35,14 +34,16 @@ func GetBlockByHeight(host string, height uint64) (GetBlockByHeightResponse, err
 		return result, err
 	}
 
-	//TODO: need to check resp.Status
-
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return result, err
 	}
 
-	json.Unmarshal(body, &result)
+	err = json.Unmarshal(body, &result)
+
+	if err != nil {
+		return result, err
+	}
 
 	return result, nil
 }
