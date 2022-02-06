@@ -1,5 +1,6 @@
 package main
 
+//TODO: Clean up types
 type GetBlockByHeightResponse struct {
 	BlockId BlockId `json:"block_id"`
 	Block   Block   `json:"block"`
@@ -56,4 +57,20 @@ type TxFee struct {
 type TxFeeAmount struct {
 	Denom  string `json:"denom"`
 	Amount string `json:"amount"`
+}
+
+type GetTxByBlockHeightResponse struct {
+	Txs         []Tx         `json:"txs"`
+	TxResponses []TxResponse `json:"tx_responses"`
+	Pagination  Pagination   `json:"pagination"`
+}
+
+type Pagination struct {
+	NextKey string `json:"next_key"`
+	Total   string `json:"total"`
+}
+
+type SingleTx struct {
+	Tx         Tx
+	TxResponse TxResponse
 }

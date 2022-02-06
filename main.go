@@ -79,38 +79,53 @@ func main() {
 
 		result, err := GetBlockByHeight(apiHost, currBlock)
 
+		if err != nil {
+			fmt.Println("Error getting block by height", err)
+			os.Exit(1)
+		}
+
 		//consider optimizing by using block variable instead of parsing out (dangers?)
 		height, err := strconv.ParseUint(result.Block.BlockHeader.Height, 10, 64)
 		fmt.Println("Found block with height", result.Block.BlockHeader.Height)
 
 		newBlock := Blocks{Height: height}
 
-		db.Create(&newBlock)
-
 		time.Sleep(time.Second)
-		if err != nil {
-			fmt.Println("Error getting block by height", err)
-			os.Exit(1)
-		}
+
+		var currTxs []SingleTx
 
 		if len(result.Block.BlockData.Txs) == 0 {
 			fmt.Println("Block has no transactions")
 		} else {
 
-			for _, v := range result.Block.BlockData.Txs {
-				txhash := GetTxHash(v)
-
-				tx, _ := GetTxByHash(apiHost, txhash)
-				fmt.Println("Found Transaction with hash", tx.TxResponse.TxHash)
-
-				IndexNewTx(db, tx, newBlock)
-
-				if err != nil {
-					fmt.Println("Error getting transaction by hash", err)
-					os.Exit(1)
-				}
-				time.Sleep(time.Second)
+			result, err := GetTxsByBlockHeight(apiHost, newBlock.Height)
+			if err != nil {
+				fmt.Println("Error getting transactions by block height", err)
+				os.Exit(1)
 			}
+
+			for i, v := range result.Txs {
+
+				//tx data and tx_response data are split, combine into 1
+				var currTx SingleTx
+
+				currTxResponse := result.TxResponses[i]
+
+				currTx.TxResponse = currTxResponse
+				currTx.Tx = v
+
+				currTxs = append(currTxs, currTx)
+			}
+
+			time.Sleep(time.Second)
+
+		}
+
+		//do one db storage request at end of requests
+		db.Create(&newBlock)
+
+		for _, tx := range currTxs {
+			IndexNewTx(db, tx, newBlock)
 		}
 
 	}

@@ -29,7 +29,7 @@ func GetHighestBlock(db *gorm.DB) Blocks {
 	return block
 }
 
-func IndexNewTx(db *gorm.DB, tx GetTxByHashResponse, block Blocks) {
+func IndexNewTx(db *gorm.DB, tx SingleTx, block Blocks) {
 	timeStamp, _ := time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
 
 	var fees string = ""
