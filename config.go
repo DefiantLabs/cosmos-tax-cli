@@ -9,6 +9,7 @@ type Config struct {
 	Database           database
 	Api                api
 	ConfigFileLocation string
+	Base               base
 }
 
 type database struct {
@@ -21,6 +22,10 @@ type database struct {
 
 type api struct {
 	Host string
+}
+
+type base struct {
+	StartBlock uint64
 }
 
 func GetConfig(configFileLocation string) (Config, error) {

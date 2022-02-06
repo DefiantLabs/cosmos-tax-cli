@@ -46,33 +46,6 @@ func GetBlockByHeight(host string, height uint64) (GetBlockByHeightResponse, err
 	return result, nil
 }
 
-//GetTxByHash makes a request to the Cosmos REST API to get a transaction by hash
-//May consider deprecating this, can use a method to get all transactions by block height (slower? see below)
-func GetTxByHash(host string, hash string) (GetTxByHashResponse, error) {
-
-	var result GetTxByHashResponse
-
-	requestEndpoint := fmt.Sprintf(apiEndpoints["txs_endpoint"], hash)
-	resp, err := http.Get(fmt.Sprintf("%s%s", host, requestEndpoint))
-
-	if err != nil {
-		return result, err
-	}
-
-	defer resp.Body.Close()
-
-	//TODO: need to check resp.Status
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return result, err
-	}
-
-	json.Unmarshal(body, &result)
-
-	return result, nil
-}
-
 //GetTxsByBlockHeight makes a request to the Cosmos REST API and returns all the transactions for a specific block
 func GetTxsByBlockHeight(host string, height uint64) (GetTxByBlockHeightResponse, error) {
 
@@ -113,7 +86,8 @@ func checkResponseErrorCode(requestEndpoint string, resp *http.Response) error {
 
 	if resp.StatusCode != 200 {
 		fmt.Println("Error getting response")
-		errorString := fmt.Sprintf("Error getting response for endpoint %s: Status %s", requestEndpoint, resp.Status)
+		body, _ := ioutil.ReadAll(resp.Body)
+		errorString := fmt.Sprintf("Error getting response for endpoint %s: Status %s Body %s", requestEndpoint, resp.Status, body)
 
 		err := errors.New(errorString)
 

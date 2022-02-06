@@ -9,3 +9,7 @@ password = ""
 #Cosmos Chain API
 [api]
 host = "http://localhost:1317"
+
+#App configuration values
+[base]
+startblock = 1

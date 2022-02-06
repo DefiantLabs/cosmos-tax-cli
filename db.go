@@ -17,19 +17,19 @@ func PostgresDbConnect(host string, port string, database string, user string, p
 //MigrateModels runs the gorm automigrations with all the db models. This will migrate as needed and do nothing if nothing has changed.
 func MigrateModels(db *gorm.DB) error {
 	return db.AutoMigrate(
-		&Blocks{},
-		&Txs{},
+		&Block{},
+		&Tx{},
 	)
 }
 
-func GetHighestBlock(db *gorm.DB) Blocks {
-	var block Blocks
+func GetHighestBlock(db *gorm.DB) Block {
+	var block Block
 	//this can potentially be optimized by getting max first and selecting it (this gets translated into a select * limit 1)
 	db.Table("blocks").Order("height desc").First(&block)
 	return block
 }
 
-func IndexNewTx(db *gorm.DB, tx SingleTx, block Blocks) {
+func IndexNewTx(db *gorm.DB, tx SingleTx, block Block) {
 	timeStamp, _ := time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
 
 	var fees string = ""
@@ -45,6 +45,6 @@ func IndexNewTx(db *gorm.DB, tx SingleTx, block Blocks) {
 		fees = fees + newFee
 	}
 
-	newTx := Txs{TimeStamp: timeStamp, Hash: tx.TxResponse.TxHash, Fees: fees, Blocks: block}
+	newTx := Tx{TimeStamp: timeStamp, Hash: tx.TxResponse.TxHash, Fees: fees, Blocks: block}
 	db.Create(&newTx)
 }

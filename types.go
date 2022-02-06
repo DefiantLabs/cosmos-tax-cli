@@ -2,11 +2,11 @@ package main
 
 //TODO: Clean up types
 type GetBlockByHeightResponse struct {
-	BlockId BlockId `json:"block_id"`
-	Block   Block   `json:"block"`
+	BlockId BlockId       `json:"block_id"`
+	Block   BlockResponse `json:"block"`
 }
 
-type Block struct {
+type BlockResponse struct {
 	BlockData   BlockData   `json:"data"`
 	BlockHeader BlockHeader `json:"header"`
 }
@@ -23,18 +23,13 @@ type BlockHeader struct {
 	Height string `json:"height"`
 }
 
-type GetTxByHashResponse struct {
-	Tx         Tx         `json:"tx"`
-	TxResponse TxResponse `json:"tx_response"`
-}
-
-type Tx struct {
+type TxStruct struct {
 	Body       TxBody     `json:"body"`
 	AuthInfo   TxAuthInfo `json:"auth_info"`
 	Signatures []string   `json:"signatures"`
 }
 
-type TxResponse struct {
+type TxResponseStruct struct {
 	TxHash    string `json:"txhash"`
 	Height    string `json:"height"`
 	TimeStamp string `json:"timestamp"`
@@ -60,9 +55,9 @@ type TxFeeAmount struct {
 }
 
 type GetTxByBlockHeightResponse struct {
-	Txs         []Tx         `json:"txs"`
-	TxResponses []TxResponse `json:"tx_responses"`
-	Pagination  Pagination   `json:"pagination"`
+	Txs         []TxStruct         `json:"txs"`
+	TxResponses []TxResponseStruct `json:"tx_responses"`
+	Pagination  Pagination         `json:"pagination"`
 }
 
 type Pagination struct {
@@ -71,6 +66,6 @@ type Pagination struct {
 }
 
 type SingleTx struct {
-	Tx         Tx
-	TxResponse TxResponse
+	Tx         TxStruct
+	TxResponse TxResponseStruct
 }

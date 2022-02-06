@@ -13,12 +13,12 @@ import (
 //	* Loads the application config from config.tml, cli args and parses/merges
 //	* Connects to the database and returns the db object
 //	* Returns various values used throughout the application
-func setup() (string, *gorm.DB, error) {
+func setup() (string, *gorm.DB, uint64, error) {
 
 	argConfig, err := ParseArgs(os.Stderr, os.Args[1:])
 
 	if err != nil {
-		return "", nil, err
+		return "", nil, 1, err
 	}
 
 	var location string
@@ -32,29 +32,35 @@ func setup() (string, *gorm.DB, error) {
 
 	if err != nil {
 		fmt.Println("Error opening configuration file", err)
-		return "", nil, err
+		return "", nil, 1, err
 	}
 
 	config := MergeConfigs(fileConfig, argConfig)
 
 	apiHost := config.Api.Host
+	startingBlock := config.Base.StartBlock
+
+	//0 is an invalid starting block, set it to 1
+	if startingBlock == 0 {
+		startingBlock = 1
+	}
 
 	db, err := PostgresDbConnect(config.Database.Host, config.Database.Port, config.Database.Database, config.Database.User, config.Database.Password)
 	if err != nil {
 		fmt.Println("Could not establish connection to the database", err)
-		return "", nil, err
+		return "", nil, 1, err
 	}
 
 	//run database migrations at every runtime
 	MigrateModels(db)
 
-	return apiHost, db, nil
+	return apiHost, db, startingBlock, nil
 
 }
 
 func main() {
 
-	apiHost, db, err := setup()
+	apiHost, db, startingBlock, err := setup()
 
 	if err != nil {
 		fmt.Println("Error during application setup, exiting")
@@ -67,9 +73,9 @@ func main() {
 
 	highestBlock := GetHighestBlock(db)
 
-	var startHeight uint64 = 1
+	var startHeight uint64 = startingBlock
 	if highestBlock.Height == 0 {
-		fmt.Println("No blocks indexed, starting at block height 1")
+		fmt.Printf("No blocks indexed, starting at block height from the base configuration %d\n", startHeight)
 	} else {
 		fmt.Println("Found highest indexed block", highestBlock.Height)
 		startHeight = highestBlock.Height + 1
@@ -88,7 +94,7 @@ func main() {
 		height, err := strconv.ParseUint(result.Block.BlockHeader.Height, 10, 64)
 		fmt.Println("Found block with height", result.Block.BlockHeader.Height)
 
-		newBlock := Blocks{Height: height}
+		newBlock := Block{Height: height}
 
 		time.Sleep(time.Second)
 
@@ -104,9 +110,11 @@ func main() {
 				os.Exit(1)
 			}
 
+			fmt.Printf("Block has %s transcations\n", result.Pagination.Total)
+
 			for i, v := range result.Txs {
 
-				//tx data and tx_response data are split, combine into 1
+				//tx data and tx_response data are split into 2 arrays in the json, combine into 1 using the corresponding index
 				var currTx SingleTx
 
 				currTxResponse := result.TxResponses[i]
@@ -121,12 +129,14 @@ func main() {
 
 		}
 
-		//do one db storage request at end of requests
+		//do one db storage block at end of requests so request errors don't leave data in a bad state
 		db.Create(&newBlock)
 
 		for _, tx := range currTxs {
 			IndexNewTx(db, tx, newBlock)
 		}
+
+		fmt.Printf("Finished indexing block %d\n", currBlock)
 
 	}
 }
