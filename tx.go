@@ -2,25 +2,33 @@ package main
 
 import (
 	"fmt"
+	"sync"
 	"time"
 )
 
 func ProcessTxs(block Block, responseTxs []TxStruct, responseTxResponses []TxResponseStruct) []Tx {
-	var currTxs []Tx
+	var currTxs = make([]Tx, len(responseTxs))
+	wg := sync.WaitGroup{}
+
 	for i, v := range responseTxs {
-
-		//tx data and tx_response data are split into 2 arrays in the json, combine into 1 using the corresponding index
-		var currTx MergedTx
-
 		currTxResponse := responseTxResponses[i]
+		wg.Add(1)
 
-		currTx.TxResponse = currTxResponse
-		currTx.Tx = v
+		go func(index int, tx TxStruct, txResponse TxResponseStruct) {
+			defer wg.Done()
+			//tx data and tx_response data are split into 2 arrays in the json, combine into 1 using the corresponding index
+			var currTx MergedTx
 
-		tx := ProcessTx(currTx, block)
-		currTxs = append(currTxs, tx)
+			currTx.TxResponse = currTxResponse
+			currTx.Tx = tx
+
+			currTxs[index] = ProcessTx(currTx, block)
+
+		}(i, v, currTxResponse)
+
 	}
 
+	wg.Wait()
 	return currTxs
 }
 
