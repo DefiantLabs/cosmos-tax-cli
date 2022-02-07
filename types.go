@@ -23,6 +23,12 @@ type BlockHeader struct {
 	Height string `json:"height"`
 }
 
+type GetTxByBlockHeightResponse struct {
+	Txs         []TxStruct         `json:"txs"`
+	TxResponses []TxResponseStruct `json:"tx_responses"`
+	Pagination  Pagination         `json:"pagination"`
+}
+
 type TxStruct struct {
 	Body       TxBody     `json:"body"`
 	AuthInfo   TxAuthInfo `json:"auth_info"`
@@ -54,18 +60,13 @@ type TxFeeAmount struct {
 	Amount string `json:"amount"`
 }
 
-type GetTxByBlockHeightResponse struct {
-	Txs         []TxStruct         `json:"txs"`
-	TxResponses []TxResponseStruct `json:"tx_responses"`
-	Pagination  Pagination         `json:"pagination"`
-}
-
 type Pagination struct {
 	NextKey string `json:"next_key"`
 	Total   string `json:"total"`
 }
 
-type SingleTx struct {
+//In the json, TX data is split into 2 arrays, used to merge the full dataset
+type MergedTx struct {
 	Tx         TxStruct
 	TxResponse TxResponseStruct
 }

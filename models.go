@@ -13,6 +13,13 @@ type Tx struct {
 	Hash      string
 	Fees      string
 	//foreign key relation between blocks and txs
-	BlocksId int
-	Blocks   Block
+	BlockId int
+	Block   Block
+	//Many to Many relation for multiple addresses found in tx
+	Addresses []Address `gorm:"many2many:tx_addresses;"`
+}
+
+type Address struct {
+	ID      uint
+	Address string
 }

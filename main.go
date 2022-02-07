@@ -104,8 +104,6 @@ func main() {
 	for ; ; currBlock++ {
 
 		//need to sleep for a bit to wait for next block to be indexed
-		//could do the following instead? when highest block reached, subscribe to
-		//new block event on node and start indexing that way instead
 		if currBlock == latestBlock {
 			for {
 				resp, err := GetLatestBlock(apiHost)
@@ -147,7 +145,7 @@ func main() {
 
 		time.Sleep(time.Second)
 
-		var currTxs []SingleTx
+		var currTxs []Tx
 
 		if len(result.Block.BlockData.Txs) == 0 {
 			fmt.Println("Block has no transactions")
@@ -161,29 +159,13 @@ func main() {
 
 			fmt.Printf("Block has %s transcation(s)\n", result.Pagination.Total)
 
-			for i, v := range result.Txs {
-
-				//tx data and tx_response data are split into 2 arrays in the json, combine into 1 using the corresponding index
-				var currTx SingleTx
-
-				currTxResponse := result.TxResponses[i]
-
-				currTx.TxResponse = currTxResponse
-				currTx.Tx = v
-
-				currTxs = append(currTxs, currTx)
-			}
+			currTxs = ProcessTxs(newBlock, result.Txs, result.TxResponses)
 
 			time.Sleep(time.Second)
 
 		}
 
-		//do one db storage block at end of requests so request errors don't leave data in a bad state
-		db.Create(&newBlock)
-
-		for _, tx := range currTxs {
-			IndexNewTx(db, tx, newBlock)
-		}
+		IndexNewBlock(db, newBlock, currTxs)
 
 		fmt.Printf("Finished indexing block %d\n", currBlock)
 

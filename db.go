@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"time"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -29,22 +28,20 @@ func GetHighestIndexedBlock(db *gorm.DB) Block {
 	return block
 }
 
-func IndexNewTx(db *gorm.DB, tx SingleTx, block Block) {
-	timeStamp, _ := time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
-
-	var fees string = ""
-
-	//can be multiple fees, make comma delimited list of fees
-	//should consider separate table?
-	numFees := len(tx.Tx.AuthInfo.TxFee.TxFeeAmount)
-	for i, fee := range tx.Tx.AuthInfo.TxFee.TxFeeAmount {
-		newFee := fmt.Sprintf("%s%s", fee.Amount, fee.Denom)
-		if i+1 != numFees {
-			newFee = newFee + ","
+func IndexNewBlock(db *gorm.DB, block Block, txs []Tx) {
+	db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&block).Error; err != nil {
+			// return any error will rollback
+			return err
 		}
-		fees = fees + newFee
-	}
 
-	newTx := Tx{TimeStamp: timeStamp, Hash: tx.TxResponse.TxHash, Fees: fees, Blocks: block}
-	db.Create(&newTx)
+		for _, transaction := range txs {
+			if err := tx.Create(&transaction).Error; err != nil {
+				// return any error will rollback
+				return err
+			}
+		}
+
+		return nil
+	})
 }
