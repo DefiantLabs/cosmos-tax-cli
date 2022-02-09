@@ -28,16 +28,27 @@ func GetHighestIndexedBlock(db *gorm.DB) Block {
 	return block
 }
 
-func IndexNewBlock(db *gorm.DB, block Block, txs []Tx) {
-	db.Transaction(func(tx *gorm.DB) error {
+func IndexNewBlock(db *gorm.DB, block Block, txs []Tx, addresses [][]Address) error {
+	// return any error will rollback
+	return db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&block).Error; err != nil {
-			// return any error will rollback
 			return err
 		}
 
-		for _, transaction := range txs {
-			if err := tx.Create(&transaction).Error; err != nil {
-				// return any error will rollback
+		for i, _ := range txs {
+			for ii, _ := range addresses[i] {
+				if err := db.Where(&addresses[i][ii]).FirstOrCreate(&addresses[i][ii]).Error; err != nil {
+					return err
+				}
+			}
+
+			txs[i].Block = block
+			txs[i].Addresses = addresses[i]
+
+		}
+
+		if len(txs) != 0 {
+			if err := tx.Create(txs).Error; err != nil {
 				return err
 			}
 		}

@@ -39,7 +39,8 @@ type TxResponseStruct struct {
 	TxHash    string `json:"txhash"`
 	Height    string `json:"height"`
 	TimeStamp string `json:"timestamp"`
-	Code      int    `json:"code"`
+	Code      int64  `json:"code"`
+	RawLog    string `json:"raw_log"`
 }
 
 type TxBody struct {

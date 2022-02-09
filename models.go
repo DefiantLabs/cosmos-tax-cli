@@ -4,14 +4,15 @@ import "time"
 
 type Block struct {
 	ID     uint
-	Height uint64
+	Height uint64 `gorm:"uniqueIndex"`
 }
 
 type Tx struct {
 	ID        uint
 	TimeStamp time.Time
-	Hash      string
+	Hash      string `gorm:"uniqueIndex"`
 	Fees      string
+	Code      int64
 	//foreign key relation between blocks and txs
 	BlockId int
 	Block   Block
@@ -21,5 +22,5 @@ type Tx struct {
 
 type Address struct {
 	ID      uint
-	Address string
+	Address string `gorm:"uniqueIndex"`
 }

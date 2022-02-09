@@ -51,6 +51,7 @@ func setup() (string, *gorm.DB, uint64, error) {
 		return "", nil, 1, err
 	}
 
+	setupAddressRegex("juno(valoper)?1[a-z0-9]{38}")
 	//run database migrations at every runtime
 	MigrateModels(db)
 
@@ -146,6 +147,7 @@ func main() {
 		time.Sleep(time.Second)
 
 		var currTxs []Tx
+		var currAddress [][]Address
 
 		if len(result.Block.BlockData.Txs) == 0 {
 			fmt.Println("Block has no transactions")
@@ -159,13 +161,18 @@ func main() {
 
 			fmt.Printf("Block has %s transcation(s)\n", result.Pagination.Total)
 
-			currTxs = ProcessTxs(newBlock, result.Txs, result.TxResponses)
+			currTxs, currAddress = ProcessTxs(result.Txs, result.TxResponses)
 
 			time.Sleep(time.Second)
 
 		}
 
-		IndexNewBlock(db, newBlock, currTxs)
+		err = IndexNewBlock(db, newBlock, currTxs, currAddress)
+
+		if err != nil {
+			fmt.Println("Error indexing block", err)
+			os.Exit(1)
+		}
 
 		fmt.Printf("Finished indexing block %d\n", currBlock)
 
