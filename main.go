@@ -146,8 +146,7 @@ func main() {
 
 		time.Sleep(time.Second)
 
-		var currTxs []Tx
-		var currAddress [][]Address
+		var txsWithAddresses []TxWithAddresses
 
 		if len(result.Block.BlockData.Txs) == 0 {
 			fmt.Println("Block has no transactions")
@@ -161,13 +160,13 @@ func main() {
 
 			fmt.Printf("Block has %s transcation(s)\n", result.Pagination.Total)
 
-			currTxs, currAddress = ProcessTxs(result.Txs, result.TxResponses)
+			txsWithAddresses = ProcessTxs(result.Txs, result.TxResponses)
 
 			time.Sleep(time.Second)
 
 		}
 
-		err = IndexNewBlock(db, newBlock, currTxs, currAddress)
+		err = IndexNewBlock(db, newBlock, txsWithAddresses)
 
 		if err != nil {
 			fmt.Println("Error indexing block", err)

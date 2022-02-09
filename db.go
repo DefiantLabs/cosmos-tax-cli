@@ -18,6 +18,7 @@ func MigrateModels(db *gorm.DB) error {
 	return db.AutoMigrate(
 		&Block{},
 		&Tx{},
+		&Address{},
 	)
 }
 
@@ -28,29 +29,27 @@ func GetHighestIndexedBlock(db *gorm.DB) Block {
 	return block
 }
 
-func IndexNewBlock(db *gorm.DB, block Block, txs []Tx, addresses [][]Address) error {
+func IndexNewBlock(db *gorm.DB, block Block, txs []TxWithAddresses) error {
 	// return any error will rollback
-	return db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(&block).Error; err != nil {
+	return db.Transaction(func(dbTransaction *gorm.DB) error {
+		if err := dbTransaction.Create(&block).Error; err != nil {
 			return err
 		}
 
-		for i, _ := range txs {
-			for ii, _ := range addresses[i] {
-				if err := db.Where(&addresses[i][ii]).FirstOrCreate(&addresses[i][ii]).Error; err != nil {
+		for _, transaction := range txs {
+			for i, _ := range transaction.Addresses {
+				if err := dbTransaction.Where(&transaction.Addresses[i]).FirstOrCreate(&transaction.Addresses[i]).Error; err != nil {
 					return err
 				}
 			}
 
-			txs[i].Block = block
-			txs[i].Addresses = addresses[i]
+			transaction.Tx.Block = block
+			transaction.Tx.Addresses = transaction.Addresses
 
-		}
-
-		if len(txs) != 0 {
-			if err := tx.Create(txs).Error; err != nil {
+			if err := dbTransaction.Create(&transaction.Tx).Error; err != nil {
 				return err
 			}
+
 		}
 
 		return nil

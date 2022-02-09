@@ -6,37 +6,42 @@ import (
 	"time"
 )
 
-func ProcessTxs(responseTxs []TxStruct, responseTxResponses []TxResponseStruct) ([]Tx, [][]Address) {
-	var currTxs = make([]Tx, len(responseTxs))
-	var currTxsAddresses = make([][]Address, len(responseTxs))
+type TxWithAddresses struct {
+	Tx        Tx
+	Addresses []Address
+}
+
+func ProcessTxs(responseTxs []TxStruct, responseTxResponses []TxResponseStruct) []TxWithAddresses {
+	var currTxsWithAddresses = make([]TxWithAddresses, len(responseTxs))
 	wg := sync.WaitGroup{}
 
-	for i, v := range responseTxs {
+	for i, currTx := range responseTxs {
 		currTxResponse := responseTxResponses[i]
 		wg.Add(1)
 
 		go func(index int, tx TxStruct, txResponse TxResponseStruct) {
 			defer wg.Done()
 			//tx data and tx_response data are split into 2 arrays in the json, combine into 1 using the corresponding index
-			var currTx MergedTx
+			var mergedTx MergedTx
+			mergedTx.TxResponse = currTxResponse
+			mergedTx.Tx = tx
 
-			currTx.TxResponse = currTxResponse
-			currTx.Tx = tx
+			processedTx := ProcessTx(mergedTx)
 
-			currTxs[index] = ProcessTx(currTx)
-			txAddresses := ExtractTransactionAddresses(currTx)
+			txAddresses := ExtractTransactionAddresses(mergedTx)
 			var currAddresses = make([]Address, len(txAddresses))
-			for ii, vv := range txAddresses {
-				currAddresses[ii] = Address{Address: vv}
+			for ii, address := range txAddresses {
+				currAddresses[ii] = Address{Address: address}
 			}
-			currTxsAddresses[index] = currAddresses
 
-		}(i, v, currTxResponse)
+			currTxsWithAddresses[index] = TxWithAddresses{Tx: processedTx, Addresses: currAddresses}
+
+		}(i, currTx, currTxResponse)
 
 	}
 
 	wg.Wait()
-	return currTxs, currTxsAddresses
+	return currTxsWithAddresses
 }
 
 func ProcessTx(tx MergedTx) Tx {
