@@ -37,6 +37,7 @@ func IndexNewBlock(db *gorm.DB, block Block, txs []TxWithAddresses) error {
 		}
 
 		for _, transaction := range txs {
+			//viewing gorm logs shows this gets translated into a single ON CONFLICT DO NOTHING RETURNING "id"
 			for i, _ := range transaction.Addresses {
 				if err := dbTransaction.Where(&transaction.Addresses[i]).FirstOrCreate(&transaction.Addresses[i]).Error; err != nil {
 					return err
