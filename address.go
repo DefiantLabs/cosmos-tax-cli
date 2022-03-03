@@ -11,9 +11,10 @@ func setupAddressRegex(addressRegexPattern string) {
 }
 
 func ExtractTransactionAddresses(tx MergedTx) []string {
-	//TODO: Need to walk messages blocks and extract addresses
+	messagesAddresses := WalkFindStrings(tx.Tx.Body.Messages, addressRegex)
 	//Consider walking logs - needs benchmarking compared to whole string search on raw log
-	addresses := addressRegex.FindAllString(tx.TxResponse.RawLog, -1)
+	logAddresses := addressRegex.FindAllString(tx.TxResponse.RawLog, -1)
+	addresses := append(messagesAddresses, logAddresses...)
 	addressMap := make(map[string]string)
 	for _, v := range addresses {
 		addressMap[v] = ""
