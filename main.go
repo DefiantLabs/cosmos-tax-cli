@@ -139,8 +139,8 @@ func main() {
 		}
 
 		//consider optimizing by using block variable instead of parsing out (dangers?)
-		height, err := strconv.ParseUint(result.Block.BlockHeader.Height, 10, 64)
-		fmt.Println("Found block with height", result.Block.BlockHeader.Height)
+		height, _ := strconv.ParseUint(result.Block.BlockHeader.Height, 10, 64)
+		//fmt.Println("Found block with height", result.Block.BlockHeader.Height)
 
 		newBlock := Block{Height: height}
 
@@ -149,7 +149,7 @@ func main() {
 		var txsWithAddresses []TxWithAddresses
 
 		if len(result.Block.BlockData.Txs) == 0 {
-			fmt.Println("Block has no transactions")
+			//fmt.Println("Block has no transactions")
 		} else {
 
 			result, err := GetTxsByBlockHeight(apiHost, newBlock.Height)
@@ -158,7 +158,7 @@ func main() {
 				os.Exit(1)
 			}
 
-			fmt.Printf("Block has %s transcation(s)\n", result.Pagination.Total)
+			fmt.Printf("Block %d has %s transaction(s)\n", height, result.Pagination.Total)
 
 			txsWithAddresses = ProcessTxs(result.Txs, result.TxResponses)
 
@@ -169,11 +169,11 @@ func main() {
 		err = IndexNewBlock(db, newBlock, txsWithAddresses)
 
 		if err != nil {
-			fmt.Println("Error indexing block", err)
+			fmt.Printf("Error %s indexing block %d\n", err, height)
 			os.Exit(1)
 		}
 
-		fmt.Printf("Finished indexing block %d\n", currBlock)
+		//fmt.Printf("Finished indexing block %d\n", currBlock)
 
 	}
 }

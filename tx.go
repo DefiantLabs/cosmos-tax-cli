@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 type TxWithAddresses struct {
@@ -46,6 +48,11 @@ func ProcessTxs(responseTxs []TxStruct, responseTxResponses []TxResponseStruct) 
 
 func ProcessTx(tx MergedTx) Tx {
 	timeStamp, _ := time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
+	for _, message := range tx.Tx.Body.Messages {
+		println("------------------MESSAGE FORMAT FOLLOWS:---------------- \n\n")
+		spew.Dump(message)
+		println("\n------------------END MESSAGE----------------------\n")
+	}
 
 	fees := ProcessFees(tx.Tx.AuthInfo.TxFee.TxFeeAmount)
 	code := tx.TxResponse.Code
