@@ -1,3 +1,4 @@
 config.toml
 cosmos-exporter
 env
+vendor/
