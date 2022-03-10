@@ -6,13 +6,12 @@ import (
 	"time"
 
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-
 	"github.com/davecgh/go-spew/spew"
 )
 
-type TxWithAddresses struct {
-	Tx        Tx
-	Addresses []Address
+type TxWithAddress struct {
+	Tx            Tx
+	SignerAddress Address
 }
 
 //MessageEnvelope Allows delayed parsing with RawMessage type.
@@ -59,14 +58,20 @@ func ParseCosmosMessageJSON(input []byte) (CosmosMessage, error) {
 		return nil, err
 	}
 
-	msg := messageTypeHandler[cosmosMessage.Type]()
-	msg.CosmUnmarshal(cosmosMessage.Type, []byte(input))
+	//check to see if type has a handler before executing the handler function
+	msgHandler, found := messageTypeHandler[cosmosMessage.Type]
+	if found {
+		msg := msgHandler()
+		msg.CosmUnmarshal(cosmosMessage.Type, []byte(input))
+		return msg, nil
+	}
 
-	return msg, nil
+	//what should we do here? Return a cosmosmessage that just contains the type maybe?
+	return nil, nil
 }
 
-func ProcessTxs(responseTxs []TxStruct, responseTxResponses []TxResponseStruct) []TxWithAddresses {
-	var currTxsWithAddresses = make([]TxWithAddresses, len(responseTxs))
+func ProcessTxs(responseTxs []TxStruct, responseTxResponses []TxResponseStruct) []TxWithAddress {
+	var currTxsWithAddresses = make([]TxWithAddress, len(responseTxs))
 	//wg := sync.WaitGroup{}
 
 	for i, currTx := range responseTxs {
@@ -88,7 +93,10 @@ func ProcessTxs(responseTxs []TxStruct, responseTxResponses []TxResponseStruct) 
 			currAddresses[ii] = Address{Address: address}
 		}
 
-		currTxsWithAddresses[i] = TxWithAddresses{Tx: processedTx, Addresses: currAddresses}
+		//TODO: Convert public key to signer address, but how?
+		signer := Address{Address: ""}
+
+		currTxsWithAddresses[i] = TxWithAddress{Tx: processedTx, SignerAddress: signer}
 
 		//}(i, currTx, currTxResponse)
 

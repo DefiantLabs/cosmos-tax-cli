@@ -8,18 +8,38 @@ type Block struct {
 }
 
 type Tx struct {
-	ID        uint
-	TimeStamp time.Time
-	Hash      string `gorm:"uniqueIndex"`
-	Fees      string
-	Code      int64
-	BlockId   int
-	Block     Block
-	Addresses []Address `gorm:"many2many:tx_addresses;"`
+	ID              uint
+	TimeStamp       time.Time
+	Hash            string `gorm:"uniqueIndex"`
+	Fees            string
+	Code            int64
+	BlockId         uint
+	Block           Block
+	SignerAddressId *int //int pointer allows foreign key to be null
+	SignerAddress   Address
 }
 
 type Address struct {
 	ID      uint
 	Address string `gorm:"uniqueIndex"`
-	Txes    []Tx   `gorm:"many2many:tx_addresses;"`
+}
+
+type Message struct {
+	ID           uint
+	TxId         uint
+	Tx           Tx
+	MessageType  string
+	MessageIndex int
+}
+
+type TaxableEvent struct {
+	ID                uint
+	MessageId         uint
+	Message           Message
+	Amount            float64
+	Denomination      string
+	SenderAddressId   uint
+	SenderAddress     Address
+	ReceiverAddressId uint
+	ReceiverAddress   Address
 }
