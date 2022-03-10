@@ -19,6 +19,8 @@ func MigrateModels(db *gorm.DB) error {
 		&Block{},
 		&Tx{},
 		&Address{},
+		&Message{},
+		&TaxableEvent{},
 	)
 }
 
@@ -29,7 +31,7 @@ func GetHighestIndexedBlock(db *gorm.DB) Block {
 	return block
 }
 
-func IndexNewBlock(db *gorm.DB, block Block, txs []TxWithAddresses) error {
+func IndexNewBlock(db *gorm.DB, block Block, txs []TxWithAddress) error {
 	// return any error will rollback
 	return db.Transaction(func(dbTransaction *gorm.DB) error {
 		if err := dbTransaction.Create(&block).Error; err != nil {
@@ -38,14 +40,12 @@ func IndexNewBlock(db *gorm.DB, block Block, txs []TxWithAddresses) error {
 
 		for _, transaction := range txs {
 			//viewing gorm logs shows this gets translated into a single ON CONFLICT DO NOTHING RETURNING "id"
-			for i, _ := range transaction.Addresses {
-				if err := dbTransaction.Where(&transaction.Addresses[i]).FirstOrCreate(&transaction.Addresses[i]).Error; err != nil {
-					return err
-				}
+			if err := dbTransaction.Where(&transaction.SignerAddress).FirstOrCreate(&transaction.SignerAddress).Error; err != nil {
+				return err
 			}
 
+			transaction.Tx.SignerAddress = transaction.SignerAddress
 			transaction.Tx.Block = block
-			transaction.Tx.Addresses = transaction.Addresses
 
 			if err := dbTransaction.Create(&transaction.Tx).Error; err != nil {
 				return err

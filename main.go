@@ -146,7 +146,7 @@ func main() {
 
 		time.Sleep(time.Second)
 
-		var txsWithAddresses []TxWithAddresses
+		var txsWithAddresses []TxWithAddress
 
 		if len(result.Block.BlockData.Txs) == 0 {
 			//fmt.Println("Block has no transactions")
