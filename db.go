@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 
+	dbTypes "cosmos-exporter/db"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -16,22 +18,22 @@ func PostgresDbConnect(host string, port string, database string, user string, p
 //MigrateModels runs the gorm automigrations with all the db models. This will migrate as needed and do nothing if nothing has changed.
 func MigrateModels(db *gorm.DB) error {
 	return db.AutoMigrate(
-		&Block{},
-		&Tx{},
-		&Address{},
-		&Message{},
-		&TaxableEvent{},
+		&dbTypes.Block{},
+		&dbTypes.Tx{},
+		&dbTypes.Address{},
+		&dbTypes.Message{},
+		&dbTypes.TaxableEvent{},
 	)
 }
 
-func GetHighestIndexedBlock(db *gorm.DB) Block {
-	var block Block
+func GetHighestIndexedBlock(db *gorm.DB) dbTypes.Block {
+	var block dbTypes.Block
 	//this can potentially be optimized by getting max first and selecting it (this gets translated into a select * limit 1)
 	db.Table("blocks").Order("height desc").First(&block)
 	return block
 }
 
-func IndexNewBlock(db *gorm.DB, block Block, txs []TxWithAddress) error {
+func IndexNewBlock(db *gorm.DB, block dbTypes.Block, txs []dbTypes.TxWithAddress) error {
 	// return any error will rollback
 	return db.Transaction(func(dbTransaction *gorm.DB) error {
 		if err := dbTransaction.Create(&block).Error; err != nil {

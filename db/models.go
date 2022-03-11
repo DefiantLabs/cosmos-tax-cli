@@ -1,4 +1,4 @@
-package main
+package db
 
 import "time"
 
@@ -42,4 +42,9 @@ type TaxableEvent struct {
 	SenderAddress     Address
 	ReceiverAddressId uint
 	ReceiverAddress   Address
+}
+
+type TxWithAddress struct {
+	Tx            Tx
+	SignerAddress Address
 }

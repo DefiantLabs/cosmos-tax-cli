@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"time"
 
+	dbTypes "cosmos-exporter/db"
+
 	"gorm.io/gorm"
 )
 
@@ -146,11 +148,11 @@ func main() {
 		height, _ := strconv.ParseUint(result.Block.BlockHeader.Height, 10, 64)
 		//fmt.Println("Found block with height", result.Block.BlockHeader.Height)
 
-		newBlock := Block{Height: height}
+		newBlock := dbTypes.Block{Height: height}
 
 		time.Sleep(time.Second)
 
-		var txsWithAddresses []TxWithAddress
+		var txsWithAddresses []dbTypes.TxWithAddress
 
 		if len(result.Block.BlockData.Txs) == 0 {
 			//fmt.Println("Block has no transactions")

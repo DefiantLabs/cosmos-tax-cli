@@ -1,188 +1,28 @@
 package main
 
 import (
+	bank "cosmos-exporter/cosmos/modules/bank"
+	staking "cosmos-exporter/cosmos/modules/staking"
+	txTypes "cosmos-exporter/cosmos/modules/tx"
+	dbTypes "cosmos-exporter/db"
 	"encoding/json"
 	"fmt"
 	"time"
-
-	stdTypes "github.com/cosmos/cosmos-sdk/types"
-	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	distTypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 )
 
-type TxWithAddress struct {
-	Tx            Tx
-	SignerAddress Address
-}
-
-//MessageEnvelope Allows delayed parsing with RawMessage type.
-//see http://eagain.net/articles/go-json-kind/ and https://golang.org/pkg/encoding/json/#RawMessage
-type MessageEnvelope struct {
-	Type string `json:"@type"`
-}
-
-type WrapperMsgWithdrawValidatorCommission struct {
-	Type                                 string `json:"@type"`
-	CosmosMsgWithdrawValidatorCommission distTypes.MsgWithdrawValidatorCommission
-	DelegatorReceiverAddress             string
-	CoinsReceived                        stdTypes.Coin
-}
-
-type WrapperMsgWithdrawDelegatorReward struct {
-	Type                             string `json:"@type"`
-	CosmosMsgWithdrawDelegatorReward distTypes.MsgWithdrawDelegatorReward
-	CoinsReceived                    stdTypes.Coin
-}
-
-type WrapperMsgSend struct {
-	Type          string `json:"@type"`
-	CosmosMsgSend bankTypes.MsgSend
-}
-
-func (sf *WrapperMsgSend) GetType() string {
-	return sf.Type
-}
-
-func (sf *WrapperMsgWithdrawDelegatorReward) GetType() string {
-	return sf.Type
-}
-
-func (sf *WrapperMsgWithdrawValidatorCommission) GetType() string {
-	return sf.Type
-}
-
-//CosmUnmarshal(): Unmarshal JSON for MsgSend.
-//Note that MsgSend ignores the TxLogMessage because it isn't needed.
-func (sf *WrapperMsgSend) CosmUnmarshal(msgType string, raw []byte, log *TxLogMessage) error {
-	sf.Type = msgType
-	if err := json.Unmarshal(raw, &sf.CosmosMsgSend); err != nil {
-		fmt.Println("Error parsing message: " + err.Error())
-		return err
-	}
-
-	return nil
-}
-
-func (sf *WrapperMsgSend) String() string {
-	return fmt.Sprintf("MsgSend: Address %s received %s from %s \n",
-		sf.CosmosMsgSend.ToAddress, sf.CosmosMsgSend.Amount, sf.CosmosMsgSend.FromAddress)
-}
-
-func (sf *WrapperMsgWithdrawDelegatorReward) String() string {
-	return fmt.Sprintf("MsgWithdrawDelegatorReward: Delegator %s received %s\n",
-		sf.CosmosMsgWithdrawDelegatorReward.DelegatorAddress, sf.CoinsReceived)
-}
-
-func (sf *WrapperMsgWithdrawValidatorCommission) String() string {
-	return fmt.Sprintf("WrapperMsgWithdrawValidatorCommission: Validator %s commission withdrawn. Delegator %s received %s\n",
-		sf.CosmosMsgWithdrawValidatorCommission.ValidatorAddress, sf.DelegatorReceiverAddress, sf.CoinsReceived)
-}
-
-//CosmUnmarshal(): Unmarshal JSON for MsgWithdrawDelegatorReward
-func (sf *WrapperMsgWithdrawValidatorCommission) CosmUnmarshal(msgType string, raw []byte, log *TxLogMessage) error {
-	sf.Type = msgType
-	if err := json.Unmarshal(raw, &sf.CosmosMsgWithdrawValidatorCommission); err != nil {
-		fmt.Println("Error parsing message: " + err.Error())
-		return err
-	}
-
-	//Confirm that the action listed in the message log matches the Message type
-	valid_log := IsMessageActionEquals(sf.GetType(), log)
-	if !valid_log {
-		return &MessageLogFormatError{message_type: msgType, log: fmt.Sprintf("%+v", log)}
-	}
-
-	//The attribute in the log message that shows you the delegator withdrawal address and amount received
-	delegatorReceivedCoinsEvt := GetEventWithType(bankTypes.EventTypeCoinReceived, log)
-	if delegatorReceivedCoinsEvt == nil {
-		return &MessageLogFormatError{message_type: msgType, log: fmt.Sprintf("%+v", log)}
-	}
-
-	sf.DelegatorReceiverAddress = GetValueForAttribute(bankTypes.AttributeKeyReceiver, delegatorReceivedCoinsEvt)
-	coins_received := GetValueForAttribute("amount", delegatorReceivedCoinsEvt)
-	coin, err := stdTypes.ParseCoinNormalized(coins_received)
-	if err != nil {
-		return err
-	}
-
-	sf.CoinsReceived = coin
-	return err
-}
-
-//CosmUnmarshal(): Unmarshal JSON for MsgWithdrawDelegatorReward
-func (sf *WrapperMsgWithdrawDelegatorReward) CosmUnmarshal(msgType string, raw []byte, log *TxLogMessage) error {
-	sf.Type = msgType
-	if err := json.Unmarshal(raw, &sf.CosmosMsgWithdrawDelegatorReward); err != nil {
-		fmt.Println("Error parsing message: " + err.Error())
-		return err
-	}
-
-	//Confirm that the action listed in the message log matches the Message type
-	valid_log := IsMessageActionEquals(sf.GetType(), log)
-	if !valid_log {
-		return &MessageLogFormatError{message_type: msgType, log: fmt.Sprintf("%+v", log)}
-	}
-
-	//The attribute in the log message that shows you the delegator withdrawal address and amount received
-	delegatorReceivedCoinsEvt := GetEventWithType(bankTypes.EventTypeCoinReceived, log)
-	if delegatorReceivedCoinsEvt == nil {
-		return &MessageLogFormatError{message_type: msgType, log: fmt.Sprintf("%+v", log)}
-	}
-
-	delegator_address := GetValueForAttribute(bankTypes.AttributeKeyReceiver, delegatorReceivedCoinsEvt)
-	coins_received := GetValueForAttribute("amount", delegatorReceivedCoinsEvt)
-	coin, err := stdTypes.ParseCoinNormalized(coins_received)
-	if err != nil {
-		return err
-	}
-	if sf.CosmosMsgWithdrawDelegatorReward.DelegatorAddress != delegator_address {
-		return fmt.Errorf("transaction delegator address %s does not match log event '%s' delegator address %s",
-			sf.CosmosMsgWithdrawDelegatorReward.DelegatorAddress, bankTypes.EventTypeCoinReceived, delegator_address)
-	}
-
-	sf.CoinsReceived = coin
-	return err
-}
-
-//CosmosMessage represents a Cosmos blockchain Message (part of a transaction).
-//CosmUnmarshal() unmarshals the specific cosmos message type (e.g. MsgSend).
-//First arg must always be the message type itself, as this won't be parsed in CosmUnmarshal.
-type CosmosMessage interface {
-	CosmUnmarshal(string, []byte, *TxLogMessage) error
-	GetType() string
-	String() string
-}
-
-type UnknownMessageError struct {
-	messageType string
-}
-
-func (e *UnknownMessageError) Error() string {
-	return fmt.Sprintf("No message handler for message type '%s'\n", e.messageType)
-}
-
-type MessageLogFormatError struct {
-	log          string
-	message_type string
-}
-
-func (e *MessageLogFormatError) Error() string {
-	return fmt.Sprintf("Type: %s could not handle message log %s\n", e.message_type, e.log)
-}
-
 //Unmarshal JSON to a particular type.
-var messageTypeHandler = map[string]func() CosmosMessage{
-	"/cosmos.bank.v1beta1.MsgSend":                                func() CosmosMessage { return &WrapperMsgSend{} },
-	"/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward":     func() CosmosMessage { return &WrapperMsgWithdrawDelegatorReward{} },
-	"/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission": func() CosmosMessage { return &WrapperMsgWithdrawValidatorCommission{} },
+var messageTypeHandler = map[string]func() txTypes.CosmosMessage{
+	"/cosmos.bank.v1beta1.MsgSend":                                func() txTypes.CosmosMessage { return &bank.WrapperMsgSend{} },
+	"/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward":     func() txTypes.CosmosMessage { return &staking.WrapperMsgWithdrawDelegatorReward{} },
+	"/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission": func() txTypes.CosmosMessage { return &staking.WrapperMsgWithdrawValidatorCommission{} },
 }
 
 //ParseCosmosMessageJSON - Parse a SINGLE Cosmos Message into the appropriate type.
-func ParseCosmosMessageJSON(input []byte, log *TxLogMessage) (CosmosMessage, error) {
+func ParseCosmosMessageJSON(input []byte, log *txTypes.TxLogMessage) (txTypes.CosmosMessage, error) {
 	//Figure out what type of Message this is based on the '@type' field that is included
 	//in every Cosmos Message (can be seen in raw JSON for any cosmos transaction).
-	var msg CosmosMessage
-	cosmosMessage := MessageEnvelope{}
+	var msg txTypes.CosmosMessage
+	cosmosMessage := txTypes.Message{}
 	if err := json.Unmarshal([]byte(input), &cosmosMessage); err != nil {
 		fmt.Printf("Error parsing Cosmos message: %v\n", err)
 		return nil, err
@@ -192,7 +32,7 @@ func ParseCosmosMessageJSON(input []byte, log *TxLogMessage) (CosmosMessage, err
 	if msgHandlerFunc, ok := messageTypeHandler[cosmosMessage.Type]; ok {
 		msg = msgHandlerFunc()
 	} else {
-		return nil, &UnknownMessageError{messageType: cosmosMessage.Type}
+		return nil, &txTypes.UnknownMessageError{MessageType: cosmosMessage.Type}
 	}
 
 	//Unmarshal the rest of the JSON now that we know the specific type.
@@ -201,8 +41,8 @@ func ParseCosmosMessageJSON(input []byte, log *TxLogMessage) (CosmosMessage, err
 	return msg, nil
 }
 
-func ProcessTxs(responseTxs []TxStruct, responseTxResponses []TxResponseStruct) []TxWithAddress {
-	var currTxsWithAddresses = make([]TxWithAddress, len(responseTxs))
+func ProcessTxs(responseTxs []txTypes.TxStruct, responseTxResponses []txTypes.TxResponseStruct) []dbTypes.TxWithAddress {
+	var currTxsWithAddresses = make([]dbTypes.TxWithAddress, len(responseTxs))
 	//wg := sync.WaitGroup{}
 
 	for i, currTx := range responseTxs {
@@ -212,19 +52,19 @@ func ProcessTxs(responseTxs []TxStruct, responseTxResponses []TxResponseStruct) 
 		//go func(i int, currTx TxStruct, txResponse TxResponseStruct) {
 		//	defer wg.Done()
 		//tx data and tx_response data are split into 2 arrays in the json, combine into 1 using the corresponding index
-		var mergedTx MergedTx
+		var mergedTx txTypes.MergedTx
 		mergedTx.TxResponse = currTxResponse
 		mergedTx.Tx = currTx
 
 		processedTx := ProcessTx(mergedTx)
 
 		txAddresses := ExtractTransactionAddresses(mergedTx)
-		var currAddresses = make([]Address, len(txAddresses))
+		var currAddresses = make([]dbTypes.Address, len(txAddresses))
 		for ii, address := range txAddresses {
-			currAddresses[ii] = Address{Address: address}
+			currAddresses[ii] = dbTypes.Address{Address: address}
 		}
 
-		var signer Address
+		var signer dbTypes.Address
 
 		//TODO: Pass in key type (may be able to split from Type PublicKey)
 		//TODO: Signers is an array, need a many to many for the signers in the model
@@ -236,7 +76,7 @@ func ProcessTxs(responseTxs []TxStruct, responseTxResponses []TxResponseStruct) 
 			signer.Address = signerAddress
 		}
 
-		currTxsWithAddresses[i] = TxWithAddress{Tx: processedTx, SignerAddress: signer}
+		currTxsWithAddresses[i] = dbTypes.TxWithAddress{Tx: processedTx, SignerAddress: signer}
 
 	}
 
@@ -244,56 +84,11 @@ func ProcessTxs(responseTxs []TxStruct, responseTxResponses []TxResponseStruct) 
 	return currTxsWithAddresses
 }
 
-func GetMessageLogForIndex(logs []TxLogMessage, index int) *TxLogMessage {
-	for _, log := range logs {
-		if log.MessageIndex == index {
-			return &log
-		}
-	}
-
-	return nil
-}
-
-func GetEventWithType(event_type string, msg *TxLogMessage) *LogMessageEvent {
-	for _, log_event := range msg.Events {
-		if log_event.Type == event_type {
-			return &log_event
-		}
-	}
-
-	return nil
-}
-
-func GetValueForAttribute(key string, evt *LogMessageEvent) string {
-	for _, attr := range evt.Attributes {
-		if attr.Key == key {
-			return attr.Value
-		}
-	}
-
-	return ""
-}
-
-func IsMessageActionEquals(message_type string, msg *TxLogMessage) bool {
-	log_event := GetEventWithType("message", msg)
-	if log_event == nil {
-		return false
-	}
-
-	for _, attr := range log_event.Attributes {
-		if attr.Key == "action" {
-			return attr.Value == message_type
-		}
-	}
-
-	return false
-}
-
-func ProcessTx(tx MergedTx) Tx {
+func ProcessTx(tx txTypes.MergedTx) dbTypes.Tx {
 	timeStamp, _ := time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
 	for messageIndex, message := range tx.Tx.Body.Messages {
 		//Get the message log that corresponds to the current message
-		messageLog := GetMessageLogForIndex(tx.TxResponse.Log, messageIndex)
+		messageLog := txTypes.GetMessageLogForIndex(tx.TxResponse.Log, messageIndex)
 		jsonString, _ := json.Marshal(message)
 		cosmosMessage, err := ParseCosmosMessageJSON(jsonString, messageLog)
 
@@ -311,11 +106,11 @@ func ProcessTx(tx MergedTx) Tx {
 
 	fees := ProcessFees(tx.Tx.AuthInfo.TxFee.TxFeeAmount)
 	code := tx.TxResponse.Code
-	return Tx{TimeStamp: timeStamp, Hash: tx.TxResponse.TxHash, Fees: fees, Code: code}
+	return dbTypes.Tx{TimeStamp: timeStamp, Hash: tx.TxResponse.TxHash, Fees: fees, Code: code}
 }
 
 //ProcessFees returns a comma delimited list of fee amount/denoms
-func ProcessFees(txFees []TxFeeAmount) string {
+func ProcessFees(txFees []txTypes.TxFeeAmount) string {
 
 	//can be multiple fees, make comma delimited list of fees
 	//should consider separate table?

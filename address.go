@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"regexp"
 
+	tx "cosmos-exporter/cosmos/modules/tx"
+
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
@@ -25,7 +27,7 @@ func setupAddressPrefix(addressPrefixString string) {
 	addressPrefix = addressPrefixString
 }
 
-func ExtractTransactionAddresses(tx MergedTx) []string {
+func ExtractTransactionAddresses(tx tx.MergedTx) []string {
 	messagesAddresses := WalkFindStrings(tx.Tx.Body.Messages, addressRegex)
 	//Consider walking logs - needs benchmarking compared to whole string search on raw log
 	logAddresses := addressRegex.FindAllString(tx.TxResponse.RawLog, -1)

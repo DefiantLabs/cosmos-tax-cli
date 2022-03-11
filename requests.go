@@ -1,6 +1,7 @@
 package main
 
 import (
+	tx "cosmos-exporter/cosmos/modules/tx"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,9 +16,9 @@ var apiEndpoints = map[string]string{
 }
 
 //GetBlockByHeight makes a request to the Cosmos REST API to get a block by height
-func GetBlockByHeight(host string, height uint64) (GetBlockByHeightResponse, error) {
+func GetBlockByHeight(host string, height uint64) (tx.GetBlockByHeightResponse, error) {
 
-	var result GetBlockByHeightResponse
+	var result tx.GetBlockByHeightResponse
 
 	requestEndpoint := fmt.Sprintf(apiEndpoints["blocks_endpoint"], height)
 
@@ -49,9 +50,9 @@ func GetBlockByHeight(host string, height uint64) (GetBlockByHeightResponse, err
 }
 
 //GetTxsByBlockHeight makes a request to the Cosmos REST API and returns all the transactions for a specific block
-func GetTxsByBlockHeight(host string, height uint64) (GetTxByBlockHeightResponse, error) {
+func GetTxsByBlockHeight(host string, height uint64) (tx.GetTxByBlockHeightResponse, error) {
 
-	var result GetTxByBlockHeightResponse
+	var result tx.GetTxByBlockHeightResponse
 
 	requestEndpoint := fmt.Sprintf(apiEndpoints["txs_by_block_height_endpoint"], height)
 
@@ -85,9 +86,9 @@ func GetTxsByBlockHeight(host string, height uint64) (GetTxByBlockHeightResponse
 	return result, nil
 }
 
-func GetLatestBlock(host string) (GetLatestBlockResponse, error) {
+func GetLatestBlock(host string) (tx.GetLatestBlockResponse, error) {
 
-	var result GetLatestBlockResponse
+	var result tx.GetLatestBlockResponse
 
 	requestEndpoint := apiEndpoints["latest_block_endpoint"]
 

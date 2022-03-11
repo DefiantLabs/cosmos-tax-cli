@@ -46,8 +46,6 @@ junod tx distribution withdraw-rewards junovaloper128taw6wkhfq29u83lmh5qyfv8nff6
 # After waiting a while and collecting rewards with the command above, you will always see > 750000000 when you run the query bank balances command.
 junod query bank balances juno128taw6wkhfq29u83lmh5qyfv8nff6h0w577vsy --chain-id testing
 
-
-
 junod query distribution rewards juno1mt72y3jny20456k247tc5gf2dnat76l4ynvqwl $VALOPER_ADDRESS
 junod query distribution commission $VALOPER_ADDRESS
 junod query distribution rewards $TEST_USER_ADDRESS $VALOPER_ADDRESS
