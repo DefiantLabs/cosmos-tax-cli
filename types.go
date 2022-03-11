@@ -1,7 +1,5 @@
 package main
 
-import "encoding/json"
-
 //TODO: Clean up types
 type GetBlockByHeightResponse struct {
 	BlockId BlockId       `json:"block_id"`
@@ -70,8 +68,18 @@ type TxResponseStruct struct {
 // This struct just parses the KNOWN fields and leaves the other fields as raw JSON.
 // More specific type parsers for each message type can parse those fields if they choose to.
 type TxLogMessage struct {
-	MessageIndex int             `json:"msg_index"`
-	Events       json.RawMessage `json:"events"`
+	MessageIndex int               `json:"msg_index"`
+	Events       []LogMessageEvent `json:"events"`
+}
+
+type Attribute struct {
+	Key   string
+	Value string
+}
+
+type LogMessageEvent struct {
+	Type       string      `json:"type"`
+	Attributes []Attribute `json:"attributes"`
 }
 
 type TxBody struct {

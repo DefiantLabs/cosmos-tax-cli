@@ -7,7 +7,6 @@ import (
 
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	distTypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
-	"github.com/davecgh/go-spew/spew"
 )
 
 type TxWithAddress struct {
@@ -31,6 +30,14 @@ type WrapperMsgSend struct {
 	CosmosMsgSend bankTypes.MsgSend
 }
 
+func (sf *WrapperMsgSend) GetType() string {
+	return sf.Type
+}
+
+func (sf *WrapperMsgWithdrawDelegatorReward) GetType() string {
+	return sf.Type
+}
+
 //CosmUnmarshal(): Unmarshal JSON for MsgSend.
 //Note that MsgSend ignores the TxLogMessage because it isn't needed.
 func (sf *WrapperMsgSend) CosmUnmarshal(msgType string, raw []byte, log *TxLogMessage) error {
@@ -39,6 +46,7 @@ func (sf *WrapperMsgSend) CosmUnmarshal(msgType string, raw []byte, log *TxLogMe
 		fmt.Println("Error parsing message: " + err.Error())
 		return err
 	}
+
 	return nil
 }
 
@@ -49,6 +57,24 @@ func (sf *WrapperMsgWithdrawDelegatorReward) CosmUnmarshal(msgType string, raw [
 		fmt.Println("Error parsing message: " + err.Error())
 		return err
 	}
+
+	//Confirm that the action listed in the message log matches the Message type
+	valid_log := IsMessageActionEquals(sf.GetType(), log)
+	if !valid_log {
+		return &MessageLogFormatError{message_type: msgType, log: fmt.Sprintf("%+v", log)}
+	}
+
+	//The attribute in the log message that shows you the delegator withdrawal address and amount received
+	delegatorRewardLogAttr := "coin_received"
+	delegatorReceivedCoinsEvt := GetEventWithType(delegatorRewardLogAttr, log)
+	if delegatorReceivedCoinsEvt == nil {
+		return &MessageLogFormatError{message_type: msgType, log: fmt.Sprintf("%+v", log)}
+	}
+
+	delegator_address := GetValueForAttribute("receiver", delegatorReceivedCoinsEvt)
+	coins_received := GetValueForAttribute("amount", delegatorReceivedCoinsEvt)
+	fmt.Printf("MsgWithdrawDelegatorReward. Delegator %s received %s", delegator_address, coins_received)
+
 	return nil
 }
 
@@ -57,6 +83,7 @@ func (sf *WrapperMsgWithdrawDelegatorReward) CosmUnmarshal(msgType string, raw [
 //First arg must always be the message type itself, as this won't be parsed in CosmUnmarshal.
 type CosmosMessage interface {
 	CosmUnmarshal(string, []byte, *TxLogMessage) error
+	GetType() string
 }
 
 type UnknownMessageError struct {
@@ -64,7 +91,16 @@ type UnknownMessageError struct {
 }
 
 func (e *UnknownMessageError) Error() string {
-	return fmt.Sprintf("Unknown message type %s\n", e.messageType)
+	return fmt.Sprintf("Unhandled message type %s\n", e.messageType)
+}
+
+type MessageLogFormatError struct {
+	log          string
+	message_type string
+}
+
+func (e *MessageLogFormatError) Error() string {
+	return fmt.Sprintf("Type: %s could not handle message log %s\n", e.message_type, e.log)
 }
 
 //Unmarshal JSON to a particular type.
@@ -150,6 +186,41 @@ func GetMessageLogForIndex(logs []TxLogMessage, index int) *TxLogMessage {
 	return nil
 }
 
+func GetEventWithType(event_type string, msg *TxLogMessage) *LogMessageEvent {
+	for _, log_event := range msg.Events {
+		if log_event.Type == event_type {
+			return &log_event
+		}
+	}
+
+	return nil
+}
+
+func GetValueForAttribute(key string, evt *LogMessageEvent) string {
+	for _, attr := range evt.Attributes {
+		if attr.Key == key {
+			return attr.Value
+		}
+	}
+
+	return ""
+}
+
+func IsMessageActionEquals(message_type string, msg *TxLogMessage) bool {
+	log_event := GetEventWithType("message", msg)
+	if log_event == nil {
+		return false
+	}
+
+	for _, attr := range log_event.Attributes {
+		if attr.Key == "action" {
+			return attr.Value == message_type
+		}
+	}
+
+	return false
+}
+
 func ProcessTx(tx MergedTx) Tx {
 	timeStamp, _ := time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
 	for messageIndex, message := range tx.Tx.Body.Messages {
@@ -157,14 +228,15 @@ func ProcessTx(tx MergedTx) Tx {
 		messageLog := GetMessageLogForIndex(tx.TxResponse.Log, messageIndex)
 		jsonString, _ := json.Marshal(message)
 		cosmosMessage, err := ParseCosmosMessageJSON(jsonString, messageLog)
+
 		if err == nil {
 			fmt.Printf("Cosmos message of known type: %+v", cosmosMessage)
 			println(tx.TxResponse.Log)
 		} else {
 			println(err)
-			println("------------------Cosmos message parsing failed. MESSAGE FORMAT FOLLOWS:---------------- \n\n")
-			spew.Dump(message)
-			println("\n------------------END MESSAGE----------------------\n")
+			//println("------------------Cosmos message parsing failed. MESSAGE FORMAT FOLLOWS:---------------- \n\n")
+			//spew.Dump(message)
+			//println("\n------------------END MESSAGE----------------------\n")
 		}
 
 	}
