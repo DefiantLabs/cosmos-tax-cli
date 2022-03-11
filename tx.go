@@ -6,6 +6,7 @@ import (
 	"time"
 
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	distTypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -20,15 +21,31 @@ type MessageEnvelope struct {
 	Type string `json:"@type"`
 }
 
+type WrapperMsgWithdrawDelegatorReward struct {
+	Type                             string `json:"@type"`
+	CosmosMsgWithdrawDelegatorReward distTypes.MsgWithdrawDelegatorReward
+}
+
 type WrapperMsgSend struct {
 	Type          string `json:"@type"`
 	CosmosMsgSend bankTypes.MsgSend
 }
 
-//CosmUnmarshal(): Unmarshal JSON for MsgSend
-func (sf *WrapperMsgSend) CosmUnmarshal(msgType string, raw []byte) error {
+//CosmUnmarshal(): Unmarshal JSON for MsgSend.
+//Note that MsgSend ignores the TxLogMessage because it isn't needed.
+func (sf *WrapperMsgSend) CosmUnmarshal(msgType string, raw []byte, log TxLogMessage) error {
 	sf.Type = msgType
 	if err := json.Unmarshal(raw, &sf.CosmosMsgSend); err != nil {
+		fmt.Println("Error parsing message: " + err.Error())
+		return err
+	}
+	return nil
+}
+
+//CosmUnmarshal(): Unmarshal JSON for MsgWithdrawDelegatorReward
+func (sf *WrapperMsgWithdrawDelegatorReward) CosmUnmarshal(msgType string, raw []byte, log TxLogMessage) error {
+	sf.Type = msgType
+	if err := json.Unmarshal(raw, &sf.CosmosMsgWithdrawDelegatorReward); err != nil {
 		fmt.Println("Error parsing message: " + err.Error())
 		return err
 	}
@@ -39,35 +56,45 @@ func (sf *WrapperMsgSend) CosmUnmarshal(msgType string, raw []byte) error {
 //CosmUnmarshal() unmarshals the specific cosmos message type (e.g. MsgSend).
 //First arg must always be the message type itself, as this won't be parsed in CosmUnmarshal.
 type CosmosMessage interface {
-	CosmUnmarshal(string, []byte) error
+	CosmUnmarshal(string, []byte, TxLogMessage) error
+}
+
+type UnknownMessageError struct {
+	messageType string
+}
+
+func (e *UnknownMessageError) Error() string {
+	return fmt.Sprintf("Unknown message type %s\n", e.messageType)
 }
 
 //Unmarshal JSON to a particular type.
 var messageTypeHandler = map[string]func() CosmosMessage{
-	"/cosmos.bank.v1beta1.MsgSend": func() CosmosMessage { return &WrapperMsgSend{} },
+	"/cosmos.bank.v1beta1.MsgSend":                            func() CosmosMessage { return &WrapperMsgSend{} },
+	"/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward": func() CosmosMessage { return &WrapperMsgWithdrawDelegatorReward{} },
 }
 
-//ParseCosmosMessageJSON - Parse a single Cosmos Message into the appropriate type.
-func ParseCosmosMessageJSON(input []byte) (CosmosMessage, error) {
-
-	//We start with the SINGLE cosmos message. If a transaction has multiple messages,
-	//you must call ParseCosmosMessageJSON multiple times, once per message.
+//ParseCosmosMessageJSON - Parse a SINGLE Cosmos Message into the appropriate type.
+func ParseCosmosMessageJSON(input []byte, log TxLogMessage) (CosmosMessage, error) {
+	//Figure out what type of Message this is based on the '@type' field that is included
+	//in every Cosmos Message (can be seen in raw JSON for any cosmos transaction).
+	var msg CosmosMessage
 	cosmosMessage := MessageEnvelope{}
 	if err := json.Unmarshal([]byte(input), &cosmosMessage); err != nil {
 		fmt.Printf("Error parsing Cosmos message: %v\n", err)
 		return nil, err
 	}
 
-	//check to see if type has a handler before executing the handler function
-	msgHandler, found := messageTypeHandler[cosmosMessage.Type]
-	if found {
-		msg := msgHandler()
-		msg.CosmUnmarshal(cosmosMessage.Type, []byte(input))
-		return msg, nil
+	//So far we only parsed the '@type' field. Now we get a struct for that specific type.
+	if msgHandlerFunc, ok := messageTypeHandler[cosmosMessage.Type]; ok {
+		msg = msgHandlerFunc()
+	} else {
+		return nil, &UnknownMessageError{messageType: cosmosMessage.Type}
 	}
 
-	//what should we do here? Return a cosmosmessage that just contains the type maybe?
-	return nil, nil
+	//Unmarshal the rest of the JSON now that we know the specific type.
+	//Note that depending on the type, it may or may not care about logs.
+	msg.CosmUnmarshal(cosmosMessage.Type, []byte(input), log)
+	return msg, nil
 }
 
 func ProcessTxs(responseTxs []TxStruct, responseTxResponses []TxResponseStruct) []TxWithAddress {
@@ -106,14 +133,28 @@ func ProcessTxs(responseTxs []TxStruct, responseTxResponses []TxResponseStruct) 
 	return currTxsWithAddresses
 }
 
+func GetMessageLogForIndex(logs []TxLogMessage, index int) *TxLogMessage {
+	for _, log := range logs {
+		if log.MessageIndex == index {
+			return &log
+		}
+	}
+
+	return nil
+}
+
 func ProcessTx(tx MergedTx) Tx {
 	timeStamp, _ := time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
-	for _, message := range tx.Tx.Body.Messages {
+	for messageIndex, message := range tx.Tx.Body.Messages {
+		//Get the message log that corresponds to the current message
+		messageLog := GetMessageLogForIndex(tx.TxResponse.Log, messageIndex)
 		jsonString, _ := json.Marshal(message)
-		cosmosMessage, err := ParseCosmosMessageJSON(jsonString)
-		if err != nil {
-			fmt.Printf("Cosmos message: %+v", cosmosMessage)
+		cosmosMessage, err := ParseCosmosMessageJSON(jsonString, messageLog)
+		if err == nil {
+			fmt.Printf("Cosmos message of known type: %+v", cosmosMessage)
+			println(tx.TxResponse.Log)
 		} else {
+			println(err)
 			println("------------------Cosmos message parsing failed. MESSAGE FORMAT FOLLOWS:---------------- \n\n")
 			spew.Dump(message)
 			println("\n------------------END MESSAGE----------------------\n")
