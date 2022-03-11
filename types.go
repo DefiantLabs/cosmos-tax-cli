@@ -48,7 +48,8 @@ type TxBody struct {
 }
 
 type TxAuthInfo struct {
-	TxFee TxFee `json:"fee"`
+	TxFee         TxFee          `json:"fee"`
+	TxSignerInfos []TxSignerInfo `json:"signer_infos"`
 }
 
 type TxFee struct {
@@ -59,6 +60,15 @@ type TxFee struct {
 type TxFeeAmount struct {
 	Denom  string `json:"denom"`
 	Amount string `json:"amount"`
+}
+
+type TxSignerInfo struct {
+	PublicKey PublicKey `json:"public_key"`
+}
+
+type PublicKey struct {
+	Type string `json:"@type"`
+	Key  string `json:"key"`
 }
 
 type Pagination struct {
