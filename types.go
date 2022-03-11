@@ -1,5 +1,7 @@
 package main
 
+import "encoding/json"
+
 //TODO: Clean up types
 type GetBlockByHeightResponse struct {
 	BlockId BlockId       `json:"block_id"`
@@ -36,11 +38,40 @@ type TxStruct struct {
 }
 
 type TxResponseStruct struct {
-	TxHash    string `json:"txhash"`
-	Height    string `json:"height"`
-	TimeStamp string `json:"timestamp"`
-	Code      int64  `json:"code"`
-	RawLog    string `json:"raw_log"`
+	TxHash    string         `json:"txhash"`
+	Height    string         `json:"height"`
+	TimeStamp string         `json:"timestamp"`
+	Code      int64          `json:"code"`
+	RawLog    string         `json:"raw_log"`
+	Log       []TxLogMessage `json:"logs"`
+}
+
+// TxLogMessage:
+// Cosmos blockchains return Transactions with an array of "logs" e.g.
+//
+// "logs": [
+//	{
+//		"msg_index": 0,
+//		"events": [
+//		  {
+//			"type": "coin_received",
+//			"attributes": [
+//			  {
+//				"key": "receiver",
+//				"value": "juno128taw6wkhfq29u83lmh5qyfv8nff6h0w577vsy"
+//			  }, ...
+//			]
+//		  } ...
+//
+// The individual log always has a msg_index corresponding to the Message from the Transaction.
+// But the events are specific to each Message type, for example MsgSend might be different from
+// any other message type.
+//
+// This struct just parses the KNOWN fields and leaves the other fields as raw JSON.
+// More specific type parsers for each message type can parse those fields if they choose to.
+type TxLogMessage struct {
+	MessageIndex int             `json:"msg_index"`
+	Events       json.RawMessage `json:"events"`
 }
 
 type TxBody struct {

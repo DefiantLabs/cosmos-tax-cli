@@ -70,6 +70,7 @@ func GetTxsByBlockHeight(host string, height uint64) (GetTxByBlockHeightResponse
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
+	fmt.Println(string(body))
 
 	if err != nil {
 		return result, err

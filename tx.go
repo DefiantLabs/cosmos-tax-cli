@@ -33,7 +33,7 @@ type WrapperMsgSend struct {
 
 //CosmUnmarshal(): Unmarshal JSON for MsgSend.
 //Note that MsgSend ignores the TxLogMessage because it isn't needed.
-func (sf *WrapperMsgSend) CosmUnmarshal(msgType string, raw []byte, log TxLogMessage) error {
+func (sf *WrapperMsgSend) CosmUnmarshal(msgType string, raw []byte, log *TxLogMessage) error {
 	sf.Type = msgType
 	if err := json.Unmarshal(raw, &sf.CosmosMsgSend); err != nil {
 		fmt.Println("Error parsing message: " + err.Error())
@@ -43,7 +43,7 @@ func (sf *WrapperMsgSend) CosmUnmarshal(msgType string, raw []byte, log TxLogMes
 }
 
 //CosmUnmarshal(): Unmarshal JSON for MsgWithdrawDelegatorReward
-func (sf *WrapperMsgWithdrawDelegatorReward) CosmUnmarshal(msgType string, raw []byte, log TxLogMessage) error {
+func (sf *WrapperMsgWithdrawDelegatorReward) CosmUnmarshal(msgType string, raw []byte, log *TxLogMessage) error {
 	sf.Type = msgType
 	if err := json.Unmarshal(raw, &sf.CosmosMsgWithdrawDelegatorReward); err != nil {
 		fmt.Println("Error parsing message: " + err.Error())
@@ -56,7 +56,7 @@ func (sf *WrapperMsgWithdrawDelegatorReward) CosmUnmarshal(msgType string, raw [
 //CosmUnmarshal() unmarshals the specific cosmos message type (e.g. MsgSend).
 //First arg must always be the message type itself, as this won't be parsed in CosmUnmarshal.
 type CosmosMessage interface {
-	CosmUnmarshal(string, []byte, TxLogMessage) error
+	CosmUnmarshal(string, []byte, *TxLogMessage) error
 }
 
 type UnknownMessageError struct {
@@ -74,7 +74,7 @@ var messageTypeHandler = map[string]func() CosmosMessage{
 }
 
 //ParseCosmosMessageJSON - Parse a SINGLE Cosmos Message into the appropriate type.
-func ParseCosmosMessageJSON(input []byte, log TxLogMessage) (CosmosMessage, error) {
+func ParseCosmosMessageJSON(input []byte, log *TxLogMessage) (CosmosMessage, error) {
 	//Figure out what type of Message this is based on the '@type' field that is included
 	//in every Cosmos Message (can be seen in raw JSON for any cosmos transaction).
 	var msg CosmosMessage
@@ -133,8 +133,6 @@ func ProcessTxs(responseTxs []TxStruct, responseTxResponses []TxResponseStruct) 
 		}
 
 		currTxsWithAddresses[i] = TxWithAddress{Tx: processedTx, SignerAddress: signer}
-
-		//}(i, currTx, currTxResponse)
 
 	}
 
