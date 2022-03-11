@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	stdTypes "github.com/cosmos/cosmos-sdk/types"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	distTypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 )
@@ -23,6 +24,7 @@ type MessageEnvelope struct {
 type WrapperMsgWithdrawDelegatorReward struct {
 	Type                             string `json:"@type"`
 	CosmosMsgWithdrawDelegatorReward distTypes.MsgWithdrawDelegatorReward
+	CoinsReceived                    stdTypes.Coin
 }
 
 type WrapperMsgSend struct {
@@ -50,6 +52,16 @@ func (sf *WrapperMsgSend) CosmUnmarshal(msgType string, raw []byte, log *TxLogMe
 	return nil
 }
 
+func (sf *WrapperMsgSend) String() string {
+	return fmt.Sprintf("MsgSend: Address %s received %s from %s \n",
+		sf.CosmosMsgSend.ToAddress, sf.CosmosMsgSend.Amount, sf.CosmosMsgSend.FromAddress)
+}
+
+func (sf *WrapperMsgWithdrawDelegatorReward) String() string {
+	return fmt.Sprintf("MsgWithdrawDelegatorReward: Delegator %s received %s\n",
+		sf.CosmosMsgWithdrawDelegatorReward.DelegatorAddress, sf.CoinsReceived)
+}
+
 //CosmUnmarshal(): Unmarshal JSON for MsgWithdrawDelegatorReward
 func (sf *WrapperMsgWithdrawDelegatorReward) CosmUnmarshal(msgType string, raw []byte, log *TxLogMessage) error {
 	sf.Type = msgType
@@ -65,17 +77,24 @@ func (sf *WrapperMsgWithdrawDelegatorReward) CosmUnmarshal(msgType string, raw [
 	}
 
 	//The attribute in the log message that shows you the delegator withdrawal address and amount received
-	delegatorRewardLogAttr := "coin_received"
-	delegatorReceivedCoinsEvt := GetEventWithType(delegatorRewardLogAttr, log)
+	delegatorReceivedCoinsEvt := GetEventWithType(bankTypes.EventTypeCoinReceived, log)
 	if delegatorReceivedCoinsEvt == nil {
 		return &MessageLogFormatError{message_type: msgType, log: fmt.Sprintf("%+v", log)}
 	}
 
-	delegator_address := GetValueForAttribute("receiver", delegatorReceivedCoinsEvt)
+	delegator_address := GetValueForAttribute(bankTypes.AttributeKeyReceiver, delegatorReceivedCoinsEvt)
 	coins_received := GetValueForAttribute("amount", delegatorReceivedCoinsEvt)
-	fmt.Printf("MsgWithdrawDelegatorReward. Delegator %s received %s", delegator_address, coins_received)
+	coin, err := stdTypes.ParseCoinNormalized(coins_received)
+	if err != nil {
+		return err
+	}
+	if sf.CosmosMsgWithdrawDelegatorReward.DelegatorAddress != delegator_address {
+		return fmt.Errorf("transaction delegator address %s does not match log event '%s' delegator address %s",
+			sf.CosmosMsgWithdrawDelegatorReward.DelegatorAddress, bankTypes.EventTypeCoinReceived, delegator_address)
+	}
 
-	return nil
+	sf.CoinsReceived = coin
+	return err
 }
 
 //CosmosMessage represents a Cosmos blockchain Message (part of a transaction).
@@ -84,6 +103,7 @@ func (sf *WrapperMsgWithdrawDelegatorReward) CosmUnmarshal(msgType string, raw [
 type CosmosMessage interface {
 	CosmUnmarshal(string, []byte, *TxLogMessage) error
 	GetType() string
+	String() string
 }
 
 type UnknownMessageError struct {
@@ -91,7 +111,7 @@ type UnknownMessageError struct {
 }
 
 func (e *UnknownMessageError) Error() string {
-	return fmt.Sprintf("Unhandled message type %s\n", e.messageType)
+	return fmt.Sprintf("No message handler for message type '%s'\n", e.messageType)
 }
 
 type MessageLogFormatError struct {
@@ -230,10 +250,10 @@ func ProcessTx(tx MergedTx) Tx {
 		cosmosMessage, err := ParseCosmosMessageJSON(jsonString, messageLog)
 
 		if err == nil {
-			fmt.Printf("Cosmos message of known type: %+v", cosmosMessage)
-			println(tx.TxResponse.Log)
+			fmt.Printf("Cosmos message of known type: %s", cosmosMessage)
+			//println(tx.TxResponse.Log)
 		} else {
-			println(err)
+			println(err.Error())
 			//println("------------------Cosmos message parsing failed. MESSAGE FORMAT FOLLOWS:---------------- \n\n")
 			//spew.Dump(message)
 			//println("\n------------------END MESSAGE----------------------\n")
