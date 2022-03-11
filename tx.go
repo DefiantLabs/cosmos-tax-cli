@@ -21,6 +21,13 @@ type MessageEnvelope struct {
 	Type string `json:"@type"`
 }
 
+type WrapperMsgWithdrawValidatorCommission struct {
+	Type                                 string `json:"@type"`
+	CosmosMsgWithdrawValidatorCommission distTypes.MsgWithdrawValidatorCommission
+	DelegatorReceiverAddress             string
+	CoinsReceived                        stdTypes.Coin
+}
+
 type WrapperMsgWithdrawDelegatorReward struct {
 	Type                             string `json:"@type"`
 	CosmosMsgWithdrawDelegatorReward distTypes.MsgWithdrawDelegatorReward
@@ -37,6 +44,10 @@ func (sf *WrapperMsgSend) GetType() string {
 }
 
 func (sf *WrapperMsgWithdrawDelegatorReward) GetType() string {
+	return sf.Type
+}
+
+func (sf *WrapperMsgWithdrawValidatorCommission) GetType() string {
 	return sf.Type
 }
 
@@ -60,6 +71,42 @@ func (sf *WrapperMsgSend) String() string {
 func (sf *WrapperMsgWithdrawDelegatorReward) String() string {
 	return fmt.Sprintf("MsgWithdrawDelegatorReward: Delegator %s received %s\n",
 		sf.CosmosMsgWithdrawDelegatorReward.DelegatorAddress, sf.CoinsReceived)
+}
+
+func (sf *WrapperMsgWithdrawValidatorCommission) String() string {
+	return fmt.Sprintf("WrapperMsgWithdrawValidatorCommission: Validator %s commission withdrawn. Delegator %s received %s\n",
+		sf.CosmosMsgWithdrawValidatorCommission.ValidatorAddress, sf.DelegatorReceiverAddress, sf.CoinsReceived)
+}
+
+//CosmUnmarshal(): Unmarshal JSON for MsgWithdrawDelegatorReward
+func (sf *WrapperMsgWithdrawValidatorCommission) CosmUnmarshal(msgType string, raw []byte, log *TxLogMessage) error {
+	sf.Type = msgType
+	if err := json.Unmarshal(raw, &sf.CosmosMsgWithdrawValidatorCommission); err != nil {
+		fmt.Println("Error parsing message: " + err.Error())
+		return err
+	}
+
+	//Confirm that the action listed in the message log matches the Message type
+	valid_log := IsMessageActionEquals(sf.GetType(), log)
+	if !valid_log {
+		return &MessageLogFormatError{message_type: msgType, log: fmt.Sprintf("%+v", log)}
+	}
+
+	//The attribute in the log message that shows you the delegator withdrawal address and amount received
+	delegatorReceivedCoinsEvt := GetEventWithType(bankTypes.EventTypeCoinReceived, log)
+	if delegatorReceivedCoinsEvt == nil {
+		return &MessageLogFormatError{message_type: msgType, log: fmt.Sprintf("%+v", log)}
+	}
+
+	sf.DelegatorReceiverAddress = GetValueForAttribute(bankTypes.AttributeKeyReceiver, delegatorReceivedCoinsEvt)
+	coins_received := GetValueForAttribute("amount", delegatorReceivedCoinsEvt)
+	coin, err := stdTypes.ParseCoinNormalized(coins_received)
+	if err != nil {
+		return err
+	}
+
+	sf.CoinsReceived = coin
+	return err
 }
 
 //CosmUnmarshal(): Unmarshal JSON for MsgWithdrawDelegatorReward
@@ -125,8 +172,9 @@ func (e *MessageLogFormatError) Error() string {
 
 //Unmarshal JSON to a particular type.
 var messageTypeHandler = map[string]func() CosmosMessage{
-	"/cosmos.bank.v1beta1.MsgSend":                            func() CosmosMessage { return &WrapperMsgSend{} },
-	"/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward": func() CosmosMessage { return &WrapperMsgWithdrawDelegatorReward{} },
+	"/cosmos.bank.v1beta1.MsgSend":                                func() CosmosMessage { return &WrapperMsgSend{} },
+	"/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward":     func() CosmosMessage { return &WrapperMsgWithdrawDelegatorReward{} },
+	"/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission": func() CosmosMessage { return &WrapperMsgWithdrawValidatorCommission{} },
 }
 
 //ParseCosmosMessageJSON - Parse a SINGLE Cosmos Message into the appropriate type.
