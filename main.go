@@ -51,7 +51,11 @@ func setup() (string, *gorm.DB, uint64, error) {
 		return "", nil, 1, err
 	}
 
+	//TODO: create config values for the prefixes here
+	//Could potentially check Node info at startup and pass in ourselves?
 	setupAddressRegex("juno(valoper)?1[a-z0-9]{38}")
+	setupAddressPrefix("juno")
+
 	//run database migrations at every runtime
 	MigrateModels(db)
 

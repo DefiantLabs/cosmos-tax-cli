@@ -93,8 +93,17 @@ func ProcessTxs(responseTxs []TxStruct, responseTxResponses []TxResponseStruct) 
 			currAddresses[ii] = Address{Address: address}
 		}
 
-		//TODO: Convert public key to signer address, but how?
-		signer := Address{Address: ""}
+		var signer Address
+
+		//TODO: Pass in key type (may be able to split from Type PublicKey)
+		//TODO: Signers is an array, need a many to many for the signers in the model
+		signerAddress, err := ParseSignerAddress(currTx.AuthInfo.TxSignerInfos[0].PublicKey.Key, "")
+
+		if err != nil {
+			signer.Address = ""
+		} else {
+			signer.Address = signerAddress
+		}
 
 		currTxsWithAddresses[i] = TxWithAddress{Tx: processedTx, SignerAddress: signer}
 
