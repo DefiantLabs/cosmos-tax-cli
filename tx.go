@@ -58,11 +58,12 @@ func ProcessTxs(responseTxs []txTypes.TxStruct, responseTxResponses []txTypes.Tx
 
 		processedTx := ProcessTx(mergedTx)
 
-		txAddresses := ExtractTransactionAddresses(mergedTx)
-		var currAddresses = make([]dbTypes.Address, len(txAddresses))
-		for ii, address := range txAddresses {
-			currAddresses[ii] = dbTypes.Address{Address: address}
-		}
+		//This is being reworked
+		// txAddresses := ExtractTransactionAddresses(mergedTx)
+		// var currAddresses = make([]dbTypes.Address, len(txAddresses))
+		// for ii, address := range txAddresses {
+		// 	currAddresses[ii] = dbTypes.Address{Address: address}
+		// }
 
 		var signer dbTypes.Address
 
@@ -76,36 +77,71 @@ func ProcessTxs(responseTxs []txTypes.TxStruct, responseTxResponses []txTypes.Tx
 			signer.Address = signerAddress
 		}
 
-		currTxDbWrappers[i] = dbTypes.TxDBWrapper{Tx: processedTx, SignerAddress: signer}
+		processedTx.SignerAddress = signer
+
+		currTxDbWrappers[i] = processedTx
 	}
 
 	//wg.Wait()
 	return currTxDbWrappers
 }
 
-func ProcessTx(tx txTypes.MergedTx) dbTypes.Tx {
+func ProcessTx(tx txTypes.MergedTx) dbTypes.TxDBWrapper {
+
+	var txDBWapper dbTypes.TxDBWrapper
+
 	timeStamp, _ := time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
+
+	var messages []dbTypes.MessageDBWrapper
 	for messageIndex, message := range tx.Tx.Body.Messages {
+		var currMessage dbTypes.Message
+		currMessage.MessageIndex = messageIndex
+
 		//Get the message log that corresponds to the current message
 		messageLog := txTypes.GetMessageLogForIndex(tx.TxResponse.Log, messageIndex)
 		jsonString, _ := json.Marshal(message)
 		cosmosMessage, err := ParseCosmosMessageJSON(jsonString, messageLog)
 
+		var currMessageDBWrapper dbTypes.MessageDBWrapper
 		if err == nil {
 			fmt.Printf("Cosmos message of known type: %s", cosmosMessage)
+			currMessage.MessageType = cosmosMessage.GetType()
+			currMessageDBWrapper.Message = currMessage
+
+			//TODO: add TaxableEvent parsing for each type
+			currMessageDBWrapper.TaxableEvents = []dbTypes.TaxableEvent{}
+			messages = append(messages, currMessageDBWrapper)
+
 			//println(tx.TxResponse.Log)
 		} else {
 			println(err.Error())
+
+			//type cast on error allows getting message type if it was parsed correctly
+			re, ok := err.(*txTypes.UnknownMessageError)
+			if ok {
+				currMessage.MessageType = re.Type()
+				currMessageDBWrapper.Message = currMessage
+				messages = append(messages, currMessageDBWrapper)
+			} else {
+				//What should we do here? This is an actual error during parsing
+			}
+
 			//println("------------------Cosmos message parsing failed. MESSAGE FORMAT FOLLOWS:---------------- \n\n")
 			//spew.Dump(message)
 			//println("\n------------------END MESSAGE----------------------\n")
 		}
 
+		messages = append(messages, currMessageDBWrapper)
+
 	}
 
 	fees := ProcessFees(tx.Tx.AuthInfo.TxFee.TxFeeAmount)
 	code := tx.TxResponse.Code
-	return dbTypes.Tx{TimeStamp: timeStamp, Hash: tx.TxResponse.TxHash, Fees: fees, Code: code}
+
+	txDBWapper.Tx = dbTypes.Tx{TimeStamp: timeStamp, Hash: tx.TxResponse.TxHash, Fees: fees, Code: code}
+	txDBWapper.Messages = messages
+
+	return txDBWapper
 }
 
 //ProcessFees returns a comma delimited list of fee amount/denoms

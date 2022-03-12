@@ -10,6 +10,10 @@ func (e *UnknownMessageError) Error() string {
 	return fmt.Sprintf("No message handler for message type '%s'\n", e.MessageType)
 }
 
+func (e *UnknownMessageError) Type() string {
+	return e.MessageType
+}
+
 type MessageLogFormatError struct {
 	Log         string
 	MessageType string

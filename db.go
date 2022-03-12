@@ -34,23 +34,50 @@ func GetHighestIndexedBlock(db *gorm.DB) dbTypes.Block {
 }
 
 func IndexNewBlock(db *gorm.DB, block dbTypes.Block, txs []dbTypes.TxDBWrapper) error {
-	// return any error will rollback
+
+	//consider optimizing the transaction, but how? Ordering matters due to foreign key constraints
+	//Order required: Block -> (For each Tx: Signer Address -> Tx -> (For each Message: Message -> Taxable Events))
+	//Also, foreign key relations are struct value based so create needs to be called first to get right foreign key ID
 	return db.Transaction(func(dbTransaction *gorm.DB) error {
+		// return any error will rollback
 		if err := dbTransaction.Create(&block).Error; err != nil {
 			return err
 		}
 
 		for _, transaction := range txs {
-			//viewing gorm logs shows this gets translated into a single ON CONFLICT DO NOTHING RETURNING "id"
-			if err := dbTransaction.Where(&transaction.SignerAddress).FirstOrCreate(&transaction.SignerAddress).Error; err != nil {
-				return err
+
+			if transaction.SignerAddress.Address != "" {
+				//viewing gorm logs shows this gets translated into a single ON CONFLICT DO NOTHING RETURNING "id"
+				if err := dbTransaction.Where(&transaction.SignerAddress).FirstOrCreate(&transaction.SignerAddress).Error; err != nil {
+					return err
+				}
+				//store created db model in signer address, creates foreign key relation
+				transaction.Tx.SignerAddress = transaction.SignerAddress
+			} else {
+				//store null foreign key relation in signer address id
+				//This should never happen and indicates an error somewhere in parsing
+				//Consider removing?
+				transaction.Tx.SignerAddressId = nil
 			}
 
-			transaction.Tx.SignerAddress = transaction.SignerAddress
 			transaction.Tx.Block = block
 
 			if err := dbTransaction.Create(&transaction.Tx).Error; err != nil {
 				return err
+			}
+
+			for _, message := range transaction.Messages {
+				message.Message.Tx = transaction.Tx
+				if err := dbTransaction.Create(&message.Message).Error; err != nil {
+					return err
+				}
+
+				for _, taxableEvent := range message.TaxableEvents {
+					taxableEvent.Message = message.Message
+					if err := dbTransaction.Create(&taxableEvent).Error; err != nil {
+						return err
+					}
+				}
 			}
 
 		}
