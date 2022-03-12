@@ -7,12 +7,56 @@ import (
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
+
+func GetAddresses(addressList []string, db *gorm.DB) ([]dbTypes.Address, error) {
+	//Look up all DB Addresses that match the search
+	var addresses []dbTypes.Address
+	result := db.Where("address IN ?", addressList).Find(&addresses)
+	fmt.Printf("Found %d addresses in the db\n", result.RowsAffected)
+	if result.Error != nil {
+		fmt.Printf("Error %s searching DB for addresses.\n", result.Error)
+	}
+
+	return addresses, result.Error
+}
+
+func GetTaxableEvents(addressList []string, db *gorm.DB) ([]dbTypes.TaxableEvent, error) {
+	//Look up all DB Addresses that match the search
+	//var addresses []dbTypes.Address
+	//result := db.Where("address IN ?", addressList).Find(&addresses)
+	//fmt.Printf("Found %d addresses in the db\n", result.RowsAffected)
+	//if result.Error != nil {
+	//		fmt.Printf("Error %s searching DB for addresses.\n", result.Error)
+	//}
+
+	//Look up all TaxableEvents, Transactions, and Messages for the addresses
+	var taxableEvents []dbTypes.TaxableEvent
+	//result = db.Joins("Address", db.Where("SenderAddress IN ?", addresses).Or("ReceiverAddress IN ?", addresses)).Find(&taxableEvents)
+	//if result.Error != nil {
+	//	fmt.Printf("Error %s searching DB for taxable events.\n", result.Error)
+	//}
+
+	//db.Joins("JOIN emails ON emails.user_id = users.id AND emails.email = ?", "jinzhu@example.org")
+	//.Joins("JOIN credit_cards ON credit_cards.user_id = users.id").Where("credit_cards.number = ?", "411111111111").Find(&user)
+	result := db.Joins("JOIN addresses ON addresses.id = taxable_events.sender_address_id OR addresses.id = taxable_events.receiver_address_id").
+		Where("addresses.address IN ?", addressList).Find(&taxableEvents)
+
+	return taxableEvents, result.Error
+}
 
 //PostgresDbConnect connects to the database according to the passed in parameters
 func PostgresDbConnect(host string, port string, database string, user string, password string) (*gorm.DB, error) {
 	dsn := fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=disable", host, port, database, user, password)
 	return gorm.Open(postgres.Open(dsn), &gorm.Config{})
+}
+
+//PostgresDbConnect connects to the database according to the passed in parameters
+func PostgresDbConnectLogInfo(host string, port string, database string, user string, password string) (*gorm.DB, error) {
+
+	dsn := fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=disable", host, port, database, user, password)
+	return gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Info)})
 }
 
 //MigrateModels runs the gorm automigrations with all the db models. This will migrate as needed and do nothing if nothing has changed.
