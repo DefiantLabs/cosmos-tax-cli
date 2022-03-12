@@ -73,8 +73,30 @@ func IndexNewBlock(db *gorm.DB, block dbTypes.Block, txs []dbTypes.TxDBWrapper) 
 				}
 
 				for _, taxableEvent := range message.TaxableEvents {
-					taxableEvent.Message = message.Message
-					if err := dbTransaction.Create(&taxableEvent).Error; err != nil {
+
+					if taxableEvent.SenderAddress.Address != "" {
+						if err := dbTransaction.Where(&taxableEvent.SenderAddress).FirstOrCreate(&taxableEvent.SenderAddress).Error; err != nil {
+							return err
+						}
+						//store created db model in sender address, creates foreign key relation
+						taxableEvent.TaxableEvent.SenderAddress = taxableEvent.SenderAddress
+					} else {
+						//nil creates null foreign key relation
+						taxableEvent.TaxableEvent.SenderAddressId = nil
+					}
+
+					if taxableEvent.ReceiverAddress.Address != "" {
+						if err := dbTransaction.Where(&taxableEvent.ReceiverAddress).FirstOrCreate(&taxableEvent.ReceiverAddress).Error; err != nil {
+							return err
+						}
+						//store created db model in receiver address, creates foreign key relation
+						taxableEvent.TaxableEvent.ReceiverAddress = taxableEvent.ReceiverAddress
+					} else {
+						//nil creates null foreign key relation
+						taxableEvent.TaxableEvent.ReceiverAddressId = nil
+					}
+					taxableEvent.TaxableEvent.Message = message.Message
+					if err := dbTransaction.Create(&taxableEvent.TaxableEvent).Error; err != nil {
 						return err
 					}
 				}

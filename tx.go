@@ -1,6 +1,7 @@
 package main
 
 import (
+	parsingTypes "cosmos-exporter/cosmos/modules"
 	bank "cosmos-exporter/cosmos/modules/bank"
 	staking "cosmos-exporter/cosmos/modules/staking"
 	txTypes "cosmos-exporter/cosmos/modules/tx"
@@ -92,6 +93,7 @@ func ProcessTx(tx txTypes.MergedTx) dbTypes.TxDBWrapper {
 
 	timeStamp, _ := time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
 
+	//TODO: Pull this out into its own function for easier reading
 	var messages []dbTypes.MessageDBWrapper
 	for messageIndex, message := range tx.Tx.Body.Messages {
 		var currMessage dbTypes.Message
@@ -108,11 +110,23 @@ func ProcessTx(tx txTypes.MergedTx) dbTypes.TxDBWrapper {
 			currMessage.MessageType = cosmosMessage.GetType()
 			currMessageDBWrapper.Message = currMessage
 
-			//TODO: add TaxableEvent parsing for each type
-			currMessageDBWrapper.TaxableEvents = []dbTypes.TaxableEvent{}
+			//TODO: ParseRelevantData may need the logs to get the relevant information, unless we forever do that on the PasrseCosmosMessageJSON side
+			var relevantData []parsingTypes.MessageRelevantInformation = cosmosMessage.ParseRelevantData()
+
+			if len(relevantData) > 0 {
+				var taxableEvents []dbTypes.TaxableEventDBWrapper = make([]dbTypes.TaxableEventDBWrapper, len(relevantData))
+				for i, v := range relevantData {
+					taxableEvents[i].TaxableEvent.Amount = v.Amount
+					taxableEvents[i].TaxableEvent.Denomination = v.Denomination
+					taxableEvents[i].SenderAddress = dbTypes.Address{Address: v.SenderAddress}
+					taxableEvents[i].ReceiverAddress = dbTypes.Address{Address: v.ReceiverAddress}
+				}
+				currMessageDBWrapper.TaxableEvents = taxableEvents
+			} else {
+				currMessageDBWrapper.TaxableEvents = []dbTypes.TaxableEventDBWrapper{}
+			}
 			messages = append(messages, currMessageDBWrapper)
 
-			//println(tx.TxResponse.Log)
 		} else {
 			println(err.Error())
 
