@@ -44,7 +44,9 @@ type TaxableEvent struct {
 	ReceiverAddress   Address
 }
 
-type TxWithAddress struct {
+type TxDBWrapper struct {
 	Tx            Tx
 	SignerAddress Address
+	Messages      []Message
+	TaxableEvents []TaxableEvent
 }

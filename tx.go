@@ -41,8 +41,8 @@ func ParseCosmosMessageJSON(input []byte, log *txTypes.TxLogMessage) (txTypes.Co
 	return msg, nil
 }
 
-func ProcessTxs(responseTxs []txTypes.TxStruct, responseTxResponses []txTypes.TxResponseStruct) []dbTypes.TxWithAddress {
-	var currTxsWithAddresses = make([]dbTypes.TxWithAddress, len(responseTxs))
+func ProcessTxs(responseTxs []txTypes.TxStruct, responseTxResponses []txTypes.TxResponseStruct) []dbTypes.TxDBWrapper {
+	var currTxDbWrappers = make([]dbTypes.TxDBWrapper, len(responseTxs))
 	//wg := sync.WaitGroup{}
 
 	for i, currTx := range responseTxs {
@@ -76,12 +76,11 @@ func ProcessTxs(responseTxs []txTypes.TxStruct, responseTxResponses []txTypes.Tx
 			signer.Address = signerAddress
 		}
 
-		currTxsWithAddresses[i] = dbTypes.TxWithAddress{Tx: processedTx, SignerAddress: signer}
-
+		currTxDbWrappers[i] = dbTypes.TxDBWrapper{Tx: processedTx, SignerAddress: signer}
 	}
 
 	//wg.Wait()
-	return currTxsWithAddresses
+	return currTxDbWrappers
 }
 
 func ProcessTx(tx txTypes.MergedTx) dbTypes.Tx {

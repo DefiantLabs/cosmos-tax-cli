@@ -33,7 +33,7 @@ func GetHighestIndexedBlock(db *gorm.DB) dbTypes.Block {
 	return block
 }
 
-func IndexNewBlock(db *gorm.DB, block dbTypes.Block, txs []dbTypes.TxWithAddress) error {
+func IndexNewBlock(db *gorm.DB, block dbTypes.Block, txs []dbTypes.TxDBWrapper) error {
 	// return any error will rollback
 	return db.Transaction(func(dbTransaction *gorm.DB) error {
 		if err := dbTransaction.Create(&block).Error; err != nil {

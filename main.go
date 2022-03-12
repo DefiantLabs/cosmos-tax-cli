@@ -152,12 +152,13 @@ func main() {
 
 		time.Sleep(time.Second)
 
-		var txsWithAddresses []dbTypes.TxWithAddress
+		var txDBWrappers []dbTypes.TxDBWrapper
 
 		if len(result.Block.BlockData.Txs) == 0 {
 			//fmt.Println("Block has no transactions")
 		} else {
 
+			//TODO THIS NEEDS TO BE PAGINATED THROUGH
 			result, err := GetTxsByBlockHeight(apiHost, newBlock.Height)
 			if err != nil {
 				fmt.Println("Error getting transactions by block height", err)
@@ -166,13 +167,13 @@ func main() {
 
 			fmt.Printf("Block %d has %s transaction(s)\n", height, result.Pagination.Total)
 
-			txsWithAddresses = ProcessTxs(result.Txs, result.TxResponses)
+			txDBWrappers = ProcessTxs(result.Txs, result.TxResponses)
 
 			time.Sleep(time.Second)
 
 		}
 
-		err = IndexNewBlock(db, newBlock, txsWithAddresses)
+		err = IndexNewBlock(db, newBlock, txDBWrappers)
 
 		if err != nil {
 			fmt.Printf("Error %s indexing block %d\n", err, height)
