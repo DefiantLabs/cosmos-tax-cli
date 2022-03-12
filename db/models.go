@@ -28,7 +28,7 @@ type Message struct {
 	ID           uint
 	TxId         uint
 	Tx           Tx
-	MessageType  string
+	MessageType  string `gorm:"index"`
 	MessageIndex int
 }
 
@@ -38,13 +38,21 @@ type TaxableEvent struct {
 	Message           Message
 	Amount            float64
 	Denomination      string
-	SenderAddressId   uint
+	SenderAddressId   uint `gorm:"index:idx_sender"`
 	SenderAddress     Address
-	ReceiverAddressId uint
+	ReceiverAddressId uint `gorm:"index:idx_receiver"`
 	ReceiverAddress   Address
 }
 
-type TxWithAddress struct {
+//Store transactions with their messages for easy database creation
+type TxDBWrapper struct {
 	Tx            Tx
 	SignerAddress Address
+	Messages      []MessageDBWrapper
+}
+
+//Store messages with their taxable events for easy database creation
+type MessageDBWrapper struct {
+	Message       Message
+	TaxableEvents []TaxableEvent
 }

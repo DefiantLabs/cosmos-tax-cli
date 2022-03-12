@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"regexp"
 
@@ -45,7 +46,15 @@ func ExtractTransactionAddresses(tx tx.MergedTx) []string {
 	return uniqueAddresses
 }
 
-func ParseSignerAddress(pubkeyString string, keytype string) (string, error) {
+func ParseSignerAddress(pubkeyString string, keytype string) (retstring string, reterror error) {
+
+	defer func() {
+		if r := recover(); r != nil {
+			reterror = errors.New(fmt.Sprintf("Error parsing signer address into Bech32: %v", r))
+			retstring = ""
+		}
+	}()
+
 	pubkey, err := getPubKeyFromRawString(pubkeyString, keytype)
 	if err != nil {
 		fmt.Println("Error getting public key from raw string")
@@ -53,7 +62,7 @@ func ParseSignerAddress(pubkeyString string, keytype string) (string, error) {
 		return "", err
 	}
 
-	//this panics if conversion fails, TODO add recovery and error handling
+	//this panics if conversion fails
 	bech32address := cosmostypes.MustBech32ifyAddressBytes(addressPrefix, pubkey.Address().Bytes())
 	return bech32address, nil
 }
