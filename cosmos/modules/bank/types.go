@@ -1,21 +1,42 @@
 package bank
 
 import (
-	parsingTypes "cosmos-exporter/cosmos/modules"
-	tx "cosmos-exporter/cosmos/modules/tx"
 	"encoding/json"
 	"fmt"
+
+	parsingTypes "cosmos-exporter/cosmos/modules"
+	txModule "cosmos-exporter/cosmos/modules/tx"
 
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
 //CosmUnmarshal(): Unmarshal JSON for MsgSend.
 //Note that MsgSend ignores the TxLogMessage because it isn't needed.
-func (sf *WrapperMsgSend) CosmUnmarshal(msgType string, raw []byte, log *tx.TxLogMessage) error {
+func (sf *WrapperMsgSend) CosmUnmarshal(msgType string, raw []byte, log *txModule.TxLogMessage) error {
 	sf.Type = msgType
 	if err := json.Unmarshal(raw, &sf.CosmosMsgSend); err != nil {
 		fmt.Println("Error parsing message: " + err.Error())
 		return err
+	}
+
+	//Confirm that the action listed in the message log matches the Message type
+	valid_log := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !valid_log {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	//The attribute in the log message that shows you the delegator withdrawal address and amount received
+	receivedCoinsEvt := txModule.GetEventWithType(bankTypes.EventTypeCoinReceived, log)
+	if receivedCoinsEvt == nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	receiver_address := txModule.GetValueForAttribute(bankTypes.AttributeKeyReceiver, receivedCoinsEvt)
+	//coins_received := txModule.GetValueForAttribute("amount", receivedCoinsEvt)
+
+	if sf.CosmosMsgSend.ToAddress != receiver_address {
+		return fmt.Errorf("transaction receiver address %s does not match log event '%s' receiver address %s",
+			sf.CosmosMsgSend.ToAddress, bankTypes.EventTypeCoinReceived, receiver_address)
 	}
 
 	return nil
@@ -44,6 +65,6 @@ func (sf *WrapperMsgSend) ParseRelevantData() []parsingTypes.MessageRelevantInfo
 }
 
 type WrapperMsgSend struct {
-	tx.Message
+	txModule.Message
 	CosmosMsgSend bankTypes.MsgSend
 }
