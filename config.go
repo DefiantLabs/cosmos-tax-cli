@@ -10,6 +10,7 @@ type Config struct {
 	Api                api
 	ConfigFileLocation string
 	Base               base
+	Log                log
 }
 
 type database struct {
@@ -26,6 +27,10 @@ type api struct {
 
 type base struct {
 	StartBlock uint64
+}
+
+type log struct {
+	Level string
 }
 
 func GetConfig(configFileLocation string) (Config, error) {

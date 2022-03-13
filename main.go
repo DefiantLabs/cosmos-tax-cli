@@ -41,13 +41,15 @@ func setup() (string, *gorm.DB, uint64, error) {
 
 	apiHost := config.Api.Host
 	startingBlock := config.Base.StartBlock
+	logLevel := config.Log.Level
 
 	//0 is an invalid starting block, set it to 1
 	if startingBlock == 0 {
 		startingBlock = 1
 	}
 
-	db, err := PostgresDbConnect(config.Database.Host, config.Database.Port, config.Database.Database, config.Database.User, config.Database.Password)
+	db, err := PostgresDbConnect(config.Database.Host, config.Database.Port, config.Database.Database,
+		config.Database.User, config.Database.Password, logLevel)
 	if err != nil {
 		fmt.Println("Could not establish connection to the database", err)
 		return "", nil, 1, err

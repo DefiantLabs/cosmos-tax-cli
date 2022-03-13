@@ -23,9 +23,14 @@ func GetAddresses(addressList []string, db *gorm.DB) ([]dbTypes.Address, error) 
 }
 
 //PostgresDbConnect connects to the database according to the passed in parameters
-func PostgresDbConnect(host string, port string, database string, user string, password string) (*gorm.DB, error) {
+func PostgresDbConnect(host string, port string, database string, user string, password string, level string) (*gorm.DB, error) {
 	dsn := fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=disable", host, port, database, user, password)
-	return gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	gormLogLevel := logger.Silent
+
+	if level == "info" {
+		gormLogLevel = logger.Info
+	}
+	return gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(gormLogLevel)})
 }
 
 //PostgresDbConnect connects to the database according to the passed in parameters
@@ -93,8 +98,30 @@ func IndexNewBlock(db *gorm.DB, block dbTypes.Block, txs []dbTypes.TxDBWrapper) 
 				}
 
 				for _, taxableEvent := range message.TaxableEvents {
-					taxableEvent.Message = message.Message
-					if err := dbTransaction.Create(&taxableEvent).Error; err != nil {
+
+					if taxableEvent.SenderAddress.Address != "" {
+						if err := dbTransaction.Where(&taxableEvent.SenderAddress).FirstOrCreate(&taxableEvent.SenderAddress).Error; err != nil {
+							return err
+						}
+						//store created db model in sender address, creates foreign key relation
+						taxableEvent.TaxableEvent.SenderAddress = taxableEvent.SenderAddress
+					} else {
+						//nil creates null foreign key relation
+						taxableEvent.TaxableEvent.SenderAddressId = nil
+					}
+
+					if taxableEvent.ReceiverAddress.Address != "" {
+						if err := dbTransaction.Where(&taxableEvent.ReceiverAddress).FirstOrCreate(&taxableEvent.ReceiverAddress).Error; err != nil {
+							return err
+						}
+						//store created db model in receiver address, creates foreign key relation
+						taxableEvent.TaxableEvent.ReceiverAddress = taxableEvent.ReceiverAddress
+					} else {
+						//nil creates null foreign key relation
+						taxableEvent.TaxableEvent.ReceiverAddressId = nil
+					}
+					taxableEvent.TaxableEvent.Message = message.Message
+					if err := dbTransaction.Create(&taxableEvent.TaxableEvent).Error; err != nil {
 						return err
 					}
 				}
