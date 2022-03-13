@@ -6,6 +6,10 @@ database = ""
 user = ""
 password = ""
 
+#gorm
+[log]
+level = "info"
+
 #Cosmos Chain API
 [api]
 host = "http://localhost:1317"

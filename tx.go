@@ -125,7 +125,6 @@ func ProcessTx(tx txTypes.MergedTx) dbTypes.TxDBWrapper {
 			} else {
 				currMessageDBWrapper.TaxableEvents = []dbTypes.TaxableEventDBWrapper{}
 			}
-			messages = append(messages, currMessageDBWrapper)
 
 		} else {
 			println(err.Error())
@@ -135,7 +134,6 @@ func ProcessTx(tx txTypes.MergedTx) dbTypes.TxDBWrapper {
 			if ok {
 				currMessage.MessageType = re.Type()
 				currMessageDBWrapper.Message = currMessage
-				messages = append(messages, currMessageDBWrapper)
 			} else {
 				//What should we do here? This is an actual error during parsing
 			}

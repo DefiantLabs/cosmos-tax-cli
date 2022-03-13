@@ -7,12 +7,18 @@ import (
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 //PostgresDbConnect connects to the database according to the passed in parameters
-func PostgresDbConnect(host string, port string, database string, user string, password string) (*gorm.DB, error) {
+func PostgresDbConnect(host string, port string, database string, user string, password string, level string) (*gorm.DB, error) {
 	dsn := fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=disable", host, port, database, user, password)
-	return gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	gormLogLevel := logger.Silent
+
+	if level == "info" {
+		gormLogLevel = logger.Info
+	}
+	return gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(gormLogLevel)})
 }
 
 //MigrateModels runs the gorm automigrations with all the db models. This will migrate as needed and do nothing if nothing has changed.
