@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cosmos-exporter/csv"
 	"cosmos-exporter/db"
 	"fmt"
 	"testing"
@@ -36,6 +37,20 @@ func db_setup() (*gorm.DB, error) {
 
 	return db, nil
 
+}
+
+func TestCsvForAddress(t *testing.T) {
+	gorm, _ := db_setup()
+	address := "juno1txpxafd7q96nkj5jxnt7qnqy4l0rrjyuv6dgte"
+	csvRows, err := csv.ParseForAddress(address, gorm)
+	if err != nil || len(csvRows) == 0 {
+		t.Fatal("Failed to lookup taxable events")
+	}
+
+	buffer := csv.ToCsv(csvRows)
+	if len(buffer.Bytes()) == 0 {
+		t.Fatal("CSV length should never be 0, there are always headers!")
+	}
 }
 
 func TestLookupTxForAddresses(t *testing.T) {
