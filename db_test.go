@@ -40,7 +40,9 @@ func db_setup() (*gorm.DB, error) {
 
 func TestLookupTxForAddresses(t *testing.T) {
 	gorm, _ := db_setup()
-	taxableEvts, err := db.GetTaxableEvents([]string{"juno1txpxafd7q96nkj5jxnt7qnqy4l0rrjyuv6dgte", "juno1mt72y3jny20456k247tc5gf2dnat76l4ynvqwl"}, gorm)
+	//"juno1txpxafd7q96nkj5jxnt7qnqy4l0rrjyuv6dgte"
+	//juno1mt72y3jny20456k247tc5gf2dnat76l4ynvqwl
+	taxableEvts, err := db.GetTaxableEvents("juno1txpxafd7q96nkj5jxnt7qnqy4l0rrjyuv6dgte", gorm)
 	if err != nil || len(taxableEvts) == 0 {
 		t.Fatal("Failed to lookup taxable events")
 	}

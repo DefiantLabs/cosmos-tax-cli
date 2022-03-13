@@ -8,7 +8,7 @@ import (
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
-var MsgSend = map[string]bool{
+var IsMsgSend = map[string]bool{
 	"MsgSend":                      true,
 	"/cosmos.bank.v1beta1.MsgSend": true,
 }
