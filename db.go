@@ -22,16 +22,6 @@ func GetAddresses(addressList []string, db *gorm.DB) ([]dbTypes.Address, error) 
 	return addresses, result.Error
 }
 
-func GetTaxableEvents(addressList []string, db *gorm.DB) ([]dbTypes.TaxableEvent, error) {
-	//Look up all TaxableEvents, Transactions, and Messages for the addresses
-	var taxableEvents []dbTypes.TaxableEvent
-
-	result := db.Joins("JOIN addresses ON addresses.id = taxable_events.sender_address_id OR addresses.id = taxable_events.receiver_address_id").
-		Where("addresses.address IN ?", addressList).Find(&taxableEvents)
-
-	return taxableEvents, result.Error
-}
-
 //PostgresDbConnect connects to the database according to the passed in parameters
 func PostgresDbConnect(host string, port string, database string, user string, password string) (*gorm.DB, error) {
 	dsn := fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=disable", host, port, database, user, password)

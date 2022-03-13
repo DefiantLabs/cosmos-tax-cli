@@ -8,6 +8,11 @@ import (
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
+var MsgSend = map[string]bool{
+	"MsgSend":                      true,
+	"/cosmos.bank.v1beta1.MsgSend": true,
+}
+
 //CosmUnmarshal(): Unmarshal JSON for MsgSend.
 //Note that MsgSend ignores the TxLogMessage because it isn't needed.
 func (sf *WrapperMsgSend) CosmUnmarshal(msgType string, raw []byte, log *tx.TxLogMessage) error {

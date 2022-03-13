@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cosmos-exporter/db"
 	"fmt"
 	"testing"
 
@@ -39,8 +40,8 @@ func db_setup() (*gorm.DB, error) {
 
 func TestLookupTxForAddresses(t *testing.T) {
 	gorm, _ := db_setup()
-	taxableEvts, err := GetTaxableEvents([]string{"juno1mt72y3jny20456k247tc5gf2dnat76l4ynvqwl"}, gorm)
+	taxableEvts, err := db.GetTaxableEvents([]string{"juno1txpxafd7q96nkj5jxnt7qnqy4l0rrjyuv6dgte", "juno1mt72y3jny20456k247tc5gf2dnat76l4ynvqwl"}, gorm)
 	if err != nil || len(taxableEvts) == 0 {
-		t.Fatal("FML")
+		t.Fatal("Failed to lookup taxable events")
 	}
 }
