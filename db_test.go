@@ -4,6 +4,7 @@ import (
 	"cosmos-exporter/csv"
 	"cosmos-exporter/db"
 	"fmt"
+	"os"
 	"testing"
 
 	"gorm.io/gorm"
@@ -50,6 +51,11 @@ func TestCsvForAddress(t *testing.T) {
 	buffer := csv.ToCsv(csvRows)
 	if len(buffer.Bytes()) == 0 {
 		t.Fatal("CSV length should never be 0, there are always headers!")
+	}
+
+	err = os.WriteFile("accointing.csv", buffer.Bytes(), 0644)
+	if err != nil {
+		t.Fatal("Failed to write CSV to disk")
 	}
 }
 

@@ -24,14 +24,17 @@ func (at AccointingTransaction) String() string {
 type AccointingClassification int
 
 const (
-	Staked AccointingClassification = iota
+	None AccointingClassification = iota
+	Staked
 	Airdrop
 	Payment
 	Fee
 )
 
 func (ac AccointingClassification) String() string {
-	return [...]string{"staked", "airdrop", "payment", "fee"}[ac]
+	//Note that "None" returns empty string since we're using this for CSV parsing.
+	//Accointing considers 'Classification' an optional field, so empty is a valid value.
+	return [...]string{"", "staked", "airdrop", "payment", "fee"}[ac]
 }
 
 type AccointingRow struct {
