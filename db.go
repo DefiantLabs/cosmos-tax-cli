@@ -23,23 +23,9 @@ func GetAddresses(addressList []string, db *gorm.DB) ([]dbTypes.Address, error) 
 }
 
 func GetTaxableEvents(addressList []string, db *gorm.DB) ([]dbTypes.TaxableEvent, error) {
-	//Look up all DB Addresses that match the search
-	//var addresses []dbTypes.Address
-	//result := db.Where("address IN ?", addressList).Find(&addresses)
-	//fmt.Printf("Found %d addresses in the db\n", result.RowsAffected)
-	//if result.Error != nil {
-	//		fmt.Printf("Error %s searching DB for addresses.\n", result.Error)
-	//}
-
 	//Look up all TaxableEvents, Transactions, and Messages for the addresses
 	var taxableEvents []dbTypes.TaxableEvent
-	//result = db.Joins("Address", db.Where("SenderAddress IN ?", addresses).Or("ReceiverAddress IN ?", addresses)).Find(&taxableEvents)
-	//if result.Error != nil {
-	//	fmt.Printf("Error %s searching DB for taxable events.\n", result.Error)
-	//}
 
-	//db.Joins("JOIN emails ON emails.user_id = users.id AND emails.email = ?", "jinzhu@example.org")
-	//.Joins("JOIN credit_cards ON credit_cards.user_id = users.id").Where("credit_cards.number = ?", "411111111111").Find(&user)
 	result := db.Joins("JOIN addresses ON addresses.id = taxable_events.sender_address_id OR addresses.id = taxable_events.receiver_address_id").
 		Where("addresses.address IN ?", addressList).Find(&taxableEvents)
 
