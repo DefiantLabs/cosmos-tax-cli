@@ -1,4 +1,4 @@
-package main
+package rest
 
 import (
 	tx "cosmos-exporter/cosmos/modules/tx"

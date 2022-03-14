@@ -14,6 +14,8 @@ level = "info"
 [api]
 host = "http://localhost:1317"
 
-#App configuration values
+#App configuration values. leave start block 
 [base]
-startblock = 1
+startblock = -1 # start at the last indexed block
+endblock = -1 # no end block
+throttling = 0 # do not throttle

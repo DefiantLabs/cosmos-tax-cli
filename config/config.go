@@ -26,7 +26,9 @@ type api struct {
 }
 
 type base struct {
-	StartBlock uint64
+	StartBlock int64
+	EndBlock   int64
+	Throttling int64
 }
 
 type log struct {
