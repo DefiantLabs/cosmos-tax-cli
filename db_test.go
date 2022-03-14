@@ -1,8 +1,10 @@
 package main
 
 import (
+	configUtils "cosmos-exporter/config"
 	"cosmos-exporter/csv"
 	"cosmos-exporter/db"
+	dbUtils "cosmos-exporter/db"
 	"fmt"
 	"os"
 	"testing"
@@ -15,14 +17,14 @@ import (
 //	* Connects to the database and returns the db object
 //	* Returns various values used throughout the application
 func db_setup() (*gorm.DB, error) {
-	config, err := GetConfig("./config.toml")
+	config, err := configUtils.GetConfig("./config.toml")
 
 	if err != nil {
 		fmt.Println("Error opening configuration file", err)
 		return nil, err
 	}
 
-	db, err := PostgresDbConnectLogInfo(config.Database.Host, config.Database.Port, config.Database.Database, config.Database.User, config.Database.Password)
+	db, err := dbUtils.PostgresDbConnectLogInfo(config.Database.Host, config.Database.Port, config.Database.Database, config.Database.User, config.Database.Password)
 	if err != nil {
 		fmt.Println("Could not establish connection to the database", err)
 		return nil, err
@@ -34,7 +36,7 @@ func db_setup() (*gorm.DB, error) {
 	setupAddressPrefix("juno")
 
 	//run database migrations at every runtime
-	MigrateModels(db)
+	dbUtils.MigrateModels(db)
 
 	return db, nil
 

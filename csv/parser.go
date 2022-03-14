@@ -3,6 +3,7 @@ package csv
 import (
 	"cosmos-exporter/cosmos/modules/bank"
 	"cosmos-exporter/db"
+	"errors"
 	"strings"
 
 	stdTypes "github.com/cosmos/cosmos-sdk/types"
@@ -52,8 +53,12 @@ type AccointingRow struct {
 
 func ParseForAddress(address string, pgSql *gorm.DB) ([]AccointingRow, error) {
 	events, err := db.GetTaxableEvents(address, pgSql)
-	if err != nil || len(events) == 0 {
+	if err != nil {
 		return nil, err
+	}
+
+	if len(events) == 0 {
+		return nil, errors.New("No events for the given address")
 	}
 
 	rows := []AccointingRow{}

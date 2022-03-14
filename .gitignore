@@ -1,4 +1,6 @@
 config.toml
 cosmos-exporter
+cosmos-exporter-backend
+client/client
 env
 vendor/

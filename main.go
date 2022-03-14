@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	configHelpers "cosmos-exporter/config"
 	dbTypes "cosmos-exporter/db"
 
 	"gorm.io/gorm"
@@ -17,7 +18,7 @@ import (
 //	* Returns various values used throughout the application
 func setup() (string, *gorm.DB, uint64, error) {
 
-	argConfig, err := ParseArgs(os.Stderr, os.Args[1:])
+	argConfig, err := configHelpers.ParseArgs(os.Stderr, os.Args[1:])
 
 	if err != nil {
 		return "", nil, 1, err
@@ -30,14 +31,14 @@ func setup() (string, *gorm.DB, uint64, error) {
 		location = "./config.toml"
 	}
 
-	fileConfig, err := GetConfig(location)
+	fileConfig, err := configHelpers.GetConfig(location)
 
 	if err != nil {
 		fmt.Println("Error opening configuration file", err)
 		return "", nil, 1, err
 	}
 
-	config := MergeConfigs(fileConfig, argConfig)
+	config := configHelpers.MergeConfigs(fileConfig, argConfig)
 
 	apiHost := config.Api.Host
 	startingBlock := config.Base.StartBlock
@@ -48,7 +49,7 @@ func setup() (string, *gorm.DB, uint64, error) {
 		startingBlock = 1
 	}
 
-	db, err := PostgresDbConnect(config.Database.Host, config.Database.Port, config.Database.Database,
+	db, err := dbTypes.PostgresDbConnect(config.Database.Host, config.Database.Port, config.Database.Database,
 		config.Database.User, config.Database.Password, logLevel)
 	if err != nil {
 		fmt.Println("Could not establish connection to the database", err)
@@ -61,7 +62,7 @@ func setup() (string, *gorm.DB, uint64, error) {
 	setupAddressPrefix("juno")
 
 	//run database migrations at every runtime
-	MigrateModels(db)
+	dbTypes.MigrateModels(db)
 
 	return apiHost, db, startingBlock, nil
 
@@ -99,7 +100,7 @@ func main() {
 
 	fmt.Println("Found latest block", latestBlock)
 
-	highestBlock := GetHighestIndexedBlock(db)
+	highestBlock := dbTypes.GetHighestIndexedBlock(db)
 
 	var startHeight uint64 = startingBlock
 	if highestBlock.Height == 0 {
@@ -175,7 +176,7 @@ func main() {
 
 		}
 
-		err = IndexNewBlock(db, newBlock, txDBWrappers)
+		err = dbTypes.IndexNewBlock(db, newBlock, txDBWrappers)
 
 		if err != nil {
 			fmt.Printf("Error %s indexing block %d\n", err, height)
