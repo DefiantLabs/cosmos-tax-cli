@@ -29,6 +29,7 @@ type base struct {
 	StartBlock int64
 	EndBlock   int64
 	Throttling int64
+	BlockTimer int64
 }
 
 type log struct {

@@ -84,8 +84,21 @@ func main() {
 	startHeight := rest.GetBlockStartHeight(config, db)
 	currBlock := startHeight
 	lastBlock := config.Base.EndBlock
+	numBlocksTimed := config.Base.BlockTimer
+	blocksProcessed := 0
+	timeStart := time.Now()
 
 	for ; ; currBlock++ {
+		if numBlocksTimed > 0 {
+			blocksProcessed++
+			if blocksProcessed%int(numBlocksTimed) == 0 {
+				totalTime := time.Since(timeStart)
+				fmt.Printf("Processing %d blocks (%d-%d) took %f seconds\n", numBlocksTimed, currBlock-uint64(numBlocksTimed), currBlock, totalTime.Seconds())
+				fmt.Printf("%d total blocks have been processed by this indexer.\n", blocksProcessed)
+				timeStart = time.Now()
+			}
+		}
+
 		//Self throttling in case of hitting public APIs
 		if config.Base.Throttling != 0 {
 			time.Sleep(time.Second * time.Duration(config.Base.Throttling))
