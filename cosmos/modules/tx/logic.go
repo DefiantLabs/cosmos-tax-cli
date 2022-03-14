@@ -11,6 +11,10 @@ func GetMessageLogForIndex(logs []TxLogMessage, index int) *TxLogMessage {
 }
 
 func GetEventWithType(event_type string, msg *TxLogMessage) *LogMessageEvent {
+	if msg.Events == nil {
+		return nil
+	}
+
 	for _, log_event := range msg.Events {
 		if log_event.Type == event_type {
 			return &log_event
@@ -21,6 +25,10 @@ func GetEventWithType(event_type string, msg *TxLogMessage) *LogMessageEvent {
 }
 
 func GetValueForAttribute(key string, evt *LogMessageEvent) string {
+	if evt.Attributes == nil {
+		return ""
+	}
+
 	for _, attr := range evt.Attributes {
 		if attr.Key == key {
 			return attr.Value
