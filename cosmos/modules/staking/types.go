@@ -13,6 +13,14 @@ import (
 	distTypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 )
 
+var IsMsgWithdrawValidatorCommission = map[string]bool{
+	"/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission": true,
+}
+
+var IsMsgWithdrawDelegatorReward = map[string]bool{
+	"/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward": true,
+}
+
 type WrapperMsgWithdrawValidatorCommission struct {
 	txModule.Message
 	CosmosMsgWithdrawValidatorCommission distTypes.MsgWithdrawValidatorCommission

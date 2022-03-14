@@ -2,6 +2,7 @@ package csv
 
 import (
 	"cosmos-exporter/cosmos/modules/bank"
+	"cosmos-exporter/cosmos/modules/staking"
 	"cosmos-exporter/db"
 	"errors"
 	"strings"
@@ -19,7 +20,7 @@ const (
 )
 
 func (at AccointingTransaction) String() string {
-	return [...]string{"deposit", "withdraw"}[at]
+	return [...]string{"deposit", "withdraw", "order"}[at]
 }
 
 type AccointingClassification int
@@ -51,6 +52,23 @@ type AccointingRow struct {
 	OperationId     string
 }
 
+//ParseBasic: Handles the fields that are shared between most types.
+func (row *AccointingRow) ParseBasic(address string, event db.TaxableEvent) {
+	row.Date = FormatDatetime(event.Message.Tx.TimeStamp)
+	row.OperationId = event.Message.Tx.Hash
+
+	//deposit
+	if event.ReceiverAddress.Address == address {
+		row.InBuyAmount = event.Amount
+		row.InBuyAsset = event.Denomination
+		row.TransactionType = Deposit
+	} else if event.SenderAddress.Address == address { //withdrawal
+		row.OutSellAmount = event.Amount
+		row.OutSellAsset = event.Denomination
+		row.TransactionType = Withdraw
+	}
+}
+
 func ParseForAddress(address string, pgSql *gorm.DB) ([]AccointingRow, error) {
 	events, err := db.GetTaxableEvents(address, pgSql)
 	if err != nil {
@@ -58,7 +76,7 @@ func ParseForAddress(address string, pgSql *gorm.DB) ([]AccointingRow, error) {
 	}
 
 	if len(events) == 0 {
-		return nil, errors.New("No events for the given address")
+		return nil, errors.New("no events for the given address")
 	}
 
 	rows := []AccointingRow{}
@@ -134,6 +152,10 @@ func ParseTx(address string, events []db.TaxableEvent) []AccointingRow {
 		//Is this a MsgSend
 		if bank.IsMsgSend[event.Message.MessageType] {
 			rows = append(rows, ParseMsgSend(address, event))
+		} else if staking.IsMsgWithdrawValidatorCommission[event.Message.MessageType] {
+			rows = append(rows, ParseMsgWithdrawValidatorCommission(address, event))
+		} else if staking.IsMsgWithdrawDelegatorReward[event.Message.MessageType] {
+			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
 		}
 	}
 
@@ -141,26 +163,29 @@ func ParseTx(address string, events []db.TaxableEvent) []AccointingRow {
 	return rows
 }
 
+//ParseMsgValidatorWithdraw:
+//This transaction is always a withdrawal.
+func ParseMsgWithdrawValidatorCommission(address string, event db.TaxableEvent) AccointingRow {
+	row := &AccointingRow{}
+	row.ParseBasic(address, event)
+	row.Classification = Staked
+	return *row
+}
+
+//ParseMsgValidatorWithdraw:
+//This transaction is always a withdrawal.
+func ParseMsgWithdrawDelegatorReward(address string, event db.TaxableEvent) AccointingRow {
+	row := &AccointingRow{}
+	row.ParseBasic(address, event)
+	row.Classification = Staked
+	return *row
+}
+
 //ParseMsgSend:
 //If the address we searched is the receiver, then this transaction is a deposit.
 //If the address we searched is the sender, then this transaction is a withdrawal.
 func ParseMsgSend(address string, event db.TaxableEvent) AccointingRow {
-
-	row := AccointingRow{
-		Date:        FormatDatetime(event.Message.Tx.TimeStamp),
-		OperationId: event.Message.Tx.Hash,
-	}
-
-	//deposit
-	if event.ReceiverAddress.Address == address {
-		row.InBuyAmount = event.Amount
-		row.InBuyAsset = event.Denomination
-		row.TransactionType = Deposit
-	} else if event.SenderAddress.Address == address { //withdrawal
-		row.OutSellAmount = event.Amount
-		row.OutSellAsset = event.Denomination
-		row.TransactionType = Withdraw
-	}
-
-	return row
+	row := &AccointingRow{}
+	row.ParseBasic(address, event)
+	return *row
 }

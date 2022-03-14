@@ -5,7 +5,6 @@ go 1.17
 require (
 	github.com/BurntSushi/toml v1.0.0
 	github.com/cosmos/cosmos-sdk v0.45.1
-	github.com/davecgh/go-spew v1.1.1
 	github.com/gin-gonic/gin v1.6.3
 	github.com/imdario/mergo v0.3.12
 	gorm.io/driver/postgres v1.3.1
@@ -30,6 +29,7 @@ require (
 	github.com/cosmos/ledger-cosmos-go v0.11.1 // indirect
 	github.com/cosmos/ledger-go v0.9.2 // indirect
 	github.com/danieljoos/wincred v1.0.2 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.2 // indirect
 	github.com/dgraph-io/ristretto v0.0.3 // indirect
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
