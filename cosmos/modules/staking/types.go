@@ -1,7 +1,6 @@
 package staking
 
 import (
-	"cosmos-exporter/cosmos/modules/tx"
 	txModule "cosmos-exporter/cosmos/modules/tx"
 	"encoding/json"
 	"fmt"
@@ -15,10 +14,12 @@ import (
 
 var IsMsgWithdrawValidatorCommission = map[string]bool{
 	"/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission": true,
+	"withdraw-rewards": true, //NOTE/TODO: not 100% sure if this is only on delegator or validator withdrawal...
 }
 
 var IsMsgWithdrawDelegatorReward = map[string]bool{
 	"/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward": true,
+	"withdraw-rewards": true, //NOTE/TODO: not 100% sure if this is only on delegator or validator withdrawal...
 }
 
 type WrapperMsgWithdrawValidatorCommission struct {
@@ -127,7 +128,7 @@ func (sf *WrapperMsgWithdrawValidatorCommission) ParseRelevantData() []parsingTy
 }
 
 //CosmUnmarshal(): Unmarshal JSON for MsgWithdrawDelegatorReward
-func (sf *WrapperMsgWithdrawDelegatorReward) CosmUnmarshal(msgType string, raw []byte, log *tx.TxLogMessage) error {
+func (sf *WrapperMsgWithdrawDelegatorReward) CosmUnmarshal(msgType string, raw []byte, log *txModule.TxLogMessage) error {
 	sf.Type = msgType
 	if err := json.Unmarshal(raw, &sf.CosmosMsgWithdrawDelegatorReward); err != nil {
 		fmt.Println("Error parsing message: " + err.Error())
