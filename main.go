@@ -55,6 +55,7 @@ func setup() (*configHelpers.Config, *gorm.DB, error) {
 
 	if err != nil {
 		fmt.Println("Could not establish connection to the database", err)
+		return nil, nil, err
 	}
 
 	//TODO: create config values for the prefixes here
@@ -121,7 +122,7 @@ func main() {
 		newBlock := dbTypes.Block{Height: currBlock}
 		var txDBWrappers []dbTypes.TxDBWrapper
 
-		result, err := rest.GetTxsByBlockHeight(apiHost, newBlock.Height)
+		result, err := rest.GetTxsByBlockHeightPaginated(apiHost, newBlock.Height, config.Base.Throttling)
 		if err != nil {
 			fmt.Println("Error getting transactions by block height", err)
 			os.Exit(1)
