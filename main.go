@@ -4,7 +4,6 @@ import (
 	"cosmos-exporter/rest"
 	"fmt"
 	"os"
-	"strconv"
 	"time"
 
 	configHelpers "cosmos-exporter/config"
@@ -100,36 +99,27 @@ func main() {
 			}
 		}
 
-		result, err := rest.GetBlockByHeight(apiHost, currBlock)
-
 		if err != nil {
 			fmt.Println("Error getting block by height", err)
 			os.Exit(1)
 		}
 
 		//consider optimizing by using block variable instead of parsing out (dangers?)
-		height, _ := strconv.ParseUint(result.Block.BlockHeader.Height, 10, 64)
-		newBlock := dbTypes.Block{Height: height}
-
+		newBlock := dbTypes.Block{Height: currBlock}
 		var txDBWrappers []dbTypes.TxDBWrapper
 
-		if len(result.Block.BlockData.Txs) == 0 {
-			//fmt.Println("Block has no transactions")
-		} else {
-			result, err := rest.GetTxsByBlockHeight(apiHost, newBlock.Height)
-			if err != nil {
-				fmt.Println("Error getting transactions by block height", err)
-				os.Exit(1)
-			}
-
-			fmt.Printf("Block %d has %s transaction(s)\n", height, result.Pagination.Total)
-			txDBWrappers = ProcessTxs(result.Txs, result.TxResponses)
+		result, err := rest.GetTxsByBlockHeight(apiHost, newBlock.Height)
+		if err != nil {
+			fmt.Println("Error getting transactions by block height", err)
+			os.Exit(1)
 		}
 
+		fmt.Printf("Block %d has %s transaction(s)\n", currBlock, result.Pagination.Total)
+		txDBWrappers = ProcessTxs(result.Txs, result.TxResponses)
 		err = dbTypes.IndexNewBlock(db, newBlock, txDBWrappers)
 
 		if err != nil {
-			fmt.Printf("Error %s indexing block %d\n", err, height)
+			fmt.Printf("Error %s indexing block %d\n", err, currBlock)
 			os.Exit(1)
 		}
 
