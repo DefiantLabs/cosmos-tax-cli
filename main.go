@@ -51,6 +51,12 @@ func setup() (string, *gorm.DB, uint64, error) {
 
 	db, err := dbTypes.PostgresDbConnect(config.Database.Host, config.Database.Port, config.Database.Database,
 		config.Database.User, config.Database.Password, logLevel)
+
+	sqldb, _ := db.DB()
+	sqldb.SetMaxIdleConns(10)
+	sqldb.SetMaxOpenConns(100)
+	sqldb.SetConnMaxLifetime(time.Hour)
+
 	if err != nil {
 		fmt.Println("Could not establish connection to the database", err)
 		return "", nil, 1, err
