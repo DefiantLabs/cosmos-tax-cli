@@ -134,6 +134,7 @@ func main() {
 		}
 
 		if lastBlock != -1 && currBlock >= uint64(lastBlock) {
+			fmt.Println("Hit the last block, exiting.")
 			break
 		}
 	}
