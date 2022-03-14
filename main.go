@@ -84,6 +84,7 @@ func main() {
 	latestBlock := rest.GetLatestBlockHeight(apiHost)
 	startHeight := rest.GetBlockStartHeight(config, db)
 	currBlock := startHeight
+	lastBlock := config.Base.EndBlock
 
 	for ; ; currBlock++ {
 		//Self throttling in case of hitting public APIs
@@ -130,6 +131,10 @@ func main() {
 		if err != nil {
 			fmt.Printf("Error %s indexing block %d\n", err, height)
 			os.Exit(1)
+		}
+
+		if lastBlock != -1 && currBlock >= uint64(lastBlock) {
+			break
 		}
 	}
 }
