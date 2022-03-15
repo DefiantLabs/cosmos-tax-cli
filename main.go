@@ -87,8 +87,8 @@ func main() {
 	dbConn, _ := db.DB()
 	defer dbConn.Close()
 
-	scheduler.Every(6).Second().Do(tasks.DenomUpsertTask, apiHost, db)
-
+	//TODO may need to run this task in setup() so that we have a cold start functionality before the indexer starts
+	scheduler.Every(6).Hours().Do(tasks.DenomUpsertTask, apiHost, db)
 	scheduler.StartAsync()
 
 	latestBlock := rest.GetLatestBlockHeight(apiHost)
@@ -153,5 +153,6 @@ func main() {
 		}
 	}
 
+	//If we error out in the main loop, this will block. Meaning we may not know of an error for 6 hours until last scheduled task stops
 	scheduler.Stop()
 }
