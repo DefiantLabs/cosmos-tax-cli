@@ -44,6 +44,28 @@ type TaxableEvent struct {
 	ReceiverAddress   Address
 }
 
+type Denom struct {
+	ID     uint
+	Base   string
+	Name   string `gorm:"uniqueIndex"`
+	Symbol string
+}
+
+type DenomUnit struct {
+	ID       uint
+	DenomID  uint
+	Denom    Denom
+	Exponent uint
+	Name     string `gorm:"unique"`
+}
+
+type DenomUnitAlias struct {
+	ID          uint
+	DenomUnitId uint
+	DenomUnit   DenomUnit
+	Alias       string `gorm:"unique"`
+}
+
 //Store transactions with their messages for easy database creation
 type TxDBWrapper struct {
 	Tx            Tx
@@ -62,4 +84,14 @@ type TaxableEventDBWrapper struct {
 	TaxableEvent    TaxableEvent
 	SenderAddress   Address
 	ReceiverAddress Address
+}
+
+type DenomDBWrapper struct {
+	Denom      Denom
+	DenomUnits []DenomUnitDBWrapper
+}
+
+type DenomUnitDBWrapper struct {
+	DenomUnit DenomUnit
+	Aliases   []DenomUnitAlias
 }

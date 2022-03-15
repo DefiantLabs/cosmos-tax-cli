@@ -63,7 +63,10 @@ func setup() (*configHelpers.Config, *gorm.DB, error) {
 	setupAddressPrefix("juno")
 
 	//run database migrations at every runtime
-	dbTypes.MigrateModels(db)
+	err = dbTypes.MigrateModels(db)
+	if err != nil {
+		return nil, nil, err
+	}
 	return &config, db, nil
 }
 
