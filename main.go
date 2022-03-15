@@ -2,6 +2,7 @@ package main
 
 import (
 	"cosmos-exporter/rest"
+	"cosmos-exporter/tasks"
 	"fmt"
 	"os"
 	"time"
@@ -9,6 +10,7 @@ import (
 	configHelpers "cosmos-exporter/config"
 	dbTypes "cosmos-exporter/db"
 
+	"github.com/go-co-op/gocron"
 	"gorm.io/gorm"
 )
 
@@ -16,12 +18,12 @@ import (
 //	* Loads the application config from config.tml, cli args and parses/merges
 //	* Connects to the database and returns the db object
 //	* Returns various values used throughout the application
-func setup() (*configHelpers.Config, *gorm.DB, error) {
+func setup() (*configHelpers.Config, *gorm.DB, *gocron.Scheduler, error) {
 
 	argConfig, err := configHelpers.ParseArgs(os.Stderr, os.Args[1:])
 
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	var location string
@@ -35,7 +37,7 @@ func setup() (*configHelpers.Config, *gorm.DB, error) {
 
 	if err != nil {
 		fmt.Println("Error opening configuration file", err)
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	config := configHelpers.MergeConfigs(fileConfig, argConfig)
@@ -62,17 +64,19 @@ func setup() (*configHelpers.Config, *gorm.DB, error) {
 	setupAddressRegex("juno(valoper)?1[a-z0-9]{38}")
 	setupAddressPrefix("juno")
 
+	scheduler := gocron.NewScheduler(time.UTC)
+
 	//run database migrations at every runtime
 	err = dbTypes.MigrateModels(db)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	return &config, db, nil
+	return &config, db, scheduler, nil
 }
 
 func main() {
 
-	config, db, err := setup()
+	config, db, scheduler, err := setup()
 
 	if err != nil {
 		fmt.Println("Error during application setup, exiting")
@@ -82,6 +86,10 @@ func main() {
 	apiHost := config.Api.Host
 	dbConn, _ := db.DB()
 	defer dbConn.Close()
+
+	scheduler.Every(6).Second().Do(tasks.DenomUpsertTask, apiHost, db)
+
+	scheduler.StartAsync()
 
 	latestBlock := rest.GetLatestBlockHeight(apiHost)
 	startHeight := rest.GetBlockStartHeight(config, db)
@@ -144,4 +152,6 @@ func main() {
 			break
 		}
 	}
+
+	scheduler.Stop()
 }
