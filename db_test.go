@@ -37,14 +37,15 @@ func db_setup() (*gorm.DB, error) {
 
 	//run database migrations at every runtime
 	dbUtils.MigrateModels(db)
-
+	dbUtils.CacheDenoms(db) //Have to cache denoms to get translations from e.g. ujuno to Juno
 	return db, nil
 
 }
 
 func TestCsvForAddress(t *testing.T) {
 	gorm, _ := db_setup()
-	address := "juno1mt72y3jny20456k247tc5gf2dnat76l4ynvqwl"
+	//address := "juno1mt72y3jny20456k247tc5gf2dnat76l4ynvqwl"
+	address := "juno130mdu9a0etmeuw52qfxk73pn0ga6gawk4k539x" //strangelove's delegator
 	csvRows, err := csv.ParseForAddress(address, gorm)
 	if err != nil || len(csvRows) == 0 {
 		t.Fatal("Failed to lookup taxable events")

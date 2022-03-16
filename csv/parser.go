@@ -140,9 +140,14 @@ func HandleFees(address string, events []db.TaxableEvent, rows []AccointingRow) 
 	//Stick the fees in the existing rows.
 	if len(rows) >= len(feeCoins) {
 		for i, fee := range feeCoins {
-			currentRow := rows[i]
-			currentRow.FeeAmount = fee.Amount.ToDec().MustFloat64()
-			currentRow.FeeAsset = fee.GetDenom()
+			conversionAmount, conversionSymbol, err := db.ConvertUnits(fee.Amount.Int64(), fee.GetDenom())
+			if err == nil {
+				rows[i].FeeAmount = conversionAmount
+				rows[i].FeeAsset = conversionSymbol
+			} else {
+				rows[i].FeeAmount = fee.Amount.ToDec().MustFloat64()
+				rows[i].FeeAsset = fee.GetDenom()
+			}
 		}
 
 		return rows
@@ -151,8 +156,14 @@ func HandleFees(address string, events []db.TaxableEvent, rows []AccointingRow) 
 	tx := events[0].Message.Tx
 	//There's more fees than rows so generate a new row for each fee.
 	for _, fee := range feeCoins {
-		newRow := AccointingRow{Date: FormatDatetime(tx.TimeStamp), FeeAmount: fee.Amount.ToDec().MustFloat64(),
-			FeeAsset: fee.GetDenom(), Classification: Fee, TransactionType: Withdraw}
+		feeUnits, feeSymbol, err := db.ConvertUnits(fee.Amount.Int64(), fee.GetDenom())
+		if err != nil {
+			feeUnits = fee.Amount.ToDec().MustFloat64()
+			feeSymbol = fee.GetDenom()
+		}
+
+		newRow := AccointingRow{Date: FormatDatetime(tx.TimeStamp), FeeAmount: feeUnits,
+			FeeAsset: feeSymbol, Classification: Fee, TransactionType: Withdraw}
 		rows = append(rows, newRow)
 	}
 
