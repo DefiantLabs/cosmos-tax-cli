@@ -59,12 +59,27 @@ func (row *AccointingRow) ParseBasic(address string, event db.TaxableEvent) {
 
 	//deposit
 	if event.ReceiverAddress.Address == address {
-		row.InBuyAmount = event.Amount
-		row.InBuyAsset = event.Denomination
+
+		conversionAmount, conversionSymbol, err := db.ConvertUnits(int64(event.Amount), event.Denomination)
+		if err == nil {
+			row.InBuyAmount = conversionAmount
+			row.InBuyAsset = conversionSymbol
+		} else {
+			row.InBuyAmount = event.Amount
+			row.InBuyAsset = event.Denomination
+		}
 		row.TransactionType = Deposit
+
 	} else if event.SenderAddress.Address == address { //withdrawal
-		row.OutSellAmount = event.Amount
-		row.OutSellAsset = event.Denomination
+
+		conversionAmount, conversionSymbol, err := db.ConvertUnits(int64(event.Amount), event.Denomination)
+		if err == nil {
+			row.OutSellAmount = conversionAmount
+			row.OutSellAsset = conversionSymbol
+		} else {
+			row.OutSellAmount = event.Amount
+			row.OutSellAsset = event.Denomination
+		}
 		row.TransactionType = Withdraw
 	}
 }
@@ -96,7 +111,7 @@ func ParseForAddress(address string, pgSql *gorm.DB) ([]AccointingRow, error) {
 	for _, evt := range txMap {
 		//For the current transaction group, generate the rows for the CSV.
 		//Usually (but not always) a transaction will only have a single row in the CSV.
-		rows = append(rows, ParseTx(address, evt)...)
+		rows = append(rows, ParseTx(address, evt, pgSql)...)
 	}
 
 	return rows, nil
@@ -145,7 +160,7 @@ func HandleFees(address string, events []db.TaxableEvent, rows []AccointingRow) 
 }
 
 //ParseTx: Parse the potentially taxable event
-func ParseTx(address string, events []db.TaxableEvent) []AccointingRow {
+func ParseTx(address string, events []db.TaxableEvent, pgSql *gorm.DB) []AccointingRow {
 	rows := []AccointingRow{}
 
 	for _, event := range events {
