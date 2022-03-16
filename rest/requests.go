@@ -1,6 +1,7 @@
 package rest
 
 import (
+	denoms "cosmos-exporter/cosmos/modules/denoms"
 	tx "cosmos-exporter/cosmos/modules/tx"
 	"encoding/json"
 	"errors"
@@ -13,6 +14,7 @@ var apiEndpoints = map[string]string{
 	"blocks_endpoint":              "/cosmos/base/tendermint/v1beta1/blocks/%d",
 	"latest_block_endpoint":        "/blocks/latest",
 	"txs_by_block_height_endpoint": "/cosmos/tx/v1beta1/txs?events=tx.height=%d&pagination.limit=100&order_by=ORDER_BY_UNSPECIFIED",
+	"denoms_metadata":              "/cosmos/bank/v1beta1/denoms_metadata",
 }
 
 //GetBlockByHeight makes a request to the Cosmos REST API to get a block by height
@@ -134,4 +136,40 @@ func checkResponseErrorCode(requestEndpoint string, resp *http.Response) error {
 
 	return nil
 
+}
+
+func GetDenomsMetadatas(host string) (denoms.GetDenomsMetadatasResponse, error) {
+
+	//TODO paginate
+	var result denoms.GetDenomsMetadatasResponse
+
+	requestEndpoint := apiEndpoints["denoms_metadata"]
+
+	resp, err := http.Get(fmt.Sprintf("%s%s", host, requestEndpoint))
+
+	if err != nil {
+		return result, err
+	}
+
+	defer resp.Body.Close()
+
+	err = checkResponseErrorCode(requestEndpoint, resp)
+
+	if err != nil {
+		return result, err
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return result, err
+	}
+
+	err = json.Unmarshal(body, &result)
+
+	if err != nil {
+		return result, err
+	}
+
+	return result, nil
 }

@@ -5,6 +5,7 @@ import (
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
 )
 
@@ -46,6 +47,9 @@ func MigrateModels(db *gorm.DB) error {
 		&Address{},
 		&Message{},
 		&TaxableEvent{},
+		&Denom{},
+		&DenomUnit{},
+		&DenomUnitAlias{},
 	)
 }
 
@@ -129,4 +133,43 @@ func IndexNewBlock(db *gorm.DB, block Block, txs []TxDBWrapper) error {
 
 		return nil
 	})
+}
+
+func UpsertDenoms(db *gorm.DB, denoms []DenomDBWrapper) error {
+
+	return db.Transaction(func(dbTransaction *gorm.DB) error {
+
+		for _, denom := range denoms {
+
+			if err := dbTransaction.Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "name"}},
+				DoUpdates: clause.AssignmentColumns([]string{"symbol", "base"}),
+			}).Create(&denom.Denom).Error; err != nil {
+				return err
+			}
+
+			for _, denomUnit := range denom.DenomUnits {
+				denomUnit.DenomUnit.Denom = denom.Denom
+
+				if err := dbTransaction.Clauses(clause.OnConflict{
+					Columns:   []clause.Column{{Name: "name"}},
+					DoUpdates: clause.AssignmentColumns([]string{"exponent"}),
+				}).Create(&denomUnit.DenomUnit).Error; err != nil {
+					return err
+				}
+
+				for _, denomAlias := range denomUnit.Aliases {
+
+					denomAlias.DenomUnit = denomUnit.DenomUnit
+					if err := dbTransaction.Clauses(clause.OnConflict{
+						DoNothing: true,
+					}).Create(&denomAlias).Error; err != nil {
+						return err
+					}
+				}
+			}
+		}
+		return nil
+	})
+
 }
