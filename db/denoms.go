@@ -2,37 +2,68 @@ package db
 
 import (
 	"errors"
+	"fmt"
 	"math"
 
 	"gorm.io/gorm"
 )
 
-func ConvertUnits(db *gorm.DB, amount int64, denom string) (float64, string, error) {
-	var denomUnit DenomUnit
+var CachedDenomUnits []DenomUnit
 
-	//Try denom unit first
-	db.Where("name = ?", denom).Preload("Denom").First(&denomUnit)
+func CacheDenoms(db *gorm.DB) {
+	//TODO need to load aliases as well
+	var denomUnits []DenomUnit
+	db.Preload("Denom").Find(&denomUnits)
+	CachedDenomUnits = denomUnits
+}
 
-	if denomUnit.ID != 0 {
-		var highestDenomUnit DenomUnit
-		db.Where("denom_id = ?", denomUnit.DenomID).Order("exponent desc").First(&highestDenomUnit)
-
-		symbol := denomUnit.Denom.Symbol
-
-		convertedAmount := float64(amount) / math.Pow(10, float64(highestDenomUnit.Exponent-denomUnit.Exponent))
-		return convertedAmount, symbol, nil
-	} else {
-		//Try alias
-		var denomUnitAlias DenomUnitAlias
-		db.Where("alias = ?", denom).Preload("DenomUnit").Preload("DenomUnit.Denom").First(&denomUnitAlias)
-		if denomUnitAlias.ID != 0 {
-			var highestDenomUnit DenomUnit
-			db.Where("denom_id = ?", denomUnit.DenomID).Order("exponent desc").First(&highestDenomUnit)
-			symbol := denomUnitAlias.DenomUnit.Denom.Symbol
-			convertedAmount := float64(amount) / math.Pow(10, float64(highestDenomUnit.Exponent-denomUnitAlias.DenomUnit.Exponent))
-			return convertedAmount, symbol, nil
+func GetDenomUnitForDenom(denom string) (DenomUnit, error) {
+	for _, denomUnit := range CachedDenomUnits {
+		if denomUnit.Name == denom {
+			return denomUnit, nil
 		}
 	}
 
-	return 0, "", errors.New("No denom unit or alias found for the given denom")
+	return DenomUnit{}, errors.New("No denom unit for the specified denom")
+}
+
+func GetHighestDenomUnit(denomUnit DenomUnit, denomUnits []DenomUnit) (DenomUnit, error) {
+	var highestDenomUnit DenomUnit = DenomUnit{Exponent: 0, Name: "not found for denom"}
+
+	for _, currDenomUnit := range denomUnits {
+		if currDenomUnit.Denom.ID == denomUnit.Denom.ID {
+			if highestDenomUnit.Exponent <= currDenomUnit.Exponent {
+				highestDenomUnit = currDenomUnit
+			}
+		}
+	}
+
+	if highestDenomUnit.Name == "not found for denom" {
+		return highestDenomUnit, errors.New(fmt.Sprintf("Highest denom not found for denom %s", denomUnit.Name))
+	}
+
+	return highestDenomUnit, nil
+}
+
+func ConvertUnits(amount int64, denom string) (float64, string, error) {
+
+	//Try denom unit first
+	denomUnit, err := GetDenomUnitForDenom(denom)
+
+	if err != nil {
+		fmt.Println("Error getting denom unit for denom", denom)
+		return 0, "", errors.New(fmt.Sprintf("Error getting denom unit for denom %s", denom))
+	}
+
+	highestDenomUnit, err := GetHighestDenomUnit(denomUnit, CachedDenomUnits)
+
+	if err != nil {
+		fmt.Println("Error getting highest denom unit for denom", denom)
+		return 0, "", errors.New(fmt.Sprintf("Error getting highest denom unit for denom %s", denom))
+	}
+
+	symbol := denomUnit.Denom.Symbol
+
+	convertedAmount := float64(amount) / math.Pow(10, float64(highestDenomUnit.Exponent-denomUnit.Exponent))
+	return convertedAmount, symbol, nil
 }

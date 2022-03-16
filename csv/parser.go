@@ -59,12 +59,27 @@ func (row *AccointingRow) ParseBasic(address string, event db.TaxableEvent) {
 
 	//deposit
 	if event.ReceiverAddress.Address == address {
-		row.InBuyAmount = event.Amount
-		row.InBuyAsset = event.Denomination
+
+		conversionAmount, conversionSymbol, err := db.ConvertUnits(int64(event.Amount), event.Denomination)
+		if err == nil {
+			row.InBuyAmount = conversionAmount
+			row.InBuyAsset = conversionSymbol
+		} else {
+			row.InBuyAmount = event.Amount
+			row.InBuyAsset = event.Denomination
+		}
 		row.TransactionType = Deposit
+
 	} else if event.SenderAddress.Address == address { //withdrawal
-		row.OutSellAmount = event.Amount
-		row.OutSellAsset = event.Denomination
+
+		conversionAmount, conversionSymbol, err := db.ConvertUnits(int64(event.Amount), event.Denomination)
+		if err == nil {
+			row.OutSellAmount = conversionAmount
+			row.OutSellAsset = conversionSymbol
+		} else {
+			row.OutSellAmount = event.Amount
+			row.OutSellAsset = event.Denomination
+		}
 		row.TransactionType = Withdraw
 	}
 }

@@ -47,6 +47,8 @@ func setup() (*gorm.DB, error) {
 		return nil, err
 	}
 
+	dbTypes.CacheDenoms(db)
+
 	return db, nil
 
 }
