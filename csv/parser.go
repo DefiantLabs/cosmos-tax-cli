@@ -111,7 +111,7 @@ func ParseForAddress(address string, pgSql *gorm.DB) ([]AccointingRow, error) {
 	for _, evt := range txMap {
 		//For the current transaction group, generate the rows for the CSV.
 		//Usually (but not always) a transaction will only have a single row in the CSV.
-		rows = append(rows, ParseTx(address, evt, pgSql)...)
+		rows = append(rows, ParseTx(address, evt)...)
 	}
 
 	return rows, nil
@@ -160,7 +160,7 @@ func HandleFees(address string, events []db.TaxableEvent, rows []AccointingRow) 
 }
 
 //ParseTx: Parse the potentially taxable event
-func ParseTx(address string, events []db.TaxableEvent, pgSql *gorm.DB) []AccointingRow {
+func ParseTx(address string, events []db.TaxableEvent) []AccointingRow {
 	rows := []AccointingRow{}
 
 	for _, event := range events {
