@@ -10,7 +10,7 @@ type Block struct {
 type Tx struct {
 	ID              uint
 	TimeStamp       time.Time
-	Hash            string `gorm:"uniqueIndex"`
+	Hash            string
 	Fees            string
 	Code            int64
 	BlockId         uint
