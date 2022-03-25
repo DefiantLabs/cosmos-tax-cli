@@ -28,7 +28,7 @@ func TestCosmosHubAddressEquality(t *testing.T) {
 //Works on all chains but you need to know the prefix (e.g. junovaloper) in advance
 func TestCosmosAllAddressEquality(t *testing.T) {
 	valoperAddress := "junovaloper130mdu9a0etmeuw52qfxk73pn0ga6gawk2tz77l" //strangelove's valoper
-	accountAddress := "juno130mdu9a0etmeuw52qfxk73pn0ga6gawk4k539x"        //strangelove's delegator
+	accountAddress := "juno16g2rahf5846rxzp3fwlswy08fz8ccuwk03k57y"        //strangelove's delegator
 	cosmAccountAddress, acctErr := types.GetFromBech32(accountAddress, "juno")
 	cosmValAccountAddress, valoperErr := types.GetFromBech32(valoperAddress, "junovaloper")
 
