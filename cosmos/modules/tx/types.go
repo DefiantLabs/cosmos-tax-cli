@@ -26,18 +26,18 @@ type BlockHeader struct {
 }
 
 type GetTxByBlockHeightResponse struct {
-	Txs         []TxStruct         `json:"txs"`
-	TxResponses []TxResponseStruct `json:"tx_responses"`
-	Pagination  Pagination         `json:"pagination"`
+	Txs         []IndexerTx  `json:"txs"`
+	TxResponses []TxResponse `json:"tx_responses"`
+	Pagination  Pagination   `json:"pagination"`
 }
 
-type TxStruct struct {
+type IndexerTx struct {
 	Body       TxBody     `json:"body"`
 	AuthInfo   TxAuthInfo `json:"auth_info"`
 	Signatures []string   `json:"signatures"`
 }
 
-type TxResponseStruct struct {
+type TxResponse struct {
 	TxHash    string         `json:"txhash"`
 	Height    string         `json:"height"`
 	TimeStamp string         `json:"timestamp"`
@@ -90,7 +90,7 @@ type TxBody struct {
 
 type TxAuthInfo struct {
 	TxFee         TxFee          `json:"fee"`
-	TxSignerInfos []TxSignerInfo `json:"signer_infos"`
+	TxSignerInfos []TxSignerInfo `json:"signer_infos"` //this is used in REST but not RPC parsers
 }
 
 type TxFee struct {
@@ -119,8 +119,8 @@ type Pagination struct {
 
 //In the json, TX data is split into 2 arrays, used to merge the full dataset
 type MergedTx struct {
-	Tx         TxStruct
-	TxResponse TxResponseStruct
+	Tx         IndexerTx
+	TxResponse TxResponse
 }
 
 type GetLatestBlockResponse struct {

@@ -1,4 +1,4 @@
-package main
+package core
 
 import (
 	"encoding/base64"
@@ -20,11 +20,11 @@ import (
 var addressRegex *regexp.Regexp
 var addressPrefix string
 
-func setupAddressRegex(addressRegexPattern string) {
+func SetupAddressRegex(addressRegexPattern string) {
 	addressRegex, _ = regexp.Compile(addressRegexPattern)
 }
 
-func setupAddressPrefix(addressPrefixString string) {
+func SetupAddressPrefix(addressPrefixString string) {
 	addressPrefix = addressPrefixString
 }
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	configUtils "cosmos-exporter/config"
+	"cosmos-exporter/core"
 	"cosmos-exporter/csv"
 	"cosmos-exporter/db"
 	dbUtils "cosmos-exporter/db"
@@ -32,8 +33,8 @@ func db_setup() (*gorm.DB, error) {
 
 	//TODO: create config values for the prefixes here
 	//Could potentially check Node info at startup and pass in ourselves?
-	setupAddressRegex("juno(valoper)?1[a-z0-9]{38}")
-	setupAddressPrefix("juno")
+	core.SetupAddressRegex("juno(valoper)?1[a-z0-9]{38}")
+	core.SetupAddressPrefix("juno")
 
 	//run database migrations at every runtime
 	dbUtils.MigrateModels(db)

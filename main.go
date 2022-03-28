@@ -1,7 +1,8 @@
 package main
 
 import (
-	"cosmos-exporter/rest"
+	"cosmos-exporter/core"
+	"cosmos-exporter/rpc"
 	"cosmos-exporter/tasks"
 	"fmt"
 	"os"
@@ -11,6 +12,7 @@ import (
 	dbTypes "cosmos-exporter/db"
 
 	"github.com/go-co-op/gocron"
+	"github.com/strangelove-ventures/lens/client"
 	"gorm.io/gorm"
 )
 
@@ -59,10 +61,9 @@ func setup() (*configHelpers.Config, *gorm.DB, *gocron.Scheduler, error) {
 		fmt.Println("Could not establish connection to the database", err)
 	}
 
-	//TODO: create config values for the prefixes here
-	//Could potentially check Node info at startup and pass in ourselves?
-	setupAddressRegex("juno(valoper)?1[a-z0-9]{38}")
-	setupAddressPrefix("juno")
+	//TODO: make mapping for all chains, globally initialized
+	core.SetupAddressRegex("juno(valoper)?1[a-z0-9]{38}")
+	core.SetupAddressPrefix("juno")
 
 	scheduler := gocron.NewScheduler(time.UTC)
 
@@ -74,6 +75,29 @@ func setup() (*configHelpers.Config, *gorm.DB, *gocron.Scheduler, error) {
 	return &config, db, scheduler, nil
 }
 
+func GetIndexerStartingHeight(configStartHeight int64, cl *client.ChainClient, db *gorm.DB) int64 {
+	//Start the indexer at the configured value if one has been set. This starting height will be used
+	//instead of searching the database to find the last indexed block.
+	if configStartHeight != -1 {
+		return configStartHeight
+	}
+
+	latestBlock, bErr := rpc.GetLatestBlockHeight(cl)
+	if bErr != nil {
+		fmt.Println("Error getting blockchain latest height, exiting")
+		os.Exit(1)
+	}
+
+	fmt.Println("Found latest block", latestBlock)
+	highestIndexedBlock := dbTypes.GetHighestIndexedBlock(db)
+	if highestIndexedBlock.Height < latestBlock {
+		return highestIndexedBlock.Height + 1
+	}
+
+	return latestBlock
+
+}
+
 func main() {
 
 	config, db, scheduler, err := setup()
@@ -83,7 +107,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	apiHost := config.Api.Host
+	apiHost := config.Lens.Rpc
 	dbConn, _ := db.DB()
 	defer dbConn.Close()
 
@@ -91,8 +115,23 @@ func main() {
 	scheduler.Every(6).Hours().Do(tasks.DenomUpsertTask, apiHost, db)
 	scheduler.StartAsync()
 
-	latestBlock := rest.GetLatestBlockHeight(apiHost)
-	startHeight := rest.GetBlockStartHeight(config, db)
+	cl := configHelpers.GetLensClient(config.Lens)
+
+	//Depending on the app configuration, wait for the chain to catch up
+	chainCatchingUp, qErr := rpc.IsCatchingUp(cl)
+	for config.Base.WaitForChain && chainCatchingUp && qErr == nil {
+		//Wait between status checks, don't spam the node with requests
+		time.Sleep(time.Second * time.Duration(config.Base.WaitForChainDelay))
+		chainCatchingUp, qErr = rpc.IsCatchingUp(cl)
+	}
+
+	if qErr != nil {
+		fmt.Print("Error querying chain status, exiting")
+		os.Exit(1)
+	}
+
+	latestBlock, bErr := rpc.GetLatestBlockHeight(cl)
+	startHeight := GetIndexerStartingHeight(config.Base.StartBlock, cl, db)
 	currBlock := startHeight
 	lastBlock := config.Base.EndBlock
 	numBlocksTimed := config.Base.BlockTimer
@@ -104,7 +143,7 @@ func main() {
 			blocksProcessed++
 			if blocksProcessed%int(numBlocksTimed) == 0 {
 				totalTime := time.Since(timeStart)
-				fmt.Printf("Processing %d blocks (%d-%d) took %f seconds\n", numBlocksTimed, currBlock-uint64(numBlocksTimed), currBlock, totalTime.Seconds())
+				fmt.Printf("Processing %d blocks (%d-%d) took %f seconds\n", numBlocksTimed, currBlock-numBlocksTimed, currBlock, totalTime.Seconds())
 				fmt.Printf("%d total blocks have been processed by this indexer.\n", blocksProcessed)
 				timeStart = time.Now()
 			}
@@ -117,7 +156,11 @@ func main() {
 
 		//need to sleep for a bit to wait for next block to be indexed
 		for currBlock == latestBlock {
-			latestBlock = rest.GetLatestBlockHeight(apiHost)
+			latestBlock, bErr = rpc.GetLatestBlockHeight(cl)
+			if bErr != nil {
+				fmt.Println(bErr)
+				os.Exit(1)
+			}
 			if config.Base.Throttling != 0 {
 				time.Sleep(time.Second * time.Duration(config.Base.Throttling))
 			}
@@ -128,18 +171,19 @@ func main() {
 			os.Exit(1)
 		}
 
-		//consider optimizing by using block variable instead of parsing out (dangers?)
 		newBlock := dbTypes.Block{Height: currBlock}
 		var txDBWrappers []dbTypes.TxDBWrapper
 
-		result, err := rest.GetTxsByBlockHeight(apiHost, newBlock.Height)
+		//TODO: There is currently no pagination implemented!
+		//TODO: consider doing something smarter than giving up when we encounter an error.
+		//It's highly likely we could simply wait which would automatically recover.
+		txsEventResp, err := rpc.GetTxsByBlockHeight(cl, newBlock.Height)
 		if err != nil {
 			fmt.Println("Error getting transactions by block height", err)
 			os.Exit(1)
 		}
 
-		fmt.Printf("Block %d has %s transaction(s)\n", currBlock, result.Pagination.Total)
-		txDBWrappers = ProcessTxs(result.Txs, result.TxResponses)
+		txDBWrappers = core.ProcessRpcTxs(txsEventResp)
 		err = dbTypes.IndexNewBlock(db, newBlock, txDBWrappers)
 
 		if err != nil {
@@ -147,7 +191,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		if lastBlock != -1 && currBlock >= uint64(lastBlock) {
+		if lastBlock != -1 && currBlock >= lastBlock {
 			fmt.Println("Hit the last block, exiting.")
 			break
 		}

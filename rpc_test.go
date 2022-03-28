@@ -2,11 +2,14 @@ package main
 
 import (
 	configHelpers "cosmos-exporter/config"
+	"cosmos-exporter/core"
+	"encoding/json"
 	"fmt"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/strangelove-ventures/lens/client"
 	lensClient "github.com/strangelove-ventures/lens/client"
 	lensQuery "github.com/strangelove-ventures/lens/client/query"
 
@@ -48,8 +51,8 @@ func setup_rpc() (*configHelpers.Config, *gocron.Scheduler, error) {
 
 	//TODO: create config values for the prefixes here
 	//Could potentially check Node info at startup and pass in ourselves?
-	setupAddressRegex("juno(valoper)?1[a-z0-9]{38}")
-	setupAddressPrefix("juno")
+	core.SetupAddressRegex("juno(valoper)?1[a-z0-9]{38}")
+	core.SetupAddressPrefix("juno")
 
 	scheduler := gocron.NewScheduler(time.UTC)
 	return &config, scheduler, nil
@@ -90,6 +93,7 @@ func GetJunoConfig(keyHome string, debug bool) *lensClient.ChainClientConfig {
 		Timeout:        "10s",
 		OutputFormat:   "json",
 		SignModeStr:    "direct",
+		Modules:        client.ModuleBasics,
 	}
 }
 
@@ -114,7 +118,11 @@ func rpc_query_tx(height int64) error {
 	//requestEndpoint := fmt.Sprintf(rest.GetEndpoint("txs_by_block_height_endpoint"), height)
 	options := lensQuery.QueryOptions{Height: height}
 	query := lensQuery.Query{Client: cl, Options: &options}
-	resp, err := query.TxByHeight()
-	fmt.Printf("Resp: %+v\n", resp)
+	resp, err := query.TxByHeight(cl.Codec)
+	if err != nil {
+		return err
+	}
+	j_resp, err := json.Marshal(*resp)
+	fmt.Printf("Resp: %s\n", j_resp)
 	return err
 }

@@ -1,14 +1,19 @@
-package main
+package core
 
 import (
 	parsingTypes "cosmos-exporter/cosmos/modules"
 	bank "cosmos-exporter/cosmos/modules/bank"
 	staking "cosmos-exporter/cosmos/modules/staking"
+	tx "cosmos-exporter/cosmos/modules/tx"
 	txTypes "cosmos-exporter/cosmos/modules/tx"
+
 	dbTypes "cosmos-exporter/db"
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/cosmos/cosmos-sdk/types"
+	cosmosTx "github.com/cosmos/cosmos-sdk/types/tx"
 )
 
 //Unmarshal JSON to a particular type.
@@ -42,7 +47,92 @@ func ParseCosmosMessageJSON(input []byte, log *txTypes.TxLogMessage) (txTypes.Co
 	return msg, nil
 }
 
-func ProcessTxs(responseTxs []txTypes.TxStruct, responseTxResponses []txTypes.TxResponseStruct) []dbTypes.TxDBWrapper {
+func toAttributes(attrs []types.Attribute) []txTypes.Attribute {
+	list := make([]txTypes.Attribute, len(attrs))
+	for _, attr := range attrs {
+		lma := txTypes.Attribute{Key: attr.Key, Value: attr.Value}
+		list = append(list, lma)
+	}
+
+	return list
+}
+
+func toEvents(msgEvents types.StringEvents) []txTypes.LogMessageEvent {
+	list := make([]txTypes.LogMessageEvent, len(msgEvents))
+	for _, evt := range msgEvents {
+		lme := tx.LogMessageEvent{Type: evt.Type, Attributes: toAttributes(evt.Attributes)}
+		list = append(list, lme)
+	}
+
+	return list
+}
+
+//TODO: get rid of some of the unnecessary types like cosmos-exporter/TxResponse.
+//All those structs were legacy and for REST API support but we no longer really need it.
+//For now I'm keeping it until we have RPC compatibility fully working and tested.
+func ProcessRpcTxs(txEventResp *cosmosTx.GetTxsEventResponse) []dbTypes.TxDBWrapper {
+	var currTxDbWrappers = make([]dbTypes.TxDBWrapper, len(txEventResp.Txs))
+
+	for i := 0; i < len(txEventResp.Txs); i++ {
+		//Indexer types only used by the indexer app (similar to the cosmos types)
+		indexerMergedTx := txTypes.MergedTx{}
+		indexerTx := txTypes.IndexerTx{}
+		txBody := txTypes.TxBody{}
+		authInfo := txTypes.TxAuthInfo{}
+
+		currTx := txEventResp.Txs[i]
+		currTxResp := txEventResp.TxResponses[i]
+		currMessages := make([]interface{}, len(currTx.Body.Messages))
+		currLogMsgs := make([]tx.TxLogMessage, len(currTx.Body.Messages))
+
+		// TODO: Get the TX fees, parse, put in DB, put in CSV ...
+		// fees := currTx.AuthInfo.Fee
+		// feeAmount := fees.Amount
+		// feePayer := fees.Payer
+
+		//Get the Messages and Message Logs
+		for j := 0; j < len(currTx.Body.Messages); j++ {
+			currMsg := currTx.Body.Messages[j].GetCachedValue()
+			currMessages = append(currMessages, currMsg)
+			msgEvents := currTxResp.Logs[j].Events
+
+			currTxLog := tx.TxLogMessage{
+				MessageIndex: i,
+				Events:       toEvents(msgEvents),
+			}
+
+			currLogMsgs = append(currLogMsgs, currTxLog)
+		}
+
+		txBody.Messages = currMessages
+		indexerTx.Body = txBody
+		indexerTx.AuthInfo = authInfo //Will eventually contain fees (TODO: impl fees)
+
+		indexerTxResp := tx.TxResponse{
+			TxHash:    currTxResp.TxHash,
+			Height:    fmt.Sprintf("%d", currTxResp.Height),
+			TimeStamp: currTxResp.Timestamp,
+			RawLog:    currTxResp.RawLog,
+			Log:       currLogMsgs,
+		}
+
+		indexerMergedTx.TxResponse = indexerTxResp
+		indexerMergedTx.Tx = indexerTx
+
+		processedTx := ProcessTx(indexerMergedTx)
+		processedTx.SignerAddress = dbTypes.Address{Address: currTx.FeePayer().String()}
+
+		//TODO: Pass in key type (may be able to split from Type PublicKey)
+		//TODO: Signers is an array, need a many to many for the signers in the model
+		//signerAddress, err := ParseSignerAddress(currTx.AuthInfo.SignerInfos[0].PublicKey, "")
+
+		currTxDbWrappers[i] = processedTx
+	}
+
+	return currTxDbWrappers
+}
+
+func ProcessRestTxs(responseTxs []txTypes.IndexerTx, responseTxResponses []txTypes.TxResponse) []dbTypes.TxDBWrapper {
 	var currTxDbWrappers = make([]dbTypes.TxDBWrapper, len(responseTxs))
 	//wg := sync.WaitGroup{}
 
