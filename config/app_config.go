@@ -42,6 +42,7 @@ type base struct {
 	BlockTimer        int64
 	WaitForChain      bool
 	WaitForChainDelay int64
+	IndexingEnabled   bool
 }
 
 type log struct {

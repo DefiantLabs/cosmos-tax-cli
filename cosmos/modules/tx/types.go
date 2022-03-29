@@ -1,6 +1,10 @@
 package tx
 
-import parsingTypes "cosmos-exporter/cosmos/modules"
+import (
+	parsingTypes "cosmos-exporter/cosmos/modules"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+)
 
 //TODO: Clean up types
 type GetBlockByHeightResponse struct {
@@ -85,7 +89,7 @@ type LogMessageEvent struct {
 }
 
 type TxBody struct {
-	Messages []interface{} `json:"messages"`
+	Messages []sdk.Msg `json:"messages"`
 }
 
 type TxAuthInfo struct {
@@ -140,7 +144,7 @@ func (sf *Message) GetType() string {
 //CosmUnmarshal() unmarshals the specific cosmos message type (e.g. MsgSend).
 //First arg must always be the message type itself, as this won't be parsed in CosmUnmarshal.
 type CosmosMessage interface {
-	CosmUnmarshal(string, []byte, *TxLogMessage) error
+	HandleMsg(string, sdk.Msg, *TxLogMessage) error
 	ParseRelevantData() []parsingTypes.MessageRelevantInformation
 	GetType() string
 	String() string

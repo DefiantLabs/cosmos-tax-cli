@@ -16,6 +16,9 @@ import (
 	"gorm.io/gorm"
 )
 
+//TODO: Refactor all of this code. Move to config folder, make it work for multiple chains.
+//Separate the DB logic, scheduler logic, and blockchain logic into different functions.
+//
 //setup does pre-run setup configurations.
 //	* Loads the application config from config.tml, cli args and parses/merges
 //	* Connects to the database and returns the db object
@@ -116,6 +119,7 @@ func main() {
 	scheduler.StartAsync()
 
 	cl := configHelpers.GetLensClient(config.Lens)
+	configHelpers.SetChainConfig("juno")
 
 	//Depending on the app configuration, wait for the chain to catch up
 	chainCatchingUp, qErr := rpc.IsCatchingUp(cl)
@@ -131,6 +135,12 @@ func main() {
 	}
 
 	latestBlock, bErr := rpc.GetLatestBlockHeight(cl)
+	if bErr != nil {
+		fmt.Println(bErr)
+		os.Exit(1)
+	}
+
+	//Start at the last indexed block height (or the block height in the config, if set)
 	startHeight := GetIndexerStartingHeight(config.Base.StartBlock, cl, db)
 	currBlock := startHeight
 	lastBlock := config.Base.EndBlock
@@ -139,6 +149,7 @@ func main() {
 	timeStart := time.Now()
 
 	for ; ; currBlock++ {
+		//Just measuring how many blocks/second we can process
 		if numBlocksTimed > 0 {
 			blocksProcessed++
 			if blocksProcessed%int(numBlocksTimed) == 0 {
@@ -154,7 +165,7 @@ func main() {
 			time.Sleep(time.Second * time.Duration(config.Base.Throttling))
 		}
 
-		//need to sleep for a bit to wait for next block to be indexed
+		//Already at the latest block, wait for the next block to be available.
 		for currBlock == latestBlock {
 			latestBlock, bErr = rpc.GetLatestBlockHeight(cl)
 			if bErr != nil {
@@ -175,8 +186,7 @@ func main() {
 		var txDBWrappers []dbTypes.TxDBWrapper
 
 		//TODO: There is currently no pagination implemented!
-		//TODO: consider doing something smarter than giving up when we encounter an error.
-		//It's highly likely we could simply wait which would automatically recover.
+		//TODO: Do something smarter than giving up when we encounter an error.
 		txsEventResp, err := rpc.GetTxsByBlockHeight(cl, newBlock.Height)
 		if err != nil {
 			fmt.Println("Error getting transactions by block height", err)
@@ -184,7 +194,12 @@ func main() {
 		}
 
 		txDBWrappers = core.ProcessRpcTxs(txsEventResp)
-		err = dbTypes.IndexNewBlock(db, newBlock, txDBWrappers)
+
+		//While debugging we'll sometimes want to turn off INSERTS to the DB
+		//Note that this does not turn off certain reads or DB connections.
+		if config.Base.IndexingEnabled {
+			err = dbTypes.IndexNewBlock(db, newBlock, txDBWrappers)
+		}
 
 		if err != nil {
 			fmt.Printf("Error %s indexing block %d\n", err, currBlock)
