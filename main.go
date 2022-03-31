@@ -9,6 +9,7 @@ import (
 	"time"
 
 	configHelpers "cosmos-exporter/config"
+	indexerTx "cosmos-exporter/cosmos/modules/tx"
 	dbTypes "cosmos-exporter/db"
 
 	"github.com/go-co-op/gocron"
@@ -134,56 +135,84 @@ func main() {
 		os.Exit(1)
 	}
 
-	latestBlock, bErr := rpc.GetLatestBlockHeight(cl)
-	if bErr != nil {
-		fmt.Println(bErr)
-		os.Exit(1)
+	//Jobs are just the block height; limit max jobs in the queue, otherwise this queue would contain one
+	//item (block height) for every block on the entire blockchain we're indexing. Furthermore, once the queue
+	//is close to empty, we will spin up a new thread to fill it up with new jobs.
+	blockHeightToProcess := make(chan int64, 10000)
+
+	//This channel represents query job results for the RPC queries to Cosmos Nodes. Every time an RPC query
+	//completes, the query result will be sent to this channel (for later processing by a different thread).
+	//Realistically, I expect that RPC queries will be slower than our relational DB on the local network.
+	//If RPC queries are faster than DB inserts this buffer will fill up.
+	//We will periodically check the buffer size to monitor performance so we can optimize later.
+	jobResultsChannel := make(chan *indexerTx.GetTxsEventResponseWrapper, 10)
+	rpcQueryThreads := 4
+
+	//Spin up a (configurable) number of threads to query RPC endpoints for Transactions.
+	for i := 0; i < rpcQueryThreads; i++ {
+		go QueryRpc(blockHeightToProcess, jobResultsChannel, cl)
 	}
 
+	//Start a thread to process transactions after the RPC querier retrieves them.
+	go ProcessTxs(jobResultsChannel, config.Base.BlockTimer, config.Base.IndexingEnabled, db)
+
 	//Start at the last indexed block height (or the block height in the config, if set)
-	startHeight := GetIndexerStartingHeight(config.Base.StartBlock, cl, db)
-	currBlock := startHeight
+	currBlock := GetIndexerStartingHeight(config.Base.StartBlock, cl, db)
+	//Don't index past this block no matter what
 	lastBlock := config.Base.EndBlock
-	numBlocksTimed := config.Base.BlockTimer
-	blocksProcessed := 0
-	timeStart := time.Now()
 
-	for ; ; currBlock++ {
-		//Just measuring how many blocks/second we can process
-		if numBlocksTimed > 0 {
-			blocksProcessed++
-			if blocksProcessed%int(numBlocksTimed) == 0 {
-				totalTime := time.Since(timeStart)
-				fmt.Printf("Processing %d blocks (%d-%d) took %f seconds\n", numBlocksTimed, currBlock-numBlocksTimed, currBlock, totalTime.Seconds())
-				fmt.Printf("%d total blocks have been processed by this indexer.\n", blocksProcessed)
-				timeStart = time.Now()
-			}
+	//Add jobs to the queue to be processed
+	for {
+		//The program is configured to stop running after a set block height.
+		//Generally this will only be done while debugging or if a particular block was incorrectly processed.
+		if lastBlock != -1 && currBlock >= lastBlock {
+			fmt.Println("Hit the last block we're allowed to index, exiting.")
+			break
 		}
 
-		//Self throttling in case of hitting public APIs
-		if config.Base.Throttling != 0 {
-			time.Sleep(time.Second * time.Duration(config.Base.Throttling))
-		}
+		//The job queue is running out of jobs to process, see if the blockchain has produced any new blocks we haven't indexed yet.
+		if len(blockHeightToProcess) <= cap(blockHeightToProcess)/4 {
+			//fmt.Println("Filling jobs queue")
 
-		//Already at the latest block, wait for the next block to be available.
-		for currBlock == latestBlock {
-			latestBlock, bErr = rpc.GetLatestBlockHeight(cl)
+			//This is the latest block height available on the Node.
+			latestBlock, bErr := rpc.GetLatestBlockHeight(cl)
 			if bErr != nil {
 				fmt.Println(bErr)
 				os.Exit(1)
 			}
+
+			//Throttling in case of hitting public APIs
+			//TODO: track tx/s downloaded from each RPC endpoint and implement throttling limits per endpoint.
 			if config.Base.Throttling != 0 {
 				time.Sleep(time.Second * time.Duration(config.Base.Throttling))
 			}
-		}
 
-		if err != nil {
-			fmt.Println("Error getting block by height", err)
-			os.Exit(1)
-		}
+			//Already at the latest block, wait for the next block to be available.
+			for currBlock <= latestBlock && len(blockHeightToProcess) != cap(blockHeightToProcess) {
 
-		newBlock := dbTypes.Block{Height: currBlock}
-		var txDBWrappers []dbTypes.TxDBWrapper
+				if config.Base.Throttling != 0 {
+					time.Sleep(time.Second * time.Duration(config.Base.Throttling))
+				}
+
+				//Add the new block to the queue
+				//fmt.Printf("Added block %d to the queue\n", currBlock)
+				blockHeightToProcess <- currBlock
+				currBlock++
+			}
+		}
+	}
+
+	//if len(ch) == cap(ch) {
+
+	//If we error out in the main loop, this will block. Meaning we may not know of an error for 6 hours until last scheduled task stops
+	scheduler.Stop()
+}
+
+func QueryRpc(blockHeightToProcess chan int64, results chan *indexerTx.GetTxsEventResponseWrapper, cl *client.ChainClient) {
+	for {
+		blockToProcess := <-blockHeightToProcess
+		//fmt.Printf("Querying RPC transactions for block %d\n", blockToProcess)
+		newBlock := dbTypes.Block{Height: blockToProcess}
 
 		//TODO: There is currently no pagination implemented!
 		//TODO: Do something smarter than giving up when we encounter an error.
@@ -193,25 +222,42 @@ func main() {
 			os.Exit(1)
 		}
 
-		txDBWrappers = core.ProcessRpcTxs(txsEventResp)
+		res := &indexerTx.GetTxsEventResponseWrapper{
+			CosmosGetTxsEventResponse: txsEventResp,
+			Height:                    blockToProcess,
+		}
+		results <- res
+	}
+}
+
+func ProcessTxs(results chan *indexerTx.GetTxsEventResponseWrapper, numBlocksTimed int64, indexingEnabled bool, db *gorm.DB) {
+	blocksProcessed := 0
+	timeStart := time.Now()
+
+	for {
+		txToProcess := <-results
+		txDBWrappers := core.ProcessRpcTxs(txToProcess.CosmosGetTxsEventResponse)
+		newBlock := dbTypes.Block{Height: txToProcess.Height}
 
 		//While debugging we'll sometimes want to turn off INSERTS to the DB
 		//Note that this does not turn off certain reads or DB connections.
-		if config.Base.IndexingEnabled {
-			err = dbTypes.IndexNewBlock(db, newBlock, txDBWrappers)
+		if indexingEnabled {
+			err := dbTypes.IndexNewBlock(db, newBlock, txDBWrappers)
+			if err != nil {
+				fmt.Printf("Error %s indexing block %d\n", err, newBlock.Height)
+				os.Exit(1)
+			}
 		}
 
-		if err != nil {
-			fmt.Printf("Error %s indexing block %d\n", err, currBlock)
-			os.Exit(1)
+		//Just measuring how many blocks/second we can process
+		if numBlocksTimed > 0 {
+			blocksProcessed++
+			if blocksProcessed%int(numBlocksTimed) == 0 {
+				totalTime := time.Since(timeStart)
+				fmt.Printf("Processing %d blocks took %f seconds. %d total blocks have been processed.\n", numBlocksTimed, totalTime.Seconds(), blocksProcessed)
+				timeStart = time.Now()
+			}
 		}
 
-		if lastBlock != -1 && currBlock >= lastBlock {
-			fmt.Println("Hit the last block, exiting.")
-			break
-		}
 	}
-
-	//If we error out in the main loop, this will block. Meaning we may not know of an error for 6 hours until last scheduled task stops
-	scheduler.Stop()
 }

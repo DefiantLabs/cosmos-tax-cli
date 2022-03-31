@@ -3,8 +3,15 @@ package tx
 import (
 	parsingTypes "cosmos-exporter/cosmos/modules"
 
+	cosmTx "github.com/cosmos/cosmos-sdk/types/tx"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
+
+type GetTxsEventResponseWrapper struct {
+	CosmosGetTxsEventResponse *cosmTx.GetTxsEventResponse
+	Height                    int64
+}
 
 //TODO: Clean up types
 type GetBlockByHeightResponse struct {
