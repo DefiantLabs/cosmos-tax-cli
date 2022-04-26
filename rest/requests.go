@@ -17,6 +17,10 @@ var apiEndpoints = map[string]string{
 	"denoms_metadata":              "/cosmos/bank/v1beta1/denoms_metadata",
 }
 
+func GetEndpoint(key string) string {
+	return apiEndpoints[key]
+}
+
 //GetBlockByHeight makes a request to the Cosmos REST API to get a block by height
 func GetBlockByHeight(host string, height uint64) (tx.GetBlockByHeightResponse, error) {
 

@@ -1,14 +1,18 @@
-package main
+package core
 
 import (
 	parsingTypes "cosmos-exporter/cosmos/modules"
 	bank "cosmos-exporter/cosmos/modules/bank"
 	staking "cosmos-exporter/cosmos/modules/staking"
+	tx "cosmos-exporter/cosmos/modules/tx"
 	txTypes "cosmos-exporter/cosmos/modules/tx"
+
 	dbTypes "cosmos-exporter/db"
-	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/cosmos/cosmos-sdk/types"
+	cosmosTx "github.com/cosmos/cosmos-sdk/types/tx"
 )
 
 //Unmarshal JSON to a particular type.
@@ -19,15 +23,12 @@ var messageTypeHandler = map[string]func() txTypes.CosmosMessage{
 }
 
 //ParseCosmosMessageJSON - Parse a SINGLE Cosmos Message into the appropriate type.
-func ParseCosmosMessageJSON(input []byte, log *txTypes.TxLogMessage) (txTypes.CosmosMessage, error) {
+func ParseCosmosMessage(message types.Msg, log *txTypes.TxLogMessage) (txTypes.CosmosMessage, error) {
 	//Figure out what type of Message this is based on the '@type' field that is included
 	//in every Cosmos Message (can be seen in raw JSON for any cosmos transaction).
 	var msg txTypes.CosmosMessage
 	cosmosMessage := txTypes.Message{}
-	if err := json.Unmarshal([]byte(input), &cosmosMessage); err != nil {
-		fmt.Printf("Error parsing Cosmos message: %v\n", err)
-		return nil, err
-	}
+	cosmosMessage.Type = types.MsgTypeURL(message)
 
 	//So far we only parsed the '@type' field. Now we get a struct for that specific type.
 	if msgHandlerFunc, ok := messageTypeHandler[cosmosMessage.Type]; ok {
@@ -38,11 +39,100 @@ func ParseCosmosMessageJSON(input []byte, log *txTypes.TxLogMessage) (txTypes.Co
 
 	//Unmarshal the rest of the JSON now that we know the specific type.
 	//Note that depending on the type, it may or may not care about logs.
-	msg.CosmUnmarshal(cosmosMessage.Type, []byte(input), log)
+	msg.HandleMsg(cosmosMessage.Type, message, log)
 	return msg, nil
 }
 
-func ProcessTxs(responseTxs []txTypes.TxStruct, responseTxResponses []txTypes.TxResponseStruct) []dbTypes.TxDBWrapper {
+func toAttributes(attrs []types.Attribute) []txTypes.Attribute {
+	list := []txTypes.Attribute{}
+	for _, attr := range attrs {
+		lma := txTypes.Attribute{Key: attr.Key, Value: attr.Value}
+		list = append(list, lma)
+	}
+
+	return list
+}
+
+func toEvents(msgEvents types.StringEvents) []txTypes.LogMessageEvent {
+	list := []txTypes.LogMessageEvent{}
+	for _, evt := range msgEvents {
+		lme := tx.LogMessageEvent{Type: evt.Type, Attributes: toAttributes(evt.Attributes)}
+		list = append(list, lme)
+	}
+
+	return list
+}
+
+//TODO: get rid of some of the unnecessary types like cosmos-exporter/TxResponse.
+//All those structs were legacy and for REST API support but we no longer really need it.
+//For now I'm keeping it until we have RPC compatibility fully working and tested.
+func ProcessRpcTxs(txEventResp *cosmosTx.GetTxsEventResponse) []dbTypes.TxDBWrapper {
+	var currTxDbWrappers = make([]dbTypes.TxDBWrapper, len(txEventResp.Txs))
+
+	for txIdx := 0; txIdx < len(txEventResp.Txs); txIdx++ {
+		//Indexer types only used by the indexer app (similar to the cosmos types)
+		indexerMergedTx := txTypes.MergedTx{}
+		indexerTx := txTypes.IndexerTx{}
+		txBody := txTypes.TxBody{}
+		authInfo := txTypes.TxAuthInfo{}
+
+		currTx := txEventResp.Txs[txIdx]
+		currTxResp := txEventResp.TxResponses[txIdx]
+		currMessages := []types.Msg{}
+		currLogMsgs := []tx.TxLogMessage{}
+
+		// TODO: Get the TX fees, parse, put in DB, put in CSV ...
+		// fees := currTx.AuthInfo.Fee
+		// feeAmount := fees.Amount
+		// feePayer := fees.Payer
+
+		//Get the Messages and Message Logs
+		for msgIdx := 0; msgIdx < len(currTx.Body.Messages); msgIdx++ {
+			currMsg := currTx.Body.Messages[msgIdx].GetCachedValue().(types.Msg)
+			currMessages = append(currMessages, currMsg)
+
+			if len(currTxResp.Logs) >= msgIdx+1 {
+				msgEvents := currTxResp.Logs[msgIdx].Events
+
+				currTxLog := tx.TxLogMessage{
+					MessageIndex: msgIdx,
+					Events:       toEvents(msgEvents),
+				}
+
+				currLogMsgs = append(currLogMsgs, currTxLog)
+			}
+		}
+
+		txBody.Messages = currMessages
+		indexerTx.Body = txBody
+		indexerTx.AuthInfo = authInfo //Will eventually contain fees (TODO: impl fees)
+
+		indexerTxResp := tx.TxResponse{
+			TxHash:    currTxResp.TxHash,
+			Height:    fmt.Sprintf("%d", currTxResp.Height),
+			TimeStamp: currTxResp.Timestamp,
+			RawLog:    currTxResp.RawLog,
+			Log:       currLogMsgs,
+			Code:      int64(currTxResp.Code),
+		}
+
+		indexerMergedTx.TxResponse = indexerTxResp
+		indexerMergedTx.Tx = indexerTx
+
+		processedTx := ProcessTx(indexerMergedTx)
+		processedTx.SignerAddress = dbTypes.Address{Address: currTx.FeePayer().String()}
+
+		//TODO: Pass in key type (may be able to split from Type PublicKey)
+		//TODO: Signers is an array, need a many to many for the signers in the model
+		//signerAddress, err := ParseSignerAddress(currTx.AuthInfo.SignerInfos[0].PublicKey, "")
+
+		currTxDbWrappers[txIdx] = processedTx
+	}
+
+	return currTxDbWrappers
+}
+
+func ProcessRestTxs(responseTxs []txTypes.IndexerTx, responseTxResponses []txTypes.TxResponse) []dbTypes.TxDBWrapper {
 	var currTxDbWrappers = make([]dbTypes.TxDBWrapper, len(responseTxs))
 	//wg := sync.WaitGroup{}
 
@@ -104,8 +194,7 @@ func ProcessTx(tx txTypes.MergedTx) dbTypes.TxDBWrapper {
 
 			//Get the message log that corresponds to the current message
 			messageLog := txTypes.GetMessageLogForIndex(tx.TxResponse.Log, messageIndex)
-			jsonString, _ := json.Marshal(message)
-			cosmosMessage, err := ParseCosmosMessageJSON(jsonString, messageLog)
+			cosmosMessage, err := ParseCosmosMessage(message, messageLog)
 
 			var currMessageDBWrapper dbTypes.MessageDBWrapper
 			if err == nil {

@@ -2,6 +2,7 @@ package main
 
 import (
 	configUtils "cosmos-exporter/config"
+	"cosmos-exporter/core"
 	"cosmos-exporter/csv"
 	"cosmos-exporter/db"
 	dbUtils "cosmos-exporter/db"
@@ -32,8 +33,8 @@ func db_setup() (*gorm.DB, error) {
 
 	//TODO: create config values for the prefixes here
 	//Could potentially check Node info at startup and pass in ourselves?
-	setupAddressRegex("juno(valoper)?1[a-z0-9]{38}")
-	setupAddressPrefix("juno")
+	core.SetupAddressRegex("juno(valoper)?1[a-z0-9]{38}")
+	core.SetupAddressPrefix("juno")
 
 	//run database migrations at every runtime
 	dbUtils.MigrateModels(db)
@@ -45,7 +46,8 @@ func db_setup() (*gorm.DB, error) {
 func TestCsvForAddress(t *testing.T) {
 	gorm, _ := db_setup()
 	//address := "juno1mt72y3jny20456k247tc5gf2dnat76l4ynvqwl"
-	address := "juno130mdu9a0etmeuw52qfxk73pn0ga6gawk4k539x" //strangelove's delegator
+	//address := "juno130mdu9a0etmeuw52qfxk73pn0ga6gawk4k539x" //strangelove's delegator
+	address := "juno1m2hg5t7n8f6kzh8kmh98phenk8a4xp5wyuz34y" //local test key address
 	csvRows, err := csv.ParseForAddress(address, gorm)
 	if err != nil || len(csvRows) == 0 {
 		t.Fatal("Failed to lookup taxable events")

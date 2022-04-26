@@ -2,7 +2,6 @@ package staking
 
 import (
 	txModule "cosmos-exporter/cosmos/modules/tx"
-	"encoding/json"
 	"fmt"
 
 	parsingTypes "cosmos-exporter/cosmos/modules"
@@ -24,7 +23,7 @@ var IsMsgWithdrawDelegatorReward = map[string]bool{
 
 type WrapperMsgWithdrawValidatorCommission struct {
 	txModule.Message
-	CosmosMsgWithdrawValidatorCommission distTypes.MsgWithdrawValidatorCommission
+	CosmosMsgWithdrawValidatorCommission *distTypes.MsgWithdrawValidatorCommission
 	DelegatorReceiverAddress             string
 	CoinsReceived                        stdTypes.Coin
 	MultiCoinsReceived                   stdTypes.Coins
@@ -32,7 +31,7 @@ type WrapperMsgWithdrawValidatorCommission struct {
 
 type WrapperMsgWithdrawDelegatorReward struct {
 	txModule.Message
-	CosmosMsgWithdrawDelegatorReward distTypes.MsgWithdrawDelegatorReward
+	CosmosMsgWithdrawDelegatorReward *distTypes.MsgWithdrawDelegatorReward
 	CoinsReceived                    stdTypes.Coin
 	MultiCoinsReceived               stdTypes.Coins
 }
@@ -62,13 +61,10 @@ func (sf *WrapperMsgWithdrawValidatorCommission) String() string {
 		sf.CosmosMsgWithdrawValidatorCommission.ValidatorAddress, sf.DelegatorReceiverAddress, coinsReceivedString)
 }
 
-//CosmUnmarshal(): Unmarshal JSON for MsgWithdrawDelegatorReward
-func (sf *WrapperMsgWithdrawValidatorCommission) CosmUnmarshal(msgType string, raw []byte, log *txModule.TxLogMessage) error {
+//HandleMsg: Handle type checking for MsgWithdrawDelegatorReward
+func (sf *WrapperMsgWithdrawValidatorCommission) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.TxLogMessage) error {
 	sf.Type = msgType
-	if err := json.Unmarshal(raw, &sf.CosmosMsgWithdrawValidatorCommission); err != nil {
-		fmt.Println("Error parsing message: " + err.Error())
-		return err
-	}
+	sf.CosmosMsgWithdrawValidatorCommission = msg.(*distTypes.MsgWithdrawValidatorCommission)
 
 	//Confirm that the action listed in the message log matches the Message type
 	valid_log := txModule.IsMessageActionEquals(sf.GetType(), log)
@@ -128,12 +124,9 @@ func (sf *WrapperMsgWithdrawValidatorCommission) ParseRelevantData() []parsingTy
 }
 
 //CosmUnmarshal(): Unmarshal JSON for MsgWithdrawDelegatorReward
-func (sf *WrapperMsgWithdrawDelegatorReward) CosmUnmarshal(msgType string, raw []byte, log *txModule.TxLogMessage) error {
+func (sf *WrapperMsgWithdrawDelegatorReward) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.TxLogMessage) error {
 	sf.Type = msgType
-	if err := json.Unmarshal(raw, &sf.CosmosMsgWithdrawDelegatorReward); err != nil {
-		fmt.Println("Error parsing message: " + err.Error())
-		return err
-	}
+	sf.CosmosMsgWithdrawDelegatorReward = msg.(*distTypes.MsgWithdrawDelegatorReward)
 
 	//Confirm that the action listed in the message log matches the Message type
 	valid_log := txModule.IsMessageActionEquals(sf.GetType(), log)

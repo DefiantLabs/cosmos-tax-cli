@@ -1,6 +1,17 @@
 package tx
 
-import parsingTypes "cosmos-exporter/cosmos/modules"
+import (
+	parsingTypes "cosmos-exporter/cosmos/modules"
+
+	cosmTx "github.com/cosmos/cosmos-sdk/types/tx"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+)
+
+type GetTxsEventResponseWrapper struct {
+	CosmosGetTxsEventResponse *cosmTx.GetTxsEventResponse
+	Height                    int64
+}
 
 //TODO: Clean up types
 type GetBlockByHeightResponse struct {
@@ -26,18 +37,18 @@ type BlockHeader struct {
 }
 
 type GetTxByBlockHeightResponse struct {
-	Txs         []TxStruct         `json:"txs"`
-	TxResponses []TxResponseStruct `json:"tx_responses"`
-	Pagination  Pagination         `json:"pagination"`
+	Txs         []IndexerTx  `json:"txs"`
+	TxResponses []TxResponse `json:"tx_responses"`
+	Pagination  Pagination   `json:"pagination"`
 }
 
-type TxStruct struct {
+type IndexerTx struct {
 	Body       TxBody     `json:"body"`
 	AuthInfo   TxAuthInfo `json:"auth_info"`
 	Signatures []string   `json:"signatures"`
 }
 
-type TxResponseStruct struct {
+type TxResponse struct {
 	TxHash    string         `json:"txhash"`
 	Height    string         `json:"height"`
 	TimeStamp string         `json:"timestamp"`
@@ -85,12 +96,12 @@ type LogMessageEvent struct {
 }
 
 type TxBody struct {
-	Messages []interface{} `json:"messages"`
+	Messages []sdk.Msg `json:"messages"`
 }
 
 type TxAuthInfo struct {
 	TxFee         TxFee          `json:"fee"`
-	TxSignerInfos []TxSignerInfo `json:"signer_infos"`
+	TxSignerInfos []TxSignerInfo `json:"signer_infos"` //this is used in REST but not RPC parsers
 }
 
 type TxFee struct {
@@ -119,8 +130,8 @@ type Pagination struct {
 
 //In the json, TX data is split into 2 arrays, used to merge the full dataset
 type MergedTx struct {
-	Tx         TxStruct
-	TxResponse TxResponseStruct
+	Tx         IndexerTx
+	TxResponse TxResponse
 }
 
 type GetLatestBlockResponse struct {
@@ -140,7 +151,7 @@ func (sf *Message) GetType() string {
 //CosmUnmarshal() unmarshals the specific cosmos message type (e.g. MsgSend).
 //First arg must always be the message type itself, as this won't be parsed in CosmUnmarshal.
 type CosmosMessage interface {
-	CosmUnmarshal(string, []byte, *TxLogMessage) error
+	HandleMsg(string, sdk.Msg, *TxLogMessage) error
 	ParseRelevantData() []parsingTypes.MessageRelevantInformation
 	GetType() string
 	String() string

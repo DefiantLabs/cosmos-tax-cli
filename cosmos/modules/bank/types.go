@@ -1,12 +1,12 @@
 package bank
 
 import (
-	"encoding/json"
 	"fmt"
 
 	parsingTypes "cosmos-exporter/cosmos/modules"
 	txModule "cosmos-exporter/cosmos/modules/tx"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
@@ -15,14 +15,11 @@ var IsMsgSend = map[string]bool{
 	"/cosmos.bank.v1beta1.MsgSend": true,
 }
 
-//CosmUnmarshal(): Unmarshal JSON for MsgSend.
+//HandleMsg: Unmarshal JSON for MsgSend.
 //Note that MsgSend ignores the TxLogMessage because it isn't needed.
-func (sf *WrapperMsgSend) CosmUnmarshal(msgType string, raw []byte, log *txModule.TxLogMessage) error {
+func (sf *WrapperMsgSend) HandleMsg(msgType string, msg sdk.Msg, log *txModule.TxLogMessage) error {
 	sf.Type = msgType
-	if err := json.Unmarshal(raw, &sf.CosmosMsgSend); err != nil {
-		fmt.Println("Error parsing message: " + err.Error())
-		return err
-	}
+	sf.CosmosMsgSend = msg.(*bankTypes.MsgSend)
 
 	//Confirm that the action listed in the message log matches the Message type
 	valid_log := txModule.IsMessageActionEquals(sf.GetType(), log)
@@ -71,5 +68,5 @@ func (sf *WrapperMsgSend) ParseRelevantData() []parsingTypes.MessageRelevantInfo
 
 type WrapperMsgSend struct {
 	txModule.Message
-	CosmosMsgSend bankTypes.MsgSend
+	CosmosMsgSend *bankTypes.MsgSend
 }

@@ -1,21 +1,35 @@
-#postgresql
-[database]
-host = "localhost"
-port = "5432"
-database = ""
-user = ""
-password = ""
-
 #gorm
 [log]
 level = "info"
 
-#Cosmos Chain API
-[api]
-host = "http://localhost:1317"
+#Cosmos REST APIs no longer supported in any commits after 3/20/22.
+# See [lens] configuration options for currently supported values.
+#[api]
+#host = "http://localhost:1317"
 
-#App configuration values. leave start block 
+#App configuration values
 [base]
-startblock = -1 # start at the last indexed block
+startblock = 7000 # start at the last indexed block
 endblock = -1 # no end block
-throttling = 0 # do not throttle
+throttling = 0
+blockTimer = 1000 #print out how long it takes to process this many blocks
+waitForChain = false #if true, indexer will start when the node is caught up to the blockchain
+waitForChainDelay = 10 #seconds to wait between each check for node to catch up to the chain
+indexingEnabled = true #If false, TX won't be added to the DB but other values might be READ from the DB
+
+#Lens config options
+[lens]
+homepath = "/home/kyle/.lens"
+rpc = "http://localhost:26657"
+key = "default"
+accountPrefix = "juno"
+keyringBackend = "test"
+chainID = "testing"
+
+#postgresql
+[database]
+host = "localhost"
+port = "5432"
+database = "taxappdb"
+user = "taxapp"
+password = "taxapptest"

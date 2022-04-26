@@ -4,7 +4,7 @@ import "time"
 
 type Block struct {
 	ID     uint
-	Height uint64 `gorm:"uniqueIndex"`
+	Height int64 `gorm:"uniqueIndex"`
 }
 
 type Tx struct {

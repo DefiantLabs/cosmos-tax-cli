@@ -7,10 +7,11 @@ import (
 
 type Config struct {
 	Database           database
-	Api                api
+	Api                api //deprecated in favor of lens.Rpc (at least in this app)
 	ConfigFileLocation string
 	Base               base
 	Log                log
+	Lens               lens
 }
 
 type database struct {
@@ -21,15 +22,27 @@ type database struct {
 	Password string
 }
 
+type lens struct {
+	Homepath       string
+	Rpc            string
+	Key            string
+	AccountPrefix  string
+	KeyringBackend string
+	ChainID        string
+}
+
 type api struct {
 	Host string
 }
 
 type base struct {
-	StartBlock int64
-	EndBlock   int64
-	Throttling int64
-	BlockTimer int64
+	StartBlock        int64
+	EndBlock          int64
+	Throttling        int64
+	BlockTimer        int64
+	WaitForChain      bool
+	WaitForChainDelay int64
+	IndexingEnabled   bool
 }
 
 type log struct {
