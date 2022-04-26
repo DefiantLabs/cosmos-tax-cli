@@ -1,4 +1,4 @@
-module cosmos-exporter
+module github.com/DefiantLabs/cosmos-exporter
 
 go 1.17
 

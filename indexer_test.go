@@ -46,7 +46,8 @@ func db_setup() (*gorm.DB, error) {
 func TestCsvForAddress(t *testing.T) {
 	gorm, _ := db_setup()
 	//address := "juno1mt72y3jny20456k247tc5gf2dnat76l4ynvqwl"
-	address := "juno130mdu9a0etmeuw52qfxk73pn0ga6gawk4k539x" //strangelove's delegator
+	//address := "juno130mdu9a0etmeuw52qfxk73pn0ga6gawk4k539x" //strangelove's delegator
+	address := "juno1m2hg5t7n8f6kzh8kmh98phenk8a4xp5wyuz34y" //local test key address
 	csvRows, err := csv.ParseForAddress(address, gorm)
 	if err != nil || len(csvRows) == 0 {
 		t.Fatal("Failed to lookup taxable events")

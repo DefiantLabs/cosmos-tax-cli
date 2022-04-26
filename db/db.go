@@ -68,6 +68,7 @@ func IndexNewBlock(db *gorm.DB, block Block, txs []TxDBWrapper) error {
 	return db.Transaction(func(dbTransaction *gorm.DB) error {
 		// return any error will rollback
 		if err := dbTransaction.Create(&block).Error; err != nil {
+			fmt.Printf("Error %s creating block.\n", err)
 			return err
 		}
 
@@ -76,6 +77,7 @@ func IndexNewBlock(db *gorm.DB, block Block, txs []TxDBWrapper) error {
 			if transaction.SignerAddress.Address != "" {
 				//viewing gorm logs shows this gets translated into a single ON CONFLICT DO NOTHING RETURNING "id"
 				if err := dbTransaction.Where(&transaction.SignerAddress).FirstOrCreate(&transaction.SignerAddress).Error; err != nil {
+					fmt.Printf("Error %s creating tx.\n", err)
 					return err
 				}
 				//store created db model in signer address, creates foreign key relation
@@ -90,12 +92,14 @@ func IndexNewBlock(db *gorm.DB, block Block, txs []TxDBWrapper) error {
 			transaction.Tx.Block = block
 
 			if err := dbTransaction.Create(&transaction.Tx).Error; err != nil {
+				fmt.Printf("Error %s creating tx.\n", err)
 				return err
 			}
 
 			for _, message := range transaction.Messages {
 				message.Message.Tx = transaction.Tx
 				if err := dbTransaction.Create(&message.Message).Error; err != nil {
+					fmt.Printf("Error %s creating message.\n", err)
 					return err
 				}
 
@@ -103,6 +107,7 @@ func IndexNewBlock(db *gorm.DB, block Block, txs []TxDBWrapper) error {
 
 					if taxableEvent.SenderAddress.Address != "" {
 						if err := dbTransaction.Where(&taxableEvent.SenderAddress).FirstOrCreate(&taxableEvent.SenderAddress).Error; err != nil {
+							fmt.Printf("Error %s creating sender address.\n", err)
 							return err
 						}
 						//store created db model in sender address, creates foreign key relation
@@ -114,6 +119,7 @@ func IndexNewBlock(db *gorm.DB, block Block, txs []TxDBWrapper) error {
 
 					if taxableEvent.ReceiverAddress.Address != "" {
 						if err := dbTransaction.Where(&taxableEvent.ReceiverAddress).FirstOrCreate(&taxableEvent.ReceiverAddress).Error; err != nil {
+							fmt.Printf("Error %s creating receiver address.\n", err)
 							return err
 						}
 						//store created db model in receiver address, creates foreign key relation
@@ -124,6 +130,7 @@ func IndexNewBlock(db *gorm.DB, block Block, txs []TxDBWrapper) error {
 					}
 					taxableEvent.TaxableEvent.Message = message.Message
 					if err := dbTransaction.Create(&taxableEvent.TaxableEvent).Error; err != nil {
+						fmt.Printf("Error %s creating taxabla event.\n", err)
 						return err
 					}
 				}
