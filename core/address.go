@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"regexp"
 
-	tx "cosmos-exporter/cosmos/modules/tx"
+	tx "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"

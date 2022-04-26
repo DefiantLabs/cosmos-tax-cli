@@ -1,13 +1,14 @@
 package rest
 
 import (
-	denoms "cosmos-exporter/cosmos/modules/denoms"
-	tx "cosmos-exporter/cosmos/modules/tx"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+
+	denoms "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/denoms"
+	tx "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
 )
 
 var apiEndpoints = map[string]string{

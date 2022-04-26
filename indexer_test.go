@@ -1,14 +1,15 @@
 package main
 
 import (
-	configUtils "cosmos-exporter/config"
-	"cosmos-exporter/core"
-	"cosmos-exporter/csv"
-	"cosmos-exporter/db"
-	dbUtils "cosmos-exporter/db"
 	"fmt"
 	"os"
 	"testing"
+
+	configUtils "github.com/DefiantLabs/cosmos-exporter/config"
+	"github.com/DefiantLabs/cosmos-exporter/core"
+	"github.com/DefiantLabs/cosmos-exporter/csv"
+	"github.com/DefiantLabs/cosmos-exporter/db"
+	dbUtils "github.com/DefiantLabs/cosmos-exporter/db"
 
 	"gorm.io/gorm"
 )

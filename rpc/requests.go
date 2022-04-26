@@ -1,12 +1,13 @@
 package rpc
 
 import (
-	denoms "cosmos-exporter/cosmos/modules/denoms"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+
+	denoms "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/denoms"
 
 	txTypes "github.com/cosmos/cosmos-sdk/types/tx"
 	lensClient "github.com/strangelove-ventures/lens/client"

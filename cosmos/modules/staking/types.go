@@ -1,10 +1,11 @@
 package staking
 
 import (
-	txModule "cosmos-exporter/cosmos/modules/tx"
 	"fmt"
 
-	parsingTypes "cosmos-exporter/cosmos/modules"
+	txModule "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
+
+	parsingTypes "github.com/DefiantLabs/cosmos-exporter/cosmos/modules"
 
 	stdTypes "github.com/cosmos/cosmos-sdk/types"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"

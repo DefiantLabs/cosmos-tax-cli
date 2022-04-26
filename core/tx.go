@@ -1,15 +1,16 @@
 package core
 
 import (
-	parsingTypes "cosmos-exporter/cosmos/modules"
-	bank "cosmos-exporter/cosmos/modules/bank"
-	staking "cosmos-exporter/cosmos/modules/staking"
-	tx "cosmos-exporter/cosmos/modules/tx"
-	txTypes "cosmos-exporter/cosmos/modules/tx"
+	parsingTypes "github.com/DefiantLabs/cosmos-exporter/cosmos/modules"
+	bank "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/bank"
+	staking "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/staking"
+	tx "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
+	txTypes "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
 
-	dbTypes "cosmos-exporter/db"
 	"fmt"
 	"time"
+
+	dbTypes "github.com/DefiantLabs/cosmos-exporter/db"
 
 	"github.com/cosmos/cosmos-sdk/types"
 	cosmosTx "github.com/cosmos/cosmos-sdk/types/tx"

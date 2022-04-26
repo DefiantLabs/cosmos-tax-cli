@@ -1,9 +1,10 @@
 package tasks
 
 import (
-	dbTypes "cosmos-exporter/db"
-	"cosmos-exporter/rest"
 	"fmt"
+
+	dbTypes "github.com/DefiantLabs/cosmos-exporter/db"
+	"github.com/DefiantLabs/cosmos-exporter/rest"
 
 	"gorm.io/gorm"
 )

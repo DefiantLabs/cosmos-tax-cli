@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 
-	configHelpers "cosmos-exporter/config"
+	configHelpers "github.com/DefiantLabs/cosmos-exporter/config"
 
-	"cosmos-exporter/csv"
-	dbTypes "cosmos-exporter/db"
+	"github.com/DefiantLabs/cosmos-exporter/csv"
+	dbTypes "github.com/DefiantLabs/cosmos-exporter/db"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"

@@ -1,13 +1,14 @@
 package main
 
 import (
-	configHelpers "cosmos-exporter/config"
-	"cosmos-exporter/core"
 	"encoding/json"
 	"fmt"
 	"os"
 	"testing"
 	"time"
+
+	configHelpers "github.com/DefiantLabs/cosmos-exporter/config"
+	"github.com/DefiantLabs/cosmos-exporter/core"
 
 	"github.com/strangelove-ventures/lens/client"
 	lensClient "github.com/strangelove-ventures/lens/client"

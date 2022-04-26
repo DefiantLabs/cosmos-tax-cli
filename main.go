@@ -1,16 +1,17 @@
 package main
 
 import (
-	"cosmos-exporter/core"
-	"cosmos-exporter/rpc"
-	"cosmos-exporter/tasks"
 	"fmt"
 	"os"
 	"time"
 
-	configHelpers "cosmos-exporter/config"
-	indexerTx "cosmos-exporter/cosmos/modules/tx"
-	dbTypes "cosmos-exporter/db"
+	"github.com/DefiantLabs/cosmos-exporter/core"
+	"github.com/DefiantLabs/cosmos-exporter/rpc"
+	"github.com/DefiantLabs/cosmos-exporter/tasks"
+
+	configHelpers "github.com/DefiantLabs/cosmos-exporter/config"
+	indexerTx "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
+	dbTypes "github.com/DefiantLabs/cosmos-exporter/db"
 
 	"github.com/go-co-op/gocron"
 	"github.com/strangelove-ventures/lens/client"

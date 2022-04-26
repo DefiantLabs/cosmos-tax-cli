@@ -1,11 +1,12 @@
 package csv
 
 import (
-	"cosmos-exporter/cosmos/modules/bank"
-	"cosmos-exporter/cosmos/modules/staking"
-	"cosmos-exporter/db"
 	"errors"
 	"strings"
+
+	"github.com/DefiantLabs/cosmos-exporter/cosmos/modules/bank"
+	"github.com/DefiantLabs/cosmos-exporter/cosmos/modules/staking"
+	"github.com/DefiantLabs/cosmos-exporter/db"
 
 	stdTypes "github.com/cosmos/cosmos-sdk/types"
 	"gorm.io/gorm"
