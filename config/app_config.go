@@ -43,6 +43,7 @@ type base struct {
 	WaitForChain      bool
 	WaitForChainDelay int64
 	IndexingEnabled   bool
+	ExitWhenCaughtUp  bool
 }
 
 type log struct {

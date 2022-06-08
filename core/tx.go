@@ -203,7 +203,7 @@ func ProcessTx(tx txTypes.MergedTx) dbTypes.TxDBWrapper {
 				currMessage.MessageType = cosmosMessage.GetType()
 				currMessageDBWrapper.Message = currMessage
 
-				//TODO: ParseRelevantData may need the logs to get the relevant information, unless we forever do that on the PasrseCosmosMessageJSON side
+				//TODO: ParseRelevantData may need the logs to get the relevant information, unless we forever do that on the ParseCosmosMessageJSON side
 				var relevantData []parsingTypes.MessageRelevantInformation = cosmosMessage.ParseRelevantData()
 
 				if len(relevantData) > 0 {

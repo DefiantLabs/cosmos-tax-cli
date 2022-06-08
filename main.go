@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
 	"github.com/DefiantLabs/cosmos-exporter/core"
+	"github.com/DefiantLabs/cosmos-exporter/osmosis"
 	"github.com/DefiantLabs/cosmos-exporter/rpc"
 	"github.com/DefiantLabs/cosmos-exporter/tasks"
 
@@ -80,6 +82,12 @@ func setup() (*configHelpers.Config, *gorm.DB, *gocron.Scheduler, error) {
 	return &config, db, scheduler, nil
 }
 
+//OsmosisGetRewardsStartIndexHeight Not yet implemented. Search the DB and get the last indexed rewards height, plus 1.
+//If nothing has been indexed yet, the start height should be 0.
+func OsmosisGetRewardsStartIndexHeight() int64 {
+	return -1
+}
+
 func GetIndexerStartingHeight(configStartHeight int64, cl *client.ChainClient, db *gorm.DB) int64 {
 	//Start the indexer at the configured value if one has been set. This starting height will be used
 	//instead of searching the database to find the last indexed block.
@@ -125,7 +133,7 @@ func main() {
 
 	//Depending on the app configuration, wait for the chain to catch up
 	chainCatchingUp, qErr := rpc.IsCatchingUp(cl)
-	for config.Base.WaitForChain && chainCatchingUp && qErr == nil {
+	for (config.Base.WaitForChain || config.Base.ExitWhenCaughtUp) && chainCatchingUp && qErr == nil {
 		//Wait between status checks, don't spam the node with requests
 		time.Sleep(time.Second * time.Duration(config.Base.WaitForChainDelay))
 		chainCatchingUp, qErr = rpc.IsCatchingUp(cl)
@@ -162,11 +170,26 @@ func main() {
 	//Don't index past this block no matter what
 	lastBlock := config.Base.EndBlock
 
+	if configHelpers.IsOsmosis(config) {
+		rewardsIndexerStartHeight := OsmosisGetRewardsStartIndexHeight()
+		latestOsmosisBlock, bErr := rpc.GetLatestBlockHeight(cl)
+		if bErr != nil {
+			fmt.Println("Error getting blockchain latest height, exiting")
+			os.Exit(1)
+		}
+
+		rpcClient := osmosis.URIClient{
+			Address: cl.Config.RPCAddr,
+			Client:  &http.Client{},
+		}
+		go rpcClient.IndexEpochsBetween(rewardsIndexerStartHeight, latestOsmosisBlock)
+	}
+
 	//Add jobs to the queue to be processed
 	for {
 		//The program is configured to stop running after a set block height.
 		//Generally this will only be done while debugging or if a particular block was incorrectly processed.
-		if lastBlock != -1 && currBlock >= lastBlock {
+		if (lastBlock != -1 || config.Base.ExitWhenCaughtUp) && currBlock >= lastBlock {
 			fmt.Println("Hit the last block we're allowed to index, exiting.")
 			break
 		}
