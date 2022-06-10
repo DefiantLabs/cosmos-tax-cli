@@ -3,12 +3,14 @@ package db
 import "time"
 
 type Block struct {
-	ID     uint
-	Height int64 `gorm:"uniqueIndex:chainheight"`
-	Chain  Chain `gorm:"uniqueIndex:chainheight"`
+	ID      uint
+	Height  int64 `gorm:"uniqueIndex:chainheight"`
+	ChainID uint  `gorm:"uniqueIndex:chainheight"`
+	Chain   Chain `gorm:"foreignKey:chain_id"`
 }
 
 type Chain struct {
+	ID      uint   `gorm:"primaryKey"`
 	ChainID string `gorm:"uniqueIndex"` //e.g. osmosis-1
 	Name    string //e.g. Osmosis
 }
@@ -21,7 +23,7 @@ type Tx struct {
 	Code            int64
 	BlockId         uint
 	Block           Block
-	SignerAddressId *int //int pointer allows foreign key to be null
+	SignerAddressId *int //*int allows foreign key to be null
 	SignerAddress   Address
 }
 
@@ -45,18 +47,21 @@ const (
 //An event does not necessarily need to be part of a Transaction. For example, Osmosis rewards.
 //Events can happen on chain and generate tendermint ABCI events that do not show up in transactions.
 type TaxableEvent struct {
-	ID           uint
-	Source       uint //This will indicate what type of event occurred on chain. Currently, only used for Osmosis rewards.
-	Amount       float64
-	Denomination SimpleDenom
-	EventAddress Address
-	Block        Block
+	ID             uint
+	Source         uint //This will indicate what type of event occurred on chain. Currently, only used for Osmosis rewards.
+	Amount         float64
+	DenominationID uint
+	Denomination   SimpleDenom `gorm:"foreignKey:DenominationID"`
+	AddressID      uint
+	EventAddress   Address `gorm:"foreignKey:AddressID"`
+	BlockID        uint
+	Block          Block `gorm:"foreignKey:BlockID"`
 }
 
 type SimpleDenom struct {
 	ID     uint
-	Denom  string
-	Symbol string
+	Denom  string `gorm:"uniqueIndex:denom_idx"`
+	Symbol string `gorm:"uniqueIndex:denom_idx"`
 }
 
 func (TaxableEvent) TableName() string {
