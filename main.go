@@ -84,8 +84,14 @@ func setup() (*configHelpers.Config, *gorm.DB, *gocron.Scheduler, error) {
 
 //OsmosisGetRewardsStartIndexHeight Not yet implemented. Search the DB and get the last indexed rewards height, plus 1.
 //If nothing has been indexed yet, the start height should be 0.
-func OsmosisGetRewardsStartIndexHeight() int64 {
-	return -1
+func OsmosisGetRewardsStartIndexHeight(db *gorm.DB, chainID string) int64 {
+	block, err := dbTypes.GetHighestTaxableEventBlock(db, chainID)
+	if err != nil {
+		fmt.Printf("Cannot retrieve highest indexed Osmosis rewards block. Exiting. %s\n", err.Error())
+		os.Exit(1)
+	}
+
+	return block.Height
 }
 
 func GetIndexerStartingHeight(configStartHeight int64, cl *client.ChainClient, db *gorm.DB) int64 {
@@ -172,7 +178,7 @@ func main() {
 
 	//Osmosis specific indexing requirements. Osmosis distributes rewards to LP holders on a daily basis.
 	if configHelpers.IsOsmosis(config) {
-		rewardsIndexerStartHeight := OsmosisGetRewardsStartIndexHeight()
+		rewardsIndexerStartHeight := OsmosisGetRewardsStartIndexHeight(db, config.Lens.ChainID)
 		latestOsmosisBlock, bErr := rpc.GetLatestBlockHeight(cl)
 		if bErr != nil {
 			fmt.Println("Error getting blockchain latest height, exiting")
