@@ -170,6 +170,7 @@ func main() {
 	//Don't index past this block no matter what
 	lastBlock := config.Base.EndBlock
 
+	//Osmosis specific indexing requirements. Osmosis distributes rewards to LP holders on a daily basis.
 	if configHelpers.IsOsmosis(config) {
 		rewardsIndexerStartHeight := OsmosisGetRewardsStartIndexHeight()
 		latestOsmosisBlock, bErr := rpc.GetLatestBlockHeight(cl)
@@ -182,7 +183,8 @@ func main() {
 			Address: cl.Config.RPCAddr,
 			Client:  &http.Client{},
 		}
-		go rpcClient.IndexEpochsBetween(rewardsIndexerStartHeight, latestOsmosisBlock)
+
+		go IndexOsmosisRewards(db, rpcClient, config.Lens.ChainID, rewardsIndexerStartHeight, latestOsmosisBlock)
 	}
 
 	//Add jobs to the queue to be processed
@@ -230,6 +232,18 @@ func main() {
 
 	//If we error out in the main loop, this will block. Meaning we may not know of an error for 6 hours until last scheduled task stops
 	scheduler.Stop()
+}
+
+func IndexOsmosisRewards(db *gorm.DB, rpcClient osmosis.URIClient, chainID string, startHeight int64, endHeight int64) {
+	rewards, err := rpcClient.GetRewardsBetween(startHeight, endHeight)
+	if err != nil {
+		fmt.Printf("Error while querying Osmosis rewards: %s\n", err)
+	}
+
+	err = dbTypes.IndexOsmoRewards(db, chainID, rewards)
+	if err != nil {
+		fmt.Printf("Error while indexing Osmosis rewards: %s\n", err)
+	}
 }
 
 func QueryRpc(blockHeightToProcess chan int64, results chan *indexerTx.GetTxsEventResponseWrapper, cl *client.ChainClient) {

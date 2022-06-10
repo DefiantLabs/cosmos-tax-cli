@@ -8,54 +8,40 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-//IndexEpochsBetween figures out which blocks (in the given range, start height to end height)
-//contain rewards distribution info, and indexes those blocks. Other blocks will be skipped.
-//If an error is encountered while processing, the indexer will retry the block. The indexer
-//will return an error if it cannot get a list of epochs to process or fails too many retries.
+//GetRewardsBetween figures out which blocks (in the given range, start height to end height)
+//contain Osmosis rewards, and queries the reward info. Blocks without rewards are skipped.
+//An error is returned if we cannot query a list of reward epochs. Otherwise []*OsmosisRewards
+//is returned, which contains all of the rewards for a given block height and address.
 //See Osmosis repo x/incentives/keeper/distribute.go, doDistributionSends for more info.
-func (client *URIClient) IndexEpochsBetween(startHeight int64, endHeight int64) error {
+func (client *URIClient) GetRewardsBetween(startHeight int64, endHeight int64) ([]*OsmosisRewards, error) {
 	rewardEpochs, epochLookupErr := client.getRewardEpochs(startHeight, endHeight)
 	if epochLookupErr != nil {
-		return epochLookupErr
+		return nil, epochLookupErr
 	}
 
-	retryList := []int64{}
+	epochList := []*OsmosisRewards{}
 	for _, epoch := range rewardEpochs {
-		indexErr := client.IndexEpoch(epoch)
+		rewards, indexErr := client.getEpochRewards(epoch)
 		if indexErr != nil {
-			retryList = append(retryList, epoch)
+			return nil, indexErr
 		}
+		epochList = append(epochList, rewards...)
 	}
 
-	//Now try again but return an error if there's a second failure
-	for _, epoch := range retryList {
-		indexErr := client.IndexEpoch(epoch)
-		if indexErr != nil {
-			return indexErr
-		}
-	}
-
-	return nil
+	return epochList, nil
 }
 
 //IndexEpoch indexes any reward distribution at the given block height.
 //If a block does not contain a reward distribution, it gets skipped.
-//Skipped blocks do not cause an error. Therefore, an error indicates
-//a problem with the RPC search or with the DB indexer.
-func (client *URIClient) IndexEpoch(height int64) error {
+//An error indicates a problem with the RPC search or the DB indexer.
+func (client *URIClient) getEpochRewards(height int64) ([]*OsmosisRewards, error) {
 	rewards, epochErr := client.getRewards(height)
 	if epochErr != nil {
 		fmt.Printf("Error %s processing epoch %d\n", epochErr.Error(), height)
-		return epochErr
-	} else {
-		dbIndexEpoch(rewards)
+		return nil, epochErr
 	}
 
-	return nil
-}
-
-func dbIndexEpoch(rewards []*OsmosisRewards) {
-
+	return rewards, nil
 }
 
 //GetRewardEpochs (RPC) Get a list of the block heights where Osmosis distributed rewards.
@@ -98,7 +84,7 @@ func (client *URIClient) getRewardEpochs(startHeight int64, endHeight int64) ([]
 //and no reward information will be returned. This forces reprocessing
 //of failed blocks.
 func (client *URIClient) getRewards(height int64) ([]*OsmosisRewards, error) {
-	rewards := []*OsmosisRewards{}
+	rewards := map[string]*OsmosisRewards{}
 
 	//Nodes are very slow at responding to queries for reward distribution blocks.
 	//I believe you must set the Node's timeout_broadcast_tx_commit higher than 10s
@@ -130,7 +116,13 @@ func (client *URIClient) getRewards(height int64) ([]*OsmosisRewards, error) {
 			if receiver_addr != "" && receiver_amount != "" {
 				coins, parseErr := sdk.ParseCoinsNormalized(receiver_amount)
 				if parseErr == nil {
-					rewards = append(rewards, &OsmosisRewards{Address: receiver_addr, Coins: coins})
+					if prevRewards, ok := rewards[receiver_addr]; ok {
+						fmt.Printf("Receiver has more than one entry for Osmosis rewards at block height %d\n", prevRewards.EpochBlockHeight)
+						coinsCombined := addCoins(prevRewards.Coins, coins)
+						rewards[receiver_addr].Coins = coinsCombined
+					} else {
+						rewards[receiver_addr] = &OsmosisRewards{Address: receiver_addr, Coins: coins, EpochBlockHeight: height}
+					}
 				} else {
 					return nil, parseErr
 				}
@@ -138,5 +130,30 @@ func (client *URIClient) getRewards(height int64) ([]*OsmosisRewards, error) {
 		}
 	}
 
-	return rewards, nil
+	allRewards := []*OsmosisRewards{}
+	for _, reward := range rewards {
+		allRewards = append(allRewards, reward)
+	}
+
+	return allRewards, nil
+}
+
+func addCoins(coinList1 []sdk.Coin, coinList2 []sdk.Coin) []sdk.Coin {
+	fullList := append(coinList1, coinList2...)
+	denomAmountMap := map[string]sdk.Int{} //key = coin denom, value = coin amount
+
+	for _, coin := range fullList {
+		if prevAmount, ok := denomAmountMap[coin.Denom]; ok {
+			denomAmountMap[coin.Denom] = prevAmount.Add(coin.Amount)
+		} else {
+			denomAmountMap[coin.Denom] = coin.Amount
+		}
+	}
+
+	combinedList := []sdk.Coin{}
+	for denom, amount := range denomAmountMap {
+		combinedList = append(combinedList, sdk.NewCoin(denom, amount))
+	}
+
+	return combinedList
 }

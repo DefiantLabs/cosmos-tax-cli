@@ -7,9 +7,16 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+type RewardEpoch struct {
+	EpochBlockHeight int64
+	Indexed          bool
+	Error            error
+}
+
 type OsmosisRewards struct {
-	Address string
-	Coins   sdk.Coins
+	EpochBlockHeight int64
+	Address          string
+	Coins            sdk.Coins
 }
 
 type Result struct {

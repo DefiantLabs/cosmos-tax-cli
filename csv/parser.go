@@ -54,7 +54,7 @@ type AccointingRow struct {
 }
 
 //ParseBasic: Handles the fields that are shared between most types.
-func (row *AccointingRow) ParseBasic(address string, event db.TaxableEvent) {
+func (row *AccointingRow) ParseBasic(address string, event db.TaxableTransaction) {
 	row.Date = FormatDatetime(event.Message.Tx.TimeStamp)
 	row.OperationId = event.Message.Tx.Hash
 
@@ -96,7 +96,7 @@ func ParseForAddress(address string, pgSql *gorm.DB) ([]AccointingRow, error) {
 	}
 
 	rows := []AccointingRow{}
-	txMap := map[uint][]db.TaxableEvent{} //Map transaction ID to List of events
+	txMap := map[uint][]db.TaxableTransaction{} //Map transaction ID to List of events
 
 	//Build a map so we know which TX go with which messages
 	for _, event := range events {
@@ -104,7 +104,7 @@ func ParseForAddress(address string, pgSql *gorm.DB) ([]AccointingRow, error) {
 			list = append(list, event)
 			txMap[event.Message.Tx.ID] = list
 		} else {
-			txMap[event.Message.Tx.ID] = []db.TaxableEvent{event}
+			txMap[event.Message.Tx.ID] = []db.TaxableTransaction{event}
 		}
 	}
 
@@ -122,7 +122,7 @@ func ParseForAddress(address string, pgSql *gorm.DB) ([]AccointingRow, error) {
 //If the transaction lists the same amount of fees as there are rows in the CSV,
 //then we spread the fees out one per row. Otherwise we add a line for the fees,
 //where each fee has a separate line.
-func HandleFees(address string, events []db.TaxableEvent, rows []AccointingRow) []AccointingRow {
+func HandleFees(address string, events []db.TaxableTransaction, rows []AccointingRow) []AccointingRow {
 	//This address didn't pay any fees
 	if len(events) == 0 || events[0].Message.Tx.SignerAddress.Address != address {
 		return rows
@@ -172,7 +172,7 @@ func HandleFees(address string, events []db.TaxableEvent, rows []AccointingRow) 
 }
 
 //ParseTx: Parse the potentially taxable event
-func ParseTx(address string, events []db.TaxableEvent) []AccointingRow {
+func ParseTx(address string, events []db.TaxableTransaction) []AccointingRow {
 	rows := []AccointingRow{}
 
 	for _, event := range events {
@@ -192,7 +192,7 @@ func ParseTx(address string, events []db.TaxableEvent) []AccointingRow {
 
 //ParseMsgValidatorWithdraw:
 //This transaction is always a withdrawal.
-func ParseMsgWithdrawValidatorCommission(address string, event db.TaxableEvent) AccointingRow {
+func ParseMsgWithdrawValidatorCommission(address string, event db.TaxableTransaction) AccointingRow {
 	row := &AccointingRow{}
 	row.ParseBasic(address, event)
 	row.Classification = Staked
@@ -201,7 +201,7 @@ func ParseMsgWithdrawValidatorCommission(address string, event db.TaxableEvent) 
 
 //ParseMsgValidatorWithdraw:
 //This transaction is always a withdrawal.
-func ParseMsgWithdrawDelegatorReward(address string, event db.TaxableEvent) AccointingRow {
+func ParseMsgWithdrawDelegatorReward(address string, event db.TaxableTransaction) AccointingRow {
 	row := &AccointingRow{}
 	row.ParseBasic(address, event)
 	row.Classification = Staked
@@ -211,7 +211,7 @@ func ParseMsgWithdrawDelegatorReward(address string, event db.TaxableEvent) Acco
 //ParseMsgSend:
 //If the address we searched is the receiver, then this transaction is a deposit.
 //If the address we searched is the sender, then this transaction is a withdrawal.
-func ParseMsgSend(address string, event db.TaxableEvent) AccointingRow {
+func ParseMsgSend(address string, event db.TaxableTransaction) AccointingRow {
 	row := &AccointingRow{}
 	row.ParseBasic(address, event)
 	return *row

@@ -43,10 +43,13 @@ func PostgresDbConnectLogInfo(host string, port string, database string, user st
 func MigrateModels(db *gorm.DB) error {
 	return db.AutoMigrate(
 		&Block{},
+		&Chain{},
 		&Tx{},
 		&Address{},
 		&Message{},
+		&TaxableTransaction{},
 		&TaxableEvent{},
+		&SimpleDenom{},
 		&Denom{},
 		&DenomUnit{},
 		&DenomUnitAlias{},
@@ -111,10 +114,10 @@ func IndexNewBlock(db *gorm.DB, block Block, txs []TxDBWrapper) error {
 							return err
 						}
 						//store created db model in sender address, creates foreign key relation
-						taxableEvent.TaxableEvent.SenderAddress = taxableEvent.SenderAddress
+						taxableEvent.TaxableTx.SenderAddress = taxableEvent.SenderAddress
 					} else {
 						//nil creates null foreign key relation
-						taxableEvent.TaxableEvent.SenderAddressId = nil
+						taxableEvent.TaxableTx.SenderAddressId = nil
 					}
 
 					if taxableEvent.ReceiverAddress.Address != "" {
@@ -123,13 +126,13 @@ func IndexNewBlock(db *gorm.DB, block Block, txs []TxDBWrapper) error {
 							return err
 						}
 						//store created db model in receiver address, creates foreign key relation
-						taxableEvent.TaxableEvent.ReceiverAddress = taxableEvent.ReceiverAddress
+						taxableEvent.TaxableTx.ReceiverAddress = taxableEvent.ReceiverAddress
 					} else {
 						//nil creates null foreign key relation
-						taxableEvent.TaxableEvent.ReceiverAddressId = nil
+						taxableEvent.TaxableTx.ReceiverAddressId = nil
 					}
-					taxableEvent.TaxableEvent.Message = message.Message
-					if err := dbTransaction.Create(&taxableEvent.TaxableEvent).Error; err != nil {
+					taxableEvent.TaxableTx.Message = message.Message
+					if err := dbTransaction.Create(&taxableEvent.TaxableTx).Error; err != nil {
 						fmt.Printf("Error %s creating taxabla event.\n", err)
 						return err
 					}

@@ -4,7 +4,13 @@ import "time"
 
 type Block struct {
 	ID     uint
-	Height int64 `gorm:"uniqueIndex"`
+	Height int64 `gorm:"uniqueIndex:chainheight"`
+	Chain  Chain `gorm:"uniqueIndex:chainheight"`
+}
+
+type Chain struct {
+	ChainID string `gorm:"uniqueIndex"` //e.g. osmosis-1
+	Name    string //e.g. Osmosis
 }
 
 type Tx struct {
@@ -32,7 +38,32 @@ type Message struct {
 	MessageIndex int
 }
 
+const (
+	OsmosisRewardDistribution uint = iota
+)
+
+//An event does not necessarily need to be part of a Transaction. For example, Osmosis rewards.
+//Events can happen on chain and generate tendermint ABCI events that do not show up in transactions.
 type TaxableEvent struct {
+	ID           uint
+	Source       uint //This will indicate what type of event occurred on chain. Currently, only used for Osmosis rewards.
+	Amount       float64
+	Denomination SimpleDenom
+	EventAddress Address
+	Block        Block
+}
+
+type SimpleDenom struct {
+	ID     uint
+	Denom  string
+	Symbol string
+}
+
+func (TaxableEvent) TableName() string {
+	return "taxable_event" //Legacy
+}
+
+type TaxableTransaction struct {
 	ID                uint
 	MessageId         uint
 	Message           Message
@@ -42,6 +73,10 @@ type TaxableEvent struct {
 	SenderAddress     Address
 	ReceiverAddressId *uint `gorm:"index:idx_receiver"`
 	ReceiverAddress   Address
+}
+
+func (TaxableTransaction) TableName() string {
+	return "taxable_tx" //Legacy
 }
 
 type Denom struct {
@@ -81,7 +116,7 @@ type MessageDBWrapper struct {
 
 //Store taxable events with their sender/receiver address for easy database creation
 type TaxableEventDBWrapper struct {
-	TaxableEvent    TaxableEvent
+	TaxableTx       TaxableTransaction
 	SenderAddress   Address
 	ReceiverAddress Address
 }
