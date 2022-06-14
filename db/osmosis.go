@@ -10,8 +10,8 @@ import (
 func GetHighestTaxableEventBlock(db *gorm.DB, chainID string) (Block, error) {
 	var block Block
 
-	result := db.Joins("JOIN block ON block.id = taxable_event.block").
-		Where("block.chain.chainid = ?", chainID).Order("height desc").First(&block)
+	result := db.Joins("JOIN taxable_event ON blocks.id = taxable_event.block_id").
+		Joins("JOIN chains ON blocks.blockchain_id = chains.id AND chains.chain_id = ?", chainID).Order("height desc").First(&block)
 
 	return block, result.Error
 }

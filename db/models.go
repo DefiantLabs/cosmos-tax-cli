@@ -3,10 +3,10 @@ package db
 import "time"
 
 type Block struct {
-	ID      uint
-	Height  int64 `gorm:"uniqueIndex:chainheight"`
-	ChainID uint  `gorm:"uniqueIndex:chainheight"`
-	Chain   Chain `gorm:"foreignKey:chain_id"`
+	ID           uint
+	Height       int64 `gorm:"uniqueIndex:chainheight"`
+	BlockchainID uint  `gorm:"uniqueIndex:chainheight"`
+	Chain        Chain `gorm:"foreignKey:BlockchainID"`
 }
 
 type Chain struct {
@@ -52,8 +52,8 @@ type TaxableEvent struct {
 	Amount         float64
 	DenominationID uint
 	Denomination   SimpleDenom `gorm:"foreignKey:DenominationID"`
-	AddressID      uint
-	EventAddress   Address `gorm:"foreignKey:AddressID"`
+	AddressID      uint        `gorm:"index:idx_addr"`
+	EventAddress   Address     `gorm:"foreignKey:AddressID"`
 	BlockID        uint
 	Block          Block `gorm:"foreignKey:BlockID"`
 }

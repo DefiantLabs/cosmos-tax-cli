@@ -86,7 +86,7 @@ func setup() (*configHelpers.Config, *gorm.DB, *gocron.Scheduler, error) {
 //If nothing has been indexed yet, the start height should be 0.
 func OsmosisGetRewardsStartIndexHeight(db *gorm.DB, chainID string) int64 {
 	block, err := dbTypes.GetHighestTaxableEventBlock(db, chainID)
-	if err != nil {
+	if err != nil && err.Error() != "record not found" {
 		fmt.Printf("Cannot retrieve highest indexed Osmosis rewards block. Exiting. %s\n", err.Error())
 		os.Exit(1)
 	}
@@ -241,14 +241,22 @@ func main() {
 }
 
 func IndexOsmosisRewards(db *gorm.DB, rpcClient osmosis.URIClient, chainID string, startHeight int64, endHeight int64) {
-	rewards, err := rpcClient.GetRewardsBetween(startHeight, endHeight)
-	if err != nil {
-		fmt.Printf("Error while querying Osmosis rewards: %s\n", err)
-	}
+	var window int64 = 100000 //there are roughly 100k blocks per week for Osmosis
 
-	err = dbTypes.IndexOsmoRewards(db, chainID, rewards)
-	if err != nil {
-		fmt.Printf("Error while indexing Osmosis rewards: %s\n", err)
+	for i := startHeight; i < endHeight; i = i + window {
+		if i > endHeight {
+			i = endHeight
+		}
+
+		rewards, err := rpcClient.GetRewardsBetween(i, i+window)
+		if err != nil {
+			fmt.Printf("Error while querying Osmosis rewards: %s\n", err)
+		}
+
+		err = dbTypes.IndexOsmoRewards(db, chainID, rewards)
+		if err != nil {
+			fmt.Printf("Error while indexing Osmosis rewards: %s\n", err)
+		}
 	}
 }
 
