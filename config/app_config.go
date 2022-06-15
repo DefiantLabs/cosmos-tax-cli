@@ -29,6 +29,7 @@ type lens struct {
 	AccountPrefix  string
 	KeyringBackend string
 	ChainID        string
+	ChainName      string
 }
 
 type api struct {
@@ -36,14 +37,15 @@ type api struct {
 }
 
 type base struct {
-	StartBlock        int64
-	EndBlock          int64
-	Throttling        int64
-	BlockTimer        int64
-	WaitForChain      bool
-	WaitForChainDelay int64
-	IndexingEnabled   bool
-	ExitWhenCaughtUp  bool
+	StartBlock         int64
+	EndBlock           int64
+	Throttling         int64
+	BlockTimer         int64
+	WaitForChain       bool
+	WaitForChainDelay  int64
+	IndexingEnabled    bool
+	ExitWhenCaughtUp   bool
+	OsmosisRewardsOnly bool
 }
 
 type log struct {

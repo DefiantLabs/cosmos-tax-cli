@@ -77,7 +77,7 @@ func (c *URIClient) DoHttpGet(ctx context.Context, method string,
 		nil,
 	)
 	req.URL.RawQuery = values.Encode()
-	fmt.Printf("Query string: %s\n", values.Encode())
+	//fmt.Printf("Query string: %s\n", values.Encode())
 
 	if err != nil {
 		return nil, fmt.Errorf("new request: %w", err)

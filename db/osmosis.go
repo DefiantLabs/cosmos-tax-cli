@@ -20,16 +20,14 @@ func createTaxableEvents(db *gorm.DB, events []TaxableEvent) error {
 	//Ordering matters due to foreign key constraints. Call Create() first to get right foreign key ID
 	return db.Transaction(func(dbTransaction *gorm.DB) error {
 		for _, event := range events {
-			//TODO: this should be the same Chain for every TaxableEvent so maybe it could be optimized
-			if err := dbTransaction.Where(&event.Block.Chain).FirstOrCreate(&event.Block.Chain).Error; err != nil {
-				fmt.Printf("Error %s creating chain for TaxableEvent.\n", err)
-				return err
+			if chainErr := dbTransaction.Where(&event.Block.Chain).FirstOrCreate(&event.Block.Chain).Error; chainErr != nil {
+				fmt.Printf("Error %s creating chain DB object.\n", chainErr)
+				return chainErr
 			}
 
-			//TODO: this should be the same Block for every TaxableEvent so maybe it could be optimized
-			if err := dbTransaction.Where(&event.Block).FirstOrCreate(&event.Block).Error; err != nil {
-				fmt.Printf("Error %s creating block for TaxableEvent.\n", err)
-				return err
+			if blockErr := dbTransaction.Where(&event.Block).FirstOrCreate(&event.Block).Error; blockErr != nil {
+				fmt.Printf("Error %s creating block DB object.\n", blockErr)
+				return blockErr
 			}
 
 			if event.EventAddress.Address != "" {
@@ -59,7 +57,7 @@ func createTaxableEvents(db *gorm.DB, events []TaxableEvent) error {
 	})
 }
 
-func IndexOsmoRewards(db *gorm.DB, chainID string, rewards []*osmosis.OsmosisRewards) error {
+func IndexOsmoRewards(db *gorm.DB, chainID string, chainName string, rewards []*osmosis.OsmosisRewards) error {
 
 	dbEvents := []TaxableEvent{}
 
@@ -68,8 +66,8 @@ func IndexOsmoRewards(db *gorm.DB, chainID string, rewards []*osmosis.OsmosisRew
 			evt := TaxableEvent{
 				Source:       OsmosisRewardDistribution,
 				Amount:       coin.Amount.ToDec().MustFloat64(),
-				Denomination: SimpleDenom{Denom: coin.Denom},
-				Block:        Block{Height: curr.EpochBlockHeight, Chain: Chain{ChainID: chainID, Name: chainID}},
+				Denomination: SimpleDenom{Denom: coin.Denom, Symbol: coin.Denom},
+				Block:        Block{Height: curr.EpochBlockHeight, Chain: Chain{ChainID: chainID, Name: chainName}},
 				EventAddress: Address{Address: curr.Address},
 			}
 			dbEvents = append(dbEvents, evt)

@@ -4,7 +4,7 @@ import "time"
 
 type Block struct {
 	ID           uint
-	Height       int64 `gorm:"uniqueIndex:chainheight"`
+	Height       int64 //`gorm:"uniqueIndex:chainheight"`
 	BlockchainID uint  `gorm:"uniqueIndex:chainheight"`
 	Chain        Chain `gorm:"foreignKey:BlockchainID"`
 }

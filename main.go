@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/DefiantLabs/cosmos-exporter/core"
@@ -169,16 +171,21 @@ func main() {
 	}
 
 	//Start a thread to process transactions after the RPC querier retrieves them.
-	go ProcessTxs(jobResultsChannel, config.Base.BlockTimer, config.Base.IndexingEnabled, db)
+	go ProcessTxs(jobResultsChannel, config.Base.BlockTimer, config.Base.IndexingEnabled, db, config.Lens.ChainID, config.Lens.ChainName)
 
 	//Start at the last indexed block height (or the block height in the config, if set)
 	currBlock := GetIndexerStartingHeight(config.Base.StartBlock, cl, db)
 	//Don't index past this block no matter what
 	lastBlock := config.Base.EndBlock
+	var wg sync.WaitGroup
 
 	//Osmosis specific indexing requirements. Osmosis distributes rewards to LP holders on a daily basis.
 	if configHelpers.IsOsmosis(config) {
-		rewardsIndexerStartHeight := OsmosisGetRewardsStartIndexHeight(db, config.Lens.ChainID)
+		rewardsIndexerStartHeight := config.Base.StartBlock
+		if rewardsIndexerStartHeight == -1 {
+			rewardsIndexerStartHeight = OsmosisGetRewardsStartIndexHeight(db, config.Lens.ChainID)
+		}
+
 		latestOsmosisBlock, bErr := rpc.GetLatestBlockHeight(cl)
 		if bErr != nil {
 			fmt.Println("Error getting blockchain latest height, exiting")
@@ -190,14 +197,20 @@ func main() {
 			Client:  &http.Client{},
 		}
 
-		go IndexOsmosisRewards(db, rpcClient, config.Lens.ChainID, rewardsIndexerStartHeight, latestOsmosisBlock)
+		go IndexOsmosisRewards(&wg, db, rpcClient, config.Lens.ChainID, config.Lens.ChainName, rewardsIndexerStartHeight, latestOsmosisBlock)
 	}
 
+	wg.Add(1)
+	var latestBlock int64 = math.MaxInt64
+
 	//Add jobs to the queue to be processed
-	for {
+	for !config.Base.OsmosisRewardsOnly {
 		//The program is configured to stop running after a set block height.
 		//Generally this will only be done while debugging or if a particular block was incorrectly processed.
-		if (lastBlock != -1 || config.Base.ExitWhenCaughtUp) && currBlock >= lastBlock {
+		if lastBlock != -1 && currBlock >= lastBlock {
+			fmt.Println("Hit the last block we're allowed to index, exiting.")
+			break
+		} else if config.Base.ExitWhenCaughtUp && currBlock >= latestBlock {
 			fmt.Println("Hit the last block we're allowed to index, exiting.")
 			break
 		}
@@ -238,24 +251,24 @@ func main() {
 
 	//If we error out in the main loop, this will block. Meaning we may not know of an error for 6 hours until last scheduled task stops
 	scheduler.Stop()
+	wg.Wait()
 }
 
-func IndexOsmosisRewards(db *gorm.DB, rpcClient osmosis.URIClient, chainID string, startHeight int64, endHeight int64) {
-	var window int64 = 100000 //there are roughly 100k blocks per week for Osmosis
+func IndexOsmosisRewards(wg *sync.WaitGroup, db *gorm.DB, rpcClient osmosis.URIClient, chainID string, chainName string, startHeight int64, endHeight int64) {
+	defer wg.Done()
 
-	for i := startHeight; i < endHeight; i = i + window {
-		if i > endHeight {
-			i = endHeight
+	for epoch := startHeight; epoch <= endHeight; epoch++ {
+		rewards, indexErr := rpcClient.GetEpochRewards(epoch)
+		if indexErr != nil {
+			fmt.Printf("Error looking up osmosis rewards %s", indexErr.Error())
+			os.Exit(1)
 		}
 
-		rewards, err := rpcClient.GetRewardsBetween(i, i+window)
-		if err != nil {
-			fmt.Printf("Error while querying Osmosis rewards: %s\n", err)
-		}
-
-		err = dbTypes.IndexOsmoRewards(db, chainID, rewards)
-		if err != nil {
-			fmt.Printf("Error while indexing Osmosis rewards: %s\n", err)
+		if len(rewards) > 0 {
+			indexErr = dbTypes.IndexOsmoRewards(db, chainID, chainName, rewards)
+			if indexErr != nil {
+				fmt.Printf("Error while indexing Osmosis rewards: %s\n", indexErr)
+			}
 		}
 	}
 }
@@ -282,22 +295,21 @@ func QueryRpc(blockHeightToProcess chan int64, results chan *indexerTx.GetTxsEve
 	}
 }
 
-func ProcessTxs(results chan *indexerTx.GetTxsEventResponseWrapper, numBlocksTimed int64, indexingEnabled bool, db *gorm.DB) {
+func ProcessTxs(results chan *indexerTx.GetTxsEventResponseWrapper, numBlocksTimed int64, indexingEnabled bool, db *gorm.DB, chainID string, chainName string) {
 	blocksProcessed := 0
 	timeStart := time.Now()
 
 	for {
 		txToProcess := <-results
 		txDBWrappers := core.ProcessRpcTxs(txToProcess.CosmosGetTxsEventResponse)
-		newBlock := dbTypes.Block{Height: txToProcess.Height}
 
 		//While debugging we'll sometimes want to turn off INSERTS to the DB
 		//Note that this does not turn off certain reads or DB connections.
 		if indexingEnabled {
-			fmt.Printf("Indexing block %d, threaded.\n", newBlock.Height)
-			err := dbTypes.IndexNewBlock(db, newBlock, txDBWrappers)
+			fmt.Printf("Indexing block %d, threaded.\n", txToProcess.Height)
+			err := dbTypes.IndexNewBlock(db, txToProcess.Height, txDBWrappers, chainID, chainName)
 			if err != nil {
-				fmt.Printf("Error %s indexing block %d\n", err, newBlock.Height)
+				fmt.Printf("Error %s indexing block %d\n", err, txToProcess.Height)
 				os.Exit(1)
 			}
 		}

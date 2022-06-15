@@ -25,3 +25,22 @@ func TestGetOsmosisRewardIndex(t *testing.T) {
 
 	assert.Equal(t, block.Height, int64(100))
 }
+
+func TestInsertOsmosisRewards(t *testing.T) {
+	addressRegex := "osmo(valoper)?1[a-z0-9]{38}"
+	addressPrefix := "osmo"
+	gorm, err := db_setup(addressRegex, addressPrefix)
+	if err != nil {
+		t.Fail()
+	}
+
+	setupOsmosisTestModels(gorm)
+	createOsmosisTaxableEvent(gorm, 1111111111)
+
+	block, err := dbUtils.GetHighestTaxableEventBlock(gorm, "osmosis-1")
+	if err != nil {
+		t.Fail()
+	}
+
+	assert.Equal(t, block.Height, int64(100))
+}

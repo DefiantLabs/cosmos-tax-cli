@@ -3,6 +3,7 @@ package osmosis
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -14,14 +15,15 @@ import (
 //is returned, which contains all of the rewards for a given block height and address.
 //See Osmosis repo x/incentives/keeper/distribute.go, doDistributionSends for more info.
 func (client *URIClient) GetRewardsBetween(startHeight int64, endHeight int64) ([]*OsmosisRewards, error) {
-	rewardEpochs, epochLookupErr := client.getRewardEpochs(startHeight, endHeight)
-	if epochLookupErr != nil {
-		return nil, epochLookupErr
-	}
+	// rewardEpochs, epochLookupErr := client.getRewardEpochs(startHeight, endHeight)
+	// if epochLookupErr != nil {
+	// 	return nil, epochLookupErr
+	// }
 
 	epochList := []*OsmosisRewards{}
-	for _, epoch := range rewardEpochs {
-		rewards, indexErr := client.getEpochRewards(epoch)
+	// for _, epoch := range rewardEpochs {
+	for epoch := startHeight; epoch <= endHeight; epoch++ {
+		rewards, indexErr := client.GetEpochRewards(epoch)
 		if indexErr != nil {
 			return nil, indexErr
 		}
@@ -34,7 +36,7 @@ func (client *URIClient) GetRewardsBetween(startHeight int64, endHeight int64) (
 //IndexEpoch indexes any reward distribution at the given block height.
 //If a block does not contain a reward distribution, it gets skipped.
 //An error indicates a problem with the RPC search or the DB indexer.
-func (client *URIClient) getEpochRewards(height int64) ([]*OsmosisRewards, error) {
+func (client *URIClient) GetEpochRewards(height int64) ([]*OsmosisRewards, error) {
 	rewards, epochErr := client.getRewards(height)
 	if epochErr != nil {
 		fmt.Printf("Error %s processing epoch %d\n", epochErr.Error(), height)
@@ -50,9 +52,6 @@ func (client *URIClient) getEpochRewards(height int64) ([]*OsmosisRewards, error
 //queries the node via RPC and figures out what blocks contain the reward distribution info.
 //The events are emitted under the key "distribution.receiver" so that is what we search for.
 func (client *URIClient) getRewardEpochs(startHeight int64, endHeight int64) ([]int64, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
 	osmosisRewardsQuery := "distribution.receiver EXISTS"
 	rewardBlocks := []int64{}
 
@@ -62,7 +61,7 @@ func (client *URIClient) getRewardEpochs(startHeight int64, endHeight int64) ([]
 		query := fmt.Sprintf("block.height = %d AND %s", i, osmosisRewardsQuery)
 		page := 1
 		per_page := 30
-		blockSearch, blockSearchErr := client.DoBlockSearch(ctx, query, &page, &per_page, "desc")
+		blockSearch, blockSearchErr := client.DoBlockSearch(context.Background(), query, &page, &per_page, "desc")
 
 		if blockSearchErr != nil {
 			return nil, blockSearchErr
@@ -110,6 +109,10 @@ func (client *URIClient) getRewards(height int64) ([]*OsmosisRewards, error) {
 				}
 				if string(attr.Key) == "amount" {
 					receiver_amount = string(attr.Value)
+				}
+
+				if strings.Contains(receiver_amount, ",") {
+					fmt.Printf("Fuck VSCode")
 				}
 			}
 

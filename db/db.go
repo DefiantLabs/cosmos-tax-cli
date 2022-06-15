@@ -56,6 +56,10 @@ func MigrateModels(db *gorm.DB) error {
 	)
 }
 
+func Ensure(db *gorm.DB, obj interface{}) error {
+	return db.Where(&obj).FirstOrCreate(&obj).Error
+}
+
 func GetHighestIndexedBlock(db *gorm.DB) Block {
 	var block Block
 	//this can potentially be optimized by getting max first and selecting it (this gets translated into a select * limit 1)
@@ -63,14 +67,22 @@ func GetHighestIndexedBlock(db *gorm.DB) Block {
 	return block
 }
 
-func IndexNewBlock(db *gorm.DB, block Block, txs []TxDBWrapper) error {
+func IndexNewBlock(db *gorm.DB, blockHeight int64, txs []TxDBWrapper, chainID string, chainName string) error {
 
 	//consider optimizing the transaction, but how? Ordering matters due to foreign key constraints
 	//Order required: Block -> (For each Tx: Signer Address -> Tx -> (For each Message: Message -> Taxable Events))
 	//Also, foreign key relations are struct value based so create needs to be called first to get right foreign key ID
 	return db.Transaction(func(dbTransaction *gorm.DB) error {
-		// return any error will rollback
-		if err := dbTransaction.Create(&block).Error; err != nil {
+		chain := Chain{ChainID: chainID, Name: chainName}
+		chainErr := Ensure(dbTransaction, &chain)
+		if chainErr != nil {
+			fmt.Printf("Error %s creating chain.\n", chainErr)
+			return chainErr
+		}
+
+		block := Block{Height: blockHeight, Chain: chain}
+
+		if err := Ensure(dbTransaction, &block); err != nil {
 			fmt.Printf("Error %s creating block.\n", err)
 			return err
 		}
@@ -79,7 +91,7 @@ func IndexNewBlock(db *gorm.DB, block Block, txs []TxDBWrapper) error {
 
 			if transaction.SignerAddress.Address != "" {
 				//viewing gorm logs shows this gets translated into a single ON CONFLICT DO NOTHING RETURNING "id"
-				if err := dbTransaction.Where(&transaction.SignerAddress).FirstOrCreate(&transaction.SignerAddress).Error; err != nil {
+				if err := Ensure(dbTransaction, &transaction.SignerAddress); err != nil {
 					fmt.Printf("Error %s creating tx.\n", err)
 					return err
 				}
@@ -109,7 +121,7 @@ func IndexNewBlock(db *gorm.DB, block Block, txs []TxDBWrapper) error {
 				for _, taxableEvent := range message.TaxableEvents {
 
 					if taxableEvent.SenderAddress.Address != "" {
-						if err := dbTransaction.Where(&taxableEvent.SenderAddress).FirstOrCreate(&taxableEvent.SenderAddress).Error; err != nil {
+						if err := Ensure(dbTransaction, &taxableEvent.SenderAddress); err != nil {
 							fmt.Printf("Error %s creating sender address.\n", err)
 							return err
 						}
@@ -121,7 +133,7 @@ func IndexNewBlock(db *gorm.DB, block Block, txs []TxDBWrapper) error {
 					}
 
 					if taxableEvent.ReceiverAddress.Address != "" {
-						if err := dbTransaction.Where(&taxableEvent.ReceiverAddress).FirstOrCreate(&taxableEvent.ReceiverAddress).Error; err != nil {
+						if err := Ensure(dbTransaction, &taxableEvent.ReceiverAddress); err != nil {
 							fmt.Printf("Error %s creating receiver address.\n", err)
 							return err
 						}
