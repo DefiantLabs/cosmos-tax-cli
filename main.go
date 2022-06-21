@@ -167,7 +167,7 @@ func main() {
 
 	//Spin up a (configurable) number of threads to query RPC endpoints for Transactions.
 	for i := 0; i < rpcQueryThreads; i++ {
-		go QueryRpc(blockHeightToProcess, jobResultsChannel, cl)
+		go QueryRpc(blockHeightToProcess, jobResultsChannel, cl, core.HandleFailedBlock)
 	}
 
 	//Start a thread to process transactions after the RPC querier retrieves them.
@@ -273,7 +273,7 @@ func IndexOsmosisRewards(wg *sync.WaitGroup, db *gorm.DB, rpcClient osmosis.URIC
 	}
 }
 
-func QueryRpc(blockHeightToProcess chan int64, results chan *indexerTx.GetTxsEventResponseWrapper, cl *client.ChainClient) {
+func QueryRpc(blockHeightToProcess chan int64, results chan *indexerTx.GetTxsEventResponseWrapper, cl *client.ChainClient, failedBlockHandler func(height int64, code core.BlockProcessingFailure)) {
 	for {
 		blockToProcess := <-blockHeightToProcess
 		//fmt.Printf("Querying RPC transactions for block %d\n", blockToProcess)
@@ -285,6 +285,20 @@ func QueryRpc(blockHeightToProcess chan int64, results chan *indexerTx.GetTxsEve
 		if err != nil {
 			fmt.Println("Error getting transactions by block height", err)
 			os.Exit(1)
+		}
+
+		if len(txsEventResp.Txs) == 0 {
+			//The node might have pruned history resulting in a failed lookup. Recheck to see if the block was supposed to have TX results.
+			blockResults, err := rpc.GetBlockByHeight(cl, newBlock.Height)
+			if err != nil || blockResults == nil {
+				failedBlockHandler(newBlock.Height, core.BlockQueryError)
+			} else if len(blockResults.TxsResults) > 0 {
+				//Two queries for the same block got a diff # of TXs. Though it is not guaranteed,
+				//DeliverTx events typically make it into a block so this warrants manual investigation.
+				//In this case, we couldn't look up TXs on the node but the Node's block has DeliverTx events,
+				//so we should log this and manually review the block on e.g. mintscan or another tool.
+				failedBlockHandler(newBlock.Height, core.NodeMissingBlockTxs)
+			}
 		}
 
 		res := &indexerTx.GetTxsEventResponseWrapper{

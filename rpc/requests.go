@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	denoms "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/denoms"
+	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	txTypes "github.com/cosmos/cosmos-sdk/types/tx"
 	lensClient "github.com/strangelove-ventures/lens/client"
@@ -23,6 +24,18 @@ var apiEndpoints = map[string]string{
 
 func GetEndpoint(key string) string {
 	return apiEndpoints[key]
+}
+
+//GetBlockByHeight makes a request to the Cosmos RPC API and returns all the transactions for a specific block
+func GetBlockByHeight(cl *lensClient.ChainClient, height int64) (*coretypes.ResultBlockResults, error) {
+	options := lensQuery.QueryOptions{Height: height}
+	query := lensQuery.Query{Client: cl, Options: &options}
+	resp, err := query.BlockResults()
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 //GetTxsByBlockHeight makes a request to the Cosmos RPC API and returns all the transactions for a specific block
