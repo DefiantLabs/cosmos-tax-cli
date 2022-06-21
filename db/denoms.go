@@ -24,7 +24,7 @@ func GetDenomUnitForDenom(denom string) (DenomUnit, error) {
 		}
 	}
 
-	return DenomUnit{}, errors.New("No denom unit for the specified denom")
+	return DenomUnit{}, errors.New("no denom unit for the specified denom")
 }
 
 func GetHighestDenomUnit(denomUnit DenomUnit, denomUnits []DenomUnit) (DenomUnit, error) {
@@ -39,7 +39,7 @@ func GetHighestDenomUnit(denomUnit DenomUnit, denomUnits []DenomUnit) (DenomUnit
 	}
 
 	if highestDenomUnit.Name == "not found for denom" {
-		return highestDenomUnit, errors.New(fmt.Sprintf("Highest denom not found for denom %s", denomUnit.Name))
+		return highestDenomUnit, fmt.Errorf("highest denom not found for denom %s", denomUnit.Name)
 	}
 
 	return highestDenomUnit, nil
@@ -52,14 +52,14 @@ func ConvertUnits(amount int64, denom string) (float64, string, error) {
 
 	if err != nil {
 		fmt.Println("Error getting denom unit for denom", denom)
-		return 0, "", errors.New(fmt.Sprintf("Error getting denom unit for denom %s", denom))
+		return 0, "", fmt.Errorf("error getting denom unit for denom %s", denom)
 	}
 
 	highestDenomUnit, err := GetHighestDenomUnit(denomUnit, CachedDenomUnits)
 
 	if err != nil {
 		fmt.Println("Error getting highest denom unit for denom", denom)
-		return 0, "", errors.New(fmt.Sprintf("Error getting highest denom unit for denom %s", denom))
+		return 0, "", fmt.Errorf("error getting highest denom unit for denom %s", denom)
 	}
 
 	symbol := denomUnit.Denom.Symbol

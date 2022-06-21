@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -71,8 +72,8 @@ func setup() (*configHelpers.Config, *gorm.DB, *gocron.Scheduler, error) {
 	}
 
 	//TODO: make mapping for all chains, globally initialized
-	core.SetupAddressRegex("juno(valoper)?1[a-z0-9]{38}")
-	core.SetupAddressPrefix("juno")
+	core.SetupAddressRegex(config.Base.AddressRegex)   //e.g. "juno(valoper)?1[a-z0-9]{38}"
+	core.SetupAddressPrefix(config.Base.AddressPrefix) //e.g. juno
 
 	scheduler := gocron.NewScheduler(time.UTC)
 
@@ -137,7 +138,7 @@ func main() {
 	scheduler.StartAsync()
 
 	cl := configHelpers.GetLensClient(config.Lens)
-	configHelpers.SetChainConfig("juno")
+	configHelpers.SetChainConfig(config.Base.AddressPrefix)
 
 	//Depending on the app configuration, wait for the chain to catch up
 	chainCatchingUp, qErr := rpc.IsCatchingUp(cl)
@@ -171,7 +172,7 @@ func main() {
 	}
 
 	//Start a thread to process transactions after the RPC querier retrieves them.
-	go ProcessTxs(jobResultsChannel, config.Base.BlockTimer, config.Base.IndexingEnabled, db, config.Lens.ChainID, config.Lens.ChainName)
+	go ProcessTxs(jobResultsChannel, config.Base.BlockTimer, config.Base.IndexingEnabled, db, config.Lens.ChainID, config.Lens.ChainName, core.HandleFailedBlock)
 
 	//Start at the last indexed block height (or the block height in the config, if set)
 	currBlock := GetIndexerStartingHeight(config.Base.StartBlock, cl, db)
@@ -197,7 +198,7 @@ func main() {
 			Client:  &http.Client{},
 		}
 
-		go IndexOsmosisRewards(&wg, db, rpcClient, config.Lens.ChainID, config.Lens.ChainName, rewardsIndexerStartHeight, latestOsmosisBlock)
+		go IndexOsmosisRewards(&wg, db, rpcClient, config.Lens.ChainID, config.Lens.ChainName, rewardsIndexerStartHeight, latestOsmosisBlock, core.HandleFailedBlock)
 	}
 
 	wg.Add(1)
@@ -254,26 +255,39 @@ func main() {
 	wg.Wait()
 }
 
-func IndexOsmosisRewards(wg *sync.WaitGroup, db *gorm.DB, rpcClient osmosis.URIClient, chainID string, chainName string, startHeight int64, endHeight int64) {
+func IndexOsmosisRewards(
+	wg *sync.WaitGroup,
+	db *gorm.DB,
+	rpcClient osmosis.URIClient,
+	chainID string,
+	chainName string,
+	startHeight int64,
+	endHeight int64,
+	failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error),
+) {
 	defer wg.Done()
 
 	for epoch := startHeight; epoch <= endHeight; epoch++ {
 		rewards, indexErr := rpcClient.GetEpochRewards(epoch)
 		if indexErr != nil {
-			fmt.Printf("Error looking up osmosis rewards %s", indexErr.Error())
-			os.Exit(1)
+			failedBlockHandler(epoch, core.OsmosisNodeRewardLookupError, indexErr)
 		}
 
 		if len(rewards) > 0 {
 			indexErr = dbTypes.IndexOsmoRewards(db, chainID, chainName, rewards)
 			if indexErr != nil {
-				fmt.Printf("Error while indexing Osmosis rewards: %s\n", indexErr)
+				failedBlockHandler(epoch, core.OsmosisNodeRewardIndexError, indexErr)
 			}
 		}
 	}
 }
 
-func QueryRpc(blockHeightToProcess chan int64, results chan *indexerTx.GetTxsEventResponseWrapper, cl *client.ChainClient, failedBlockHandler func(height int64, code core.BlockProcessingFailure)) {
+func QueryRpc(
+	blockHeightToProcess chan int64,
+	results chan *indexerTx.GetTxsEventResponseWrapper,
+	cl *client.ChainClient,
+	failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error),
+) {
 	for {
 		blockToProcess := <-blockHeightToProcess
 		//fmt.Printf("Querying RPC transactions for block %d\n", blockToProcess)
@@ -291,13 +305,13 @@ func QueryRpc(blockHeightToProcess chan int64, results chan *indexerTx.GetTxsEve
 			//The node might have pruned history resulting in a failed lookup. Recheck to see if the block was supposed to have TX results.
 			blockResults, err := rpc.GetBlockByHeight(cl, newBlock.Height)
 			if err != nil || blockResults == nil {
-				failedBlockHandler(newBlock.Height, core.BlockQueryError)
+				failedBlockHandler(newBlock.Height, core.BlockQueryError, err)
 			} else if len(blockResults.TxsResults) > 0 {
 				//Two queries for the same block got a diff # of TXs. Though it is not guaranteed,
 				//DeliverTx events typically make it into a block so this warrants manual investigation.
 				//In this case, we couldn't look up TXs on the node but the Node's block has DeliverTx events,
 				//so we should log this and manually review the block on e.g. mintscan or another tool.
-				failedBlockHandler(newBlock.Height, core.NodeMissingBlockTxs)
+				failedBlockHandler(newBlock.Height, core.NodeMissingBlockTxs, errors.New("node has DeliverTx results for block, but querying txs by height failed"))
 			}
 		}
 
@@ -309,13 +323,25 @@ func QueryRpc(blockHeightToProcess chan int64, results chan *indexerTx.GetTxsEve
 	}
 }
 
-func ProcessTxs(results chan *indexerTx.GetTxsEventResponseWrapper, numBlocksTimed int64, indexingEnabled bool, db *gorm.DB, chainID string, chainName string) {
+func ProcessTxs(
+	results chan *indexerTx.GetTxsEventResponseWrapper,
+	numBlocksTimed int64,
+	indexingEnabled bool,
+	db *gorm.DB,
+	chainID string,
+	chainName string,
+	failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error),
+) {
 	blocksProcessed := 0
 	timeStart := time.Now()
 
 	for {
 		txToProcess := <-results
-		txDBWrappers := core.ProcessRpcTxs(txToProcess.CosmosGetTxsEventResponse)
+		txDBWrappers, err := core.ProcessRpcTxs(txToProcess.CosmosGetTxsEventResponse)
+		if err != nil {
+			fmt.Println(err.Error())
+			failedBlockHandler(txToProcess.Height, core.UnprocessableTxError, err)
+		}
 
 		//While debugging we'll sometimes want to turn off INSERTS to the DB
 		//Note that this does not turn off certain reads or DB connections.

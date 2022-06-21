@@ -56,10 +56,6 @@ func MigrateModels(db *gorm.DB) error {
 	)
 }
 
-func Ensure(db *gorm.DB, obj interface{}) error {
-	return db.Where(&obj).FirstOrCreate(&obj).Error
-}
-
 func GetHighestIndexedBlock(db *gorm.DB) Block {
 	var block Block
 	//this can potentially be optimized by getting max first and selecting it (this gets translated into a select * limit 1)
@@ -68,31 +64,27 @@ func GetHighestIndexedBlock(db *gorm.DB) Block {
 }
 
 func IndexNewBlock(db *gorm.DB, blockHeight int64, txs []TxDBWrapper, chainID string, chainName string) error {
-
 	//consider optimizing the transaction, but how? Ordering matters due to foreign key constraints
 	//Order required: Block -> (For each Tx: Signer Address -> Tx -> (For each Message: Message -> Taxable Events))
 	//Also, foreign key relations are struct value based so create needs to be called first to get right foreign key ID
 	return db.Transaction(func(dbTransaction *gorm.DB) error {
-		chain := Chain{ChainID: chainID, Name: chainName}
-		chainErr := Ensure(dbTransaction, &chain)
-		if chainErr != nil {
-			fmt.Printf("Error %s creating chain.\n", chainErr)
+		block := Block{Height: blockHeight, Chain: Chain{ChainID: chainID, Name: chainName}}
+
+		if chainErr := dbTransaction.Where(&block.Chain).FirstOrCreate(&block.Chain).Error; chainErr != nil {
+			fmt.Printf("Error %s creating chain DB object.\n", chainErr)
 			return chainErr
 		}
 
-		block := Block{Height: blockHeight, Chain: chain}
-
-		if err := Ensure(dbTransaction, &block); err != nil {
-			fmt.Printf("Error %s creating block.\n", err)
-			return err
+		if blockErr := dbTransaction.Where(&block).FirstOrCreate(&block).Error; blockErr != nil {
+			fmt.Printf("Error %s creating block DB object.\n", blockErr)
+			return blockErr
 		}
 
 		for _, transaction := range txs {
-
 			if transaction.SignerAddress.Address != "" {
 				//viewing gorm logs shows this gets translated into a single ON CONFLICT DO NOTHING RETURNING "id"
-				if err := Ensure(dbTransaction, &transaction.SignerAddress); err != nil {
-					fmt.Printf("Error %s creating tx.\n", err)
+				if err := dbTransaction.Where(&transaction.SignerAddress).FirstOrCreate(&transaction.SignerAddress).Error; err != nil {
+					fmt.Printf("Error %s creating signer address for tx.\n", err)
 					return err
 				}
 				//store created db model in signer address, creates foreign key relation
@@ -121,7 +113,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, txs []TxDBWrapper, chainID st
 				for _, taxableEvent := range message.TaxableEvents {
 
 					if taxableEvent.SenderAddress.Address != "" {
-						if err := Ensure(dbTransaction, &taxableEvent.SenderAddress); err != nil {
+						if err := dbTransaction.Where(&taxableEvent.SenderAddress).FirstOrCreate(&taxableEvent.SenderAddress).Error; err != nil {
 							fmt.Printf("Error %s creating sender address.\n", err)
 							return err
 						}
@@ -133,7 +125,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, txs []TxDBWrapper, chainID st
 					}
 
 					if taxableEvent.ReceiverAddress.Address != "" {
-						if err := Ensure(dbTransaction, &taxableEvent.ReceiverAddress); err != nil {
+						if err := dbTransaction.Where(&taxableEvent.ReceiverAddress).FirstOrCreate(&taxableEvent.ReceiverAddress).Error; err != nil {
 							fmt.Printf("Error %s creating receiver address.\n", err)
 							return err
 						}

@@ -37,6 +37,8 @@ type api struct {
 }
 
 type base struct {
+	AddressRegex       string
+	AddressPrefix      string
 	StartBlock         int64
 	EndBlock           int64
 	Throttling         int64

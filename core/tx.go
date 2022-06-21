@@ -1,6 +1,8 @@
 package core
 
 import (
+	"errors"
+
 	parsingTypes "github.com/DefiantLabs/cosmos-exporter/cosmos/modules"
 	bank "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/bank"
 	staking "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/staking"
@@ -67,7 +69,7 @@ func toEvents(msgEvents types.StringEvents) []txTypes.LogMessageEvent {
 //TODO: get rid of some of the unnecessary types like cosmos-exporter/TxResponse.
 //All those structs were legacy and for REST API support but we no longer really need it.
 //For now I'm keeping it until we have RPC compatibility fully working and tested.
-func ProcessRpcTxs(txEventResp *cosmosTx.GetTxsEventResponse) []dbTypes.TxDBWrapper {
+func ProcessRpcTxs(txEventResp *cosmosTx.GetTxsEventResponse) ([]dbTypes.TxDBWrapper, error) {
 	var currTxDbWrappers = make([]dbTypes.TxDBWrapper, len(txEventResp.Txs))
 
 	for txIdx := 0; txIdx < len(txEventResp.Txs); txIdx++ {
@@ -89,19 +91,25 @@ func ProcessRpcTxs(txEventResp *cosmosTx.GetTxsEventResponse) []dbTypes.TxDBWrap
 
 		//Get the Messages and Message Logs
 		for msgIdx := 0; msgIdx < len(currTx.Body.Messages); msgIdx++ {
-			currMsg := currTx.Body.Messages[msgIdx].GetCachedValue().(types.Msg)
-			currMessages = append(currMessages, currMsg)
+			currMsg := currTx.Body.Messages[msgIdx].GetCachedValue()
+			if currMsg != nil {
+				msg := currMsg.(types.Msg)
+				currMessages = append(currMessages, msg)
 
-			if len(currTxResp.Logs) >= msgIdx+1 {
-				msgEvents := currTxResp.Logs[msgIdx].Events
+				if len(currTxResp.Logs) >= msgIdx+1 {
+					msgEvents := currTxResp.Logs[msgIdx].Events
 
-				currTxLog := tx.TxLogMessage{
-					MessageIndex: msgIdx,
-					Events:       toEvents(msgEvents),
+					currTxLog := tx.TxLogMessage{
+						MessageIndex: msgIdx,
+						Events:       toEvents(msgEvents),
+					}
+
+					currLogMsgs = append(currLogMsgs, currTxLog)
 				}
-
-				currLogMsgs = append(currLogMsgs, currTxLog)
+			} else {
+				return nil, errors.New("TX message could not be processed. CachedValue is not present.")
 			}
+
 		}
 
 		txBody.Messages = currMessages
@@ -130,7 +138,7 @@ func ProcessRpcTxs(txEventResp *cosmosTx.GetTxsEventResponse) []dbTypes.TxDBWrap
 		currTxDbWrappers[txIdx] = processedTx
 	}
 
-	return currTxDbWrappers
+	return currTxDbWrappers, nil
 }
 
 func ProcessRestTxs(responseTxs []txTypes.IndexerTx, responseTxResponses []txTypes.TxResponse) []dbTypes.TxDBWrapper {
