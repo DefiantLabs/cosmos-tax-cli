@@ -65,7 +65,7 @@ type SimpleDenom struct {
 }
 
 func (TaxableEvent) TableName() string {
-	return "taxable_event" //Legacy
+	return "taxable_event"
 }
 
 type TaxableTransaction struct {

@@ -2,6 +2,8 @@ package csv
 
 import (
 	"errors"
+	"os"
+	"strconv"
 	"strings"
 
 	"github.com/DefiantLabs/cosmos-exporter/cosmos/modules/bank"
@@ -54,6 +56,28 @@ type AccointingRow struct {
 }
 
 //ParseBasic: Handles the fields that are shared between most types.
+func (row *AccointingRow) EventParseBasic(address string, event db.TaxableEvent) error {
+	//row.Date = FormatDatetime(event.Message.Tx.TimeStamp) TODO, FML, I forgot to add a DB field for this. Ideally it should come from the block time.
+	//row.OperationId = ??? TODO - maybe use the block hash or something. This isn't a TX so there is no TX hash. Have to test Accointing response to using block hash.
+
+	//deposit
+	if event.EventAddress.Address == address {
+		conversionAmount, conversionSymbol, err := db.ConvertUnits(int64(event.Amount), event.Denomination.Denom)
+		if err == nil {
+			row.InBuyAmount = conversionAmount
+			row.InBuyAsset = conversionSymbol
+		} else {
+			row.InBuyAmount = event.Amount
+			row.InBuyAsset = event.Denomination.Denom
+		}
+		row.TransactionType = Deposit
+		return nil
+	}
+
+	return errors.New("unknown TaxableEvent with ID " + strconv.FormatUint(uint64(event.ID), 10))
+}
+
+//ParseBasic: Handles the fields that are shared between most types.
 func (row *AccointingRow) ParseBasic(address string, event db.TaxableTransaction) {
 	row.Date = FormatDatetime(event.Message.Tx.TimeStamp)
 	row.OperationId = event.Message.Tx.Hash
@@ -85,13 +109,34 @@ func (row *AccointingRow) ParseBasic(address string, event db.TaxableTransaction
 	}
 }
 
-func ParseForAddress(address string, pgSql *gorm.DB) ([]AccointingRow, error) {
-	events, err := db.GetTaxableEvents(address, pgSql)
+func ParseTaxableEvents(address string, pgSql *gorm.DB) ([]AccointingRow, error) {
+	rows := []AccointingRow{}
+
+	taxableEvents, err := db.GetTaxableEvents(address, pgSql)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(events) == 0 {
+	if len(taxableEvents) == 0 {
+		return rows, nil
+	}
+
+	//Parse all the potentially taxable events
+	for _, event := range taxableEvents {
+		//generate the rows for the CSV.
+		rows = append(rows, ParseEvent(address, event)...)
+	}
+
+	return rows, nil
+}
+
+func ParseTaxableTransactions(address string, pgSql *gorm.DB) ([]AccointingRow, error) {
+	taxableTxs, err := db.GetTaxableTransactions(address, pgSql)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(taxableTxs) == 0 {
 		return nil, errors.New("no events for the given address")
 	}
 
@@ -99,23 +144,49 @@ func ParseForAddress(address string, pgSql *gorm.DB) ([]AccointingRow, error) {
 	txMap := map[uint][]db.TaxableTransaction{} //Map transaction ID to List of events
 
 	//Build a map so we know which TX go with which messages
-	for _, event := range events {
-		if list, ok := txMap[event.Message.Tx.ID]; ok {
-			list = append(list, event)
-			txMap[event.Message.Tx.ID] = list
+	for _, taxableTx := range taxableTxs {
+		if list, ok := txMap[taxableTx.Message.Tx.ID]; ok {
+			list = append(list, taxableTx)
+			txMap[taxableTx.Message.Tx.ID] = list
 		} else {
-			txMap[event.Message.Tx.ID] = []db.TaxableTransaction{event}
+			txMap[taxableTx.Message.Tx.ID] = []db.TaxableTransaction{taxableTx}
 		}
 	}
 
 	//Parse all the potentially taxable events (one transaction group at a time)
-	for _, evt := range txMap {
+	for _, txGroup := range txMap {
 		//For the current transaction group, generate the rows for the CSV.
 		//Usually (but not always) a transaction will only have a single row in the CSV.
-		rows = append(rows, ParseTx(address, evt)...)
+		rows = append(rows, ParseTx(address, txGroup)...)
 	}
 
 	return rows, nil
+}
+
+func ParseForAddress(address string, pgSql *gorm.DB) ([]AccointingRow, error) {
+	allRows := []AccointingRow{}
+	rows, err := ParseTaxableTransactions(address, pgSql)
+	if err != nil {
+		//TODO
+		//We need to HANDLE the error in a way that notifies end users (of the website) that the CSV download failed.
+		//For now we just kill the program (that way I can't forget TODO this)
+		os.Exit(1)
+	}
+
+	allRows = append(allRows, rows...)
+
+	//For now this gets all taxable events, which is only Osmosis rewards. Later we'll need to update the query to only grab Osmosis events.
+	//Reason being, presumably users will have an option to select or ignore certain chains.
+	rows, err = ParseTaxableEvents(address, pgSql)
+	if err != nil {
+		//TODO
+		//We need to HANDLE the error in a way that notifies end users (of the website) that the CSV download failed.
+		//For now we just kill the program (that way I can't forget TODO this)
+		os.Exit(1)
+	}
+
+	allRows = append(allRows, rows...)
+	return allRows, err
 }
 
 //HandleFees:
@@ -171,7 +242,25 @@ func HandleFees(address string, events []db.TaxableTransaction, rows []Accointin
 	return rows
 }
 
-//ParseTx: Parse the potentially taxable event
+//ParseEvent: Parse the potentially taxable event
+func ParseEvent(address string, event db.TaxableEvent) []AccointingRow {
+	rows := []AccointingRow{}
+
+	if event.Source == db.OsmosisRewardDistribution {
+		row, err := ParseOsmosisReward(address, event)
+		if err == nil {
+			rows = append(rows, row)
+		} else {
+			//TODO: handle error parsing row. Should be impossible to reach this condition, ideally (once all bugs worked out)
+			os.Exit(1)
+		}
+	}
+
+	//rows = HandleFees(address, events, rows) TODO we have no fee handler for taxable EVENTS right now
+	return rows
+}
+
+//ParseTx: Parse the potentially taxable TX and Messages
 func ParseTx(address string, events []db.TaxableTransaction) []AccointingRow {
 	rows := []AccointingRow{}
 
@@ -215,4 +304,10 @@ func ParseMsgSend(address string, event db.TaxableTransaction) AccointingRow {
 	row := &AccointingRow{}
 	row.ParseBasic(address, event)
 	return *row
+}
+
+func ParseOsmosisReward(address string, event db.TaxableEvent) (AccointingRow, error) {
+	row := &AccointingRow{}
+	err := row.EventParseBasic(address, event)
+	return *row, err
 }
