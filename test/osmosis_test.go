@@ -1,6 +1,7 @@
 package test
 
 import (
+	"math/big"
 	"strings"
 	"testing"
 
@@ -49,7 +50,7 @@ func TestGetRewardsForAddress(t *testing.T) {
 		assert.Contains(t, strings.ToLower(evt.Block.Chain.Name), "osmosis")
 		assert.Contains(t, strings.ToLower(evt.Block.Chain.ChainID), "osmosis")
 
-		if evt.Block.Height == 4823317 && evt.EventAddress.Address == addr && evt.Amount == 3632580308 {
+		if evt.Block.Height == 4823317 && evt.EventAddress.Address == addr && evt.Amount.Cmp(big.NewInt(3632580308)) == 0 {
 			foundBlockEvent = true
 		}
 	}

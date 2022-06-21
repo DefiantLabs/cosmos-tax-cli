@@ -8,6 +8,33 @@ import (
 	"github.com/DefiantLabs/cosmos-exporter/db"
 )
 
+//Example DB query to get TXs for address:
+/*
+select * from taxable_tx tx
+INNER JOIN addresses as addr ON addr.id = tx.sender_address_id OR addr.id = tx.receiver_address_id
+where addr.address = 'osmo...'
+*/
+func TestOsmosisCsvForAddress(t *testing.T) {
+	addressRegex := "osmo(valoper)?1[a-z0-9]{38}"
+	addressPrefix := "osmo"
+	gorm, _ := db_setup(addressRegex, addressPrefix)
+	address := "osmo14mmus5h7m6vkp0pteks8wawaj4wf3sx7fy3s2r" //local test key address
+	csvRows, err := csv.ParseForAddress(address, gorm)
+	if err != nil || len(csvRows) == 0 {
+		t.Fatal("Failed to lookup taxable events")
+	}
+
+	buffer := csv.ToCsv(csvRows)
+	if len(buffer.Bytes()) == 0 {
+		t.Fatal("CSV length should never be 0, there are always headers!")
+	}
+
+	err = os.WriteFile("accointing.csv", buffer.Bytes(), 0644)
+	if err != nil {
+		t.Fatal("Failed to write CSV to disk")
+	}
+}
+
 func TestCsvForAddress(t *testing.T) {
 	addressRegex := "juno(valoper)?1[a-z0-9]{38}"
 	addressPrefix := "juno"

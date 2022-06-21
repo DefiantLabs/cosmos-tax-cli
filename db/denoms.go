@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/big"
 
 	"gorm.io/gorm"
 )
@@ -45,25 +46,29 @@ func GetHighestDenomUnit(denomUnit DenomUnit, denomUnits []DenomUnit) (DenomUnit
 	return highestDenomUnit, nil
 }
 
-func ConvertUnits(amount int64, denom string) (float64, string, error) {
+//TODO unit test this function
+func ConvertUnits(amount big.Int, denom string) (*big.Int, string, error) {
 
 	//Try denom unit first
 	denomUnit, err := GetDenomUnitForDenom(denom)
 
 	if err != nil {
 		fmt.Println("Error getting denom unit for denom", denom)
-		return 0, "", fmt.Errorf("error getting denom unit for denom %s", denom)
+		return nil, "", fmt.Errorf("error getting denom unit for denom %s", denom)
 	}
 
 	highestDenomUnit, err := GetHighestDenomUnit(denomUnit, CachedDenomUnits)
 
 	if err != nil {
 		fmt.Println("Error getting highest denom unit for denom", denom)
-		return 0, "", fmt.Errorf("error getting highest denom unit for denom %s", denom)
+		return nil, "", fmt.Errorf("error getting highest denom unit for denom %s", denom)
 	}
 
 	symbol := denomUnit.Denom.Symbol
 
-	convertedAmount := float64(amount) / math.Pow(10, float64(highestDenomUnit.Exponent-denomUnit.Exponent))
+	power := math.Pow(10, float64(highestDenomUnit.Exponent-denomUnit.Exponent))
+	pw := big.NewInt(int64(power))
+	convertedAmount := new(big.Int).Set(&amount)
+	convertedAmount.Div(convertedAmount, pw)
 	return convertedAmount, symbol, nil
 }

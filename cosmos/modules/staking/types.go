@@ -104,7 +104,7 @@ func (sf *WrapperMsgWithdrawValidatorCommission) ParseRelevantData() []parsingTy
 
 		for i, v := range sf.MultiCoinsReceived {
 			relevantData[i] = parsingTypes.MessageRelevantInformation{
-				Amount:          float64(v.Amount.Int64()),
+				Amount:          *v.Amount.BigInt(),
 				Denomination:    v.Denom,
 				SenderAddress:   "",
 				ReceiverAddress: sf.DelegatorReceiverAddress,
@@ -115,7 +115,7 @@ func (sf *WrapperMsgWithdrawValidatorCommission) ParseRelevantData() []parsingTy
 	} else {
 		var relevantData []parsingTypes.MessageRelevantInformation = make([]parsingTypes.MessageRelevantInformation, 1)
 		relevantData[0] = parsingTypes.MessageRelevantInformation{
-			Amount:          float64(sf.CoinsReceived.Amount.Int64()),
+			Amount:          *sf.CoinsReceived.Amount.BigInt(),
 			Denomination:    sf.CoinsReceived.Denom,
 			SenderAddress:   "",
 			ReceiverAddress: sf.DelegatorReceiverAddress,
@@ -172,7 +172,7 @@ func (sf *WrapperMsgWithdrawDelegatorReward) ParseRelevantData() []parsingTypes.
 
 		for i, v := range sf.MultiCoinsReceived {
 			relevantData[i] = parsingTypes.MessageRelevantInformation{
-				Amount:          float64(v.Amount.Int64()),
+				Amount:          *v.Amount.BigInt(),
 				Denomination:    v.Denom,
 				SenderAddress:   "",
 				ReceiverAddress: sf.CosmosMsgWithdrawDelegatorReward.DelegatorAddress,
@@ -183,7 +183,7 @@ func (sf *WrapperMsgWithdrawDelegatorReward) ParseRelevantData() []parsingTypes.
 	} else {
 		var relevantData []parsingTypes.MessageRelevantInformation = make([]parsingTypes.MessageRelevantInformation, 1)
 		relevantData[0] = parsingTypes.MessageRelevantInformation{
-			Amount:          float64(sf.CoinsReceived.Amount.Int64()),
+			Amount:          *sf.CoinsReceived.Amount.BigInt(),
 			Denomination:    sf.CoinsReceived.Denom,
 			SenderAddress:   "",
 			ReceiverAddress: sf.CosmosMsgWithdrawDelegatorReward.DelegatorAddress,

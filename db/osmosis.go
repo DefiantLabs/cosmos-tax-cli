@@ -65,7 +65,7 @@ func IndexOsmoRewards(db *gorm.DB, chainID string, chainName string, rewards []*
 		for _, coin := range curr.Coins {
 			evt := TaxableEvent{
 				Source:       OsmosisRewardDistribution,
-				Amount:       coin.Amount.ToDec().MustFloat64(),
+				Amount:       *coin.Amount.BigInt(),
 				Denomination: SimpleDenom{Denom: coin.Denom, Symbol: coin.Denom},
 				Block:        Block{Height: curr.EpochBlockHeight, Chain: Chain{ChainID: chainID, Name: chainName}},
 				EventAddress: Address{Address: curr.Address},

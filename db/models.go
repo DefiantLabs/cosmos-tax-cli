@@ -1,6 +1,9 @@
 package db
 
-import "time"
+import (
+	"math/big"
+	"time"
+)
 
 type Block struct {
 	ID           uint
@@ -48,8 +51,8 @@ const (
 //Events can happen on chain and generate tendermint ABCI events that do not show up in transactions.
 type TaxableEvent struct {
 	ID             uint
-	Source         uint //This will indicate what type of event occurred on chain. Currently, only used for Osmosis rewards.
-	Amount         float64
+	Source         uint    //This will indicate what type of event occurred on chain. Currently, only used for Osmosis rewards.
+	Amount         big.Int `gorm:"precision:78"` //2^256 or 78 digits, cosmos Int can be up to this length
 	DenominationID uint
 	Denomination   SimpleDenom `gorm:"foreignKey:DenominationID"`
 	AddressID      uint        `gorm:"index:idx_addr"`
@@ -72,7 +75,7 @@ type TaxableTransaction struct {
 	ID                uint
 	MessageId         uint
 	Message           Message
-	Amount            float64
+	Amount            big.Int `gorm:"precision:78"`
 	Denomination      string
 	SenderAddressId   *uint `gorm:"index:idx_sender"`
 	SenderAddress     Address

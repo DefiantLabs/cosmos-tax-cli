@@ -44,11 +44,11 @@ func (ac AccointingClassification) String() string {
 
 type AccointingRow struct {
 	Date            string
-	InBuyAmount     float64
+	InBuyAmount     string
 	InBuyAsset      string
-	OutSellAmount   float64
+	OutSellAmount   string
 	OutSellAsset    string
-	FeeAmount       float64
+	FeeAmount       string
 	FeeAsset        string
 	Classification  AccointingClassification
 	TransactionType AccointingTransaction
@@ -62,12 +62,12 @@ func (row *AccointingRow) EventParseBasic(address string, event db.TaxableEvent)
 
 	//deposit
 	if event.EventAddress.Address == address {
-		conversionAmount, conversionSymbol, err := db.ConvertUnits(int64(event.Amount), event.Denomination.Denom)
+		conversionAmount, conversionSymbol, err := db.ConvertUnits(event.Amount, event.Denomination.Denom)
 		if err == nil {
-			row.InBuyAmount = conversionAmount
+			row.InBuyAmount = conversionAmount.String()
 			row.InBuyAsset = conversionSymbol
 		} else {
-			row.InBuyAmount = event.Amount
+			row.InBuyAmount = event.Amount.String()
 			row.InBuyAsset = event.Denomination.Denom
 		}
 		row.TransactionType = Deposit
@@ -85,24 +85,24 @@ func (row *AccointingRow) ParseBasic(address string, event db.TaxableTransaction
 	//deposit
 	if event.ReceiverAddress.Address == address {
 
-		conversionAmount, conversionSymbol, err := db.ConvertUnits(int64(event.Amount), event.Denomination)
+		conversionAmount, conversionSymbol, err := db.ConvertUnits(event.Amount, event.Denomination)
 		if err == nil {
-			row.InBuyAmount = conversionAmount
+			row.InBuyAmount = conversionAmount.String()
 			row.InBuyAsset = conversionSymbol
 		} else {
-			row.InBuyAmount = event.Amount
+			row.InBuyAmount = event.Amount.String()
 			row.InBuyAsset = event.Denomination
 		}
 		row.TransactionType = Deposit
 
 	} else if event.SenderAddress.Address == address { //withdrawal
 
-		conversionAmount, conversionSymbol, err := db.ConvertUnits(int64(event.Amount), event.Denomination)
+		conversionAmount, conversionSymbol, err := db.ConvertUnits(event.Amount, event.Denomination)
 		if err == nil {
-			row.OutSellAmount = conversionAmount
+			row.OutSellAmount = conversionAmount.String()
 			row.OutSellAsset = conversionSymbol
 		} else {
-			row.OutSellAmount = event.Amount
+			row.OutSellAmount = event.Amount.String()
 			row.OutSellAsset = event.Denomination
 		}
 		row.TransactionType = Withdraw
@@ -212,12 +212,12 @@ func HandleFees(address string, events []db.TaxableTransaction, rows []Accointin
 	//Stick the fees in the existing rows.
 	if len(rows) >= len(feeCoins) {
 		for i, fee := range feeCoins {
-			conversionAmount, conversionSymbol, err := db.ConvertUnits(fee.Amount.Int64(), fee.GetDenom())
+			conversionAmount, conversionSymbol, err := db.ConvertUnits(*fee.Amount.BigInt(), fee.GetDenom())
 			if err == nil {
-				rows[i].FeeAmount = conversionAmount
+				rows[i].FeeAmount = conversionAmount.String()
 				rows[i].FeeAsset = conversionSymbol
 			} else {
-				rows[i].FeeAmount = fee.Amount.ToDec().MustFloat64()
+				rows[i].FeeAmount = fee.Amount.BigInt().String()
 				rows[i].FeeAsset = fee.GetDenom()
 			}
 		}
@@ -228,13 +228,13 @@ func HandleFees(address string, events []db.TaxableTransaction, rows []Accointin
 	tx := events[0].Message.Tx
 	//There's more fees than rows so generate a new row for each fee.
 	for _, fee := range feeCoins {
-		feeUnits, feeSymbol, err := db.ConvertUnits(fee.Amount.Int64(), fee.GetDenom())
+		feeUnits, feeSymbol, err := db.ConvertUnits(*fee.Amount.BigInt(), fee.GetDenom())
 		if err != nil {
-			feeUnits = fee.Amount.ToDec().MustFloat64()
+			feeUnits = fee.Amount.BigInt()
 			feeSymbol = fee.GetDenom()
 		}
 
-		newRow := AccointingRow{Date: FormatDatetime(tx.TimeStamp), FeeAmount: feeUnits,
+		newRow := AccointingRow{Date: FormatDatetime(tx.TimeStamp), FeeAmount: feeUnits.String(),
 			FeeAsset: feeSymbol, Classification: Fee, TransactionType: Withdraw}
 		rows = append(rows, newRow)
 	}

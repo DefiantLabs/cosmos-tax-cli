@@ -57,7 +57,7 @@ func (sf *WrapperMsgSend) ParseRelevantData() []parsingTypes.MessageRelevantInfo
 		currRelevantData.SenderAddress = sf.CosmosMsgSend.FromAddress
 		currRelevantData.ReceiverAddress = sf.CosmosMsgSend.ToAddress
 		//Amount always seems to be an integer, float may be an extra uneeded step
-		currRelevantData.Amount = float64(v.Amount.Int64())
+		currRelevantData.Amount = *v.Amount.BigInt()
 		currRelevantData.Denomination = v.Denom
 
 		relevantData[i] = currRelevantData

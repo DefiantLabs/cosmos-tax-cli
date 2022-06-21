@@ -1,8 +1,10 @@
 package parsing
 
+import "math/big"
+
 type MessageRelevantInformation struct {
 	SenderAddress   string
 	ReceiverAddress string
-	Amount          float64
+	Amount          big.Int
 	Denomination    string
 }
