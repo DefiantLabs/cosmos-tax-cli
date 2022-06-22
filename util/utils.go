@@ -1,6 +1,25 @@
-package core
+package util
 
-import "regexp"
+import (
+	"math/big"
+	"regexp"
+
+	"github.com/jackc/pgtype"
+)
+
+func ToNumeric(i *big.Int) pgtype.Numeric {
+	num := pgtype.Numeric{}
+	num.Set(i)
+	return num
+}
+
+func FromNumeric(num pgtype.Numeric) *big.Int {
+	return num.Int
+}
+
+func NumericToString(num pgtype.Numeric) string {
+	return FromNumeric(num).String()
+}
 
 func WalkFindStrings(data interface{}, regex *regexp.Regexp) []string {
 	var ret []string

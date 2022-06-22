@@ -9,6 +9,7 @@ import (
 	"github.com/DefiantLabs/cosmos-exporter/cosmos/modules/bank"
 	"github.com/DefiantLabs/cosmos-exporter/cosmos/modules/staking"
 	"github.com/DefiantLabs/cosmos-exporter/db"
+	"github.com/DefiantLabs/cosmos-exporter/util"
 
 	stdTypes "github.com/cosmos/cosmos-sdk/types"
 	"gorm.io/gorm"
@@ -62,12 +63,12 @@ func (row *AccointingRow) EventParseBasic(address string, event db.TaxableEvent)
 
 	//deposit
 	if event.EventAddress.Address == address {
-		conversionAmount, conversionSymbol, err := db.ConvertUnits(event.Amount, event.Denomination.Denom)
+		conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.Amount), event.Denomination.Denom)
 		if err == nil {
 			row.InBuyAmount = conversionAmount.String()
 			row.InBuyAsset = conversionSymbol
 		} else {
-			row.InBuyAmount = event.Amount.String()
+			row.InBuyAmount = util.NumericToString(event.Amount)
 			row.InBuyAsset = event.Denomination.Denom
 		}
 		row.TransactionType = Deposit
@@ -85,24 +86,24 @@ func (row *AccointingRow) ParseBasic(address string, event db.TaxableTransaction
 	//deposit
 	if event.ReceiverAddress.Address == address {
 
-		conversionAmount, conversionSymbol, err := db.ConvertUnits(event.Amount, event.Denomination)
+		conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.Amount), event.Denomination)
 		if err == nil {
 			row.InBuyAmount = conversionAmount.String()
 			row.InBuyAsset = conversionSymbol
 		} else {
-			row.InBuyAmount = event.Amount.String()
+			row.InBuyAmount = util.NumericToString(event.Amount)
 			row.InBuyAsset = event.Denomination
 		}
 		row.TransactionType = Deposit
 
 	} else if event.SenderAddress.Address == address { //withdrawal
 
-		conversionAmount, conversionSymbol, err := db.ConvertUnits(event.Amount, event.Denomination)
+		conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.Amount), event.Denomination)
 		if err == nil {
 			row.OutSellAmount = conversionAmount.String()
 			row.OutSellAsset = conversionSymbol
 		} else {
-			row.OutSellAmount = event.Amount.String()
+			row.OutSellAmount = util.NumericToString(event.Amount)
 			row.OutSellAsset = event.Denomination
 		}
 		row.TransactionType = Withdraw
@@ -212,7 +213,7 @@ func HandleFees(address string, events []db.TaxableTransaction, rows []Accointin
 	//Stick the fees in the existing rows.
 	if len(rows) >= len(feeCoins) {
 		for i, fee := range feeCoins {
-			conversionAmount, conversionSymbol, err := db.ConvertUnits(*fee.Amount.BigInt(), fee.GetDenom())
+			conversionAmount, conversionSymbol, err := db.ConvertUnits(fee.Amount.BigInt(), fee.GetDenom())
 			if err == nil {
 				rows[i].FeeAmount = conversionAmount.String()
 				rows[i].FeeAsset = conversionSymbol
@@ -228,7 +229,7 @@ func HandleFees(address string, events []db.TaxableTransaction, rows []Accointin
 	tx := events[0].Message.Tx
 	//There's more fees than rows so generate a new row for each fee.
 	for _, fee := range feeCoins {
-		feeUnits, feeSymbol, err := db.ConvertUnits(*fee.Amount.BigInt(), fee.GetDenom())
+		feeUnits, feeSymbol, err := db.ConvertUnits(fee.Amount.BigInt(), fee.GetDenom())
 		if err != nil {
 			feeUnits = fee.Amount.BigInt()
 			feeSymbol = fee.GetDenom()

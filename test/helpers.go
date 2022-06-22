@@ -7,6 +7,7 @@ import (
 	configUtils "github.com/DefiantLabs/cosmos-exporter/config"
 	"github.com/DefiantLabs/cosmos-exporter/core"
 	dbUtils "github.com/DefiantLabs/cosmos-exporter/db"
+	"github.com/DefiantLabs/cosmos-exporter/util"
 	"gorm.io/gorm"
 )
 
@@ -15,7 +16,7 @@ func createOsmosisTaxableEvent(db *gorm.DB, blockHeight int64) {
 	simpleDenom := ensureTestDenom(db)
 	chain := ensureTestChain(db, "osmosis-1", "Osmosis")
 	block := ensureTestBlock(db, chain, blockHeight)
-	ensureOsmosisRewardsTaxableEvent(db, simpleDenom, addr, block, *big.NewInt(420))
+	ensureOsmosisRewardsTaxableEvent(db, simpleDenom, addr, block, big.NewInt(420))
 }
 
 func setupOsmosisTestModels(db *gorm.DB) {
@@ -24,11 +25,11 @@ func setupOsmosisTestModels(db *gorm.DB) {
 	chain := ensureTestChain(db, "osmosis-1", "Osmosis")
 	block := ensureTestBlock(db, chain, 1)
 
-	ensureOsmosisRewardsTaxableEvent(db, simpleDenom, addr, block, *big.NewInt(100))
+	ensureOsmosisRewardsTaxableEvent(db, simpleDenom, addr, block, big.NewInt(100))
 }
 
-func ensureOsmosisRewardsTaxableEvent(db *gorm.DB, denom dbUtils.SimpleDenom, addr dbUtils.Address, block dbUtils.Block, amount big.Int) dbUtils.TaxableEvent {
-	taxEvt := dbUtils.TaxableEvent{Source: dbUtils.OsmosisRewardDistribution, Amount: amount, Denomination: denom, EventAddress: addr, Block: block}
+func ensureOsmosisRewardsTaxableEvent(db *gorm.DB, denom dbUtils.SimpleDenom, addr dbUtils.Address, block dbUtils.Block, amount *big.Int) dbUtils.TaxableEvent {
+	taxEvt := dbUtils.TaxableEvent{Source: dbUtils.OsmosisRewardDistribution, Amount: util.ToNumeric(amount), Denomination: denom, EventAddress: addr, Block: block}
 	db.FirstOrCreate(&taxEvt, &taxEvt)
 	return taxEvt
 

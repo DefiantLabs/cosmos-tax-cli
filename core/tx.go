@@ -8,6 +8,7 @@ import (
 	staking "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/staking"
 	tx "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
 	txTypes "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-exporter/util"
 
 	"fmt"
 	"time"
@@ -217,7 +218,7 @@ func ProcessTx(tx txTypes.MergedTx) dbTypes.TxDBWrapper {
 				if len(relevantData) > 0 {
 					var taxableEvents []dbTypes.TaxableEventDBWrapper = make([]dbTypes.TaxableEventDBWrapper, len(relevantData))
 					for i, v := range relevantData {
-						taxableEvents[i].TaxableTx.Amount = v.Amount
+						taxableEvents[i].TaxableTx.Amount = util.ToNumeric(v.Amount)
 						taxableEvents[i].TaxableTx.Denomination = v.Denomination
 						taxableEvents[i].SenderAddress = dbTypes.Address{Address: v.SenderAddress}
 						taxableEvents[i].ReceiverAddress = dbTypes.Address{Address: v.ReceiverAddress}

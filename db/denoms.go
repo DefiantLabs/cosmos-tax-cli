@@ -47,7 +47,7 @@ func GetHighestDenomUnit(denomUnit DenomUnit, denomUnits []DenomUnit) (DenomUnit
 }
 
 //TODO unit test this function
-func ConvertUnits(amount big.Int, denom string) (*big.Int, string, error) {
+func ConvertUnits(amount *big.Int, denom string) (*big.Int, string, error) {
 
 	//Try denom unit first
 	denomUnit, err := GetDenomUnitForDenom(denom)
@@ -68,7 +68,7 @@ func ConvertUnits(amount big.Int, denom string) (*big.Int, string, error) {
 
 	power := math.Pow(10, float64(highestDenomUnit.Exponent-denomUnit.Exponent))
 	pw := big.NewInt(int64(power))
-	convertedAmount := new(big.Int).Set(&amount)
+	convertedAmount := new(big.Int).Set(amount)
 	convertedAmount.Div(convertedAmount, pw)
 	return convertedAmount, symbol, nil
 }

@@ -75,8 +75,10 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, txs []TxDBWrapper, chainID st
 			return chainErr
 		}
 
+		//block.BlockchainID = block.Chain.ID
+
 		if blockErr := dbTransaction.Where(&block).FirstOrCreate(&block).Error; blockErr != nil {
-			fmt.Printf("Error %s creating block DB object.\n", blockErr)
+			fmt.Printf("Error %s getting block DB object.\n", blockErr)
 			return blockErr
 		}
 
@@ -137,7 +139,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, txs []TxDBWrapper, chainID st
 					}
 					taxableEvent.TaxableTx.Message = message.Message
 					if err := dbTransaction.Create(&taxableEvent.TaxableTx).Error; err != nil {
-						fmt.Printf("Error %s creating taxabla event.\n", err)
+						fmt.Printf("Error %s creating taxable event.\n", err)
 						return err
 					}
 				}

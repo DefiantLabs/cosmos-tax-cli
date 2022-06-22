@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	dbUtils "github.com/DefiantLabs/cosmos-exporter/db"
+	"github.com/DefiantLabs/cosmos-exporter/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -50,7 +51,7 @@ func TestGetRewardsForAddress(t *testing.T) {
 		assert.Contains(t, strings.ToLower(evt.Block.Chain.Name), "osmosis")
 		assert.Contains(t, strings.ToLower(evt.Block.Chain.ChainID), "osmosis")
 
-		if evt.Block.Height == 4823317 && evt.EventAddress.Address == addr && evt.Amount.Cmp(big.NewInt(3632580308)) == 0 {
+		if evt.Block.Height == 4823317 && evt.EventAddress.Address == addr && util.FromNumeric(evt.Amount).Cmp(big.NewInt(3632580308)) == 0 {
 			foundBlockEvent = true
 		}
 	}
