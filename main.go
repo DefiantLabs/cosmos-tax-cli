@@ -288,8 +288,15 @@ func QueryRpc(
 	cl *client.ChainClient,
 	failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error),
 ) {
+	reprocessBlock := int64(0)
+
 	for {
-		blockToProcess := <-blockHeightToProcess
+		blockToProcess := reprocessBlock
+
+		if reprocessBlock == 0 {
+			blockToProcess = <-blockHeightToProcess
+			reprocessBlock = 0
+		}
 		//fmt.Printf("Querying RPC transactions for block %d\n", blockToProcess)
 		newBlock := dbTypes.Block{Height: blockToProcess}
 
@@ -298,7 +305,8 @@ func QueryRpc(
 		txsEventResp, err := rpc.GetTxsByBlockHeight(cl, newBlock.Height)
 		if err != nil {
 			fmt.Println("Error getting transactions by block height", err)
-			os.Exit(1)
+			reprocessBlock = newBlock.Height
+			continue
 		}
 
 		if len(txsEventResp.Txs) == 0 {

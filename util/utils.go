@@ -4,20 +4,19 @@ import (
 	"math/big"
 	"regexp"
 
-	"github.com/jackc/pgtype"
+	"github.com/shopspring/decimal"
 )
 
-func ToNumeric(i *big.Int) pgtype.Numeric {
-	num := pgtype.Numeric{}
-	num.Set(i)
+func ToNumeric(i *big.Int) decimal.Decimal {
+	num := decimal.NewFromBigInt(i, 0)
 	return num
 }
 
-func FromNumeric(num pgtype.Numeric) *big.Int {
-	return num.Int
+func FromNumeric(num decimal.Decimal) *big.Int {
+	return num.BigInt()
 }
 
-func NumericToString(num pgtype.Numeric) string {
+func NumericToString(num decimal.Decimal) string {
 	return FromNumeric(num).String()
 }
 
