@@ -23,13 +23,25 @@ type Tx struct {
 	ID              uint
 	TimeStamp       time.Time
 	Hash            string
-	Fees            string
 	Code            int64
 	BlockId         uint
 	Block           Block
 	SignerAddressId *int //*int allows foreign key to be null
 	SignerAddress   Address
+	Fees            []Fee
 }
+
+type Fee struct {
+	ID             uint `gorm:"primaryKey"`
+	TxID           uint
+	Amount         decimal.Decimal `gorm:"type:decimal(78,0);"`
+	DenominationID uint
+	Denomination   SimpleDenom `gorm:"foreignKey:DenominationID"`
+	PayerAddressID uint        `gorm:"index:idx_payer_addr"`
+	PayerAddress   Address     `gorm:"foreignKey:PayerAddressID"`
+}
+
+//dbTypes.Address{Address: currTx.FeePayer().String()}
 
 type Address struct {
 	ID      uint

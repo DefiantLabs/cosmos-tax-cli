@@ -1,13 +1,16 @@
 package core
 
 import (
+	"encoding/hex"
 	"errors"
+	"math/big"
 
 	parsingTypes "github.com/DefiantLabs/cosmos-exporter/cosmos/modules"
 	bank "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/bank"
 	staking "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/staking"
 	tx "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
 	txTypes "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-exporter/db"
 	"github.com/DefiantLabs/cosmos-exporter/util"
 
 	"fmt"
@@ -15,6 +18,7 @@ import (
 
 	dbTypes "github.com/DefiantLabs/cosmos-exporter/db"
 
+	cryptoTypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types"
 	cosmosTx "github.com/cosmos/cosmos-sdk/types/tx"
 )
@@ -78,17 +82,11 @@ func ProcessRpcTxs(txEventResp *cosmosTx.GetTxsEventResponse) ([]dbTypes.TxDBWra
 		indexerMergedTx := txTypes.MergedTx{}
 		indexerTx := txTypes.IndexerTx{}
 		txBody := txTypes.TxBody{}
-		authInfo := txTypes.TxAuthInfo{}
 
 		currTx := txEventResp.Txs[txIdx]
 		currTxResp := txEventResp.TxResponses[txIdx]
 		currMessages := []types.Msg{}
 		currLogMsgs := []tx.TxLogMessage{}
-
-		// TODO: Get the TX fees, parse, put in DB, put in CSV ...
-		// fees := currTx.AuthInfo.Fee
-		// feeAmount := fees.Amount
-		// feePayer := fees.Payer
 
 		//Get the Messages and Message Logs
 		for msgIdx := 0; msgIdx < len(currTx.Body.Messages); msgIdx++ {
@@ -108,14 +106,13 @@ func ProcessRpcTxs(txEventResp *cosmosTx.GetTxsEventResponse) ([]dbTypes.TxDBWra
 					currLogMsgs = append(currLogMsgs, currTxLog)
 				}
 			} else {
-				return nil, errors.New("TX message could not be processed. CachedValue is not present.")
+				return nil, errors.New("tx message could not be processed. CachedValue is not present")
 			}
 
 		}
 
 		txBody.Messages = currMessages
 		indexerTx.Body = txBody
-		indexerTx.AuthInfo = authInfo //Will eventually contain fees (TODO: impl fees)
 
 		indexerTxResp := tx.TxResponse{
 			TxHash:    currTxResp.TxHash,
@@ -126,8 +123,10 @@ func ProcessRpcTxs(txEventResp *cosmosTx.GetTxsEventResponse) ([]dbTypes.TxDBWra
 			Code:      int64(currTxResp.Code),
 		}
 
+		indexerTx.AuthInfo = *currTx.AuthInfo
 		indexerMergedTx.TxResponse = indexerTxResp
 		indexerMergedTx.Tx = indexerTx
+		indexerMergedTx.Tx.AuthInfo = *currTx.AuthInfo
 
 		processedTx := ProcessTx(indexerMergedTx)
 		processedTx.SignerAddress = dbTypes.Address{Address: currTx.FeePayer().String()}
@@ -140,51 +139,6 @@ func ProcessRpcTxs(txEventResp *cosmosTx.GetTxsEventResponse) ([]dbTypes.TxDBWra
 	}
 
 	return currTxDbWrappers, nil
-}
-
-func ProcessRestTxs(responseTxs []txTypes.IndexerTx, responseTxResponses []txTypes.TxResponse) []dbTypes.TxDBWrapper {
-	var currTxDbWrappers = make([]dbTypes.TxDBWrapper, len(responseTxs))
-	//wg := sync.WaitGroup{}
-
-	for i, currTx := range responseTxs {
-		currTxResponse := responseTxResponses[i]
-		//wg.Add(1)
-
-		//go func(i int, currTx TxStruct, txResponse TxResponseStruct) {
-		//	defer wg.Done()
-		//tx data and tx_response data are split into 2 arrays in the json, combine into 1 using the corresponding index
-		var mergedTx txTypes.MergedTx
-		mergedTx.TxResponse = currTxResponse
-		mergedTx.Tx = currTx
-
-		processedTx := ProcessTx(mergedTx)
-
-		//This is being reworked
-		// txAddresses := ExtractTransactionAddresses(mergedTx)
-		// var currAddresses = make([]dbTypes.Address, len(txAddresses))
-		// for ii, address := range txAddresses {
-		// 	currAddresses[ii] = dbTypes.Address{Address: address}
-		// }
-
-		var signer dbTypes.Address
-
-		//TODO: Pass in key type (may be able to split from Type PublicKey)
-		//TODO: Signers is an array, need a many to many for the signers in the model
-		signerAddress, err := ParseSignerAddress(currTx.AuthInfo.TxSignerInfos[0].PublicKey.Key, "")
-
-		if err != nil {
-			signer.Address = ""
-		} else {
-			signer.Address = signerAddress
-		}
-
-		processedTx.SignerAddress = signer
-
-		currTxDbWrappers[i] = processedTx
-	}
-
-	//wg.Wait()
-	return currTxDbWrappers
 }
 
 func ProcessTx(tx txTypes.MergedTx) dbTypes.TxDBWrapper {
@@ -250,8 +204,7 @@ func ProcessTx(tx txTypes.MergedTx) dbTypes.TxDBWrapper {
 		}
 	}
 
-	fees := ProcessFees(tx.Tx.AuthInfo.TxFee.TxFeeAmount)
-
+	fees := ProcessFees(tx.Tx.AuthInfo)
 	txDBWapper.Tx = dbTypes.Tx{TimeStamp: timeStamp, Hash: tx.TxResponse.TxHash, Fees: fees, Code: code}
 	txDBWapper.Messages = messages
 
@@ -259,21 +212,38 @@ func ProcessTx(tx txTypes.MergedTx) dbTypes.TxDBWrapper {
 }
 
 //ProcessFees returns a comma delimited list of fee amount/denoms
-func ProcessFees(txFees []txTypes.TxFeeAmount) string {
+func ProcessFees(authInfo cosmosTx.AuthInfo) []dbTypes.Fee {
+	//TODO handle granter? Almost nobody uses it.
+	feeCoins := authInfo.Fee.Amount
+	payer := authInfo.Fee.GetPayer()
+	fees := []dbTypes.Fee{}
 
-	//can be multiple fees, make comma delimited list of fees
-	//should consider separate table?
-	fees := ""
+	for _, coin := range feeCoins {
+		zeroFee := big.NewInt(0)
 
-	numFees := len(txFees)
-	for i, fee := range txFees {
-		newFee := fmt.Sprintf("%s%s", fee.Amount, fee.Denom)
-		if i+1 != numFees {
-			newFee = newFee + ","
+		//There are chains like Osmosis that do not require TX fees for certain TXs
+		if zeroFee.Cmp(coin.Amount.BigInt()) != 0 {
+			amount := util.ToNumeric(coin.Amount.BigInt())
+			denom := db.SimpleDenom{Denom: coin.Denom, Symbol: coin.Denom}
+			payerAddr := dbTypes.Address{}
+
+			if payer == "" {
+				cpk := authInfo.SignerInfos[0].PublicKey.GetCachedValue()
+				pubKey := cpk.(cryptoTypes.PubKey)
+				hexPub := hex.EncodeToString(pubKey.Bytes())
+				bechAddr, err := ParseSignerAddress(hexPub, "")
+				if err != nil {
+					fmt.Printf("Err %s\n", err.Error())
+				} else {
+					payerAddr.Address = bechAddr
+				}
+			} else {
+				payerAddr.Address = payer
+			}
+
+			fees = append(fees, dbTypes.Fee{Amount: amount, Denomination: denom, PayerAddress: payerAddr})
 		}
-		fees = fees + newFee
 	}
 
 	return fees
-
 }

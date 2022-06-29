@@ -1,6 +1,7 @@
 package db
 
 import (
+	"errors"
 	"fmt"
 
 	"gorm.io/driver/postgres"
@@ -45,6 +46,7 @@ func MigrateModels(db *gorm.DB) error {
 		&Block{},
 		&Chain{},
 		&Tx{},
+		&Fee{},
 		&Address{},
 		&Message{},
 		&TaxableTransaction{},
@@ -83,6 +85,38 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, txs []TxDBWrapper, chainID st
 		}
 
 		for _, transaction := range txs {
+			fees := []Fee{}
+			for _, fee := range transaction.Tx.Fees {
+				if fee.PayerAddress.Address != "" {
+					if err := dbTransaction.Where(&fee.PayerAddress).FirstOrCreate(&fee.PayerAddress).Error; err != nil {
+						fmt.Printf("Error %s creating fee payer address.\n", err)
+						return err
+					}
+
+					//creates foreign key relation.
+					fee.PayerAddressID = fee.PayerAddress.ID
+				} else if fee.PayerAddress.Address == "" {
+					return errors.New("fee cannot have empty payer address")
+				}
+
+				if fee.Denomination.Denom != "" {
+					//viewing gorm logs shows this gets translated into a single ON CONFLICT DO NOTHING RETURNING "id"
+					if err := dbTransaction.Where(&fee.Denomination).FirstOrCreate(&fee.Denomination).Error; err != nil {
+						fmt.Printf("Error %s creating SimpleDenom for TaxableTransaction fee.\n", err)
+						return err
+					}
+
+					//idk why this is necessary, probably points to some issue?
+					fee.DenominationID = fee.Denomination.ID
+				}
+
+				fees = append(fees, fee)
+				// if err := dbTransaction.Where(&fee).FirstOrCreate(&fee).Error; err != nil {
+				// 	fmt.Printf("Error %s creating TaxableTransaction fee.\n", err)
+				// 	return err
+				// }
+			}
+
 			if transaction.SignerAddress.Address != "" {
 				//viewing gorm logs shows this gets translated into a single ON CONFLICT DO NOTHING RETURNING "id"
 				if err := dbTransaction.Where(&transaction.SignerAddress).FirstOrCreate(&transaction.SignerAddress).Error; err != nil {
@@ -99,6 +133,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, txs []TxDBWrapper, chainID st
 			}
 
 			transaction.Tx.Block = block
+			transaction.Tx.Fees = fees
 
 			if err := dbTransaction.Create(&transaction.Tx).Error; err != nil {
 				fmt.Printf("Error %s creating tx.\n", err)

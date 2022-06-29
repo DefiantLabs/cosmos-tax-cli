@@ -4,14 +4,12 @@ import (
 	"errors"
 	"os"
 	"strconv"
-	"strings"
 
 	"github.com/DefiantLabs/cosmos-exporter/cosmos/modules/bank"
 	"github.com/DefiantLabs/cosmos-exporter/cosmos/modules/staking"
 	"github.com/DefiantLabs/cosmos-exporter/db"
 	"github.com/DefiantLabs/cosmos-exporter/util"
 
-	stdTypes "github.com/cosmos/cosmos-sdk/types"
 	"gorm.io/gorm"
 )
 
@@ -195,31 +193,30 @@ func ParseForAddress(address string, pgSql *gorm.DB) ([]AccointingRow, error) {
 //then we spread the fees out one per row. Otherwise we add a line for the fees,
 //where each fee has a separate line.
 func HandleFees(address string, events []db.TaxableTransaction, rows []AccointingRow) []AccointingRow {
-	//This address didn't pay any fees
-	if len(events) == 0 || events[0].Message.Tx.SignerAddress.Address != address {
+	//No events -- This address didn't pay any fees
+	if len(events) == 0 {
 		return rows
 	}
 
-	fees := strings.Split(events[0].Message.Tx.Fees, ",")
-	feeCoins := []stdTypes.Coin{}
+	fees := events[0].Message.Tx.Fees
 
 	for _, fee := range fees {
-		coin, err := stdTypes.ParseCoinNormalized(fee)
-		if err == nil {
-			feeCoins = append(feeCoins, coin)
+		payer := fee.PayerAddress.Address
+		if payer != address {
+			return rows
 		}
 	}
 
 	//Stick the fees in the existing rows.
-	if len(rows) >= len(feeCoins) {
-		for i, fee := range feeCoins {
-			conversionAmount, conversionSymbol, err := db.ConvertUnits(fee.Amount.BigInt(), fee.GetDenom())
+	if len(rows) >= len(fees) {
+		for i, fee := range fees {
+			conversionAmount, conversionSymbol, err := db.ConvertUnits(fee.Amount.BigInt(), fee.Denomination.Denom)
 			if err == nil {
 				rows[i].FeeAmount = conversionAmount.String()
 				rows[i].FeeAsset = conversionSymbol
 			} else {
 				rows[i].FeeAmount = fee.Amount.BigInt().String()
-				rows[i].FeeAsset = fee.GetDenom()
+				rows[i].FeeAsset = fee.Denomination.Denom
 			}
 		}
 
@@ -228,11 +225,11 @@ func HandleFees(address string, events []db.TaxableTransaction, rows []Accointin
 
 	tx := events[0].Message.Tx
 	//There's more fees than rows so generate a new row for each fee.
-	for _, fee := range feeCoins {
-		feeUnits, feeSymbol, err := db.ConvertUnits(fee.Amount.BigInt(), fee.GetDenom())
+	for _, fee := range fees {
+		feeUnits, feeSymbol, err := db.ConvertUnits(fee.Amount.BigInt(), fee.Denomination.Denom)
 		if err != nil {
 			feeUnits = fee.Amount.BigInt()
-			feeSymbol = fee.GetDenom()
+			feeSymbol = fee.Denomination.Denom
 		}
 
 		newRow := AccointingRow{Date: FormatDatetime(tx.TimeStamp), FeeAmount: feeUnits.String(),

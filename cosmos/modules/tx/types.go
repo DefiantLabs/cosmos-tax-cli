@@ -43,9 +43,9 @@ type GetTxByBlockHeightResponse struct {
 }
 
 type IndexerTx struct {
-	Body       TxBody     `json:"body"`
-	AuthInfo   TxAuthInfo `json:"auth_info"`
-	Signatures []string   `json:"signatures"`
+	Body       TxBody `json:"body"`
+	AuthInfo   cosmTx.AuthInfo
+	Signatures []string `json:"signatures"`
 }
 
 type TxResponse struct {
