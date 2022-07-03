@@ -2,29 +2,29 @@
 [log]
 level = "info"
 
-#Cosmos REST APIs no longer supported in any commits after 3/20/22.
-# See [lens] configuration options for currently supported values.
-#[api]
-#host = "http://localhost:1317"
-
 #App configuration values
 [base]
-startblock = 7000 # start at the last indexed block
+addressRegex = "osmo(valoper)?1[a-z0-9]{38}"
+addressPrefix = "osmo"
+startblock = 4823317 #4740820 
 endblock = -1 # no end block
 throttling = 0
-blockTimer = 1000 #print out how long it takes to process this many blocks
+blockTimer = 10000 #print out how long it takes to process this many blocks
 waitForChain = false #if true, indexer will start when the node is caught up to the blockchain
 waitForChainDelay = 10 #seconds to wait between each check for node to catch up to the chain
 indexingEnabled = true #If false, TX won't be added to the DB but other values might be READ from the DB
+exitWhenCaughtUp = true #mainly used for Osmosis rewards indexing
+osmosisRewardsOnly = false #only index Osmosis rewards, do not start other threads or processes.
 
 #Lens config options
 [lens]
 homepath = "/home/kyle/.lens"
-rpc = "http://localhost:26657"
+rpc = "http://52.35.17.25:26657" #"http://45.56.94.181:26657"
 key = "default"
-accountPrefix = "juno"
+accountPrefix = "osmo"
 keyringBackend = "test"
-chainID = "testing"
+chainID = "osmosis-1"
+chainName = "Osmosis"
 
 #postgresql
 [database]
