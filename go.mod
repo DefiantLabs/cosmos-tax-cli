@@ -8,9 +8,8 @@ require (
 	github.com/gin-gonic/gin v1.7.0
 	github.com/go-co-op/gocron v1.13.0
 	github.com/imdario/mergo v0.3.12
-	github.com/jackc/pgtype v1.10.0
 	github.com/shopspring/decimal v1.3.1
-	github.com/strangelove-ventures/lens v0.2.2-0.20220131192754-f2a69f2e3fd7
+	github.com/strangelove-ventures/lens v0.0.3-dl
 	github.com/stretchr/testify v1.7.1
 	github.com/tendermint/tendermint v0.34.19
 	gorm.io/driver/postgres v1.3.1
@@ -85,6 +84,7 @@ require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgproto3/v2 v2.2.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
+	github.com/jackc/pgtype v1.10.0 // indirect
 	github.com/jackc/pgx/v4 v4.15.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
@@ -157,8 +157,8 @@ replace (
 	github.com/cosmos/iavl => github.com/osmosis-labs/iavl v0.17.3-osmo-v7
 	github.com/cosmos/ibc-go/v2 => github.com/osmosis-labs/ibc-go/v2 v2.0.2-osmo
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
-	github.com/strangelove-ventures/lens => /home/kyle/projects/DefiantLabs/lens
 	google.golang.org/grpc => google.golang.org/grpc v1.33.2
 )
 
-//replace github.com/strangelove-ventures/lens => github.com/DefiantLabs/lens v0.0.1-dl
+//github.com/strangelove-ventures/lens => /home/kyle/projects/DefiantLabs/lens
+replace github.com/strangelove-ventures/lens => github.com/DefiantLabs/lens v0.0.3-dl
