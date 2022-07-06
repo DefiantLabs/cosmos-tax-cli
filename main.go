@@ -133,6 +133,8 @@ func main() {
 	dbConn, _ := db.DB()
 	defer dbConn.Close()
 
+	tasks.DenomUpsertTask("https://lcd-kujira.mintthemoon.xyz:443", db)
+
 	//TODO may need to run this task in setup() so that we have a cold start functionality before the indexer starts
 	scheduler.Every(6).Hours().Do(tasks.DenomUpsertTask, apiHost, db)
 	scheduler.StartAsync()
@@ -234,7 +236,7 @@ func main() {
 			}
 
 			//Already at the latest block, wait for the next block to be available.
-			for currBlock <= latestBlock && len(blockHeightToProcess) != cap(blockHeightToProcess) {
+			for currBlock <= latestBlock && currBlock <= lastBlock && len(blockHeightToProcess) != cap(blockHeightToProcess) {
 
 				if config.Base.Throttling != 0 {
 					time.Sleep(time.Second * time.Duration(config.Base.Throttling))
