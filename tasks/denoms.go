@@ -1,13 +1,100 @@
 package tasks
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"os"
+	"time"
 
+	"github.com/DefiantLabs/cosmos-exporter/config"
 	dbTypes "github.com/DefiantLabs/cosmos-exporter/db"
 	"github.com/DefiantLabs/cosmos-exporter/rest"
+	"go.uber.org/zap"
 
 	"gorm.io/gorm"
 )
+
+type OsmosisAssets struct {
+	Assets []Asset
+}
+
+type Asset struct {
+	Denoms []DenomUnit `json:"denom_units"`
+	Symbol string
+	Base   string
+	Name   string
+}
+
+type DenomUnit struct {
+	Denom    string
+	Exponent int
+	Aliases  []string
+}
+
+func DoChainSpecificUpsertDenoms(db *gorm.DB, chain string) {
+	switch chain {
+	case "osmosis-1":
+		UpsertOsmosisDenoms(db)
+	}
+}
+
+func UpsertOsmosisDenoms(db *gorm.DB) {
+	denomAssets, err := getOsmosisAssetsList()
+	if err != nil {
+		config.Logger.Error("Download Osmosis Denom Metadata", zap.Error(err))
+		os.Exit(1)
+	} else {
+		denoms := toDenoms(denomAssets)
+		err = dbTypes.UpsertDenoms(db, denoms)
+		if err != nil {
+			config.Logger.Error("Upsert Osmosis Denom Metadata", zap.Error(err))
+			os.Exit(1)
+		}
+	}
+}
+
+func toDenoms(assets *OsmosisAssets) []dbTypes.DenomDBWrapper {
+	var denoms []dbTypes.DenomDBWrapper = make([]dbTypes.DenomDBWrapper, len(assets.Assets))
+	for i, asset := range assets.Assets {
+		denoms[i].Denom = dbTypes.Denom{Base: asset.Base, Name: asset.Name, Symbol: asset.Symbol}
+		denoms[i].DenomUnits = make([]dbTypes.DenomUnitDBWrapper, len(asset.Denoms))
+
+		for ii, denomUnit := range asset.Denoms {
+			denoms[i].DenomUnits[ii].DenomUnit = dbTypes.DenomUnit{Exponent: uint(denomUnit.Exponent), Name: denomUnit.Denom}
+			denoms[i].DenomUnits[ii].Aliases = make([]dbTypes.DenomUnitAlias, len(denomUnit.Aliases))
+
+			for iii, denomUnitAlias := range denomUnit.Aliases {
+				denoms[i].DenomUnits[ii].Aliases[iii] = dbTypes.DenomUnitAlias{Alias: denomUnitAlias}
+			}
+		}
+	}
+
+	return denoms
+}
+
+func getOsmosisAssetsList() (*OsmosisAssets, error) {
+	url := "https://raw.githubusercontent.com/osmosis-labs/assetlists/main/osmosis-1/osmosis-1.assetlist.json"
+	assets := &OsmosisAssets{}
+	err := getJson(url, assets)
+	if err != nil {
+		return nil, err
+	}
+
+	return assets, nil
+}
+
+func getJson(url string, target interface{}) error {
+	var myClient = &http.Client{Timeout: 10 * time.Second}
+
+	r, err := myClient.Get(url)
+	if err != nil {
+		return err
+	}
+	defer r.Body.Close()
+
+	return json.NewDecoder(r.Body).Decode(target)
+}
 
 func DenomUpsertTask(apiHost string, db *gorm.DB) {
 

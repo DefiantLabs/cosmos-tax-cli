@@ -52,6 +52,7 @@ type base struct {
 
 type log struct {
 	Level string
+	Path  string
 }
 
 func GetConfig(configFileLocation string) (Config, error) {

@@ -12,9 +12,9 @@ require (
 	github.com/strangelove-ventures/lens v0.0.3-dl
 	github.com/stretchr/testify v1.7.1
 	github.com/tendermint/tendermint v0.34.19
+	go.uber.org/zap v1.21.0
 	gorm.io/driver/postgres v1.3.1
 	gorm.io/gorm v1.23.6
-
 )
 
 require (
@@ -135,6 +135,8 @@ require (
 	github.com/ugorji/go/codec v1.1.7 // indirect
 	github.com/zondax/hid v0.9.0 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
+	go.uber.org/atomic v1.9.0 // indirect
+	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/crypto v0.0.0-20220507011949-2cf3adece122 // indirect
 	golang.org/x/net v0.0.0-20220520000938-2e3eb7b945c2 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect

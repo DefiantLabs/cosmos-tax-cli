@@ -54,6 +54,11 @@ func setup() (*configHelpers.Config, *gorm.DB, *gocron.Scheduler, error) {
 
 	config := configHelpers.MergeConfigs(fileConfig, argConfig)
 
+	//Logger
+	logLevel := config.Log.Level
+	logPath := config.Log.Path
+	configHelpers.DoConfigureLogger(logPath, logLevel)
+
 	//0 is an invalid starting block, set it to 1
 	if config.Base.StartBlock == 0 {
 		config.Base.StartBlock = 1
@@ -133,11 +138,12 @@ func main() {
 	dbConn, _ := db.DB()
 	defer dbConn.Close()
 
-	tasks.DenomUpsertTask("https://lcd-kujira.mintthemoon.xyz:443", db)
-
 	//TODO may need to run this task in setup() so that we have a cold start functionality before the indexer starts
 	scheduler.Every(6).Hours().Do(tasks.DenomUpsertTask, apiHost, db)
 	scheduler.StartAsync()
+
+	//Some chains do not have the denom metadata URL available on chain, so we do chain specific downloads instead.
+	tasks.DoChainSpecificUpsertDenoms(db, config.Lens.ChainID)
 
 	cl := configHelpers.GetLensClient(config.Lens)
 	configHelpers.SetChainConfig(config.Base.AddressPrefix)

@@ -1,6 +1,7 @@
 #gorm
 [log]
 level = "info"
+path = "/exact/file/path.txt"
 
 #App configuration values
 [base]
@@ -33,3 +34,5 @@ port = "5432"
 database = "taxappdb"
 user = "taxapp"
 password = "taxapptest"
+
+[logger]
