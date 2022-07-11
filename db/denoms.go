@@ -18,9 +18,19 @@ func CacheDenoms(db *gorm.DB) {
 	CachedDenomUnits = denomUnits
 }
 
-func GetDenomUnitForDenom(denom string) (DenomUnit, error) {
+func GetDenomForBase(base string) (Denom, error) {
 	for _, denomUnit := range CachedDenomUnits {
-		if denomUnit.Name == denom {
+		if denomUnit.Denom.Base == base {
+			return denomUnit.Denom, nil
+		}
+	}
+
+	return Denom{}, errors.New("no denom unit for the specified denom")
+}
+
+func GetDenomUnitForDenom(denom Denom) (DenomUnit, error) {
+	for _, denomUnit := range CachedDenomUnits {
+		if denomUnit.DenomID == denom.ID {
 			return denomUnit, nil
 		}
 	}
@@ -47,7 +57,7 @@ func GetHighestDenomUnit(denomUnit DenomUnit, denomUnits []DenomUnit) (DenomUnit
 }
 
 //TODO unit test this function
-func ConvertUnits(amount *big.Int, denom string) (*big.Int, string, error) {
+func ConvertUnits(amount *big.Int, denom Denom) (*big.Int, string, error) {
 
 	//Try denom unit first
 	denomUnit, err := GetDenomUnitForDenom(denom)

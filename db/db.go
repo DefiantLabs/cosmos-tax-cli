@@ -51,7 +51,6 @@ func MigrateModels(db *gorm.DB) error {
 		&Message{},
 		&TaxableTransaction{},
 		&TaxableEvent{},
-		&SimpleDenom{},
 		&Denom{},
 		&DenomUnit{},
 		&DenomUnitAlias{},
@@ -99,15 +98,8 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, txs []TxDBWrapper, chainID st
 					return errors.New("fee cannot have empty payer address")
 				}
 
-				if fee.Denomination.Denom != "" {
-					//viewing gorm logs shows this gets translated into a single ON CONFLICT DO NOTHING RETURNING "id"
-					if err := dbTransaction.Where(&fee.Denomination).FirstOrCreate(&fee.Denomination).Error; err != nil {
-						fmt.Printf("Error %s creating SimpleDenom for TaxableTransaction fee.\n", err)
-						return err
-					}
-
-					//idk why this is necessary, probably points to some issue?
-					fee.DenominationID = fee.Denomination.ID
+				if fee.Denomination.Base == "" || fee.Denomination.Symbol == "" {
+					return fmt.Errorf("denom not cached for base %s and symbol %s", fee.Denomination.Base, fee.Denomination.Symbol)
 				}
 
 				fees = append(fees, fee)

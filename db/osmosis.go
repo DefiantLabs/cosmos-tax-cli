@@ -39,12 +39,8 @@ func createTaxableEvents(db *gorm.DB, events []TaxableEvent) error {
 				}
 			}
 
-			if event.Denomination.Denom != "" {
-				//viewing gorm logs shows this gets translated into a single ON CONFLICT DO NOTHING RETURNING "id"
-				if err := dbTransaction.Where(&event.Denomination).FirstOrCreate(&event.Denomination).Error; err != nil {
-					fmt.Printf("Error %s creating SimpleDenom for TaxableEvent.\n", err)
-					return err
-				}
+			if event.Denomination.Base == "" || event.Denomination.Symbol == "" {
+				return fmt.Errorf("denom not cached for base %s and symbol %s", event.Denomination.Base, event.Denomination.Symbol)
 			}
 
 			if err := dbTransaction.Create(&event).Error; err != nil {
@@ -64,10 +60,15 @@ func IndexOsmoRewards(db *gorm.DB, chainID string, chainName string, rewards []*
 
 	for _, curr := range rewards {
 		for _, coin := range curr.Coins {
+			denom, err := GetDenomForBase(coin.Denom)
+			if err != nil {
+				return err
+			}
+
 			evt := TaxableEvent{
 				Source:       OsmosisRewardDistribution,
 				Amount:       util.ToNumeric(coin.Amount.BigInt()),
-				Denomination: SimpleDenom{Denom: coin.Denom, Symbol: coin.Denom},
+				Denomination: denom,
 				Block:        Block{Height: curr.EpochBlockHeight, Chain: Chain{ChainID: chainID, Name: chainName}},
 				EventAddress: Address{Address: curr.Address},
 			}

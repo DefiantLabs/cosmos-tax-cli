@@ -36,9 +36,9 @@ type Fee struct {
 	TxID           uint
 	Amount         decimal.Decimal `gorm:"type:decimal(78,0);"`
 	DenominationID uint
-	Denomination   SimpleDenom `gorm:"foreignKey:DenominationID"`
-	PayerAddressID uint        `gorm:"index:idx_payer_addr"`
-	PayerAddress   Address     `gorm:"foreignKey:PayerAddressID"`
+	Denomination   Denom   `gorm:"foreignKey:DenominationID"`
+	PayerAddressID uint    `gorm:"index:idx_payer_addr"`
+	PayerAddress   Address `gorm:"foreignKey:PayerAddressID"`
 }
 
 //dbTypes.Address{Address: currTx.FeePayer().String()}
@@ -67,18 +67,18 @@ type TaxableEvent struct {
 	Source         uint            //This will indicate what type of event occurred on chain. Currently, only used for Osmosis rewards.
 	Amount         decimal.Decimal `gorm:"type:decimal(78,0);"` //2^256 or 78 digits, cosmos Int can be up to this length
 	DenominationID uint
-	Denomination   SimpleDenom `gorm:"foreignKey:DenominationID"`
-	AddressID      uint        `gorm:"index:idx_addr"`
-	EventAddress   Address     `gorm:"foreignKey:AddressID"`
+	Denomination   Denom   `gorm:"foreignKey:DenominationID"`
+	AddressID      uint    `gorm:"index:idx_addr"`
+	EventAddress   Address `gorm:"foreignKey:AddressID"`
 	BlockID        uint
 	Block          Block `gorm:"foreignKey:BlockID"`
 }
 
-type SimpleDenom struct {
-	ID     uint
-	Denom  string `gorm:"uniqueIndex:denom_idx"`
-	Symbol string `gorm:"uniqueIndex:denom_idx"`
-}
+// type SimpleDenom struct {
+// 	ID     uint
+// 	Denom  string `gorm:"uniqueIndex:denom_idx"`
+// 	Symbol string `gorm:"uniqueIndex:denom_idx"`
+// }
 
 func (TaxableEvent) TableName() string {
 	return "taxable_event"
@@ -89,7 +89,8 @@ type TaxableTransaction struct {
 	MessageId         uint
 	Message           Message
 	Amount            decimal.Decimal `gorm:"type:decimal(78,0);"`
-	Denomination      string
+	DenominationID    uint
+	Denomination      Denom `gorm:"foreignKey:DenominationID"`
 	SenderAddressId   *uint `gorm:"index:idx_sender"`
 	SenderAddress     Address
 	ReceiverAddressId *uint `gorm:"index:idx_receiver"`

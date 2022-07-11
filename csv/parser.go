@@ -2,6 +2,7 @@ package csv
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"strconv"
 
@@ -61,13 +62,13 @@ func (row *AccointingRow) EventParseBasic(address string, event db.TaxableEvent)
 
 	//deposit
 	if event.EventAddress.Address == address {
-		conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.Amount), event.Denomination.Denom)
+		conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.Amount), event.Denomination)
 		if err == nil {
 			row.InBuyAmount = conversionAmount.String()
 			row.InBuyAsset = conversionSymbol
 		} else {
 			row.InBuyAmount = util.NumericToString(event.Amount)
-			row.InBuyAsset = event.Denomination.Denom
+			row.InBuyAsset = event.Denomination.Base
 		}
 		row.TransactionType = Deposit
 		return nil
@@ -77,7 +78,7 @@ func (row *AccointingRow) EventParseBasic(address string, event db.TaxableEvent)
 }
 
 //ParseBasic: Handles the fields that are shared between most types.
-func (row *AccointingRow) ParseBasic(address string, event db.TaxableTransaction) {
+func (row *AccointingRow) ParseBasic(address string, event db.TaxableTransaction) error {
 	row.Date = FormatDatetime(event.Message.Tx.TimeStamp)
 	row.OperationId = event.Message.Tx.Hash
 
@@ -89,8 +90,7 @@ func (row *AccointingRow) ParseBasic(address string, event db.TaxableTransaction
 			row.InBuyAmount = conversionAmount.String()
 			row.InBuyAsset = conversionSymbol
 		} else {
-			row.InBuyAmount = util.NumericToString(event.Amount)
-			row.InBuyAsset = event.Denomination
+			return fmt.Errorf("Cannot parse denom units for TX %s (classification: deposit)\n", row.OperationId)
 		}
 		row.TransactionType = Deposit
 
@@ -101,11 +101,12 @@ func (row *AccointingRow) ParseBasic(address string, event db.TaxableTransaction
 			row.OutSellAmount = conversionAmount.String()
 			row.OutSellAsset = conversionSymbol
 		} else {
-			row.OutSellAmount = util.NumericToString(event.Amount)
-			row.OutSellAsset = event.Denomination
+			return fmt.Errorf("Cannot parse denom units for TX %s (classification: withdrawal)\n", row.OperationId)
 		}
 		row.TransactionType = Withdraw
 	}
+
+	return nil
 }
 
 func ParseTaxableEvents(address string, pgSql *gorm.DB) ([]AccointingRow, error) {
@@ -156,7 +157,12 @@ func ParseTaxableTransactions(address string, pgSql *gorm.DB) ([]AccointingRow, 
 	for _, txGroup := range txMap {
 		//For the current transaction group, generate the rows for the CSV.
 		//Usually (but not always) a transaction will only have a single row in the CSV.
-		rows = append(rows, ParseTx(address, txGroup)...)
+		txRows, err := ParseTx(address, txGroup)
+		if err == nil {
+			rows = append(rows, txRows...)
+		} else {
+			return nil, err
+		}
 	}
 
 	return rows, nil
@@ -192,10 +198,10 @@ func ParseForAddress(address string, pgSql *gorm.DB) ([]AccointingRow, error) {
 //If the transaction lists the same amount of fees as there are rows in the CSV,
 //then we spread the fees out one per row. Otherwise we add a line for the fees,
 //where each fee has a separate line.
-func HandleFees(address string, events []db.TaxableTransaction, rows []AccointingRow) []AccointingRow {
+func HandleFees(address string, events []db.TaxableTransaction, rows []AccointingRow) ([]AccointingRow, error) {
 	//No events -- This address didn't pay any fees
 	if len(events) == 0 {
-		return rows
+		return rows, nil
 	}
 
 	fees := events[0].Message.Tx.Fees
@@ -203,33 +209,31 @@ func HandleFees(address string, events []db.TaxableTransaction, rows []Accointin
 	for _, fee := range fees {
 		payer := fee.PayerAddress.Address
 		if payer != address {
-			return rows
+			return rows, nil
 		}
 	}
 
 	//Stick the fees in the existing rows.
 	if len(rows) >= len(fees) {
 		for i, fee := range fees {
-			conversionAmount, conversionSymbol, err := db.ConvertUnits(fee.Amount.BigInt(), fee.Denomination.Denom)
+			conversionAmount, conversionSymbol, err := db.ConvertUnits(fee.Amount.BigInt(), fee.Denomination)
 			if err == nil {
 				rows[i].FeeAmount = conversionAmount.String()
 				rows[i].FeeAsset = conversionSymbol
 			} else {
-				rows[i].FeeAmount = fee.Amount.BigInt().String()
-				rows[i].FeeAsset = fee.Denomination.Denom
+				return nil, fmt.Errorf("Cannot parse fee units for TX %s\n", events[0].Message.Tx.Hash)
 			}
 		}
 
-		return rows
+		return rows, nil
 	}
 
 	tx := events[0].Message.Tx
 	//There's more fees than rows so generate a new row for each fee.
 	for _, fee := range fees {
-		feeUnits, feeSymbol, err := db.ConvertUnits(fee.Amount.BigInt(), fee.Denomination.Denom)
+		feeUnits, feeSymbol, err := db.ConvertUnits(fee.Amount.BigInt(), fee.Denomination)
 		if err != nil {
-			feeUnits = fee.Amount.BigInt()
-			feeSymbol = fee.Denomination.Denom
+			return nil, fmt.Errorf("Cannot parse fee units for TX %s\n", events[0].Message.Tx.Hash)
 		}
 
 		newRow := AccointingRow{Date: FormatDatetime(tx.TimeStamp), FeeAmount: feeUnits.String(),
@@ -237,7 +241,7 @@ func HandleFees(address string, events []db.TaxableTransaction, rows []Accointin
 		rows = append(rows, newRow)
 	}
 
-	return rows
+	return rows, nil
 }
 
 //ParseEvent: Parse the potentially taxable event
@@ -259,7 +263,7 @@ func ParseEvent(address string, event db.TaxableEvent) []AccointingRow {
 }
 
 //ParseTx: Parse the potentially taxable TX and Messages
-func ParseTx(address string, events []db.TaxableTransaction) []AccointingRow {
+func ParseTx(address string, events []db.TaxableTransaction) ([]AccointingRow, error) {
 	rows := []AccointingRow{}
 
 	for _, event := range events {
@@ -273,8 +277,8 @@ func ParseTx(address string, events []db.TaxableTransaction) []AccointingRow {
 		}
 	}
 
-	rows = HandleFees(address, events, rows)
-	return rows
+	rows, err := HandleFees(address, events, rows)
+	return rows, err
 }
 
 //ParseMsgValidatorWithdraw:

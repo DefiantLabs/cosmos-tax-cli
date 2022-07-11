@@ -28,7 +28,7 @@ func setupOsmosisTestModels(db *gorm.DB) {
 	ensureOsmosisRewardsTaxableEvent(db, simpleDenom, addr, block, big.NewInt(100))
 }
 
-func ensureOsmosisRewardsTaxableEvent(db *gorm.DB, denom dbUtils.SimpleDenom, addr dbUtils.Address, block dbUtils.Block, amount *big.Int) dbUtils.TaxableEvent {
+func ensureOsmosisRewardsTaxableEvent(db *gorm.DB, denom dbUtils.Denom, addr dbUtils.Address, block dbUtils.Block, amount *big.Int) dbUtils.TaxableEvent {
 	taxEvt := dbUtils.TaxableEvent{Source: dbUtils.OsmosisRewardDistribution, Amount: util.ToNumeric(amount), Denomination: denom, EventAddress: addr, Block: block}
 	db.FirstOrCreate(&taxEvt, &taxEvt)
 	return taxEvt
@@ -47,9 +47,9 @@ func ensureTestBlock(db *gorm.DB, chain dbUtils.Chain, height int64) dbUtils.Blo
 	return block
 }
 
-func ensureTestDenom(db *gorm.DB) dbUtils.SimpleDenom {
+func ensureTestDenom(db *gorm.DB) dbUtils.Denom {
 	denom := "uosmo"
-	simpleDenom := dbUtils.SimpleDenom{Denom: denom, Symbol: denom}
+	simpleDenom := dbUtils.Denom{Base: denom, Symbol: denom}
 	db.FirstOrCreate(&simpleDenom)
 	return simpleDenom
 }

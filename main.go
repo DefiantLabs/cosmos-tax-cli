@@ -9,10 +9,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/DefiantLabs/cosmos-exporter/config"
 	"github.com/DefiantLabs/cosmos-exporter/core"
 	"github.com/DefiantLabs/cosmos-exporter/osmosis"
 	"github.com/DefiantLabs/cosmos-exporter/rpc"
 	"github.com/DefiantLabs/cosmos-exporter/tasks"
+	"go.uber.org/zap"
 
 	configHelpers "github.com/DefiantLabs/cosmos-exporter/config"
 	indexerTx "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
@@ -355,7 +357,7 @@ func ProcessTxs(
 		txToProcess := <-results
 		txDBWrappers, err := core.ProcessRpcTxs(txToProcess.CosmosGetTxsEventResponse)
 		if err != nil {
-			fmt.Println(err.Error())
+			config.Logger.Error("ProcessRpcTxs: unhandled error", zap.Error(err))
 			failedBlockHandler(txToProcess.Height, core.UnprocessableTxError, err)
 		}
 

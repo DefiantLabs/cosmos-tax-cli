@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/DefiantLabs/cosmos-exporter/config"
 	parsingTypes "github.com/DefiantLabs/cosmos-exporter/cosmos/modules"
 	bank "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/bank"
 	staking "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/staking"
@@ -12,6 +13,7 @@ import (
 	txTypes "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-exporter/db"
 	"github.com/DefiantLabs/cosmos-exporter/util"
+	"go.uber.org/zap"
 
 	"fmt"
 	"time"
@@ -128,7 +130,11 @@ func ProcessRpcTxs(txEventResp *cosmosTx.GetTxsEventResponse) ([]dbTypes.TxDBWra
 		indexerMergedTx.Tx = indexerTx
 		indexerMergedTx.Tx.AuthInfo = *currTx.AuthInfo
 
-		processedTx := ProcessTx(indexerMergedTx)
+		processedTx, err := ProcessTx(indexerMergedTx)
+		if err != nil {
+			return currTxDbWrappers, err
+		}
+
 		processedTx.SignerAddress = dbTypes.Address{Address: currTx.FeePayer().String()}
 
 		//TODO: Pass in key type (may be able to split from Type PublicKey)
@@ -141,7 +147,7 @@ func ProcessRpcTxs(txEventResp *cosmosTx.GetTxsEventResponse) ([]dbTypes.TxDBWra
 	return currTxDbWrappers, nil
 }
 
-func ProcessTx(tx txTypes.MergedTx) dbTypes.TxDBWrapper {
+func ProcessTx(tx txTypes.MergedTx) (dbTypes.TxDBWrapper, error) {
 
 	var txDBWapper dbTypes.TxDBWrapper
 
@@ -173,7 +179,13 @@ func ProcessTx(tx txTypes.MergedTx) dbTypes.TxDBWrapper {
 					var taxableEvents []dbTypes.TaxableEventDBWrapper = make([]dbTypes.TaxableEventDBWrapper, len(relevantData))
 					for i, v := range relevantData {
 						taxableEvents[i].TaxableTx.Amount = util.ToNumeric(v.Amount)
-						taxableEvents[i].TaxableTx.Denomination = v.Denomination
+						denom, err := db.GetDenomForBase(v.Denomination)
+						if err != nil {
+							config.Logger.Error("Denom lookup", zap.Error(err), zap.String("denom", v.Denomination))
+							return txDBWapper, err
+						}
+
+						taxableEvents[i].TaxableTx.Denomination = denom
 						taxableEvents[i].SenderAddress = dbTypes.Address{Address: v.SenderAddress}
 						taxableEvents[i].ReceiverAddress = dbTypes.Address{Address: v.ReceiverAddress}
 					}
@@ -204,15 +216,19 @@ func ProcessTx(tx txTypes.MergedTx) dbTypes.TxDBWrapper {
 		}
 	}
 
-	fees := ProcessFees(tx.Tx.AuthInfo)
+	fees, err := ProcessFees(tx.Tx.AuthInfo)
+	if err != nil {
+		return txDBWapper, err
+	}
+
 	txDBWapper.Tx = dbTypes.Tx{TimeStamp: timeStamp, Hash: tx.TxResponse.TxHash, Fees: fees, Code: code}
 	txDBWapper.Messages = messages
 
-	return txDBWapper
+	return txDBWapper, nil
 }
 
 //ProcessFees returns a comma delimited list of fee amount/denoms
-func ProcessFees(authInfo cosmosTx.AuthInfo) []dbTypes.Fee {
+func ProcessFees(authInfo cosmosTx.AuthInfo) ([]dbTypes.Fee, error) {
 	//TODO handle granter? Almost nobody uses it.
 	feeCoins := authInfo.Fee.Amount
 	payer := authInfo.Fee.GetPayer()
@@ -224,7 +240,10 @@ func ProcessFees(authInfo cosmosTx.AuthInfo) []dbTypes.Fee {
 		//There are chains like Osmosis that do not require TX fees for certain TXs
 		if zeroFee.Cmp(coin.Amount.BigInt()) != 0 {
 			amount := util.ToNumeric(coin.Amount.BigInt())
-			denom := db.SimpleDenom{Denom: coin.Denom, Symbol: coin.Denom}
+			denom, denomErr := db.GetDenomForBase(coin.Denom)
+			if denomErr != nil {
+				return nil, denomErr
+			}
 			payerAddr := dbTypes.Address{}
 
 			if payer == "" {
@@ -245,5 +264,5 @@ func ProcessFees(authInfo cosmosTx.AuthInfo) []dbTypes.Fee {
 		}
 	}
 
-	return fees
+	return fees, nil
 }
