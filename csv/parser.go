@@ -85,7 +85,7 @@ func (row *AccointingRow) ParseBasic(address string, event db.TaxableTransaction
 	//deposit
 	if event.ReceiverAddress.Address == address {
 
-		conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.Amount), event.Denomination)
+		conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountSent), event.DenominationSent)
 		if err == nil {
 			row.InBuyAmount = conversionAmount.String()
 			row.InBuyAsset = conversionSymbol
@@ -96,7 +96,7 @@ func (row *AccointingRow) ParseBasic(address string, event db.TaxableTransaction
 
 	} else if event.SenderAddress.Address == address { //withdrawal
 
-		conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.Amount), event.Denomination)
+		conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountSent), event.DenominationSent)
 		if err == nil {
 			row.OutSellAmount = conversionAmount.String()
 			row.OutSellAsset = conversionSymbol

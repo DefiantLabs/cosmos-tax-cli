@@ -104,10 +104,10 @@ func (sf *WrapperMsgWithdrawValidatorCommission) ParseRelevantData() []parsingTy
 
 		for i, v := range sf.MultiCoinsReceived {
 			relevantData[i] = parsingTypes.MessageRelevantInformation{
-				Amount:          v.Amount.BigInt(),
-				Denomination:    v.Denom,
-				SenderAddress:   "",
-				ReceiverAddress: sf.DelegatorReceiverAddress,
+				AmountReceived:       v.Amount.BigInt(),
+				DenominationReceived: v.Denom,
+				SenderAddress:        "",
+				ReceiverAddress:      sf.DelegatorReceiverAddress,
 			}
 		}
 
@@ -115,10 +115,10 @@ func (sf *WrapperMsgWithdrawValidatorCommission) ParseRelevantData() []parsingTy
 	} else {
 		var relevantData []parsingTypes.MessageRelevantInformation = make([]parsingTypes.MessageRelevantInformation, 1)
 		relevantData[0] = parsingTypes.MessageRelevantInformation{
-			Amount:          sf.CoinsReceived.Amount.BigInt(),
-			Denomination:    sf.CoinsReceived.Denom,
-			SenderAddress:   "",
-			ReceiverAddress: sf.DelegatorReceiverAddress,
+			AmountReceived:       sf.CoinsReceived.Amount.BigInt(),
+			DenominationReceived: sf.CoinsReceived.Denom,
+			SenderAddress:        "",
+			ReceiverAddress:      sf.DelegatorReceiverAddress,
 		}
 		return relevantData
 	}
@@ -172,10 +172,10 @@ func (sf *WrapperMsgWithdrawDelegatorReward) ParseRelevantData() []parsingTypes.
 
 		for i, v := range sf.MultiCoinsReceived {
 			relevantData[i] = parsingTypes.MessageRelevantInformation{
-				Amount:          v.Amount.BigInt(),
-				Denomination:    v.Denom,
-				SenderAddress:   "",
-				ReceiverAddress: sf.CosmosMsgWithdrawDelegatorReward.DelegatorAddress,
+				AmountReceived:       v.Amount.BigInt(),
+				DenominationReceived: v.Denom,
+				SenderAddress:        "",
+				ReceiverAddress:      sf.CosmosMsgWithdrawDelegatorReward.DelegatorAddress,
 			}
 		}
 
@@ -183,10 +183,10 @@ func (sf *WrapperMsgWithdrawDelegatorReward) ParseRelevantData() []parsingTypes.
 	} else {
 		var relevantData []parsingTypes.MessageRelevantInformation = make([]parsingTypes.MessageRelevantInformation, 1)
 		relevantData[0] = parsingTypes.MessageRelevantInformation{
-			Amount:          sf.CoinsReceived.Amount.BigInt(),
-			Denomination:    sf.CoinsReceived.Denom,
-			SenderAddress:   "",
-			ReceiverAddress: sf.CosmosMsgWithdrawDelegatorReward.DelegatorAddress,
+			AmountReceived:       sf.CoinsReceived.Amount.BigInt(),
+			DenominationReceived: sf.CoinsReceived.Denom,
+			SenderAddress:        "",
+			ReceiverAddress:      sf.CosmosMsgWithdrawDelegatorReward.DelegatorAddress,
 		}
 		return relevantData
 	}

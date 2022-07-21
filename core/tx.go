@@ -178,14 +178,14 @@ func ProcessTx(tx txTypes.MergedTx) (dbTypes.TxDBWrapper, error) {
 				if len(relevantData) > 0 {
 					var taxableEvents []dbTypes.TaxableEventDBWrapper = make([]dbTypes.TaxableEventDBWrapper, len(relevantData))
 					for i, v := range relevantData {
-						taxableEvents[i].TaxableTx.Amount = util.ToNumeric(v.Amount)
-						denom, err := db.GetDenomForBase(v.Denomination)
+						taxableEvents[i].TaxableTx.AmountSent = util.ToNumeric(v.AmountSent)
+						denom, err := db.GetDenomForBase(v.DenominationSent)
 						if err != nil {
-							config.Logger.Error("Denom lookup", zap.Error(err), zap.String("denom", v.Denomination))
+							config.Logger.Error("Denom lookup", zap.Error(err), zap.String("denom", v.DenominationSent))
 							return txDBWapper, err
 						}
 
-						taxableEvents[i].TaxableTx.Denomination = denom
+						taxableEvents[i].TaxableTx.DenominationSent = denom
 						taxableEvents[i].SenderAddress = dbTypes.Address{Address: v.SenderAddress}
 						taxableEvents[i].ReceiverAddress = dbTypes.Address{Address: v.ReceiverAddress}
 					}

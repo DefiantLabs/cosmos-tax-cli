@@ -85,16 +85,19 @@ func (TaxableEvent) TableName() string {
 }
 
 type TaxableTransaction struct {
-	ID                uint
-	MessageId         uint
-	Message           Message
-	Amount            decimal.Decimal `gorm:"type:decimal(78,0);"`
-	DenominationID    uint
-	Denomination      Denom `gorm:"foreignKey:DenominationID"`
-	SenderAddressId   *uint `gorm:"index:idx_sender"`
-	SenderAddress     Address
-	ReceiverAddressId *uint `gorm:"index:idx_receiver"`
-	ReceiverAddress   Address
+	ID                     uint
+	MessageId              uint
+	Message                Message
+	AmountSent             decimal.Decimal `gorm:"type:decimal(78,0);"`
+	AmountReceived         decimal.Decimal `gorm:"type:decimal(78,0);"`
+	DenominationSentID     uint
+	DenominationSent       Denom `gorm:"foreignKey:DenominationSentID"`
+	DenominationReceivedID uint
+	DenominationReceived   Denom `gorm:"foreignKey:DenominationReceivedID"`
+	SenderAddressId        *uint `gorm:"index:idx_sender"`
+	SenderAddress          Address
+	ReceiverAddressId      *uint `gorm:"index:idx_receiver"`
+	ReceiverAddress        Address
 }
 
 func (TaxableTransaction) TableName() string {

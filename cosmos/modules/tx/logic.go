@@ -24,12 +24,29 @@ func GetEventWithType(event_type string, msg *TxLogMessage) *LogMessageEvent {
 	return nil
 }
 
+//If order is reversed, the last attribute containing the given key will be returned
+//otherwise the first attribute will be returned
 func GetValueForAttribute(key string, evt *LogMessageEvent) string {
 	if evt == nil || evt.Attributes == nil {
 		return ""
 	}
 
 	for _, attr := range evt.Attributes {
+		if attr.Key == key {
+			return attr.Value
+		}
+	}
+
+	return ""
+}
+
+func GetLastValueForAttribute(key string, evt *LogMessageEvent) string {
+	if evt == nil || evt.Attributes == nil {
+		return ""
+	}
+
+	for i := len(evt.Attributes) - 1; i >= 0; i-- {
+		attr := evt.Attributes[i]
 		if attr.Key == key {
 			return attr.Value
 		}
