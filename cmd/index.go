@@ -18,6 +18,9 @@ var indexCmd = &cobra.Command{
 	highly recommended to keep this command running as a background service to keep your index up to date.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		//TODO: transition old main.go code to this subcommand
+		//TODO: split out setup methods and only call necessary ones
 		fmt.Println("Index stub")
+		_, _, _, err := setup(conf)
+		cobra.CheckErr(err)
 	},
 }

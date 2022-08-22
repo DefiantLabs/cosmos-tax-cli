@@ -5,5 +5,6 @@ import (
 )
 
 func main() {
+	//simplest main as recommended by the Cobra package
 	cmd.Execute()
 }
