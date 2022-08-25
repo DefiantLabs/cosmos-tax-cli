@@ -20,10 +20,11 @@ var queryCmd = &cobra.Command{
 		cobra.CheckErr(err)
 
 		accountRows, err := csv.ParseForAddress(address, db)
+		cobra.CheckErr(err)
+
 		buffer := csv.ToCsv(accountRows)
 
 		err = os.WriteFile(output, buffer.Bytes(), 0644)
-
 		cobra.CheckErr(err)
 	},
 }

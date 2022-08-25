@@ -111,5 +111,9 @@ func setup(config config.Config) (*configHelpers.Config, *gorm.DB, *gocron.Sched
 	if err != nil {
 		return nil, nil, nil, err
 	}
+
+	//We should stop relying on the denom cache now that we are running this as a CLI tool only
+	dbTypes.CacheDenoms(db)
+
 	return &config, db, scheduler, nil
 }

@@ -219,13 +219,30 @@ func ProcessTx(tx txTypes.MergedTx) (dbTypes.TxDBWrapper, error) {
 						if v.AmountSent != nil {
 							taxableEvents[i].TaxableTx.AmountSent = util.ToNumeric(v.AmountSent)
 						}
-						denom, err := db.GetDenomForBase(v.DenominationSent)
-						if err != nil {
-							config.Logger.Error("Denom lookup", zap.Error(err), zap.String("denom", v.DenominationSent))
-							return txDBWapper, err
+						if v.AmountReceived != nil {
+							taxableEvents[i].TaxableTx.AmountReceived = util.ToNumeric(v.AmountReceived)
 						}
 
-						taxableEvents[i].TaxableTx.DenominationSent = denom
+						var denomSent dbTypes.Denom
+						if v.DenominationSent != "" {
+							denomSent, err = db.GetDenomForBase(v.DenominationSent)
+							if err != nil {
+								config.Logger.Error("Denom lookup", zap.Error(err), zap.String("denom sent", v.DenominationSent))
+								return txDBWapper, err
+							}
+							taxableEvents[i].TaxableTx.DenominationSent = denomSent
+						}
+
+						var denomReceived dbTypes.Denom
+						if v.DenominationReceived != "" {
+							denomReceived, err = db.GetDenomForBase(v.DenominationReceived)
+							if err != nil {
+								config.Logger.Error("Denom lookup", zap.Error(err), zap.String("denom received", v.DenominationReceived))
+								return txDBWapper, err
+							}
+							taxableEvents[i].TaxableTx.DenominationReceived = denomReceived
+						}
+
 						taxableEvents[i].SenderAddress = dbTypes.Address{Address: v.SenderAddress}
 						taxableEvents[i].ReceiverAddress = dbTypes.Address{Address: v.ReceiverAddress}
 					}
