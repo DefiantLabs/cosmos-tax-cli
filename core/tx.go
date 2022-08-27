@@ -12,7 +12,7 @@ import (
 	tx "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
 	txTypes "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-exporter/db"
-	"github.com/DefiantLabs/cosmos-exporter/osmosis/modules/gamm"
+	"github.com/DefiantLabs/cosmos-exporter/osmosis"
 	"github.com/DefiantLabs/cosmos-exporter/util"
 	"go.uber.org/zap"
 
@@ -31,7 +31,20 @@ var messageTypeHandler = map[string]func() txTypes.CosmosMessage{
 	"/cosmos.bank.v1beta1.MsgSend":                                func() txTypes.CosmosMessage { return &bank.WrapperMsgSend{} },
 	"/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward":     func() txTypes.CosmosMessage { return &staking.WrapperMsgWithdrawDelegatorReward{} },
 	"/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission": func() txTypes.CosmosMessage { return &staking.WrapperMsgWithdrawValidatorCommission{} },
-	"/osmosis.gamm.v1beta1.MsgSwapExactAmountIn":                  func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn{} },
+}
+
+//Merge the chain specific message type handlers into the core message type handler map
+//If a core message type is defined in the chain specific, it will overide the value
+//in the core message type handler (useful if a chain has changed the core behavior of a base type and needs to be parsed differently).
+func ChainSpecificMessageTypeHandlerBootstrap(chainId string) {
+	var chainSpecificMessageTpeHandler map[string]func() txTypes.CosmosMessage
+	switch chainId {
+	case "osmosis-1":
+		chainSpecificMessageTpeHandler = osmosis.MessageTypeHandler
+	}
+	for key, value := range chainSpecificMessageTpeHandler {
+		messageTypeHandler[key] = value
+	}
 }
 
 //ParseCosmosMessageJSON - Parse a SINGLE Cosmos Message into the appropriate type.

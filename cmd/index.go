@@ -49,6 +49,8 @@ var indexCmd = &cobra.Command{
 		dbConn, _ := db.DB()
 		defer dbConn.Close()
 
+		core.ChainSpecificMessageTypeHandlerBootstrap(config.Lens.ChainID)
+
 		//TODO may need to run this task in setup() so that we have a cold start functionality before the indexer starts
 		scheduler.Every(6).Hours().Do(tasks.DenomUpsertTask, apiHost, db)
 		scheduler.StartAsync()
