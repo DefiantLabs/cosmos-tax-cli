@@ -86,6 +86,7 @@ func setup() (*configHelpers.Config, *gorm.DB, *gocron.Scheduler, error) {
 
 	//run database migrations at every runtime
 	err = dbTypes.MigrateModels(db)
+	dbTypes.CacheDenoms(db)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -181,14 +182,14 @@ func main() {
 		go QueryRpc(blockHeightToProcess, jobResultsChannel, cl, core.HandleFailedBlock)
 	}
 
-	//Start a thread to process transactions after the RPC querier retrieves them.
-	go ProcessTxs(jobResultsChannel, config.Base.BlockTimer, config.Base.IndexingEnabled, db, config.Lens.ChainID, config.Lens.ChainName, core.HandleFailedBlock)
-
 	//Start at the last indexed block height (or the block height in the config, if set)
 	currBlock := GetIndexerStartingHeight(config.Base.StartBlock, cl, db)
 	//Don't index past this block no matter what
 	lastBlock := config.Base.EndBlock
 	var wg sync.WaitGroup
+
+	//Start a thread to process transactions after the RPC querier retrieves them.
+	go ProcessTxs(&wg, lastBlock, jobResultsChannel, config.Base.BlockTimer, config.Base.IndexingEnabled, db, config.Lens.ChainID, config.Lens.ChainName, core.HandleFailedBlock)
 
 	//Osmosis specific indexing requirements. Osmosis distributes rewards to LP holders on a daily basis.
 	if configHelpers.IsOsmosis(config) {
@@ -216,16 +217,6 @@ func main() {
 
 	//Add jobs to the queue to be processed
 	for !config.Base.OsmosisRewardsOnly {
-		//The program is configured to stop running after a set block height.
-		//Generally this will only be done while debugging or if a particular block was incorrectly processed.
-		if lastBlock != -1 && currBlock >= lastBlock {
-			fmt.Println("Hit the last block we're allowed to index, exiting.")
-			break
-		} else if config.Base.ExitWhenCaughtUp && currBlock >= latestBlock {
-			fmt.Println("Hit the last block we're allowed to index, exiting.")
-			break
-		}
-
 		//The job queue is running out of jobs to process, see if the blockchain has produced any new blocks we haven't indexed yet.
 		if len(blockHeightToProcess) <= cap(blockHeightToProcess)/4 {
 			//fmt.Println("Filling jobs queue")
@@ -256,6 +247,16 @@ func main() {
 				currBlock++
 			}
 		}
+
+		//The program is configured to stop running after a set block height.
+		//Generally this will only be done while debugging or if a particular block was incorrectly processed.
+		if lastBlock != -1 && currBlock >= lastBlock {
+			fmt.Println("Hit the last block we're allowed to index, exiting.")
+			break
+		} else if config.Base.ExitWhenCaughtUp && currBlock >= latestBlock {
+			fmt.Println("Hit the last block we're allowed to index, exiting.")
+			break
+		}
 	}
 
 	//if len(ch) == cap(ch) {
@@ -263,6 +264,8 @@ func main() {
 	//If we error out in the main loop, this will block. Meaning we may not know of an error for 6 hours until last scheduled task stops
 	scheduler.Stop()
 	wg.Wait()
+
+	core.AnalyzeSwaps()
 }
 
 func IndexOsmosisRewards(
@@ -342,6 +345,8 @@ func QueryRpc(
 }
 
 func ProcessTxs(
+	wg *sync.WaitGroup,
+	lastBlock int64,
 	results chan *indexerTx.GetTxsEventResponseWrapper,
 	numBlocksTimed int64,
 	indexingEnabled bool,
@@ -352,6 +357,7 @@ func ProcessTxs(
 ) {
 	blocksProcessed := 0
 	timeStart := time.Now()
+	defer wg.Done()
 
 	for {
 		txToProcess := <-results
@@ -382,5 +388,8 @@ func ProcessTxs(
 			}
 		}
 
+		if lastBlock != -1 && txToProcess.Height >= lastBlock {
+			break
+		}
 	}
 }

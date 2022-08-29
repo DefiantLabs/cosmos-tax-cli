@@ -25,7 +25,7 @@ func GetDenomForBase(base string) (Denom, error) {
 		}
 	}
 
-	return Denom{}, errors.New("no denom unit for the specified denom")
+	return Denom{}, fmt.Errorf("GetDenomForBase: no denom unit for the specified denom %s", base)
 }
 
 func GetDenomUnitForDenom(denom Denom) (DenomUnit, error) {
@@ -35,7 +35,7 @@ func GetDenomUnitForDenom(denom Denom) (DenomUnit, error) {
 		}
 	}
 
-	return DenomUnit{}, errors.New("no denom unit for the specified denom")
+	return DenomUnit{}, errors.New("GetDenomUnitForDenom: no denom unit for the specified denom")
 }
 
 func GetHighestDenomUnit(denomUnit DenomUnit, denomUnits []DenomUnit) (DenomUnit, error) {

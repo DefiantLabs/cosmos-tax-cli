@@ -12,6 +12,7 @@ import (
 	tx "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
 	txTypes "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-exporter/db"
+	"github.com/DefiantLabs/cosmos-exporter/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-exporter/util"
 	"go.uber.org/zap"
 
@@ -30,6 +31,7 @@ var messageTypeHandler = map[string]func() txTypes.CosmosMessage{
 	"/cosmos.bank.v1beta1.MsgSend":                                func() txTypes.CosmosMessage { return &bank.WrapperMsgSend{} },
 	"/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward":     func() txTypes.CosmosMessage { return &staking.WrapperMsgWithdrawDelegatorReward{} },
 	"/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission": func() txTypes.CosmosMessage { return &staking.WrapperMsgWithdrawValidatorCommission{} },
+	"/osmosis.gamm.v1beta1.MsgSwapExactAmountIn":                  func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn{} },
 }
 
 //ParseCosmosMessageJSON - Parse a SINGLE Cosmos Message into the appropriate type.
@@ -147,6 +149,34 @@ func ProcessRpcTxs(txEventResp *cosmosTx.GetTxsEventResponse) ([]dbTypes.TxDBWra
 	return currTxDbWrappers, nil
 }
 
+var allSwaps = []gamm.ArbitrageTx{}
+
+func AnalyzeSwaps() {
+	earliestTime := time.Now()
+	latestTime := time.Now()
+	profit := 0.0
+	fmt.Printf("%d total uosmo arbitrage swaps\n", len(allSwaps))
+
+	for _, swap := range allSwaps {
+		if swap.TokenIn.Denom == swap.TokenOut.Denom && swap.TokenIn.Denom == "uosmo" {
+			amount := swap.TokenOut.Amount.Sub(swap.TokenIn.Amount)
+			if amount.GT(types.ZeroInt()) {
+				txProfit := amount.ToDec().Quo(types.NewDec(1000000)).MustFloat64()
+				profit = profit + txProfit
+			}
+
+			if swap.BlockTime.Before(earliestTime) {
+				earliestTime = swap.BlockTime
+			}
+			if swap.BlockTime.After(latestTime) {
+				latestTime = swap.BlockTime
+			}
+		}
+	}
+
+	fmt.Printf("Profit (OSMO): %.10f, days: %f\n", profit, latestTime.Sub(earliestTime).Hours()/24)
+}
+
 func ProcessTx(tx txTypes.MergedTx) (dbTypes.TxDBWrapper, error) {
 
 	var txDBWapper dbTypes.TxDBWrapper
@@ -166,6 +196,14 @@ func ProcessTx(tx txTypes.MergedTx) (dbTypes.TxDBWrapper, error) {
 			messageLog := txTypes.GetMessageLogForIndex(tx.TxResponse.Log, messageIndex)
 			cosmosMessage, err := ParseCosmosMessage(message, messageLog)
 
+			if msgSwapExactIn, ok := cosmosMessage.(*gamm.WrapperMsgSwapExactAmountIn); ok {
+				t, err := time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
+				if err == nil {
+					newSwap := gamm.ArbitrageTx{TokenIn: msgSwapExactIn.TokenIn, TokenOut: msgSwapExactIn.TokenOut, BlockTime: t}
+					allSwaps = append(allSwaps, newSwap)
+				}
+			}
+
 			var currMessageDBWrapper dbTypes.MessageDBWrapper
 			if err == nil {
 				fmt.Printf("Cosmos message of known type: %s", cosmosMessage)
@@ -178,7 +216,9 @@ func ProcessTx(tx txTypes.MergedTx) (dbTypes.TxDBWrapper, error) {
 				if len(relevantData) > 0 {
 					var taxableEvents []dbTypes.TaxableEventDBWrapper = make([]dbTypes.TaxableEventDBWrapper, len(relevantData))
 					for i, v := range relevantData {
-						taxableEvents[i].TaxableTx.AmountSent = util.ToNumeric(v.AmountSent)
+						if v.AmountSent != nil {
+							taxableEvents[i].TaxableTx.AmountSent = util.ToNumeric(v.AmountSent)
+						}
 						denom, err := db.GetDenomForBase(v.DenominationSent)
 						if err != nil {
 							config.Logger.Error("Denom lookup", zap.Error(err), zap.String("denom", v.DenominationSent))

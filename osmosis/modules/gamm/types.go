@@ -2,6 +2,7 @@ package gamm
 
 import (
 	"fmt"
+	"time"
 
 	parsingTypes "github.com/DefiantLabs/cosmos-exporter/cosmos/modules"
 	txModule "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
@@ -75,6 +76,12 @@ func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, lo
 	sf.TokenOut = tokenOut
 
 	return err
+}
+
+type ArbitrageTx struct {
+	TokenIn   sdk.Coin
+	TokenOut  sdk.Coin
+	BlockTime time.Time
 }
 
 func (sf *WrapperMsgSwapExactAmountIn) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
