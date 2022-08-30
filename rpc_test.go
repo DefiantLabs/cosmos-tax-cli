@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	configHelpers "github.com/DefiantLabs/cosmos-exporter/config"
-	"github.com/DefiantLabs/cosmos-exporter/core"
+	configHelpers "github.com/DefiantLabs/cosmos-tax-cli/config"
+	"github.com/DefiantLabs/cosmos-tax-cli/core"
 
 	"github.com/strangelove-ventures/lens/client"
 	lensClient "github.com/strangelove-ventures/lens/client"

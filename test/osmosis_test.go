@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	dbUtils "github.com/DefiantLabs/cosmos-exporter/db"
-	"github.com/DefiantLabs/cosmos-exporter/util"
+	dbUtils "github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 	"github.com/stretchr/testify/assert"
 )
 

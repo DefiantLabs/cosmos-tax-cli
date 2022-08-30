@@ -7,9 +7,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/DefiantLabs/cosmos-exporter/config"
-	dbTypes "github.com/DefiantLabs/cosmos-exporter/db"
-	"github.com/DefiantLabs/cosmos-exporter/rest"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/rest"
 	"go.uber.org/zap"
 
 	"gorm.io/gorm"

@@ -6,10 +6,10 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/DefiantLabs/cosmos-exporter/cosmos/modules/bank"
-	"github.com/DefiantLabs/cosmos-exporter/cosmos/modules/staking"
-	"github.com/DefiantLabs/cosmos-exporter/db"
-	"github.com/DefiantLabs/cosmos-exporter/util"
+	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/bank"
+	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/staking"
+	"github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 
 	"gorm.io/gorm"
 )

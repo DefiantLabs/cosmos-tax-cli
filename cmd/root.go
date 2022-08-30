@@ -5,25 +5,25 @@ import (
 	"os"
 	"time"
 
-	"github.com/DefiantLabs/cosmos-exporter/config"
-	"github.com/DefiantLabs/cosmos-exporter/core"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"github.com/DefiantLabs/cosmos-tax-cli/core"
 	"github.com/go-co-op/gocron"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
 
-	configHelpers "github.com/DefiantLabs/cosmos-exporter/config"
-	dbTypes "github.com/DefiantLabs/cosmos-exporter/db"
+	configHelpers "github.com/DefiantLabs/cosmos-tax-cli/config"
+	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
 )
 
 var (
 	cfgFile string        //config file location to load
 	conf    config.Config //stores the unmarshaled config loaded from Viper, available to all commands in the cmd package
 	rootCmd = &cobra.Command{
-		Use: "cosmos-exporter",
+		Use: "cosmos-tax-cli",
 		//TODO: Get user-friendly descriptions approved
 		Short: "A CLI tool for indexing and querying on-chain data",
-		Long: `Cosmos Exporter is a CLI tool for indexing and querying Cosmos-based blockchains,
+		Long: `Cosmos Tax CLI is a CLI tool for indexing and querying Cosmos-based blockchains,
 		with a heavy focus on taxable events.`,
 	}
 )
@@ -36,7 +36,7 @@ func Execute() error {
 func init() {
 	//initConfig on initialize of cobra guarantees config struct will be set before all subcommands are executed
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.cosmos-exporter/config.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.cosmos-tax-cli/config.yaml)")
 }
 
 func initConfig() {
@@ -47,7 +47,7 @@ func initConfig() {
 		// Find home directory.
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
-		defaultCfgLocation := fmt.Sprintf("%s/.cosmos-exporter", home)
+		defaultCfgLocation := fmt.Sprintf("%s/.cosmos-tax-cli", home)
 
 		viper.AddConfigPath(defaultCfgLocation)
 		viper.SetConfigType("toml")

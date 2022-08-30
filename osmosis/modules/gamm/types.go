@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	parsingTypes "github.com/DefiantLabs/cosmos-exporter/cosmos/modules"
-	txModule "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
+	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
+	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	gammTypes "github.com/osmosis-labs/osmosis/v9/x/gamm/types"
 )

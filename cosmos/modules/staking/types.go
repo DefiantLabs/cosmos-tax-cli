@@ -3,9 +3,9 @@ package staking
 import (
 	"fmt"
 
-	txModule "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
+	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 
-	parsingTypes "github.com/DefiantLabs/cosmos-exporter/cosmos/modules"
+	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
 
 	stdTypes "github.com/cosmos/cosmos-sdk/types"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"

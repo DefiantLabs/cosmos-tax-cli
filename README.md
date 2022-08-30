@@ -1,4 +1,4 @@
-# Cosmos Exporter
+# Cosmos Tax CLI
 
 This application indexes a Cosmos chain to a standardized DB schema with the following goals in mind:
 
