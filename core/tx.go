@@ -13,6 +13,7 @@ import (
 	txTypes "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-exporter/db"
 	"github.com/DefiantLabs/cosmos-exporter/osmosis"
+	"github.com/DefiantLabs/cosmos-exporter/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-exporter/util"
 	"go.uber.org/zap"
 
