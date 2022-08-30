@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"math/big"
 
-	configUtils "github.com/DefiantLabs/cosmos-exporter/config"
-	"github.com/DefiantLabs/cosmos-exporter/core"
-	dbUtils "github.com/DefiantLabs/cosmos-exporter/db"
-	"github.com/DefiantLabs/cosmos-exporter/util"
+	configUtils "github.com/DefiantLabs/cosmos-tax-cli/config"
+	"github.com/DefiantLabs/cosmos-tax-cli/core"
+	dbUtils "github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 	"gorm.io/gorm"
 )
 

@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"regexp"
 
-	tx "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
-	"github.com/DefiantLabs/cosmos-exporter/util"
+	tx "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"

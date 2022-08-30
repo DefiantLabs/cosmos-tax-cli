@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/DefiantLabs/cosmos-exporter/csv"
-	"github.com/DefiantLabs/cosmos-exporter/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv"
+	"github.com/DefiantLabs/cosmos-tax-cli/db"
 )
 
 //Example DB query to get TXs for address:

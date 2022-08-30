@@ -3,7 +3,7 @@ package cmd
 import (
 	"os"
 
-	"github.com/DefiantLabs/cosmos-exporter/csv"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv"
 	"github.com/spf13/cobra"
 )
 

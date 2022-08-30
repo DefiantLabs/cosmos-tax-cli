@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 
-	configHelpers "github.com/DefiantLabs/cosmos-exporter/config"
+	configHelpers "github.com/DefiantLabs/cosmos-tax-cli/config"
 
-	"github.com/DefiantLabs/cosmos-exporter/csv"
-	dbTypes "github.com/DefiantLabs/cosmos-exporter/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv"
+	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"

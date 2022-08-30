@@ -3,8 +3,8 @@ package db
 import (
 	"fmt"
 
-	"github.com/DefiantLabs/cosmos-exporter/osmosis"
-	"github.com/DefiantLabs/cosmos-exporter/util"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 	"gorm.io/gorm"
 )
 

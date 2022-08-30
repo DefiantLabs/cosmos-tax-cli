@@ -1,8 +1,8 @@
 package osmosis
 
 import (
-	txTypes "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
-	"github.com/DefiantLabs/cosmos-exporter/osmosis/modules/gamm"
+	txTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
 )
 
 //Unmarshal JSON to a particular type.

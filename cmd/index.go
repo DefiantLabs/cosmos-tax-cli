@@ -9,19 +9,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/DefiantLabs/cosmos-exporter/config"
-	"github.com/DefiantLabs/cosmos-exporter/core"
-	"github.com/DefiantLabs/cosmos-exporter/osmosis"
-	"github.com/DefiantLabs/cosmos-exporter/rpc"
-	"github.com/DefiantLabs/cosmos-exporter/tasks"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"github.com/DefiantLabs/cosmos-tax-cli/core"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
+	"github.com/DefiantLabs/cosmos-tax-cli/rpc"
+	"github.com/DefiantLabs/cosmos-tax-cli/tasks"
 	"github.com/spf13/cobra"
 	"github.com/strangelove-ventures/lens/client"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	configHelpers "github.com/DefiantLabs/cosmos-exporter/config"
-	indexerTx "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
-	dbTypes "github.com/DefiantLabs/cosmos-exporter/db"
+	configHelpers "github.com/DefiantLabs/cosmos-tax-cli/config"
+	indexerTx "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
+	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
 )
 
 func init() {

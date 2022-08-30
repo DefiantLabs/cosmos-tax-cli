@@ -5,22 +5,22 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/DefiantLabs/cosmos-exporter/config"
-	parsingTypes "github.com/DefiantLabs/cosmos-exporter/cosmos/modules"
-	bank "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/bank"
-	staking "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/staking"
-	tx "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
-	txTypes "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
-	"github.com/DefiantLabs/cosmos-exporter/db"
-	"github.com/DefiantLabs/cosmos-exporter/osmosis"
-	"github.com/DefiantLabs/cosmos-exporter/osmosis/modules/gamm"
-	"github.com/DefiantLabs/cosmos-exporter/util"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
+	bank "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/bank"
+	staking "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/staking"
+	tx "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
+	txTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 	"go.uber.org/zap"
 
 	"fmt"
 	"time"
 
-	dbTypes "github.com/DefiantLabs/cosmos-exporter/db"
+	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
 
 	cryptoTypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types"
@@ -89,7 +89,7 @@ func toEvents(msgEvents types.StringEvents) []txTypes.LogMessageEvent {
 	return list
 }
 
-//TODO: get rid of some of the unnecessary types like cosmos-exporter/TxResponse.
+//TODO: get rid of some of the unnecessary types like cosmos-tax-cli/TxResponse.
 //All those structs were legacy and for REST API support but we no longer really need it.
 //For now I'm keeping it until we have RPC compatibility fully working and tested.
 func ProcessRpcTxs(txEventResp *cosmosTx.GetTxsEventResponse) ([]dbTypes.TxDBWrapper, error) {

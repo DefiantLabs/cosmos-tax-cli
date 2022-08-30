@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/DefiantLabs/cosmos-exporter/cmd"
+	"github.com/DefiantLabs/cosmos-tax-cli/cmd"
 )
 
 func main() {
