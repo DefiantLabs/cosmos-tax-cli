@@ -90,9 +90,9 @@ type TaxableTransaction struct {
 	Message                Message
 	AmountSent             decimal.Decimal `gorm:"type:decimal(78,0);"`
 	AmountReceived         decimal.Decimal `gorm:"type:decimal(78,0);"`
-	DenominationSentID     uint
+	DenominationSentID     *uint
 	DenominationSent       Denom `gorm:"foreignKey:DenominationSentID"`
-	DenominationReceivedID uint
+	DenominationReceivedID *uint
 	DenominationReceived   Denom `gorm:"foreignKey:DenominationReceivedID"`
 	SenderAddressId        *uint `gorm:"index:idx_sender"`
 	SenderAddress          Address

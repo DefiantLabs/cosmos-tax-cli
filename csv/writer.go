@@ -3,7 +3,6 @@ package csv
 import (
 	"bytes"
 	"encoding/csv"
-	"fmt"
 	"log"
 )
 
@@ -12,23 +11,31 @@ var headers = []string{"transactionType", "date", "inBuyAmount", "inBuyAsset", "
 
 //RowToCsv: Build a single row of data in the format expected by 'headers'
 func RowToCsv(row AccointingRow) []string {
-	inAmt := ""
-	if row.InBuyAsset != "" {
-		//inAmt = strconv.FormatFloat(row.InBuyAmount, 'E', -1, 64)
-		inAmt = fmt.Sprintf("%f", row.InBuyAmount)
-	}
 
-	outAmt := ""
-	if row.OutSellAsset != "" {
-		//outAmt = strconv.FormatFloat(row.OutSellAmount, 'E', -1, 64)
-		outAmt = fmt.Sprintf("%f", row.OutSellAmount)
-	}
+	inAmt := row.InBuyAmount
 
-	feeAmt := ""
-	if row.FeeAsset != "" {
-		//feeAmt = strconv.FormatFloat(row.FeeAmount, 'E', -1, 64)
-		feeAmt = fmt.Sprintf("%f", row.FeeAmount)
-	}
+	//TODO: Somewhere in the last few months, row.InBuyAmount is getting turned into a string
+	//Is this really what we wanted to do?
+	// if row.InBuyAsset != "" {
+	// 	//inAmt = strconv.FormatFloat(row.InBuyAmount, 'E', -1, 64)
+	// 	inAmt = fmt.Sprintf("%s", row.InBuyAmount)
+	// }
+
+	outAmt := row.OutSellAmount
+	//TODO: Somewhere in the last few months, row.OutSellAmount is getting turned into a string
+	//Is this really what we wanted to do?
+	// if row.OutSellAsset != "" {
+	// 	//outAmt = strconv.FormatFloat(row.OutSellAmount, 'E', -1, 64)
+	// 	outAmt = fmt.Sprintf("%f", row.OutSellAmount)
+	// }
+
+	feeAmt := row.FeeAmount
+	//TODO: Somewhere in the last few months, row.FeeAmount is getting turned into a string
+	//Is this really what we wanted to do?
+	// if row.FeeAsset != "" {
+	// 	//feeAmt = strconv.FormatFloat(row.FeeAmount, 'E', -1, 64)
+	// 	feeAmt = fmt.Sprintf("%f", row.FeeAmount)
+	// }
 
 	return []string{
 		row.TransactionType.String(),

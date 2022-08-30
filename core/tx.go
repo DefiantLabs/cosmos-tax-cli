@@ -12,6 +12,7 @@ import (
 	tx "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
 	txTypes "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-exporter/db"
+	"github.com/DefiantLabs/cosmos-exporter/osmosis"
 	"github.com/DefiantLabs/cosmos-exporter/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-exporter/util"
 	"go.uber.org/zap"
@@ -31,7 +32,20 @@ var messageTypeHandler = map[string]func() txTypes.CosmosMessage{
 	"/cosmos.bank.v1beta1.MsgSend":                                func() txTypes.CosmosMessage { return &bank.WrapperMsgSend{} },
 	"/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward":     func() txTypes.CosmosMessage { return &staking.WrapperMsgWithdrawDelegatorReward{} },
 	"/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission": func() txTypes.CosmosMessage { return &staking.WrapperMsgWithdrawValidatorCommission{} },
-	"/osmosis.gamm.v1beta1.MsgSwapExactAmountIn":                  func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn{} },
+}
+
+//Merge the chain specific message type handlers into the core message type handler map
+//If a core message type is defined in the chain specific, it will overide the value
+//in the core message type handler (useful if a chain has changed the core behavior of a base type and needs to be parsed differently).
+func ChainSpecificMessageTypeHandlerBootstrap(chainId string) {
+	var chainSpecificMessageTpeHandler map[string]func() txTypes.CosmosMessage
+	switch chainId {
+	case "osmosis-1":
+		chainSpecificMessageTpeHandler = osmosis.MessageTypeHandler
+	}
+	for key, value := range chainSpecificMessageTpeHandler {
+		messageTypeHandler[key] = value
+	}
 }
 
 //ParseCosmosMessageJSON - Parse a SINGLE Cosmos Message into the appropriate type.
@@ -219,13 +233,30 @@ func ProcessTx(tx txTypes.MergedTx) (dbTypes.TxDBWrapper, error) {
 						if v.AmountSent != nil {
 							taxableEvents[i].TaxableTx.AmountSent = util.ToNumeric(v.AmountSent)
 						}
-						denom, err := db.GetDenomForBase(v.DenominationSent)
-						if err != nil {
-							config.Logger.Error("Denom lookup", zap.Error(err), zap.String("denom", v.DenominationSent))
-							return txDBWapper, err
+						if v.AmountReceived != nil {
+							taxableEvents[i].TaxableTx.AmountReceived = util.ToNumeric(v.AmountReceived)
 						}
 
-						taxableEvents[i].TaxableTx.DenominationSent = denom
+						var denomSent dbTypes.Denom
+						if v.DenominationSent != "" {
+							denomSent, err = db.GetDenomForBase(v.DenominationSent)
+							if err != nil {
+								config.Logger.Error("Denom lookup", zap.Error(err), zap.String("denom sent", v.DenominationSent))
+								return txDBWapper, err
+							}
+							taxableEvents[i].TaxableTx.DenominationSent = denomSent
+						}
+
+						var denomReceived dbTypes.Denom
+						if v.DenominationReceived != "" {
+							denomReceived, err = db.GetDenomForBase(v.DenominationReceived)
+							if err != nil {
+								config.Logger.Error("Denom lookup", zap.Error(err), zap.String("denom received", v.DenominationReceived))
+								return txDBWapper, err
+							}
+							taxableEvents[i].TaxableTx.DenominationReceived = denomReceived
+						}
+
 						taxableEvents[i].SenderAddress = dbTypes.Address{Address: v.SenderAddress}
 						taxableEvents[i].ReceiverAddress = dbTypes.Address{Address: v.ReceiverAddress}
 					}

@@ -84,8 +84,7 @@ func (row *AccointingRow) ParseBasic(address string, event db.TaxableTransaction
 
 	//deposit
 	if event.ReceiverAddress.Address == address {
-
-		conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountSent), event.DenominationSent)
+		conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountReceived), event.DenominationReceived)
 		if err == nil {
 			row.InBuyAmount = conversionAmount.String()
 			row.InBuyAsset = conversionSymbol
@@ -175,6 +174,7 @@ func ParseForAddress(address string, pgSql *gorm.DB) ([]AccointingRow, error) {
 		//TODO
 		//We need to HANDLE the error in a way that notifies end users (of the website) that the CSV download failed.
 		//For now we just kill the program (that way I can't forget TODO this)
+		fmt.Println(err)
 		os.Exit(1)
 	}
 
@@ -187,6 +187,7 @@ func ParseForAddress(address string, pgSql *gorm.DB) ([]AccointingRow, error) {
 		//TODO
 		//We need to HANDLE the error in a way that notifies end users (of the website) that the CSV download failed.
 		//For now we just kill the program (that way I can't forget TODO this)
+		fmt.Println(err)
 		os.Exit(1)
 	}
 
