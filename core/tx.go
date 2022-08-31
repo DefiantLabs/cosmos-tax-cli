@@ -7,8 +7,8 @@ import (
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
-	bank "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/bank"
-	staking "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/staking"
+	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/bank"
+	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/staking"
 	tx "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 	txTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
