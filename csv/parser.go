@@ -9,6 +9,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/bank"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/staking"
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
 
 	"gorm.io/gorm"
@@ -20,10 +21,11 @@ const (
 	Deposit AccointingTransaction = iota
 	Withdraw
 	Order
+	Swap
 )
 
 func (at AccointingTransaction) String() string {
-	return [...]string{"deposit", "withdraw", "order"}[at]
+	return [...]string{"deposit", "withdraw", "order", "swap"}[at]
 }
 
 type AccointingClassification int
@@ -104,6 +106,31 @@ func (row *AccointingRow) ParseBasic(address string, event db.TaxableTransaction
 		}
 		row.TransactionType = Withdraw
 	}
+
+	return nil
+}
+
+func (row *AccointingRow) ParseSwap(address string, event db.TaxableTransaction) error {
+	row.Date = FormatDatetime(event.Message.Tx.TimeStamp)
+	row.OperationId = event.Message.Tx.Hash
+
+	recievedConversionAmount, recievedConversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountReceived), event.DenominationReceived)
+	if err == nil {
+		row.InBuyAmount = recievedConversionAmount.String()
+		row.InBuyAsset = recievedConversionSymbol
+	} else {
+		return fmt.Errorf("Cannot parse denom units for TX %s (classification: swap received)\n", row.OperationId)
+	}
+
+	sentConversionAmount, sentConversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountSent), event.DenominationSent)
+	if err == nil {
+		row.OutSellAmount = sentConversionAmount.String()
+		row.OutSellAsset = sentConversionSymbol
+	} else {
+		return fmt.Errorf("Cannot parse denom units for TX %s (classification: swap sent)\n", row.OperationId)
+	}
+
+	row.TransactionType = Swap
 
 	return nil
 }
@@ -275,13 +302,11 @@ func ParseTx(address string, events []db.TaxableTransaction) ([]AccointingRow, e
 			rows = append(rows, ParseMsgWithdrawValidatorCommission(address, event))
 		} else if staking.IsMsgWithdrawDelegatorReward[event.Message.MessageType] {
 			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
+		} else if gamm.IsMsgSwapExactAmountIn[event.Message.MessageType] {
+			rows = append(rows, ParseMsgSwapExactAmountIn(address, event))
+		} else if gamm.IsMsgSwapExactAmountOut[event.Message.MessageType] {
+			rows = append(rows, ParseMsgSwapExactAmountOut(address, event))
 		}
-
-		//TODO
-		//Add in parsers for the other supported Osmosis message types now
-		//This if statement block means we are not adding in relevant rows during CSV creation as we add more types
-		//END TODO
-
 	}
 
 	rows, err := HandleFees(address, events, rows)
@@ -312,6 +337,18 @@ func ParseMsgWithdrawDelegatorReward(address string, event db.TaxableTransaction
 func ParseMsgSend(address string, event db.TaxableTransaction) AccointingRow {
 	row := &AccointingRow{}
 	row.ParseBasic(address, event)
+	return *row
+}
+
+func ParseMsgSwapExactAmountIn(address string, event db.TaxableTransaction) AccointingRow {
+	row := &AccointingRow{}
+	row.ParseSwap(address, event)
+	return *row
+}
+
+func ParseMsgSwapExactAmountOut(address string, event db.TaxableTransaction) AccointingRow {
+	row := &AccointingRow{}
+	row.ParseSwap(address, event)
 	return *row
 }
 
