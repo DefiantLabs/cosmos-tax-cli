@@ -4,6 +4,7 @@ delete from messages;
 delete from txes;
 delete from addresses;
 delete from blocks;
+delete from fees;
 
 -- Below will delete the table and the rows...
 
@@ -19,3 +20,4 @@ drop table if exists blocks cascade;
 drop table if exists simple_denoms cascade;
 drop table if exists denom_units cascade;
 drop table if exists denoms cascade;
+drop table if exists fees cascade;

@@ -276,6 +276,12 @@ func ParseTx(address string, events []db.TaxableTransaction) ([]AccointingRow, e
 		} else if staking.IsMsgWithdrawDelegatorReward[event.Message.MessageType] {
 			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
 		}
+
+		//TODO
+		//Add in parsers for the other supported Osmosis message types now
+		//This if statement block means we are not adding in relevant rows during CSV creation as we add more types
+		//END TODO
+
 	}
 
 	rows, err := HandleFees(address, events, rows)
