@@ -2,6 +2,7 @@ package gamm
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
@@ -20,6 +21,10 @@ var IsMsgSwapExactAmountOut = map[string]bool{
 
 var IsMsgJoinSwapExternAmountIn = map[string]bool{
 	"/osmosis.gamm.v1beta1.MsgJoinSwapExternAmountIn": true,
+}
+
+var IsMsgJoinPool = map[string]bool{
+	"/osmosis.gamm.v1beta1.MsgJoinPool": true,
 }
 
 type WrapperMsgSwapExactAmountIn struct {
@@ -44,6 +49,14 @@ type WrapperMsgJoinSwapExternAmountIn struct {
 	Address                          string
 	TokenOut                         sdk.Coin
 	TokenIn                          sdk.Coin
+}
+
+type WrapperMsgJoinPool struct {
+	txModule.Message
+	OsmosisMsgJoinPool *gammTypes.MsgJoinPool
+	Address            string
+	TokenOut           sdk.Coin
+	TokensIn           []sdk.Coin //joins can be done with multuple tokens out
 }
 
 func (sf *WrapperMsgSwapExactAmountIn) String() string {
@@ -82,8 +95,23 @@ func (sf *WrapperMsgJoinSwapExternAmountIn) String() string {
 	if !sf.TokenIn.IsNil() {
 		tokenSwappedIn = sf.TokenIn.String()
 	}
-	return fmt.Sprintf("MsgJoinSwapExternAmountIn: %s swapped in %s and received %s\n",
+	return fmt.Sprintf("MsgJoinSwapExternAmountIn: %s joined with %s and received %s\n",
 		sf.Address, tokenSwappedIn, tokenSwappedOut)
+}
+
+func (sf *WrapperMsgJoinPool) String() string {
+	var tokenOut string
+	var tokensIn []string
+	if !(len(sf.TokensIn) == 0) {
+		for _, v := range sf.TokensIn {
+			tokensIn = append(tokensIn, v.String())
+		}
+	}
+	if !sf.TokenOut.IsNil() {
+		tokenOut = sf.TokenOut.String()
+	}
+	return fmt.Sprintf("MsgJoinPool: %s joined with %s and received %s\n",
+		sf.Address, strings.Join(tokensIn, ", "), tokenOut)
 }
 
 func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, log *txModule.TxLogMessage) error {
@@ -199,7 +227,7 @@ func (sf *WrapperMsgJoinSwapExternAmountIn) HandleMsg(msgType string, msg sdk.Ms
 	sf.TokenIn = sf.OsmosisMsgJoinSwapExternAmountIn.TokenIn
 
 	//Address of whoever initiated the join
-	poolJoinedEvent := txModule.GetEventWithType("pool_joined", log)
+	poolJoinedEvent := txModule.GetEventWithType(gammTypes.TypeEvtPoolJoined, log)
 	if poolJoinedEvent == nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
@@ -210,6 +238,58 @@ func (sf *WrapperMsgJoinSwapExternAmountIn) HandleMsg(msgType string, msg sdk.Ms
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 	sf.Address = senderAddress
+
+	return err
+
+}
+
+func (sf *WrapperMsgJoinPool) HandleMsg(msgType string, msg sdk.Msg, log *txModule.TxLogMessage) error {
+	sf.Type = msgType
+	sf.OsmosisMsgJoinPool = msg.(*gammTypes.MsgJoinPool)
+
+	//Confirm that the action listed in the message log matches the Message type
+	valid_log := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !valid_log {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	// //The attribute in the log message that shows you the received GAMM tokens from the pool
+	coinbaseEvt := txModule.GetEventWithType("coinbase", log)
+	if coinbaseEvt == nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	// // This gets the amount of GAMM tokens received
+	gammTokenInStr := txModule.GetValueForAttribute("amount", coinbaseEvt)
+	gammTokenIn, err := sdk.ParseCoinNormalized(gammTokenInStr)
+	if err != nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	sf.TokenOut = gammTokenIn
+
+	//Address of whoever initiated the join
+	poolJoinedEvent := txModule.GetEventWithType(gammTypes.TypeEvtPoolJoined, log)
+	if poolJoinedEvent == nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	//Address of whoever initiated the join.
+	senderAddress := txModule.GetValueForAttribute("sender", poolJoinedEvent)
+	if senderAddress == "" {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	sf.Address = senderAddress
+
+	//String value for the tokens in, which can be multiple
+	tokensInString := txModule.GetValueForAttribute(gammTypes.AttributeKeyTokensIn, poolJoinedEvent)
+	if tokensInString == "" {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	sf.TokensIn, err = sdk.ParseCoinsNormalized(tokensInString)
+
+	if err != nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
 
 	return err
 
@@ -257,5 +337,32 @@ func (sf *WrapperMsgJoinSwapExternAmountIn) ParseRelevantData() []parsingTypes.M
 		SenderAddress:        sf.Address,
 		ReceiverAddress:      sf.Address,
 	}
+	return relevantData
+}
+
+func (sf *WrapperMsgJoinPool) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	//need to make a relevant data block for all Tokens sent to the pool since JoinPool can use 1 or both tokens used in the pool
+	var relevantData []parsingTypes.MessageRelevantInformation = make([]parsingTypes.MessageRelevantInformation, len(sf.TokensIn))
+	for i, v := range sf.TokensIn {
+		//only add received tokens to the first entry so we dont duplicate received GAMM tokens
+		if i == 0 {
+			relevantData[i] = parsingTypes.MessageRelevantInformation{
+				AmountSent:           v.Amount.BigInt(),
+				DenominationSent:     v.Denom,
+				AmountReceived:       sf.TokenOut.Amount.BigInt(),
+				DenominationReceived: sf.TokenOut.Denom,
+				SenderAddress:        sf.Address,
+				ReceiverAddress:      sf.Address,
+			}
+		} else {
+			relevantData[i] = parsingTypes.MessageRelevantInformation{
+				AmountSent:       v.Amount.BigInt(),
+				DenominationSent: v.Denom,
+				SenderAddress:    sf.Address,
+				ReceiverAddress:  sf.Address,
+			}
+		}
+	}
+
 	return relevantData
 }

@@ -14,7 +14,6 @@ var queryCmd = &cobra.Command{
 	your address to the command and a CSV export with your data for your address will be generated.`,
 	//If we want to pass errors up to the
 	Run: func(cmd *cobra.Command, args []string) {
-		//TODO: transition old rest API querying methods to this subcommand
 		//TODO: split out setup methods and only call necessary ones
 		_, db, _, err := setup(conf)
 		cobra.CheckErr(err)
