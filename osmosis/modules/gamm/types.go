@@ -18,6 +18,10 @@ var IsMsgSwapExactAmountOut = map[string]bool{
 	"/osmosis.gamm.v1beta1.MsgSwapExactAmountOut": true,
 }
 
+var IsMsgJoinSwapExternAmountIn = map[string]bool{
+	"/osmosis.gamm.v1beta1.MsgJoinSwapExternAmountIn": true,
+}
+
 type WrapperMsgSwapExactAmountIn struct {
 	txModule.Message
 	OsmosisMsgSwapExactAmountIn *gammTypes.MsgSwapExactAmountIn
@@ -28,10 +32,18 @@ type WrapperMsgSwapExactAmountIn struct {
 
 type WrapperMsgSwapExactAmountOut struct {
 	txModule.Message
-	OsmosisMsgSwapExactAmountIn *gammTypes.MsgSwapExactAmountOut
-	Address                     string
-	TokenOut                    sdk.Coin
-	TokenIn                     sdk.Coin
+	OsmosisMsgSwapExactAmountOut *gammTypes.MsgSwapExactAmountOut
+	Address                      string
+	TokenOut                     sdk.Coin
+	TokenIn                      sdk.Coin
+}
+
+type WrapperMsgJoinSwapExternAmountIn struct {
+	txModule.Message
+	OsmosisMsgJoinSwapExternAmountIn *gammTypes.MsgJoinSwapExternAmountIn
+	Address                          string
+	TokenOut                         sdk.Coin
+	TokenIn                          sdk.Coin
 }
 
 func (sf *WrapperMsgSwapExactAmountIn) String() string {
@@ -58,6 +70,19 @@ func (sf *WrapperMsgSwapExactAmountOut) String() string {
 		tokenSwappedIn = sf.TokenIn.String()
 	}
 	return fmt.Sprintf("MsgSwapExactAmountOut: %s swapped in %s and received %s\n",
+		sf.Address, tokenSwappedIn, tokenSwappedOut)
+}
+
+func (sf *WrapperMsgJoinSwapExternAmountIn) String() string {
+	var tokenSwappedOut string
+	var tokenSwappedIn string
+	if !sf.TokenOut.IsNil() {
+		tokenSwappedOut = sf.TokenOut.String()
+	}
+	if !sf.TokenIn.IsNil() {
+		tokenSwappedIn = sf.TokenIn.String()
+	}
+	return fmt.Sprintf("MsgJoinSwapExternAmountIn: %s swapped in %s and received %s\n",
 		sf.Address, tokenSwappedIn, tokenSwappedOut)
 }
 
@@ -105,7 +130,7 @@ func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, lo
 
 func (sf *WrapperMsgSwapExactAmountOut) HandleMsg(msgType string, msg sdk.Msg, log *txModule.TxLogMessage) error {
 	sf.Type = msgType
-	sf.OsmosisMsgSwapExactAmountIn = msg.(*gammTypes.MsgSwapExactAmountOut)
+	sf.OsmosisMsgSwapExactAmountOut = msg.(*gammTypes.MsgSwapExactAmountOut)
 
 	//Confirm that the action listed in the message log matches the Message type
 	valid_log := txModule.IsMessageActionEquals(sf.GetType(), log)
@@ -146,6 +171,50 @@ func (sf *WrapperMsgSwapExactAmountOut) HandleMsg(msgType string, msg sdk.Msg, l
 
 }
 
+func (sf *WrapperMsgJoinSwapExternAmountIn) HandleMsg(msgType string, msg sdk.Msg, log *txModule.TxLogMessage) error {
+	sf.Type = msgType
+	sf.OsmosisMsgJoinSwapExternAmountIn = msg.(*gammTypes.MsgJoinSwapExternAmountIn)
+
+	//Confirm that the action listed in the message log matches the Message type
+	valid_log := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !valid_log {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	//The attribute in the log message that shows you the received GAMM tokens from the pool
+	coinbaseEvt := txModule.GetEventWithType("coinbase", log)
+	if coinbaseEvt == nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	// This gets the amount of GAMM tokens received
+	gammTokenInStr := txModule.GetValueForAttribute("amount", coinbaseEvt)
+	gammTokenIn, err := sdk.ParseCoinNormalized(gammTokenInStr)
+	if err != nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	sf.TokenOut = gammTokenIn
+
+	//we can pull the token in directly from the Osmosis Message
+	sf.TokenIn = sf.OsmosisMsgJoinSwapExternAmountIn.TokenIn
+
+	//Address of whoever initiated the join
+	poolJoinedEvent := txModule.GetEventWithType("pool_joined", log)
+	if poolJoinedEvent == nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	//Address of whoever initiated the join.
+	senderAddress := txModule.GetValueForAttribute("sender", poolJoinedEvent)
+	if senderAddress == "" {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	sf.Address = senderAddress
+
+	return err
+
+}
+
 type ArbitrageTx struct {
 	TokenIn   sdk.Coin
 	TokenOut  sdk.Coin
@@ -166,6 +235,19 @@ func (sf *WrapperMsgSwapExactAmountIn) ParseRelevantData() []parsingTypes.Messag
 }
 
 func (sf *WrapperMsgSwapExactAmountOut) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	var relevantData []parsingTypes.MessageRelevantInformation = make([]parsingTypes.MessageRelevantInformation, 1)
+	relevantData[0] = parsingTypes.MessageRelevantInformation{
+		AmountSent:           sf.TokenIn.Amount.BigInt(),
+		DenominationSent:     sf.TokenIn.Denom,
+		AmountReceived:       sf.TokenOut.Amount.BigInt(),
+		DenominationReceived: sf.TokenOut.Denom,
+		SenderAddress:        sf.Address,
+		ReceiverAddress:      sf.Address,
+	}
+	return relevantData
+}
+
+func (sf *WrapperMsgJoinSwapExternAmountIn) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
 	var relevantData []parsingTypes.MessageRelevantInformation = make([]parsingTypes.MessageRelevantInformation, 1)
 	relevantData[0] = parsingTypes.MessageRelevantInformation{
 		AmountSent:           sf.TokenIn.Amount.BigInt(),
