@@ -11,4 +11,5 @@ var MessageTypeHandler = map[string]func() txTypes.CosmosMessage{
 	"/osmosis.gamm.v1beta1.MsgSwapExactAmountOut":     func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountOut{} },
 	"/osmosis.gamm.v1beta1.MsgJoinSwapExternAmountIn": func() txTypes.CosmosMessage { return &gamm.WrapperMsgJoinSwapExternAmountIn{} },
 	"/osmosis.gamm.v1beta1.MsgJoinPool":               func() txTypes.CosmosMessage { return &gamm.WrapperMsgJoinPool{} },
+	"/osmosis.gamm.v1beta1.MsgExitPool":               func() txTypes.CosmosMessage { return &gamm.WrapperMsgExitPool{} },
 }
