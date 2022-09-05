@@ -5,20 +5,26 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"sync"
 
 	"gorm.io/gorm"
 )
 
 var CachedDenomUnits []DenomUnit
+var denomCacheMutex sync.Mutex
 
 func CacheDenoms(db *gorm.DB) {
 	//TODO need to load aliases as well
 	var denomUnits []DenomUnit
 	db.Preload("Denom").Find(&denomUnits)
+	denomCacheMutex.Lock()
+	defer denomCacheMutex.Unlock()
 	CachedDenomUnits = denomUnits
 }
 
 func GetDenomForBase(base string) (Denom, error) {
+	denomCacheMutex.Lock()
+	defer denomCacheMutex.Unlock()
 	for _, denomUnit := range CachedDenomUnits {
 		if denomUnit.Denom.Base == base {
 			return denomUnit.Denom, nil
@@ -64,14 +70,14 @@ func ConvertUnits(amount *big.Int, denom Denom) (*big.Int, string, error) {
 
 	if err != nil {
 		fmt.Println("Error getting denom unit for denom", denom)
-		return nil, "", fmt.Errorf("error getting denom unit for denom %s", denom)
+		return nil, "", fmt.Errorf("error getting denom unit for denom %+v", denom)
 	}
 
 	highestDenomUnit, err := GetHighestDenomUnit(denomUnit, CachedDenomUnits)
 
 	if err != nil {
 		fmt.Println("Error getting highest denom unit for denom", denom)
-		return nil, "", fmt.Errorf("error getting highest denom unit for denom %s", denom)
+		return nil, "", fmt.Errorf("error getting highest denom unit for denom %+v", denom)
 	}
 
 	symbol := denomUnit.Denom.Symbol
@@ -81,4 +87,26 @@ func ConvertUnits(amount *big.Int, denom Denom) (*big.Int, string, error) {
 	convertedAmount := new(big.Int).Set(amount)
 	convertedAmount.Div(convertedAmount, pw)
 	return convertedAmount, symbol, nil
+}
+
+//This function assumes that the denom to be added is the base denom
+//which will be correct in all cases that the missing denom was pulled from
+//a transaction message and not found in our database during tx parsing
+//Creates a single denom and a single denom_unit that fits our DB structure, adds them to the DB
+func AddUnknownDenom(db *gorm.DB, denom string) (Denom, error) {
+	denomToAdd := Denom{Base: denom, Name: "UNKNOWN", Symbol: "UNKNOWN"}
+	singleDenomUnit := DenomUnit{Exponent: 0, Name: denom}
+	denomUnitsToAdd := [...]DenomUnitDBWrapper{{DenomUnit: singleDenomUnit}}
+
+	denomDbWrapper := [1]DenomDBWrapper{{Denom: denomToAdd}}
+	denomDbWrapper[0].DenomUnits = denomUnitsToAdd[:]
+
+	err := UpsertDenoms(db, denomDbWrapper[:])
+
+	//recache the denoms (threadsafe due to mutex on read and write)
+	CacheDenoms(db)
+
+	denomToAdd, err = GetDenomForBase(denom)
+
+	return denomToAdd, err
 }
