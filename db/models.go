@@ -106,8 +106,8 @@ func (TaxableTransaction) TableName() string {
 
 type Denom struct {
 	ID     uint
-	Base   string
-	Name   string `gorm:"uniqueIndex"`
+	Base   string `gorm:"uniqueIndex"`
+	Name   string
 	Symbol string
 }
 

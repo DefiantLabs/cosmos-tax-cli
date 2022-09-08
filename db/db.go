@@ -179,14 +179,13 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, txs []TxDBWrapper, chainID st
 }
 
 func UpsertDenoms(db *gorm.DB, denoms []DenomDBWrapper) error {
-
 	return db.Transaction(func(dbTransaction *gorm.DB) error {
 
 		for _, denom := range denoms {
 
 			if err := dbTransaction.Clauses(clause.OnConflict{
-				Columns:   []clause.Column{{Name: "name"}},
-				DoUpdates: clause.AssignmentColumns([]string{"symbol", "base"}),
+				Columns:   []clause.Column{{Name: "base"}},
+				DoUpdates: clause.AssignmentColumns([]string{"symbol", "name"}),
 			}).Create(&denom.Denom).Error; err != nil {
 				return err
 			}

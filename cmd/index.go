@@ -300,7 +300,7 @@ func ProcessTxs(
 
 	for {
 		txToProcess := <-results
-		txDBWrappers, err := core.ProcessRpcTxs(txToProcess.CosmosGetTxsEventResponse)
+		txDBWrappers, err := core.ProcessRpcTxs(db, txToProcess.CosmosGetTxsEventResponse)
 		if err != nil {
 			config.Logger.Error("ProcessRpcTxs: unhandled error", zap.Error(err))
 			failedBlockHandler(txToProcess.Height, core.UnprocessableTxError, err)

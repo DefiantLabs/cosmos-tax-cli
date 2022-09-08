@@ -16,6 +16,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 
 	"fmt"
 	"time"
@@ -92,7 +93,7 @@ func toEvents(msgEvents types.StringEvents) []txTypes.LogMessageEvent {
 //TODO: get rid of some of the unnecessary types like cosmos-tax-cli/TxResponse.
 //All those structs were legacy and for REST API support but we no longer really need it.
 //For now I'm keeping it until we have RPC compatibility fully working and tested.
-func ProcessRpcTxs(txEventResp *cosmosTx.GetTxsEventResponse) ([]dbTypes.TxDBWrapper, error) {
+func ProcessRpcTxs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]dbTypes.TxDBWrapper, error) {
 	var currTxDbWrappers = make([]dbTypes.TxDBWrapper, len(txEventResp.Txs))
 
 	for txIdx := 0; txIdx < len(txEventResp.Txs); txIdx++ {
@@ -146,7 +147,7 @@ func ProcessRpcTxs(txEventResp *cosmosTx.GetTxsEventResponse) ([]dbTypes.TxDBWra
 		indexerMergedTx.Tx = indexerTx
 		indexerMergedTx.Tx.AuthInfo = *currTx.AuthInfo
 
-		processedTx, err := ProcessTx(indexerMergedTx)
+		processedTx, err := ProcessTx(db, indexerMergedTx)
 		if err != nil {
 			return currTxDbWrappers, err
 		}
@@ -191,7 +192,7 @@ func AnalyzeSwaps() {
 	fmt.Printf("Profit (OSMO): %.10f, days: %f\n", profit, latestTime.Sub(earliestTime).Hours()/24)
 }
 
-func ProcessTx(tx txTypes.MergedTx) (dbTypes.TxDBWrapper, error) {
+func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (dbTypes.TxDBWrapper, error) {
 
 	var txDBWapper dbTypes.TxDBWrapper
 
@@ -239,20 +240,34 @@ func ProcessTx(tx txTypes.MergedTx) (dbTypes.TxDBWrapper, error) {
 
 						var denomSent dbTypes.Denom
 						if v.DenominationSent != "" {
-							denomSent, err = db.GetDenomForBase(v.DenominationSent)
+							denomSent, err = dbTypes.GetDenomForBase(v.DenominationSent)
+
 							if err != nil {
+								//attempt to add missing denoms to the database
 								config.Logger.Error("Denom lookup", zap.Error(err), zap.String("denom sent", v.DenominationSent))
-								return txDBWapper, err
+
+								denomSent, err = dbTypes.AddUnknownDenom(db, v.DenominationSent)
+								if err != nil {
+									config.Logger.Error("There was an error adding a missing denom", zap.Error(err), zap.String("denom received", v.DenominationSent))
+									return txDBWapper, err
+								}
 							}
+
 							taxableEvents[i].TaxableTx.DenominationSent = denomSent
 						}
 
 						var denomReceived dbTypes.Denom
 						if v.DenominationReceived != "" {
-							denomReceived, err = db.GetDenomForBase(v.DenominationReceived)
+							denomReceived, err = dbTypes.GetDenomForBase(v.DenominationReceived)
+
 							if err != nil {
+								//attempt to add missing denoms to the database
 								config.Logger.Error("Denom lookup", zap.Error(err), zap.String("denom received", v.DenominationReceived))
-								return txDBWapper, err
+								denomReceived, err = dbTypes.AddUnknownDenom(db, v.DenominationReceived)
+								if err != nil {
+									config.Logger.Error("There was an error adding a missing denom", zap.Error(err), zap.String("denom received", v.DenominationReceived))
+									return txDBWapper, err
+								}
 							}
 							taxableEvents[i].TaxableTx.DenominationReceived = denomReceived
 						}
