@@ -35,6 +35,10 @@ var IsMsgExitSwapShareAmountIn = map[string]bool{
 	"/osmosis.gamm.v1beta1.MsgExitSwapShareAmountIn": true,
 }
 
+var IsMsgExitSwapExternAmountOut = map[string]bool{
+	"/osmosis.gamm.v1beta1.MsgExitSwapExternAmountOut": true,
+}
+
 var IsMsgExitPool = map[string]bool{
 	"/osmosis.gamm.v1beta1.MsgJoinPool": true,
 }
@@ -85,6 +89,14 @@ type WrapperMsgExitSwapShareAmountIn struct {
 	Address                         string
 	TokenOut                        sdk.Coin
 	TokenIn                         sdk.Coin
+}
+
+type WrapperMsgExitSwapExternAmountOut struct {
+	txModule.Message
+	OsmosisMsgExitSwapExternAmountOut *gammTypes.MsgExitSwapExternAmountOut
+	Address                           string
+	TokenOut                          sdk.Coin
+	TokenIn                           sdk.Coin
 }
 
 type WrapperMsgExitPool struct {
@@ -173,6 +185,19 @@ func (sf *WrapperMsgExitSwapShareAmountIn) String() string {
 		tokenSwappedIn = sf.TokenIn.String()
 	}
 	return fmt.Sprintf("MsgMsgExitSwapShareAmountIn: %s exited with %s and received %s\n",
+		sf.Address, tokenSwappedIn, tokenSwappedOut)
+}
+
+func (sf *WrapperMsgExitSwapExternAmountOut) String() string {
+	var tokenSwappedOut string
+	var tokenSwappedIn string
+	if !sf.TokenOut.IsNil() {
+		tokenSwappedOut = sf.TokenOut.String()
+	}
+	if !sf.TokenIn.IsNil() {
+		tokenSwappedIn = sf.TokenIn.String()
+	}
+	return fmt.Sprintf("WrapperMsgExitSwapExternAmountOut: %s exited with %s and received %s\n",
 		sf.Address, tokenSwappedIn, tokenSwappedOut)
 }
 
@@ -472,6 +497,56 @@ func (sf *WrapperMsgExitSwapShareAmountIn) HandleMsg(msgType string, msg sdk.Msg
 	return err
 }
 
+func (sf *WrapperMsgExitSwapExternAmountOut) HandleMsg(msgType string, msg sdk.Msg, log *txModule.TxLogMessage) error {
+	sf.Type = msgType
+	sf.OsmosisMsgExitSwapExternAmountOut = msg.(*gammTypes.MsgExitSwapExternAmountOut)
+
+	//Confirm that the action listed in the message log matches the Message type
+	valid_log := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !valid_log {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	//The attribute in the log message that shows you the burned GAMM tokens sent to the pool
+	burnEvt := txModule.GetEventWithType("burn", log)
+	if burnEvt == nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	// This gets the amount of GAMM exited with
+	gammTokenInStr := txModule.GetValueForAttribute("amount", burnEvt)
+	gammTokenIn, err := sdk.ParseCoinNormalized(gammTokenInStr)
+	if err != nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	sf.TokenIn = gammTokenIn
+
+	//Address of whoever initiated the exit
+	poolExitedEvent := txModule.GetEventWithType(gammTypes.TypeEvtPoolExited, log)
+	if poolExitedEvent == nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	//Address of whoever initiated the exit.
+	senderAddress := txModule.GetValueForAttribute("sender", poolExitedEvent)
+	if senderAddress == "" {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	sf.Address = senderAddress
+
+	tokenOut := txModule.GetValueForAttribute(gammTypes.AttributeKeyTokensOut, poolExitedEvent)
+	if tokenOut == "" {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	sf.TokenOut, err = sdk.ParseCoinNormalized(tokenOut)
+
+	if err != nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	return err
+}
+
 func (sf *WrapperMsgExitPool) HandleMsg(msgType string, msg sdk.Msg, log *txModule.TxLogMessage) error {
 	sf.Type = msgType
 	sf.OsmosisMsgExitPool = msg.(*gammTypes.MsgExitPool)
@@ -610,6 +685,19 @@ func (sf *WrapperMsgJoinPool) ParseRelevantData() []parsingTypes.MessageRelevant
 }
 
 func (sf *WrapperMsgExitSwapShareAmountIn) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	var relevantData []parsingTypes.MessageRelevantInformation = make([]parsingTypes.MessageRelevantInformation, 1)
+	relevantData[0] = parsingTypes.MessageRelevantInformation{
+		AmountSent:           sf.TokenIn.Amount.BigInt(),
+		DenominationSent:     sf.TokenIn.Denom,
+		AmountReceived:       sf.TokenOut.Amount.BigInt(),
+		DenominationReceived: sf.TokenOut.Denom,
+		SenderAddress:        sf.Address,
+		ReceiverAddress:      sf.Address,
+	}
+	return relevantData
+}
+
+func (sf *WrapperMsgExitSwapExternAmountOut) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
 	var relevantData []parsingTypes.MessageRelevantInformation = make([]parsingTypes.MessageRelevantInformation, 1)
 	relevantData[0] = parsingTypes.MessageRelevantInformation{
 		AmountSent:           sf.TokenIn.Amount.BigInt(),
