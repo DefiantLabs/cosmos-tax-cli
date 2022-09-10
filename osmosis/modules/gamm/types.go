@@ -40,7 +40,7 @@ var IsMsgExitSwapExternAmountOut = map[string]bool{
 }
 
 var IsMsgExitPool = map[string]bool{
-	"/osmosis.gamm.v1beta1.MsgJoinPool": true,
+	"/osmosis.gamm.v1beta1.MsgExitPool": true,
 }
 
 type WrapperMsgSwapExactAmountIn struct {
