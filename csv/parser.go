@@ -44,6 +44,29 @@ func (ac AccointingClassification) String() string {
 	return [...]string{"", "staked", "airdrop", "payment", "fee"}[ac]
 }
 
+//Interface for all TX parsing groups
+type TxParsingGroup interface {
+	BelongsToGroup(string) bool
+	String() string
+	AddTxToGroup(db.TaxableTransaction)
+	GetGroupedTxes() map[uint][]db.TaxableTransaction
+	ParseGroup() ([]AccointingRow, error)
+}
+
+//Initial parsing groups is empty for now as we
+//dont currently have a use-case beyond the osmosis LP groups
+var txParsingGroups []TxParsingGroup
+
+func BootstrapChainSpecificTxParsingGroups(chainId string) {
+
+	switch chainId {
+	case "osmosis-1":
+		for _, v := range GetOsmosisTxParsingGroups() {
+			txParsingGroups = append(txParsingGroups, v)
+		}
+	}
+}
+
 type AccointingRow struct {
 	Date            string
 	InBuyAmount     string
@@ -179,11 +202,95 @@ func ParseTaxableTransactions(address string, pgSql *gorm.DB) ([]AccointingRow, 
 		}
 	}
 
+	//TODO: Can probably reduce complexity
+	//The basic idea is we want to do the following:
+	//1. Loop through each message for each transaction
+	//2. Check if it belongs in a group by message type
+	//3. Gather indicies of all messages that belong in each group
+	//4. Remove them from the normal txMap
+	//5. Add them to the group-secific txMap
+	//The last two steps ensure that the message will not be parsed twice
+	for v, tx := range txMap {
+		//map: [group index] to []indexes of the current tx messages that belong in that group
+		var groupsToMessageIds map[int][]int = make(map[int][]int)
+
+		//TODO: Remove me, useless outside print for demo
+		messagesToRemove := 0
+
+		for messageIndex, message := range tx {
+			for groupIndex, txGroup := range txParsingGroups {
+				//Store index of current message if it belongs in the group
+				if txGroup.BelongsToGroup(message.Message.MessageType) {
+					if _, ok := groupsToMessageIds[groupIndex]; ok {
+						groupsToMessageIds[groupIndex] = append(groupsToMessageIds[groupIndex], messageIndex)
+					} else {
+						var messageArray []int
+						messageArray = append(messageArray, messageIndex)
+						groupsToMessageIds[groupIndex] = messageArray
+					}
+					messagesToRemove += 1
+
+					//Add it to the first group it belongs to and no others
+					//This establishes a precedence and prevents messages from being duplicated in many groups
+					break
+				}
+			}
+		}
+
+		if messagesToRemove != 0 {
+			fmt.Printf("Removing %d message(s) from TX with ID %d and adding to a parsing group\n", messagesToRemove, v)
+		}
+
+		//split off the messages into their respective group
+		for groupIndex, messageIndices := range groupsToMessageIds {
+			var currentGroup TxParsingGroup = txParsingGroups[groupIndex]
+
+			//used to keep the index relevant after splicing
+			numElementsRemoved := 0
+			for _, messageIndex := range messageIndices {
+				//Get message to remove at index - numElementsRemoved
+				var indexToRemove int = messageIndex - numElementsRemoved
+				var messageToRemove db.TaxableTransaction = tx[indexToRemove]
+				fmt.Printf("Removing message %s and adding to parsing group %s\n", messageToRemove.Message.MessageType, currentGroup)
+
+				//Add to group and remove from original TX
+				currentGroup.AddTxToGroup(messageToRemove)
+				tx = append(tx[:indexToRemove], tx[indexToRemove+1:]...)
+				//overwrite the txMaps value at this tx to remove
+				txMap[v] = tx
+				numElementsRemoved = numElementsRemoved + 1
+			}
+
+		}
+	}
+
+	fmt.Println()
+
 	//Parse all the potentially taxable events (one transaction group at a time)
-	for _, txGroup := range txMap {
-		//For the current transaction group, generate the rows for the CSV.
-		//Usually (but not always) a transaction will only have a single row in the CSV.
-		txRows, err := ParseTx(address, txGroup)
+	for txDbId, txGroup := range txMap {
+		//All messages have been removed into a parsing group
+		if len(txGroup) != 0 {
+			//For the current transaction group, generate the rows for the CSV.
+			//Usually (but not always) a transaction will only have a single row in the CSV.
+			txRows, err := ParseTx(address, txGroup)
+			if err == nil {
+				rows = append(rows, txRows...)
+			} else {
+				return nil, err
+			}
+		} else {
+			//TODO: Remove me, for demo purposes
+			fmt.Printf("TX ID %d has had all messages moved into a parsing group\n", txDbId)
+		}
+	}
+
+	fmt.Println()
+
+	//Parse all the txes found in the Parsing Groups
+	for _, txParsingGroup := range txParsingGroups {
+		fmt.Printf("Tx parsing group %s has %d tx to process\n", txParsingGroup, len(txParsingGroup.GetGroupedTxes()))
+
+		txRows, err := txParsingGroup.ParseGroup()
 		if err == nil {
 			rows = append(rows, txRows...)
 		} else {
@@ -291,6 +398,8 @@ func ParseEvent(address string, event db.TaxableEvent) []AccointingRow {
 }
 
 //ParseTx: Parse the potentially taxable TX and Messages
+//This function is used for parsing a single TX that will not need to relate to any others
+//Use TX Parsing Groups to parse txes as a group
 func ParseTx(address string, events []db.TaxableTransaction) ([]AccointingRow, error) {
 	rows := []AccointingRow{}
 
@@ -306,6 +415,8 @@ func ParseTx(address string, events []db.TaxableTransaction) ([]AccointingRow, e
 			rows = append(rows, ParseMsgSwapExactAmountIn(address, event))
 		} else if gamm.IsMsgSwapExactAmountOut[event.Message.MessageType] {
 			rows = append(rows, ParseMsgSwapExactAmountOut(address, event))
+		} else {
+			fmt.Println("No parser for message type", event.Message.MessageType)
 		}
 	}
 
