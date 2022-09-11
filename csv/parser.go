@@ -46,7 +46,7 @@ func (ac AccointingClassification) String() string {
 
 //Interface for all TX parsing groups
 type TxParsingGroup interface {
-	BelongsToGroup(string) bool
+	BelongsToGroup(db.TaxableTransaction) bool
 	String() string
 	AddTxToGroup(db.TaxableTransaction)
 	GetGroupedTxes() map[uint][]db.TaxableTransaction
@@ -220,7 +220,7 @@ func ParseTaxableTransactions(address string, pgSql *gorm.DB) ([]AccointingRow, 
 		for messageIndex, message := range tx {
 			for groupIndex, txGroup := range txParsingGroups {
 				//Store index of current message if it belongs in the group
-				if txGroup.BelongsToGroup(message.Message.MessageType) {
+				if txGroup.BelongsToGroup(message) {
 					if _, ok := groupsToMessageIds[groupIndex]; ok {
 						groupsToMessageIds[groupIndex] = append(groupsToMessageIds[groupIndex], messageIndex)
 					} else {

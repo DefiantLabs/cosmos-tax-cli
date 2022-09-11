@@ -20,8 +20,8 @@ type WrapperLpTxGroup struct {
 	GroupedTxes map[uint][]db.TaxableTransaction //TX db ID to its messages
 }
 
-func (sf WrapperLpTxGroup) BelongsToGroup(msgType string) bool {
-	_, isInGroup := IsOsmosisLpTxGroup[msgType]
+func (sf WrapperLpTxGroup) BelongsToGroup(message db.TaxableTransaction) bool {
+	_, isInGroup := IsOsmosisLpTxGroup[message.Message.MessageType]
 	return isInGroup
 }
 
