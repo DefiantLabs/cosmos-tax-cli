@@ -18,6 +18,8 @@ var queryCmd = &cobra.Command{
 		_, db, _, err := setup(conf)
 		cobra.CheckErr(err)
 
+		csv.BootstrapChainSpecificTxParsingGroups(conf.Lens.ChainID)
+
 		accountRows, err := csv.ParseForAddress(address, db)
 		cobra.CheckErr(err)
 
