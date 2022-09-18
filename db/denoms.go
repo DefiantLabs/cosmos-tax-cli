@@ -44,6 +44,16 @@ func GetDenomUnitForDenom(denom Denom) (DenomUnit, error) {
 	return DenomUnit{}, errors.New("GetDenomUnitForDenom: no denom unit for the specified denom")
 }
 
+func GetBaseDenomUnitForDenom(denom Denom) (DenomUnit, error) {
+	for _, denomUnit := range CachedDenomUnits {
+		if denomUnit.DenomID == denom.ID && denomUnit.Exponent == 0 {
+			return denomUnit, nil
+		}
+	}
+
+	return DenomUnit{}, errors.New("GetDenomUnitForDenom: no denom unit for the specified denom")
+}
+
 func GetHighestDenomUnit(denomUnit DenomUnit, denomUnits []DenomUnit) (DenomUnit, error) {
 	var highestDenomUnit DenomUnit = DenomUnit{Exponent: 0, Name: "not found for denom"}
 
@@ -66,7 +76,10 @@ func GetHighestDenomUnit(denomUnit DenomUnit, denomUnits []DenomUnit) (DenomUnit
 func ConvertUnits(amount *big.Int, denom Denom) (*big.Int, string, error) {
 
 	//Try denom unit first
-	denomUnit, err := GetDenomUnitForDenom(denom)
+	//We were originally just using GetDenomUnitForDenom, but since CachedDenoms is an array, it would sometimes
+	//return the non-Base denom unit (exponent != 0), which would break the power conversion process below i.e.
+	//it would sometimes do highestDenomUnit.Exponent = 6, denomUnit.Exponent = 6 -> pow = 0
+	denomUnit, err := GetBaseDenomUnitForDenom(denom)
 
 	if err != nil {
 		fmt.Println("Error getting denom unit for denom", denom)
