@@ -1,19 +1,33 @@
 package csv
 
 import (
-	"fmt"
-
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 )
 
-//Guard for adding messages to the group
-var IsOsmosisLpTxGroup = map[string]bool{
-	"/osmosis.gamm.v1beta1.MsgJoinSwapExternAmountIn":  true,
-	"/osmosis.gamm.v1beta1.MsgJoinSwapShareAmountOut":  true,
-	"/osmosis.gamm.v1beta1.MsgJoinPool":                true,
+var IsOsmosisJoin = map[string]bool{
+	"/osmosis.gamm.v1beta1.MsgJoinSwapExternAmountIn": true,
+	"/osmosis.gamm.v1beta1.MsgJoinSwapShareAmountOut": true,
+	"/osmosis.gamm.v1beta1.MsgJoinPool":               true,
+}
+
+var IsOsmosisExit = map[string]bool{
 	"/osmosis.gamm.v1beta1.MsgExitSwapShareAmountIn":   true,
 	"/osmosis.gamm.v1beta1.MsgExitSwapExternAmountOut": true,
 	"/osmosis.gamm.v1beta1.MsgExitPool":                true,
+}
+
+//Guard for adding messages to the group
+var IsOsmosisLpTxGroup = make(map[string]bool)
+
+func init() {
+	for messageType, _ := range IsOsmosisJoin {
+		IsOsmosisLpTxGroup[messageType] = true
+	}
+
+	for messageType, _ := range IsOsmosisExit {
+		IsOsmosisLpTxGroup[messageType] = true
+	}
 }
 
 type WrapperLpTxGroup struct {
@@ -48,10 +62,43 @@ func (sf WrapperLpTxGroup) ParseGroup() ([]AccointingRow, error) {
 	var rows []AccointingRow
 
 	//TODO: Do specialized processing on LP messages
-	for i, txMessages := range sf.GroupedTxes {
-		fmt.Printf("TX with ID %d has %d message(s) in the parsing group\n", i, len(txMessages))
+	for _, txMessages := range sf.GroupedTxes {
 		for _, message := range txMessages {
-			fmt.Println("Processing message", message.Message.MessageType)
+
+			row := AccointingRow{}
+			row.OperationId = message.Message.Tx.Hash
+			row.Date = FormatDatetime(message.Message.Tx.TimeStamp)
+			//We deliberately exclude the GAMM tokens from OutSell/InBuy for Exits/Joins respectively
+			//Accointing has no way of using the GAMM token to determine LP cost basis etc...
+			if _, ok := IsOsmosisExit[message.Message.MessageType]; ok {
+				denomRecieved := message.DenominationReceived
+				valueRecieved := message.AmountReceived
+				conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(valueRecieved), denomRecieved)
+				if err != nil {
+					row.InBuyAmount = util.NumericToString(valueRecieved)
+					row.InBuyAsset = denomRecieved.Base
+				} else {
+					row.InBuyAmount = conversionAmount.String()
+					row.InBuyAsset = conversionSymbol
+				}
+
+				row.TransactionType = Deposit
+				row.Classification = LiquidityPool
+				rows = append(rows, row)
+			} else if _, ok := IsOsmosisJoin[message.Message.MessageType]; ok {
+				denomSent := message.DenominationSent
+				valueSent := message.AmountSent
+				conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(valueSent), denomSent)
+				if err != nil {
+					row.OutSellAmount = util.NumericToString(valueSent)
+					row.OutSellAsset = denomSent.Base
+				} else {
+					row.OutSellAmount = conversionAmount.String()
+					row.OutSellAsset = conversionSymbol
+				}
+				row.TransactionType = Withdraw
+				rows = append(rows, row)
+			}
 		}
 	}
 	return rows, nil

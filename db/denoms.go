@@ -44,6 +44,16 @@ func GetDenomUnitForDenom(denom Denom) (DenomUnit, error) {
 	return DenomUnit{}, errors.New("GetDenomUnitForDenom: no denom unit for the specified denom")
 }
 
+func GetBaseDenomUnitForDenom(denom Denom) (DenomUnit, error) {
+	for _, denomUnit := range CachedDenomUnits {
+		if denomUnit.DenomID == denom.ID && denomUnit.Exponent == 0 {
+			return denomUnit, nil
+		}
+	}
+
+	return DenomUnit{}, errors.New("GetDenomUnitForDenom: no denom unit for the specified denom")
+}
+
 func GetHighestDenomUnit(denomUnit DenomUnit, denomUnits []DenomUnit) (DenomUnit, error) {
 	var highestDenomUnit DenomUnit = DenomUnit{Exponent: 0, Name: "not found for denom"}
 
@@ -63,10 +73,13 @@ func GetHighestDenomUnit(denomUnit DenomUnit, denomUnits []DenomUnit) (DenomUnit
 }
 
 //TODO unit test this function
-func ConvertUnits(amount *big.Int, denom Denom) (*big.Int, string, error) {
+func ConvertUnits(amount *big.Int, denom Denom) (*big.Float, string, error) {
 
 	//Try denom unit first
-	denomUnit, err := GetDenomUnitForDenom(denom)
+	//We were originally just using GetDenomUnitForDenom, but since CachedDenoms is an array, it would sometimes
+	//return the non-Base denom unit (exponent != 0), which would break the power conversion process below i.e.
+	//it would sometimes do highestDenomUnit.Exponent = 6, denomUnit.Exponent = 6 -> pow = 0
+	denomUnit, err := GetBaseDenomUnitForDenom(denom)
 
 	if err != nil {
 		fmt.Println("Error getting denom unit for denom", denom)
@@ -82,11 +95,11 @@ func ConvertUnits(amount *big.Int, denom Denom) (*big.Int, string, error) {
 
 	symbol := denomUnit.Denom.Symbol
 
+	//We were converting the units to big.Int, which would cause a Token to appear 0 if the conversion resulted in an amount < 1
 	power := math.Pow(10, float64(highestDenomUnit.Exponent-denomUnit.Exponent))
-	pw := big.NewInt(int64(power))
-	convertedAmount := new(big.Int).Set(amount)
-	convertedAmount.Div(convertedAmount, pw)
-	return convertedAmount, symbol, nil
+	convertedAmount := new(big.Float).SetInt(amount)
+	dividedAmount := new(big.Float).Quo(convertedAmount, new(big.Float).SetFloat64(power))
+	return dividedAmount, symbol, nil
 }
 
 //This function assumes that the denom to be added is the base denom

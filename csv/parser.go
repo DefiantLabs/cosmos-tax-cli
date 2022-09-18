@@ -15,17 +15,18 @@ import (
 	"gorm.io/gorm"
 )
 
+//Accointing CSV Explainer found here, contains info on transaction types and classifications:
+//https://support.accointing.com/hc/en-us/articles/4423524486669-Uploading-data-via-the-ACCOINTING-com-CSV-XLSX-Template
 type AccointingTransaction int
 
 const (
 	Deposit AccointingTransaction = iota
 	Withdraw
 	Order
-	Swap
 )
 
 func (at AccointingTransaction) String() string {
-	return [...]string{"deposit", "withdraw", "order", "swap"}[at]
+	return [...]string{"deposit", "withdraw", "order"}[at]
 }
 
 type AccointingClassification int
@@ -36,12 +37,14 @@ const (
 	Airdrop
 	Payment
 	Fee
+	LiquidityPool
+	RemoveFunds //Used for GAMM module exits, is this correct?
 )
 
 func (ac AccointingClassification) String() string {
 	//Note that "None" returns empty string since we're using this for CSV parsing.
 	//Accointing considers 'Classification' an optional field, so empty is a valid value.
-	return [...]string{"", "staked", "airdrop", "payment", "fee"}[ac]
+	return [...]string{"", "staked", "airdrop", "payment", "fee", "liquidity_pool", "remove_funds"}[ac]
 }
 
 //Interface for all TX parsing groups
@@ -78,6 +81,7 @@ type AccointingRow struct {
 	Classification  AccointingClassification
 	TransactionType AccointingTransaction
 	OperationId     string
+	Comments        string
 }
 
 //ParseBasic: Handles the fields that are shared between most types.
@@ -136,6 +140,7 @@ func (row *AccointingRow) ParseBasic(address string, event db.TaxableTransaction
 func (row *AccointingRow) ParseSwap(address string, event db.TaxableTransaction) error {
 	row.Date = FormatDatetime(event.Message.Tx.TimeStamp)
 	row.OperationId = event.Message.Tx.Hash
+	row.TransactionType = Order
 
 	recievedConversionAmount, recievedConversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountReceived), event.DenominationReceived)
 	if err == nil {
@@ -152,8 +157,6 @@ func (row *AccointingRow) ParseSwap(address string, event db.TaxableTransaction)
 	} else {
 		return fmt.Errorf("Cannot parse denom units for TX %s (classification: swap sent)\n", row.OperationId)
 	}
-
-	row.TransactionType = Swap
 
 	return nil
 }
@@ -237,10 +240,6 @@ func ParseTaxableTransactions(address string, pgSql *gorm.DB) ([]AccointingRow, 
 			}
 		}
 
-		if messagesToRemove != 0 {
-			fmt.Printf("Removing %d message(s) from TX with ID %d and adding to a parsing group\n", messagesToRemove, v)
-		}
-
 		//split off the messages into their respective group
 		for groupIndex, messageIndices := range groupsToMessageIds {
 			var currentGroup TxParsingGroup = txParsingGroups[groupIndex]
@@ -251,7 +250,6 @@ func ParseTaxableTransactions(address string, pgSql *gorm.DB) ([]AccointingRow, 
 				//Get message to remove at index - numElementsRemoved
 				var indexToRemove int = messageIndex - numElementsRemoved
 				var messageToRemove db.TaxableTransaction = tx[indexToRemove]
-				fmt.Printf("Removing message %s and adding to parsing group %s\n", messageToRemove.Message.MessageType, currentGroup)
 
 				//Add to group and remove from original TX
 				currentGroup.AddTxToGroup(messageToRemove)
@@ -264,10 +262,8 @@ func ParseTaxableTransactions(address string, pgSql *gorm.DB) ([]AccointingRow, 
 		}
 	}
 
-	fmt.Println()
-
 	//Parse all the potentially taxable events (one transaction group at a time)
-	for txDbId, txGroup := range txMap {
+	for _, txGroup := range txMap {
 		//All messages have been removed into a parsing group
 		if len(txGroup) != 0 {
 			//For the current transaction group, generate the rows for the CSV.
@@ -278,17 +274,11 @@ func ParseTaxableTransactions(address string, pgSql *gorm.DB) ([]AccointingRow, 
 			} else {
 				return nil, err
 			}
-		} else {
-			//TODO: Remove me, for demo purposes
-			fmt.Printf("TX ID %d has had all messages moved into a parsing group\n", txDbId)
 		}
 	}
 
-	fmt.Println()
-
 	//Parse all the txes found in the Parsing Groups
 	for _, txParsingGroup := range txParsingGroups {
-		fmt.Printf("Tx parsing group %s has %d tx to process\n", txParsingGroup, len(txParsingGroup.GetGroupedTxes()))
 
 		txRows, err := txParsingGroup.ParseGroup()
 		if err == nil {

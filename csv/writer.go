@@ -7,7 +7,7 @@ import (
 )
 
 var headers = []string{"transactionType", "date", "inBuyAmount", "inBuyAsset", "outSellAmount", "outSellAsset",
-	"feeAmount (optional)", "feeAsset (optional)", "classification (optional)", "operationId (optional)"}
+	"feeAmount (optional)", "feeAsset (optional)", "classification (optional)", "operationId (optional)", "comments (optional)"}
 
 //RowToCsv: Build a single row of data in the format expected by 'headers'
 func RowToCsv(row AccointingRow) []string {
@@ -48,6 +48,7 @@ func RowToCsv(row AccointingRow) []string {
 		row.FeeAsset,
 		row.Classification.String(),
 		row.OperationId,
+		"",
 	}
 }
 
