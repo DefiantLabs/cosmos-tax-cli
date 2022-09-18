@@ -81,6 +81,7 @@ type AccointingRow struct {
 	Classification  AccointingClassification
 	TransactionType AccointingTransaction
 	OperationId     string
+	Comments        string
 }
 
 //ParseBasic: Handles the fields that are shared between most types.

@@ -2,6 +2,7 @@ package csv
 
 import (
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 )
 
 var IsOsmosisJoin = map[string]bool{
@@ -72,18 +73,30 @@ func (sf WrapperLpTxGroup) ParseGroup() ([]AccointingRow, error) {
 			if _, ok := IsOsmosisExit[message.Message.MessageType]; ok {
 				denomRecieved := message.DenominationReceived
 				valueRecieved := message.AmountReceived
-				row.InBuyAmount = valueRecieved.String()
-				row.InBuyAsset = denomRecieved.Symbol
-				row.TransactionType = Withdraw
-				row.Classification = RemoveFunds
+				conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(valueRecieved), denomRecieved)
+				if err != nil {
+					row.InBuyAmount = util.NumericToString(valueRecieved)
+					row.InBuyAsset = denomRecieved.Base
+				} else {
+					row.InBuyAmount = conversionAmount.String()
+					row.InBuyAsset = conversionSymbol
+				}
+
+				row.TransactionType = Deposit
+				row.Classification = LiquidityPool
 				rows = append(rows, row)
 			} else if _, ok := IsOsmosisJoin[message.Message.MessageType]; ok {
 				denomSent := message.DenominationSent
 				valueSent := message.AmountSent
-				row.OutSellAmount = valueSent.String()
-				row.OutSellAsset = denomSent.Symbol
-				row.TransactionType = Deposit
-				row.Classification = LiquidityPool
+				conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(valueSent), denomSent)
+				if err != nil {
+					row.OutSellAmount = util.NumericToString(valueSent)
+					row.OutSellAsset = denomSent.Base
+				} else {
+					row.OutSellAmount = conversionAmount.String()
+					row.OutSellAsset = conversionSymbol
+				}
+				row.TransactionType = Withdraw
 				rows = append(rows, row)
 			}
 		}
