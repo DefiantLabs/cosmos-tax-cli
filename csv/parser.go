@@ -8,12 +8,18 @@ import (
 
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/bank"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/staking"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers/accointing"
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
 
 	"gorm.io/gorm"
 )
+
+func init() {
+	parsers.AddParserToParsers(accointing.ParserKey, &accointing.AccointingParser{})
+}
 
 //Accointing CSV Explainer found here, contains info on transaction types and classifications:
 //https://support.accointing.com/hc/en-us/articles/4423524486669-Uploading-data-via-the-ACCOINTING-com-CSV-XLSX-Template
