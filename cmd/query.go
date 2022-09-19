@@ -35,12 +35,10 @@ var queryCmd = &cobra.Command{
 		_, db, _, err := setup(conf)
 		cobra.CheckErr(err)
 
-		csv.BootstrapChainSpecificTxParsingGroups(conf.Lens.ChainID)
-
-		accountRows, err := csv.ParseForAddress(address, db)
+		csvRows, headers, err := csv.ParseForAddress(address, db, format, conf)
 		cobra.CheckErr(err)
 
-		buffer := csv.ToCsv(accountRows)
+		buffer := csv.ToCsv(csvRows, headers)
 
 		err = os.WriteFile(output, buffer.Bytes(), 0644)
 		cobra.CheckErr(err)
@@ -54,10 +52,17 @@ var (
 )
 
 func init() {
+	validFormats := parsers.GetParserKeys()
+
+	if len(validFormats) == 0 {
+		fmt.Println("Error during intialization, no CSV parsers found.")
+		os.Exit(1)
+	}
+
 	queryCmd.Flags().StringVar(&address, "address", "", "The address to query for")
 	queryCmd.MarkFlagRequired("address")
 	queryCmd.Flags().StringVar(&output, "output", "./output.csv", "The output location")
-	queryCmd.Flags().StringVar(&format, "format", "accointing", "The format to output")
+	queryCmd.Flags().StringVar(&format, "format", validFormats[0], "The format to output")
 
 	rootCmd.AddCommand(queryCmd)
 

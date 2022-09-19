@@ -1,5 +1,28 @@
 package accointing
 
+import "github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
+
+var ParserKey string = "accointing"
+
+type AccointingParser struct {
+	Rows          []AccointingRow
+	ParsingGroups []parsers.ParsingGroup
+}
+
+type AccointingRow struct {
+	Date            string
+	InBuyAmount     string
+	InBuyAsset      string
+	OutSellAmount   string
+	OutSellAsset    string
+	FeeAmount       string
+	FeeAsset        string
+	Classification  AccointingClassification
+	TransactionType AccointingTransaction
+	OperationId     string
+	Comments        string
+}
+
 type AccointingTransaction int
 
 const (

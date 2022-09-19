@@ -1,6 +1,7 @@
-package csv
+package accointing
 
 import (
+	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
 )
@@ -32,22 +33,27 @@ func init() {
 
 type WrapperLpTxGroup struct {
 	GroupedTxes map[uint][]db.TaxableTransaction //TX db ID to its messages
+	Rows        []parsers.CsvRow
 }
 
-func (sf WrapperLpTxGroup) BelongsToGroup(message db.TaxableTransaction) bool {
+func (sf *WrapperLpTxGroup) GetRowsForParsingGroup() []parsers.CsvRow {
+	return sf.Rows
+}
+
+func (sf *WrapperLpTxGroup) BelongsToGroup(message db.TaxableTransaction) bool {
 	_, isInGroup := IsOsmosisLpTxGroup[message.Message.MessageType]
 	return isInGroup
 }
 
-func (sf WrapperLpTxGroup) String() string {
+func (sf *WrapperLpTxGroup) String() string {
 	return "OsmosisLpTxGroup"
 }
 
-func (sf WrapperLpTxGroup) GetGroupedTxes() map[uint][]db.TaxableTransaction {
+func (sf *WrapperLpTxGroup) GetGroupedTxes() map[uint][]db.TaxableTransaction {
 	return sf.GroupedTxes
 }
 
-func (sf WrapperLpTxGroup) AddTxToGroup(tx db.TaxableTransaction) {
+func (sf *WrapperLpTxGroup) AddTxToGroup(tx db.TaxableTransaction) {
 	//Add tx to group using the TX ID as key and appending to array
 	if _, ok := sf.GroupedTxes[tx.Message.Tx.ID]; ok {
 		sf.GroupedTxes[tx.Message.Tx.ID] = append(sf.GroupedTxes[tx.Message.Tx.ID], tx)
@@ -58,9 +64,7 @@ func (sf WrapperLpTxGroup) AddTxToGroup(tx db.TaxableTransaction) {
 	}
 }
 
-func (sf WrapperLpTxGroup) ParseGroup() ([]AccointingRow, error) {
-	var rows []AccointingRow
-
+func (sf *WrapperLpTxGroup) ParseGroup() error {
 	//TODO: Do specialized processing on LP messages
 	for _, txMessages := range sf.GroupedTxes {
 		for _, message := range txMessages {
@@ -84,7 +88,7 @@ func (sf WrapperLpTxGroup) ParseGroup() ([]AccointingRow, error) {
 
 				row.TransactionType = Deposit
 				row.Classification = LiquidityPool
-				rows = append(rows, row)
+				sf.Rows = append(sf.Rows, row)
 			} else if _, ok := IsOsmosisJoin[message.Message.MessageType]; ok {
 				denomSent := message.DenominationSent
 				valueSent := message.AmountSent
@@ -97,22 +101,22 @@ func (sf WrapperLpTxGroup) ParseGroup() ([]AccointingRow, error) {
 					row.OutSellAsset = conversionSymbol
 				}
 				row.TransactionType = Withdraw
-				rows = append(rows, row)
+				sf.Rows = append(sf.Rows, row)
 			}
 		}
 	}
-	return rows, nil
+	return nil
 }
 
-func GetOsmosisTxParsingGroups() []TxParsingGroup {
-	var messageGroups []TxParsingGroup
+func GetOsmosisTxParsingGroups() []parsers.ParsingGroup {
+	var messageGroups []parsers.ParsingGroup
 
 	//This appending of parsing groups establishes a precedence
 	//There is a break statement in the loop doing grouping
 	//Which means parsers further up the array will be preferred
 	LpTxGroup := WrapperLpTxGroup{}
 	LpTxGroup.GroupedTxes = make(map[uint][]db.TaxableTransaction)
-	messageGroups = append(messageGroups, LpTxGroup)
+	messageGroups = append(messageGroups, &LpTxGroup)
 
 	return messageGroups
 }

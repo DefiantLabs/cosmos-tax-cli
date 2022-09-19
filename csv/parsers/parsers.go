@@ -1,21 +1,14 @@
 package parsers
 
-import "github.com/DefiantLabs/cosmos-tax-cli/db"
-
-type Parser interface {
-	GetRowsFromTaxableTx([]db.TaxableTransaction) [][]string
-	InitializeParsingGroups(chainId string)
-}
-
-var Parsers map[string]Parser
-
 //Check in your parsers here
+var Parsers map[string]bool
+
 func init() {
-	Parsers = make(map[string]Parser)
+	Parsers = make(map[string]bool)
 }
 
-func AddParserToParsers(key string, val Parser) {
-	Parsers[key] = val
+func RegisterParser(key string) {
+	Parsers[key] = true
 }
 
 func GetParserKeys() []string {
@@ -26,12 +19,4 @@ func GetParserKeys() []string {
 	}
 
 	return parserKeys
-}
-
-type TxParsingGroup interface {
-	BelongsToGroup(db.TaxableTransaction) bool
-	String() string
-	AddTxToGroup(db.TaxableTransaction)
-	GetGroupedTxes() map[uint][]db.TaxableTransaction
-	GetRowsForParsingGroup(string) [][]string
 }
