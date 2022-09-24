@@ -102,3 +102,19 @@ func (row *AccointingRow) ParseSwap(address string, event db.TaxableTransaction)
 
 	return nil
 }
+
+func (row *AccointingRow) ParseFee(tx db.Tx, fee db.Fee) error {
+	row.Date = FormatDatetime(tx.TimeStamp)
+	row.OperationId = tx.Hash
+	row.TransactionType = Withdraw
+	row.Classification = Fee
+	sentConversionAmount, sentConversionSymbol, err := db.ConvertUnits(util.FromNumeric(fee.Amount), fee.Denomination)
+	if err == nil {
+		row.OutSellAmount = sentConversionAmount.String()
+		row.OutSellAsset = sentConversionSymbol
+	} else {
+		return fmt.Errorf("Cannot parse denom units for TX %s (classification: swap sent)\n", row.OperationId)
+	}
+
+	return nil
+}
