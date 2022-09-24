@@ -105,6 +105,19 @@ func (p *AccointingParser) ProcessTaxableTx(address string, taxableTxs []db.Taxa
 		txParsingGroup.ParseGroup()
 	}
 
+	//Handle fees on all taxableTxs at once, we don't do this in the regular parser or in the parsing groups
+	//This requires HandleFees to process the fees into unique mappings of tx -> fees (since we gather Taxable Messages in the taxableTxs)
+	//If we move it into the ParseTx function or into the ParseGroup function, we may be able to reduce the logic in the HandleFees func
+	feeRows, err := HandleFees(address, taxableTxs)
+
+	if err != nil {
+		return err
+	}
+
+	for _, v := range feeRows {
+		p.Rows = append(p.Rows, v)
+	}
+
 	return nil
 }
 
@@ -158,47 +171,33 @@ func (parser AccointingParser) GetHeaders() []string {
 //If the transaction lists the same amount of fees as there are rows in the CSV,
 //then we spread the fees out one per row. Otherwise we add a line for the fees,
 //where each fee has a separate line.
-func HandleFees(address string, events []db.TaxableTransaction, rows []AccointingRow) ([]AccointingRow, error) {
+func HandleFees(address string, events []db.TaxableTransaction) ([]AccointingRow, error) {
+
+	var rows []AccointingRow
 	//No events -- This address didn't pay any fees
 	if len(events) == 0 {
 		return rows, nil
 	}
 
-	fees := events[0].Message.Tx.Fees
-
-	for _, fee := range fees {
-		payer := fee.PayerAddress.Address
-		if payer != address {
-			return rows, nil
-		}
+	//We need to gather all unique fees, but we are receiving Messages not Txes
+	//Make a map from TX hash to fees array to keep unique
+	txToFeesMap := make(map[uint][]db.Fee)
+	txIdsToTx := make(map[uint]db.Tx)
+	for _, event := range events {
+		txId := event.Message.Tx.ID
+		feeStore := event.Message.Tx.Fees
+		txToFeesMap[txId] = feeStore
+		txIdsToTx[txId] = event.Message.Tx
 	}
 
-	//Stick the fees in the existing rows.
-	if len(rows) >= len(fees) {
-		for i, fee := range fees {
-			conversionAmount, conversionSymbol, err := db.ConvertUnits(fee.Amount.BigInt(), fee.Denomination)
-			if err == nil {
-				rows[i].FeeAmount = conversionAmount.String()
-				rows[i].FeeAsset = conversionSymbol
-			} else {
-				return nil, fmt.Errorf("Cannot parse fee units for TX %s\n", events[0].Message.Tx.Hash)
+	for id, txFees := range txToFeesMap {
+		for _, fee := range txFees {
+			if fee.PayerAddress.Address == address {
+				newRow := AccointingRow{}
+				newRow.ParseFee(txIdsToTx[id], fee)
+				rows = append(rows, newRow)
 			}
 		}
-
-		return rows, nil
-	}
-
-	tx := events[0].Message.Tx
-	//There's more fees than rows so generate a new row for each fee.
-	for _, fee := range fees {
-		feeUnits, feeSymbol, err := db.ConvertUnits(fee.Amount.BigInt(), fee.Denomination)
-		if err != nil {
-			return nil, fmt.Errorf("Cannot parse fee units for TX %s\n", events[0].Message.Tx.Hash)
-		}
-
-		newRow := AccointingRow{Date: FormatDatetime(tx.TimeStamp), FeeAmount: feeUnits.String(),
-			FeeAsset: feeSymbol, Classification: Fee, TransactionType: Withdraw}
-		rows = append(rows, newRow)
 	}
 
 	return rows, nil
@@ -245,7 +244,6 @@ func ParseTx(address string, events []db.TaxableTransaction) ([]parsers.CsvRow, 
 		}
 	}
 
-	// rows, err := HandleFees(address, events, rows)
 	return rows, nil
 }
 
