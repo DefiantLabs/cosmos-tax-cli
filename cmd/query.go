@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/csv"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
 	"github.com/spf13/cobra"
 )
 
@@ -14,16 +16,29 @@ var queryCmd = &cobra.Command{
 	your address to the command and a CSV export with your data for your address will be generated.`,
 	//If we want to pass errors up to the
 	Run: func(cmd *cobra.Command, args []string) {
+
+		found := false
+		parsers := parsers.GetParserKeys()
+		for _, v := range parsers {
+			if v == format {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			cmd.Help()
+			cobra.CheckErr(fmt.Sprintf("Invalid format %s, valid formats are %s", format, parsers))
+		}
+
 		//TODO: split out setup methods and only call necessary ones
 		_, db, _, err := setup(conf)
 		cobra.CheckErr(err)
 
-		csv.BootstrapChainSpecificTxParsingGroups(conf.Lens.ChainID)
-
-		accountRows, err := csv.ParseForAddress(address, db)
+		csvRows, headers, err := csv.ParseForAddress(address, db, format, conf)
 		cobra.CheckErr(err)
 
-		buffer := csv.ToCsv(accountRows)
+		buffer := csv.ToCsv(csvRows, headers)
 
 		err = os.WriteFile(output, buffer.Bytes(), 0644)
 		cobra.CheckErr(err)
@@ -33,12 +48,22 @@ var queryCmd = &cobra.Command{
 var (
 	address string //flag storage for the address to query on
 	output  string //flag storage for the output file location
+	format  string //flag storage for the output format
 )
 
 func init() {
+	validFormats := parsers.GetParserKeys()
+
+	if len(validFormats) == 0 {
+		fmt.Println("Error during intialization, no CSV parsers found.")
+		os.Exit(1)
+	}
+
 	queryCmd.Flags().StringVar(&address, "address", "", "The address to query for")
 	queryCmd.MarkFlagRequired("address")
 	queryCmd.Flags().StringVar(&output, "output", "./output.csv", "The output location")
+	queryCmd.Flags().StringVar(&format, "format", validFormats[0], "The format to output")
 
 	rootCmd.AddCommand(queryCmd)
+
 }
