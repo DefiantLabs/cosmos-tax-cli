@@ -82,7 +82,7 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 					row.InBuyAmount = util.NumericToString(valueRecieved)
 					row.InBuyAsset = denomRecieved.Base
 				} else {
-					row.InBuyAmount = conversionAmount.String()
+					row.InBuyAmount = conversionAmount.Text('f', -1)
 					row.InBuyAsset = conversionSymbol
 				}
 
@@ -97,7 +97,7 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 					row.OutSellAmount = util.NumericToString(valueSent)
 					row.OutSellAsset = denomSent.Base
 				} else {
-					row.OutSellAmount = conversionAmount.String()
+					row.OutSellAmount = conversionAmount.Text('f', -1)
 					row.OutSellAsset = conversionSymbol
 				}
 				row.TransactionType = Withdraw

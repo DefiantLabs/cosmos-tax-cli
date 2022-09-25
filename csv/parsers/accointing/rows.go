@@ -35,7 +35,7 @@ func (row *AccointingRow) EventParseBasic(address string, event db.TaxableEvent)
 	if event.EventAddress.Address == address {
 		conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.Amount), event.Denomination)
 		if err == nil {
-			row.InBuyAmount = conversionAmount.String()
+			row.InBuyAmount = conversionAmount.Text('f', -1)
 			row.InBuyAsset = conversionSymbol
 		} else {
 			row.InBuyAmount = util.NumericToString(event.Amount)
@@ -57,7 +57,7 @@ func (row *AccointingRow) ParseBasic(address string, event db.TaxableTransaction
 	if event.ReceiverAddress.Address == address {
 		conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountReceived), event.DenominationReceived)
 		if err == nil {
-			row.InBuyAmount = conversionAmount.String()
+			row.InBuyAmount = conversionAmount.Text('f', -1)
 			row.InBuyAsset = conversionSymbol
 		} else {
 			return fmt.Errorf("Cannot parse denom units for TX %s (classification: deposit)\n", row.OperationId)
@@ -68,7 +68,7 @@ func (row *AccointingRow) ParseBasic(address string, event db.TaxableTransaction
 
 		conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountSent), event.DenominationSent)
 		if err == nil {
-			row.OutSellAmount = conversionAmount.String()
+			row.OutSellAmount = conversionAmount.Text('f', -1)
 			row.OutSellAsset = conversionSymbol
 		} else {
 			return fmt.Errorf("Cannot parse denom units for TX %s (classification: withdrawal)\n", row.OperationId)
@@ -86,7 +86,7 @@ func (row *AccointingRow) ParseSwap(address string, event db.TaxableTransaction)
 
 	recievedConversionAmount, recievedConversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountReceived), event.DenominationReceived)
 	if err == nil {
-		row.InBuyAmount = recievedConversionAmount.String()
+		row.InBuyAmount = recievedConversionAmount.Text('f', -1)
 		row.InBuyAsset = recievedConversionSymbol
 	} else {
 		return fmt.Errorf("Cannot parse denom units for TX %s (classification: swap received)\n", row.OperationId)
@@ -94,7 +94,7 @@ func (row *AccointingRow) ParseSwap(address string, event db.TaxableTransaction)
 
 	sentConversionAmount, sentConversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountSent), event.DenominationSent)
 	if err == nil {
-		row.OutSellAmount = sentConversionAmount.String()
+		row.OutSellAmount = sentConversionAmount.Text('f', -1)
 		row.OutSellAsset = sentConversionSymbol
 	} else {
 		return fmt.Errorf("Cannot parse denom units for TX %s (classification: swap sent)\n", row.OperationId)
@@ -110,7 +110,7 @@ func (row *AccointingRow) ParseFee(tx db.Tx, fee db.Fee) error {
 	row.Classification = Fee
 	sentConversionAmount, sentConversionSymbol, err := db.ConvertUnits(util.FromNumeric(fee.Amount), fee.Denomination)
 	if err == nil {
-		row.OutSellAmount = sentConversionAmount.String()
+		row.OutSellAmount = sentConversionAmount.Text('f', -1)
 		row.OutSellAsset = sentConversionSymbol
 	} else {
 		return fmt.Errorf("Cannot parse denom units for TX %s (classification: swap sent)\n", row.OperationId)
