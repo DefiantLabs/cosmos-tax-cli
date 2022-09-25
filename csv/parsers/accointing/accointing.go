@@ -3,6 +3,7 @@ package accointing
 import (
 	"fmt"
 	"os"
+	"sort"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/bank"
@@ -147,16 +148,40 @@ func (p *AccointingParser) InitializeParsingGroups(config config.Config) {
 }
 
 func (p *AccointingParser) GetRows() []parsers.CsvRow {
-	rows := make([]parsers.CsvRow, len(p.Rows))
 
-	for i, v := range p.Rows {
-		rows[i] = v
-	}
+	//Combine all normal rows and parser group rows into 1
+	var accointingRows []AccointingRow
+	var parserGroupRows []AccointingRow
 
 	for _, v := range p.ParsingGroups {
-		for _, vv := range v.GetRowsForParsingGroup() {
-			rows = append(rows, vv)
+		for _, row := range v.GetRowsForParsingGroup() {
+			parserGroupRows = append(parserGroupRows, row.(AccointingRow))
 		}
+	}
+
+	accointingRows = append(accointingRows, p.Rows...)
+	accointingRows = append(accointingRows, parserGroupRows...)
+
+	//Sort by date
+	sort.Slice(accointingRows, func(i int, j int) bool {
+		leftDate, err := DateFromString(accointingRows[i].Date)
+		if err != nil {
+			fmt.Println("Error sorting", err)
+			return false
+		}
+		rightDate, err := DateFromString(accointingRows[j].Date)
+		if err != nil {
+			fmt.Println("Error sorting", err)
+			return false
+		}
+		return leftDate.Before(rightDate)
+	})
+
+	//Copy AccointingRows into CsvRows for return val
+	rows := make([]parsers.CsvRow, len(accointingRows))
+
+	for i, v := range accointingRows {
+		rows[i] = v
 	}
 
 	return rows
