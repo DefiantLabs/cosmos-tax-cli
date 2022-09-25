@@ -31,6 +31,7 @@ import (
 //Unmarshal JSON to a particular type.
 var messageTypeHandler = map[string]func() txTypes.CosmosMessage{
 	"/cosmos.bank.v1beta1.MsgSend":                                func() txTypes.CosmosMessage { return &bank.WrapperMsgSend{} },
+	"/cosmos.bank.v1beta1.MsgMultiSend":                           func() txTypes.CosmosMessage { return &bank.WrapperMsgMultiSend{} },
 	"/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward":     func() txTypes.CosmosMessage { return &staking.WrapperMsgWithdrawDelegatorReward{} },
 	"/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission": func() txTypes.CosmosMessage { return &staking.WrapperMsgWithdrawValidatorCommission{} },
 }
@@ -66,8 +67,8 @@ func ParseCosmosMessage(message types.Msg, log *txTypes.TxLogMessage) (txTypes.C
 
 	//Unmarshal the rest of the JSON now that we know the specific type.
 	//Note that depending on the type, it may or may not care about logs.
-	msg.HandleMsg(cosmosMessage.Type, message, log)
-	return msg, nil
+	err := msg.HandleMsg(cosmosMessage.Type, message, log)
+	return msg, err
 }
 
 func toAttributes(attrs []types.Attribute) []txTypes.Attribute {
