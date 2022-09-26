@@ -256,6 +256,8 @@ func ParseTx(address string, events []db.TaxableTransaction) ([]parsers.CsvRow, 
 		//Is this a MsgSend
 		if bank.IsMsgSend[event.Message.MessageType] {
 			rows = append(rows, ParseMsgSend(address, event))
+		} else if bank.IsMsgMultiSend[event.Message.MessageType] {
+			rows = append(rows, ParseMsgMultiSend(address, event))
 		} else if staking.IsMsgWithdrawValidatorCommission[event.Message.MessageType] {
 			rows = append(rows, ParseMsgWithdrawValidatorCommission(address, event))
 		} else if staking.IsMsgWithdrawDelegatorReward[event.Message.MessageType] {
@@ -294,6 +296,12 @@ func ParseMsgWithdrawDelegatorReward(address string, event db.TaxableTransaction
 //If the address we searched is the receiver, then this transaction is a deposit.
 //If the address we searched is the sender, then this transaction is a withdrawal.
 func ParseMsgSend(address string, event db.TaxableTransaction) AccointingRow {
+	row := &AccointingRow{}
+	row.ParseBasic(address, event)
+	return *row
+}
+
+func ParseMsgMultiSend(address string, event db.TaxableTransaction) AccointingRow {
 	row := &AccointingRow{}
 	row.ParseBasic(address, event)
 	return *row
