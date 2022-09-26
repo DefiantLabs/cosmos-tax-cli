@@ -7,6 +7,7 @@ import (
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/bank"
+	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/distribution"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/staking"
 	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
@@ -258,6 +259,8 @@ func ParseTx(address string, events []db.TaxableTransaction) ([]parsers.CsvRow, 
 			rows = append(rows, ParseMsgSend(address, event))
 		} else if bank.IsMsgMultiSend[event.Message.MessageType] {
 			rows = append(rows, ParseMsgMultiSend(address, event))
+		} else if distribution.IsMsgFundCommunityPool[event.Message.MessageType] {
+			rows = append(rows, ParseMsgFundCommunityPool(address, event))
 		} else if staking.IsMsgWithdrawValidatorCommission[event.Message.MessageType] {
 			rows = append(rows, ParseMsgWithdrawValidatorCommission(address, event))
 		} else if staking.IsMsgWithdrawDelegatorReward[event.Message.MessageType] {
@@ -302,6 +305,12 @@ func ParseMsgSend(address string, event db.TaxableTransaction) AccointingRow {
 }
 
 func ParseMsgMultiSend(address string, event db.TaxableTransaction) AccointingRow {
+	row := &AccointingRow{}
+	row.ParseBasic(address, event)
+	return *row
+}
+
+func ParseMsgFundCommunityPool(address string, event db.TaxableTransaction) AccointingRow {
 	row := &AccointingRow{}
 	row.ParseBasic(address, event)
 	return *row
