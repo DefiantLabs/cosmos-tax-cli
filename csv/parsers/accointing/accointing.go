@@ -8,6 +8,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/bank"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/distribution"
+	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/staking"
 	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
@@ -263,6 +264,8 @@ func ParseTx(address string, events []db.TaxableTransaction) ([]parsers.CsvRow, 
 		} else if distribution.IsMsgWithdrawValidatorCommission[event.Message.MessageType] {
 			rows = append(rows, ParseMsgWithdrawValidatorCommission(address, event))
 		} else if distribution.IsMsgWithdrawDelegatorReward[event.Message.MessageType] {
+			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
+		} else if staking.IsMsgDelegate[event.Message.MessageType] {
 			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
 		} else if gamm.IsMsgSwapExactAmountIn[event.Message.MessageType] {
 			rows = append(rows, ParseMsgSwapExactAmountIn(address, event))

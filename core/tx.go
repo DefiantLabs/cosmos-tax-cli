@@ -9,6 +9,7 @@ import (
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/bank"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/distribution"
+	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/staking"
 	tx "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 	txTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
@@ -35,6 +36,7 @@ var messageTypeHandler = map[string]func() txTypes.CosmosMessage{
 	"/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward":     func() txTypes.CosmosMessage { return &distribution.WrapperMsgWithdrawDelegatorReward{} },
 	"/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission": func() txTypes.CosmosMessage { return &distribution.WrapperMsgWithdrawValidatorCommission{} },
 	"/cosmos.distribution.v1beta1.MsgFundCommunityPool":           func() txTypes.CosmosMessage { return &distribution.WrapperMsgFundCommunityPool{} },
+	"/cosmos.staking.v1beta1.MsgDelegate":                         func() txTypes.CosmosMessage { return &staking.WrapperMsgDelegate{} },
 }
 
 //Merge the chain specific message type handlers into the core message type handler map
