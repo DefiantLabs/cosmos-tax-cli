@@ -37,6 +37,7 @@ var messageTypeHandler = map[string]func() txTypes.CosmosMessage{
 	"/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission": func() txTypes.CosmosMessage { return &distribution.WrapperMsgWithdrawValidatorCommission{} },
 	"/cosmos.distribution.v1beta1.MsgFundCommunityPool":           func() txTypes.CosmosMessage { return &distribution.WrapperMsgFundCommunityPool{} },
 	"/cosmos.staking.v1beta1.MsgDelegate":                         func() txTypes.CosmosMessage { return &staking.WrapperMsgDelegate{} },
+	"/cosmos.staking.v1beta1.MsgUndelegate":                       func() txTypes.CosmosMessage { return &staking.WrapperMsgUndelegate{} },
 }
 
 //Merge the chain specific message type handlers into the core message type handler map

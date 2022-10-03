@@ -267,6 +267,8 @@ func ParseTx(address string, events []db.TaxableTransaction) ([]parsers.CsvRow, 
 			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
 		} else if staking.IsMsgDelegate[event.Message.MessageType] {
 			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
+		} else if staking.IsMsgUndelegate[event.Message.MessageType] {
+			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
 		} else if gamm.IsMsgSwapExactAmountIn[event.Message.MessageType] {
 			rows = append(rows, ParseMsgSwapExactAmountIn(address, event))
 		} else if gamm.IsMsgSwapExactAmountOut[event.Message.MessageType] {
