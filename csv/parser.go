@@ -2,7 +2,6 @@ package csv
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
@@ -30,25 +29,26 @@ func ParseForAddress(address string, pgSql *gorm.DB, parserKey string, config co
 	parser := GetParser(parserKey)
 	parser.InitializeParsingGroups(config)
 
+	//TODO: need to pass in chain and date range
 	taxableTxs, err := db.GetTaxableTransactions(address, pgSql)
 
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		return nil, nil, err
 	}
 
 	err = parser.ProcessTaxableTx(address, taxableTxs)
 
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		return nil, nil, err
 	}
 
 	taxableEvents, err := db.GetTaxableEvents(address, pgSql)
 
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		return nil, nil, err
 	}
 
 	parser.ProcessTaxableEvent(address, taxableEvents)
