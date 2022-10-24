@@ -26,7 +26,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
-          args: ./backend -v
+          args: -v
       - uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GO_VERSION }}
