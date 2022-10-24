@@ -3,7 +3,6 @@ package core
 import (
 	"encoding/base64"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"regexp"
 
@@ -17,7 +16,7 @@ import (
 	legacybech32 "github.com/cosmos/cosmos-sdk/types/bech32/legacybech32"
 )
 
-//consider not using globals
+// consider not using globals
 var addressRegex *regexp.Regexp
 var addressPrefix string
 
@@ -51,7 +50,7 @@ func ParseSignerAddress(pubkeyString string, keytype string) (retstring string, 
 
 	defer func() {
 		if r := recover(); r != nil {
-			reterror = errors.New(fmt.Sprintf("Error parsing signer address into Bech32: %v", r))
+			reterror = fmt.Errorf(fmt.Sprintf("Error parsing signer address into Bech32: %v", r))
 			retstring = ""
 		}
 	}()
@@ -68,10 +67,10 @@ func ParseSignerAddress(pubkeyString string, keytype string) (retstring string, 
 	return bech32address, nil
 }
 
-//the following code is taken from here https://github.com/cosmos/cosmos-sdk/blob/9ff6d5441db2260e7877724df65c0f2b8251d991/client/debug/main.go
-//they do a check in bytesToPubkey for the keytype of "ed25519", we may want to pass in the keytype but this seems to work
-//with secp256k1 keys without passing in the keytype.
-//The key type seems to be in the @type key of in the public_key block in signer_infos so we could potentially pass it in there
+// the following code is taken from here https://github.com/cosmos/cosmos-sdk/blob/9ff6d5441db2260e7877724df65c0f2b8251d991/client/debug/main.go
+// they do a check in bytesToPubkey for the keytype of "ed25519", we may want to pass in the keytype but this seems to work
+// with secp256k1 keys without passing in the keytype.
+// The key type seems to be in the @type key of in the public_key block in signer_infos so we could potentially pass it in there
 func getPubKeyFromRawString(pkstr string, keytype string) (cryptotypes.PubKey, error) {
 	bz, err := hex.DecodeString(pkstr)
 	if err == nil {

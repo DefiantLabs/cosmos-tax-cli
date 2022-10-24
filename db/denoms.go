@@ -72,7 +72,7 @@ func GetHighestDenomUnit(denomUnit DenomUnit, denomUnits []DenomUnit) (DenomUnit
 	return highestDenomUnit, nil
 }
 
-//TODO unit test this function
+// TODO unit test this function
 func ConvertUnits(amount *big.Int, denom Denom) (*big.Float, string, error) {
 
 	//Try denom unit first
@@ -102,10 +102,10 @@ func ConvertUnits(amount *big.Int, denom Denom) (*big.Float, string, error) {
 	return dividedAmount, symbol, nil
 }
 
-//This function assumes that the denom to be added is the base denom
-//which will be correct in all cases that the missing denom was pulled from
-//a transaction message and not found in our database during tx parsing
-//Creates a single denom and a single denom_unit that fits our DB structure, adds them to the DB
+// This function assumes that the denom to be added is the base denom
+// which will be correct in all cases that the missing denom was pulled from
+// a transaction message and not found in our database during tx parsing
+// Creates a single denom and a single denom_unit that fits our DB structure, adds them to the DB
 func AddUnknownDenom(db *gorm.DB, denom string) (Denom, error) {
 	denomToAdd := Denom{Base: denom, Name: "UNKNOWN", Symbol: "UNKNOWN"}
 	singleDenomUnit := DenomUnit{Exponent: 0, Name: denom}
@@ -115,6 +115,9 @@ func AddUnknownDenom(db *gorm.DB, denom string) (Denom, error) {
 	denomDbWrapper[0].DenomUnits = denomUnitsToAdd[:]
 
 	err := UpsertDenoms(db, denomDbWrapper[:])
+	if err != nil {
+		return denomToAdd, err
+	}
 
 	//recache the denoms (threadsafe due to mutex on read and write)
 	CacheDenoms(db)

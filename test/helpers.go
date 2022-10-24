@@ -61,10 +61,10 @@ func ensureTestAddress(db *gorm.DB) dbUtils.Address {
 	return addr
 }
 
-//setup does pre-run setup configurations.
-//	* Loads the application config from config.tml, cli args and parses/merges
-//	* Connects to the database and returns the db object
-//	* Returns various values used throughout the application
+// setup does pre-run setup configurations.
+//   - Loads the application config from config.tml, cli args and parses/merges
+//   - Connects to the database and returns the db object
+//   - Returns various values used throughout the application
 func db_setup(addressRegex string, addressPrefix string) (*gorm.DB, error) {
 	config, err := configUtils.GetConfig("../config.toml")
 
@@ -85,7 +85,12 @@ func db_setup(addressRegex string, addressPrefix string) (*gorm.DB, error) {
 	core.SetupAddressPrefix(addressPrefix)
 
 	//run database migrations at every runtime
-	dbUtils.MigrateModels(db)
+	err = dbUtils.MigrateModels(db)
+	if err != nil {
+		fmt.Println("Error running database migrations: ", err)
+		return nil, err
+	}
+
 	dbUtils.CacheDenoms(db) //Have to cache denoms to get translations from e.g. ujuno to Juno
 	return db, nil
 

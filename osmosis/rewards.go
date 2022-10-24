@@ -9,11 +9,11 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-//GetRewardsBetween figures out which blocks (in the given range, start height to end height)
-//contain Osmosis rewards, and queries the reward info. Blocks without rewards are skipped.
-//An error is returned if we cannot query a list of reward epochs. Otherwise []*OsmosisRewards
-//is returned, which contains all of the rewards for a given block height and address.
-//See Osmosis repo x/incentives/keeper/distribute.go, doDistributionSends for more info.
+// GetRewardsBetween figures out which blocks (in the given range, start height to end height)
+// contain Osmosis rewards, and queries the reward info. Blocks without rewards are skipped.
+// An error is returned if we cannot query a list of reward epochs. Otherwise []*OsmosisRewards
+// is returned, which contains all of the rewards for a given block height and address.
+// See Osmosis repo x/incentives/keeper/distribute.go, doDistributionSends for more info.
 func (client *URIClient) GetRewardsBetween(startHeight int64, endHeight int64) ([]*OsmosisRewards, error) {
 	// rewardEpochs, epochLookupErr := client.getRewardEpochs(startHeight, endHeight)
 	// if epochLookupErr != nil {
@@ -33,9 +33,9 @@ func (client *URIClient) GetRewardsBetween(startHeight int64, endHeight int64) (
 	return epochList, nil
 }
 
-//IndexEpoch indexes any reward distribution at the given block height.
-//If a block does not contain a reward distribution, it gets skipped.
-//An error indicates a problem with the RPC search or the DB indexer.
+// IndexEpoch indexes any reward distribution at the given block height.
+// If a block does not contain a reward distribution, it gets skipped.
+// An error indicates a problem with the RPC search or the DB indexer.
 func (client *URIClient) GetEpochRewards(height int64) ([]*OsmosisRewards, error) {
 	rewards, epochErr := client.getRewards(height)
 	if epochErr != nil {
@@ -46,11 +46,13 @@ func (client *URIClient) GetEpochRewards(height int64) ([]*OsmosisRewards, error
 	return rewards, nil
 }
 
-//GetRewardEpochs (RPC) Get a list of the block heights where Osmosis distributed rewards.
-//Rewards are distributed daily, the block height is time based and not known in advance.
-//The Osmosis SDK emits ABCI events (to tendermint) when rewards are distributed. This function
-//queries the node via RPC and figures out what blocks contain the reward distribution info.
-//The events are emitted under the key "distribution.receiver" so that is what we search for.
+// GetRewardEpochs (RPC) Get a list of the block heights where Osmosis distributed rewards.
+// Rewards are distributed daily, the block height is time based and not known in advance.
+// The Osmosis SDK emits ABCI events (to tendermint) when rewards are distributed. This function
+// queries the node via RPC and figures out what blocks contain the reward distribution info.
+// The events are emitted under the key "distribution.receiver" so that is what we search for.
+//
+//nolint:unused
 func (client *URIClient) getRewardEpochs(startHeight int64, endHeight int64) ([]int64, error) {
 	osmosisRewardsQuery := "distribution.receiver EXISTS"
 	rewardBlocks := []int64{}
@@ -77,11 +79,11 @@ func (client *URIClient) getRewardEpochs(startHeight int64, endHeight int64) ([]
 	return rewardBlocks, nil
 }
 
-//GetRewards Gets the total rewards distributed to each address
-//during the given epoch (block height). If any errors are encountered
-//during processing of this block height, an error will be returned
-//and no reward information will be returned. This forces reprocessing
-//of failed blocks.
+// GetRewards Gets the total rewards distributed to each address
+// during the given epoch (block height). If any errors are encountered
+// during processing of this block height, an error will be returned
+// and no reward information will be returned. This forces reprocessing
+// of failed blocks.
 func (client *URIClient) getRewards(height int64) ([]*OsmosisRewards, error) {
 	rewards := map[string]*OsmosisRewards{}
 

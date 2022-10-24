@@ -1,6 +1,6 @@
 package parsers
 
-//Check in your parsers here
+// Check in your parsers here
 var Parsers map[string]bool
 
 func init() {
@@ -14,7 +14,7 @@ func RegisterParser(key string) {
 func GetParserKeys() []string {
 	var parserKeys []string
 
-	for i, _ := range Parsers {
+	for i := range Parsers {
 		parserKeys = append(parserKeys, i)
 	}
 

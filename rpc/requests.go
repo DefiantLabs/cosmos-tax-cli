@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	denoms "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/denoms"
@@ -26,7 +26,7 @@ func GetEndpoint(key string) string {
 	return apiEndpoints[key]
 }
 
-//GetBlockByHeight makes a request to the Cosmos RPC API and returns all the transactions for a specific block
+// GetBlockByHeight makes a request to the Cosmos RPC API and returns all the transactions for a specific block
 func GetBlockByHeight(cl *lensClient.ChainClient, height int64) (*coretypes.ResultBlockResults, error) {
 	options := lensQuery.QueryOptions{Height: height}
 	query := lensQuery.Query{Client: cl, Options: &options}
@@ -38,7 +38,7 @@ func GetBlockByHeight(cl *lensClient.ChainClient, height int64) (*coretypes.Resu
 	return resp, nil
 }
 
-//GetTxsByBlockHeight makes a request to the Cosmos RPC API and returns all the transactions for a specific block
+// GetTxsByBlockHeight makes a request to the Cosmos RPC API and returns all the transactions for a specific block
 func GetTxsByBlockHeight(cl *lensClient.ChainClient, height int64) (*txTypes.GetTxsEventResponse, error) {
 	options := lensQuery.QueryOptions{Height: height}
 	query := lensQuery.Query{Client: cl, Options: &options}
@@ -50,7 +50,7 @@ func GetTxsByBlockHeight(cl *lensClient.ChainClient, height int64) (*txTypes.Get
 	return resp, nil
 }
 
-//IsCatchingUp true if the node is catching up to the chain, false otherwise
+// IsCatchingUp true if the node is catching up to the chain, false otherwise
 func IsCatchingUp(cl *lensClient.ChainClient) (bool, error) {
 	query := lensQuery.Query{Client: cl, Options: &lensQuery.QueryOptions{}}
 	ctx, cancel := query.GetQueryContext()
@@ -79,7 +79,7 @@ func checkResponseErrorCode(requestEndpoint string, resp *http.Response) error {
 
 	if resp.StatusCode != 200 {
 		fmt.Println("Error getting response")
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		errorString := fmt.Sprintf("Error getting response for endpoint %s: Status %s Body %s", requestEndpoint, resp.Status, body)
 
 		err := errors.New(errorString)
@@ -112,7 +112,7 @@ func GetDenomsMetadatas(host string) (denoms.GetDenomsMetadatasResponse, error) 
 		return result, err
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 
 	if err != nil {
 		return result, err
