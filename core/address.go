@@ -13,7 +13,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	cosmostypes "github.com/cosmos/cosmos-sdk/types"
-	legacybech32 "github.com/cosmos/cosmos-sdk/types/bech32/legacybech32"
+	legacybech32 "github.com/cosmos/cosmos-sdk/types/bech32/legacybech32" //nolint:staticcheck
 )
 
 // consider not using globals
@@ -88,17 +88,17 @@ func getPubKeyFromRawString(pkstr string, keytype string) (cryptotypes.PubKey, e
 		}
 	}
 
-	pk, err := legacybech32.UnmarshalPubKey(legacybech32.AccPK, pkstr)
+	pk, err := legacybech32.UnmarshalPubKey(legacybech32.AccPK, pkstr) //nolint:staticcheck
 	if err == nil {
 		return pk, nil
 	}
 
-	pk, err = legacybech32.UnmarshalPubKey(legacybech32.ValPK, pkstr)
+	pk, err = legacybech32.UnmarshalPubKey(legacybech32.ValPK, pkstr) //nolint:staticcheck
 	if err == nil {
 		return pk, nil
 	}
 
-	pk, err = legacybech32.UnmarshalPubKey(legacybech32.ConsPK, pkstr)
+	pk, err = legacybech32.UnmarshalPubKey(legacybech32.ConsPK, pkstr) //nolint:staticcheck
 	if err == nil {
 		return pk, nil
 	}

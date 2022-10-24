@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"log"
 	"math"
 	"net/http"
 	"os"
@@ -51,7 +52,10 @@ var indexCmd = &cobra.Command{
 		core.ChainSpecificMessageTypeHandlerBootstrap(config.Lens.ChainID)
 
 		//TODO may need to run this task in setup() so that we have a cold start functionality before the indexer starts
-		scheduler.Every(6).Hours().Do(tasks.DenomUpsertTask, apiHost, db)
+		_, err = scheduler.Every(6).Hours().Do(tasks.DenomUpsertTask, apiHost, db)
+		if err != nil {
+			log.Println("Error scheduling denmon upsert task. Err: ", err)
+		}
 		scheduler.StartAsync()
 
 		//Some chains do not have the denom metadata URL available on chain, so we do chain specific downloads instead.
@@ -176,7 +180,7 @@ var indexCmd = &cobra.Command{
 	},
 }
 
-//If nothing has been indexed yet, the start height should be 0.
+// If nothing has been indexed yet, the start height should be 0.
 func OsmosisGetRewardsStartIndexHeight(db *gorm.DB, chainID string) int64 {
 	block, err := dbTypes.GetHighestTaxableEventBlock(db, chainID)
 	if err != nil && err.Error() != "record not found" {

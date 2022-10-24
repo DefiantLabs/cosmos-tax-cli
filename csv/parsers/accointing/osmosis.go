@@ -18,15 +18,15 @@ var IsOsmosisExit = map[string]bool{
 	"/osmosis.gamm.v1beta1.MsgExitPool":                true,
 }
 
-//Guard for adding messages to the group
+// Guard for adding messages to the group
 var IsOsmosisLpTxGroup = make(map[string]bool)
 
 func init() {
-	for messageType, _ := range IsOsmosisJoin {
+	for messageType := range IsOsmosisJoin {
 		IsOsmosisLpTxGroup[messageType] = true
 	}
 
-	for messageType, _ := range IsOsmosisExit {
+	for messageType := range IsOsmosisExit {
 		IsOsmosisLpTxGroup[messageType] = true
 	}
 }

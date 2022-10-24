@@ -107,8 +107,8 @@ func GetTaxableEventsCSV(c *gin.Context) {
 	var requestBody TaxableEventsCSVRequest
 	err := c.BindJSON(&requestBody)
 	if err != nil {
-		err = c.AbortWithError(500, errors.New("Error processing request body"))
-		log.Printf("Error calling AbortWithError. Err: %v", err)
+		// the error returned here has already been pushed to the context... I think.
+		c.AbortWithError(500, errors.New("Error processing request body")) //nolint:staticcheck,errcheck
 		return
 	}
 
@@ -136,7 +136,8 @@ func GetTaxableEventsCSV(c *gin.Context) {
 
 	accountRows, headers, err := csv.ParseForAddress(requestBody.Address, DB, requestBody.Format, *Config)
 	if err != nil {
-		c.AbortWithError(500, errors.New("Error getting rows for address"))
+		// the error returned here has already been pushed to the context... I think.
+		c.AbortWithError(500, errors.New("Error getting rows for address")) //nolint:staticcheck,errcheck
 		return
 	}
 

@@ -115,14 +115,11 @@ func (p *AccointingParser) ProcessTaxableTx(address string, taxableTxs []db.Taxa
 	//This requires HandleFees to process the fees into unique mappings of tx -> fees (since we gather Taxable Messages in the taxableTxs)
 	//If we move it into the ParseTx function or into the ParseGroup function, we may be able to reduce the logic in the HandleFees func
 	feeRows, err := HandleFees(address, taxableTxs)
-
 	if err != nil {
 		return err
 	}
 
-	for _, v := range feeRows {
-		p.Rows = append(p.Rows, v)
-	}
+	p.Rows = append(p.Rows, feeRows...)
 
 	return nil
 }
@@ -146,9 +143,7 @@ func (p *AccointingParser) ProcessTaxableEvent(address string, taxableEvents []d
 func (p *AccointingParser) InitializeParsingGroups(config config.Config) {
 	switch config.Lens.ChainID {
 	case "osmosis-1":
-		for _, v := range GetOsmosisTxParsingGroups() {
-			p.ParsingGroups = append(p.ParsingGroups, v)
-		}
+		p.ParsingGroups = append(p.ParsingGroups, GetOsmosisTxParsingGroups()...)
 	}
 }
 
