@@ -176,7 +176,7 @@ var indexCmd = &cobra.Command{
 	},
 }
 
-//If nothing has been indexed yet, the start height should be 0.
+// If nothing has been indexed yet, the start height should be 0.
 func OsmosisGetRewardsStartIndexHeight(db *gorm.DB, chainID string) int64 {
 	block, err := dbTypes.GetHighestTaxableEventBlock(db, chainID)
 	if err != nil && err.Error() != "record not found" {
@@ -250,6 +250,7 @@ func QueryRpc(
 
 		if reprocessBlock == 0 {
 			blockToProcess = <-blockHeightToProcess
+		} else {
 			reprocessBlock = 0
 		}
 		//fmt.Printf("Querying RPC transactions for block %d\n", blockToProcess)
