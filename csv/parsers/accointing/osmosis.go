@@ -68,7 +68,6 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 	//TODO: Do specialized processing on LP messages
 	for _, txMessages := range sf.GroupedTxes {
 		for _, message := range txMessages {
-
 			row := AccointingRow{}
 			row.OperationId = message.Message.Tx.Hash
 			row.Date = FormatDatetime(message.Message.Tx.TimeStamp)

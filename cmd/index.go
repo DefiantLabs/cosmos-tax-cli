@@ -202,7 +202,6 @@ func GetIndexerStartingHeight(configStartHeight int64, cl *client.ChainClient, d
 	}
 
 	return latestBlock
-
 }
 
 func IndexOsmosisRewards(
@@ -322,6 +321,5 @@ func ProcessTxs(
 				timeStart = time.Now()
 			}
 		}
-
 	}
 }

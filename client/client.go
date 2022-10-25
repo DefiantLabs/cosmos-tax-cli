@@ -20,7 +20,6 @@ var DB *gorm.DB
 var Config *config.Config
 
 func setup() (*gorm.DB, *config.Config, error) {
-
 	argConfig, err := configHelpers.ParseArgs(os.Stderr, os.Args[1:])
 
 	if err != nil {
@@ -52,11 +51,9 @@ func setup() (*gorm.DB, *config.Config, error) {
 	dbTypes.CacheDenoms(db)
 
 	return db, &config, nil
-
 }
 
 func main() {
-
 	db, config, err := setup()
 
 	DB = db

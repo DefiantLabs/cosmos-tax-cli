@@ -45,7 +45,6 @@ func DoChainSpecificUpsertDenoms(db *gorm.DB, chain string) {
 }
 
 func UpsertOsmosisDenoms(db *gorm.DB) {
-
 	url := "https://raw.githubusercontent.com/osmosis-labs/assetlists/main/osmosis-1/osmosis-1.assetlist.json"
 	frontierUrl := "https://raw.githubusercontent.com/osmosis-labs/assetlists/main/osmosis-1/osmosis-frontier.assetlist.json"
 

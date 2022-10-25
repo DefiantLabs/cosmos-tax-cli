@@ -23,14 +23,10 @@ func GetEndpoint(key string) string {
 }
 
 // GetBlockByHeight makes a request to the Cosmos REST API to get a block by height
-func GetBlockByHeight(host string, height uint64) (tx.GetBlockByHeightResponse, error) {
-
-	var result tx.GetBlockByHeightResponse
-
+func GetBlockByHeight(host string, height uint64) (result tx.GetBlockByHeightResponse, err error) {
 	requestEndpoint := fmt.Sprintf(apiEndpoints["blocks_endpoint"], height)
 
 	resp, err := http.Get(fmt.Sprintf("%s%s", host, requestEndpoint))
-
 	if err != nil {
 		return result, err
 	}
@@ -48,7 +44,6 @@ func GetBlockByHeight(host string, height uint64) (tx.GetBlockByHeightResponse, 
 	}
 
 	err = json.Unmarshal(body, &result)
-
 	if err != nil {
 		return result, err
 	}
@@ -58,7 +53,6 @@ func GetBlockByHeight(host string, height uint64) (tx.GetBlockByHeightResponse, 
 
 // GetTxsByBlockHeight makes a request to the Cosmos REST API and returns all the transactions for a specific block
 func GetTxsByBlockHeight(host string, height uint64) (tx.GetTxByBlockHeightResponse, error) {
-
 	var result tx.GetTxByBlockHeightResponse
 
 	requestEndpoint := fmt.Sprintf(apiEndpoints["txs_by_block_height_endpoint"], height)
@@ -93,7 +87,6 @@ func GetTxsByBlockHeight(host string, height uint64) (tx.GetTxByBlockHeightRespo
 }
 
 func GetLatestBlock(host string) (tx.GetLatestBlockResponse, error) {
-
 	var result tx.GetLatestBlockResponse
 
 	requestEndpoint := apiEndpoints["latest_block_endpoint"]
@@ -128,7 +121,6 @@ func GetLatestBlock(host string) (tx.GetLatestBlockResponse, error) {
 }
 
 func checkResponseErrorCode(requestEndpoint string, resp *http.Response) error {
-
 	if resp.StatusCode != 200 {
 		log.Printf("Error getting response. Code: %v", resp.StatusCode)
 		body, _ := io.ReadAll(resp.Body)
@@ -136,18 +128,13 @@ func checkResponseErrorCode(requestEndpoint string, resp *http.Response) error {
 	}
 
 	return nil
-
 }
 
-func GetDenomsMetadatas(host string) (denoms.GetDenomsMetadatasResponse, error) {
-
-	//TODO paginate
-	var result denoms.GetDenomsMetadatasResponse
-
+func GetDenomsMetadatas(host string) (result denoms.GetDenomsMetadatasResponse, err error) {
 	requestEndpoint := apiEndpoints["denoms_metadata"]
 
+	//TODO paginate
 	resp, err := http.Get(fmt.Sprintf("%s%s", host, requestEndpoint))
-
 	if err != nil {
 		return result, err
 	}
@@ -155,19 +142,16 @@ func GetDenomsMetadatas(host string) (denoms.GetDenomsMetadatasResponse, error) 
 	defer resp.Body.Close()
 
 	err = checkResponseErrorCode(requestEndpoint, resp)
-
 	if err != nil {
 		return result, err
 	}
 
 	body, err := io.ReadAll(resp.Body)
-
 	if err != nil {
 		return result, err
 	}
 
 	err = json.Unmarshal(body, &result)
-
 	if err != nil {
 		return result, err
 	}

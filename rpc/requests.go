@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -76,30 +75,22 @@ func GetLatestBlockHeight(cl *lensClient.ChainClient) (int64, error) {
 }
 
 func checkResponseErrorCode(requestEndpoint string, resp *http.Response) error {
-
 	if resp.StatusCode != 200 {
 		fmt.Println("Error getting response")
 		body, _ := io.ReadAll(resp.Body)
-		errorString := fmt.Sprintf("Error getting response for endpoint %s: Status %s Body %s", requestEndpoint, resp.Status, body)
-
-		err := errors.New(errorString)
-
-		return err
+		return fmt.Errorf("error getting response for endpoint %s: Status %s Body %s", requestEndpoint, resp.Status, body)
 	}
 
 	return nil
-
 }
 
 func GetDenomsMetadatas(host string) (denoms.GetDenomsMetadatasResponse, error) {
-
 	//TODO paginate
 	var result denoms.GetDenomsMetadatasResponse
 
 	requestEndpoint := apiEndpoints["denoms_metadata"]
 
 	resp, err := http.Get(fmt.Sprintf("%s%s", host, requestEndpoint))
-
 	if err != nil {
 		return result, err
 	}
@@ -107,19 +98,16 @@ func GetDenomsMetadatas(host string) (denoms.GetDenomsMetadatasResponse, error) 
 	defer resp.Body.Close()
 
 	err = checkResponseErrorCode(requestEndpoint, resp)
-
 	if err != nil {
 		return result, err
 	}
 
 	body, err := io.ReadAll(resp.Body)
-
 	if err != nil {
 		return result, err
 	}
 
 	err = json.Unmarshal(body, &result)
-
 	if err != nil {
 		return result, err
 	}

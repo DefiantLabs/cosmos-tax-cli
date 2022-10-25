@@ -32,7 +32,6 @@ func ensureOsmosisRewardsTaxableEvent(db *gorm.DB, denom dbUtils.Denom, addr dbU
 	taxEvt := dbUtils.TaxableEvent{Source: dbUtils.OsmosisRewardDistribution, Amount: util.ToNumeric(amount), Denomination: denom, EventAddress: addr, Block: block}
 	db.FirstOrCreate(&taxEvt, &taxEvt)
 	return taxEvt
-
 }
 
 func ensureTestChain(db *gorm.DB, chainID string, name string) dbUtils.Chain {
@@ -93,5 +92,4 @@ func db_setup(addressRegex string, addressPrefix string) (*gorm.DB, error) {
 
 	dbUtils.CacheDenoms(db) //Have to cache denoms to get translations from e.g. ujuno to Juno
 	return db, nil
-
 }

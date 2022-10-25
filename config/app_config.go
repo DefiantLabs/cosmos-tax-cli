@@ -62,7 +62,6 @@ func GetConfig(configFileLocation string) (conf Config, err error) {
 }
 
 func MergeConfigs(def Config, overide Config) Config {
-
 	err := mergo.Merge(&overide, def)
 	if err != nil {
 		lg.Panicf("Config merge failed. Err: %v", err)

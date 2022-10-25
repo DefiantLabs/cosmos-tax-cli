@@ -25,7 +25,6 @@ func GetParser(parserKey string) parsers.Parser {
 }
 
 func ParseForAddress(address string, pgSql *gorm.DB, parserKey string, config config.Config) ([]parsers.CsvRow, []string, error) {
-
 	parser := GetParser(parserKey)
 	parser.InitializeParsingGroups(config)
 

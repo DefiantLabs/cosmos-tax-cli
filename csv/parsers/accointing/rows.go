@@ -10,7 +10,6 @@ import (
 )
 
 func (row AccointingRow) GetRowForCsv() []string {
-
 	return []string{
 		row.TransactionType.String(),
 		row.Date,
@@ -63,9 +62,7 @@ func (row *AccointingRow) ParseBasic(address string, event db.TaxableTransaction
 			return fmt.Errorf("Cannot parse denom units for TX %s (classification: deposit)\n", row.OperationId)
 		}
 		row.TransactionType = Deposit
-
 	} else if event.SenderAddress.Address == address { //withdrawal
-
 		conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountSent), event.DenominationSent)
 		if err == nil {
 			row.OutSellAmount = conversionAmount.Text('f', -1)

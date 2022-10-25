@@ -108,11 +108,8 @@ func (sf *WrapperMsgSend) ParseRelevantData() []parsingTypes.MessageRelevantInfo
 	return relevantData
 }
 
-func (sf *WrapperMsgMultiSend) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
-	var relevantData []parsingTypes.MessageRelevantInformation
-
+func (sf *WrapperMsgMultiSend) ParseRelevantData() (relevantData []parsingTypes.MessageRelevantInformation) {
 	for _, senderReceiverAmount := range sf.SenderReceiverAmounts {
-
 		var currRelevantData parsingTypes.MessageRelevantInformation
 		currRelevantData.SenderAddress = senderReceiverAmount.Sender
 		currRelevantData.ReceiverAddress = senderReceiverAmount.Receiver

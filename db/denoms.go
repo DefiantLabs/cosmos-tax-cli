@@ -74,20 +74,17 @@ func GetHighestDenomUnit(denomUnit DenomUnit, denomUnits []DenomUnit) (DenomUnit
 
 // TODO unit test this function
 func ConvertUnits(amount *big.Int, denom Denom) (*big.Float, string, error) {
-
 	//Try denom unit first
 	//We were originally just using GetDenomUnitForDenom, but since CachedDenoms is an array, it would sometimes
 	//return the non-Base denom unit (exponent != 0), which would break the power conversion process below i.e.
 	//it would sometimes do highestDenomUnit.Exponent = 6, denomUnit.Exponent = 6 -> pow = 0
 	denomUnit, err := GetBaseDenomUnitForDenom(denom)
-
 	if err != nil {
 		fmt.Println("Error getting denom unit for denom", denom)
 		return nil, "", fmt.Errorf("error getting denom unit for denom %+v", denom)
 	}
 
 	highestDenomUnit, err := GetHighestDenomUnit(denomUnit, CachedDenomUnits)
-
 	if err != nil {
 		fmt.Println("Error getting highest denom unit for denom", denom)
 		return nil, "", fmt.Errorf("error getting highest denom unit for denom %+v", denom)

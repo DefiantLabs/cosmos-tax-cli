@@ -134,7 +134,6 @@ func ProcessRpcTxs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]db
 			} else {
 				return nil, errors.New("tx message could not be processed. CachedValue is not present")
 			}
-
 		}
 
 		txBody.Messages = currMessages
@@ -200,7 +199,6 @@ func AnalyzeSwaps() {
 }
 
 func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (dbTypes.TxDBWrapper, error) {
-
 	var txDBWapper dbTypes.TxDBWrapper
 
 	timeStamp, _ := time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
@@ -285,7 +283,6 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (dbTypes.TxDBWrapper, error) {
 				} else {
 					currMessageDBWrapper.TaxableEvents = []dbTypes.TaxableEventDBWrapper{}
 				}
-
 			} else {
 				println(err.Error())
 
@@ -305,7 +302,6 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (dbTypes.TxDBWrapper, error) {
 			}
 
 			messages = append(messages, currMessageDBWrapper)
-
 		}
 	}
 

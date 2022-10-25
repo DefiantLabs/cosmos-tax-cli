@@ -70,5 +70,4 @@ func init() {
 	queryCmd.Flags().StringVar(&format, "format", validFormats[0], "The format to output")
 
 	rootCmd.AddCommand(queryCmd)
-
 }

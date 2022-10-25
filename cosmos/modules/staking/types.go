@@ -217,7 +217,6 @@ func (sf *WrapperMsgUndelegate) String() string {
 }
 
 func (sf *WrapperMsgBeginRedelegate) String() string {
-
 	var coinsRecievedStrings []string
 	for _, coin := range sf.AutoWithdrawalRewards {
 		coinsRecievedStrings = append(coinsRecievedStrings, coin.String())

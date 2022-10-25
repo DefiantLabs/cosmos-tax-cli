@@ -82,7 +82,6 @@ func (p *AccointingParser) ProcessTaxableTx(address string, taxableTxs []db.Taxa
 				txMap[v] = tx
 				numElementsRemoved = numElementsRemoved + 1
 			}
-
 		}
 	}
 
@@ -148,7 +147,6 @@ func (p *AccointingParser) InitializeParsingGroups(config config.Config) {
 }
 
 func (p *AccointingParser) GetRows() []parsers.CsvRow {
-
 	//Combine all normal rows and parser group rows into 1
 	var accointingRows []AccointingRow
 	var parserGroupRows []AccointingRow
@@ -197,7 +195,6 @@ func (parser AccointingParser) GetHeaders() []string {
 // then we spread the fees out one per row. Otherwise we add a line for the fees,
 // where each fee has a separate line.
 func HandleFees(address string, events []db.TaxableTransaction) ([]AccointingRow, error) {
-
 	var rows []AccointingRow
 	//No events -- This address didn't pay any fees
 	if len(events) == 0 {

@@ -62,9 +62,7 @@ func argsToJSON(args map[string]interface{}) error {
 }
 
 // Call issues a POST form HTTP request.
-func (c *URIClient) DoHttpGet(ctx context.Context, method string,
-	params map[string]interface{}, result interface{}) (interface{}, error) {
-
+func (c *URIClient) DoHttpGet(ctx context.Context, method string, params map[string]interface{}, result interface{}) (interface{}, error) {
 	values, err := argsToURLValues(params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode params: %w", err)
@@ -124,12 +122,7 @@ func validateResponseID(id interface{}) error {
 	return nil
 }
 
-func unmarshalResponseBytes(
-	responseBytes []byte,
-	expectedID types.JSONRPCIntID,
-	result interface{},
-) (interface{}, error) {
-
+func unmarshalResponseBytes(responseBytes []byte, expectedID types.JSONRPCIntID, result interface{}) (interface{}, error) {
 	// Read response.  If rpc/core/types is imported, the result will unmarshal
 	// into the correct type.
 	response := &types.RPCResponse{}
@@ -152,13 +145,7 @@ func unmarshalResponseBytes(
 
 	return result, nil
 }
-func (c *URIClient) DoBlockSearch(
-	ctx context.Context,
-	query string,
-	page, perPage *int,
-	orderBy string,
-) (*ctypes.ResultBlockSearch, error) {
-
+func (c *URIClient) DoBlockSearch(ctx context.Context, query string, page, perPage *int, orderBy string) (*ctypes.ResultBlockSearch, error) {
 	result := new(ctypes.ResultBlockSearch)
 	params := map[string]interface{}{
 		"query":    query,
@@ -180,10 +167,7 @@ func (c *URIClient) DoBlockSearch(
 	return result, nil
 }
 
-func (c *URIClient) DoBlockResults(
-	ctx context.Context,
-	height *int64,
-) (*ctypes.ResultBlockResults, error) {
+func (c *URIClient) DoBlockResults(ctx context.Context, height *int64) (*ctypes.ResultBlockResults, error) {
 	result := new(ctypes.ResultBlockResults)
 	params := make(map[string]interface{})
 	if height != nil {

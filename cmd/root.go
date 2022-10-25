@@ -77,7 +77,6 @@ func initConfig() {
 //   - Connects to the database and returns the db object
 //   - Returns various values used throughout the application
 func setup(config config.Config) (*configHelpers.Config, *gorm.DB, *gocron.Scheduler, error) {
-
 	//Logger
 	logLevel := config.Log.Level
 	logPath := config.Log.Path
