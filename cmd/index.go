@@ -6,7 +6,6 @@ import (
 	"log"
 	"math"
 	"net/http"
-	"os"
 	"sync"
 	"time"
 
@@ -178,8 +177,7 @@ var indexCmd = &cobra.Command{
 func OsmosisGetRewardsStartIndexHeight(db *gorm.DB, chainID string) int64 {
 	block, err := dbTypes.GetHighestTaxableEventBlock(db, chainID)
 	if err != nil && err.Error() != "record not found" {
-		fmt.Printf("Cannot retrieve highest indexed Osmosis rewards block. Exiting. %s\n", err.Error())
-		os.Exit(1)
+		log.Fatalf("Cannot retrieve highest indexed Osmosis rewards block. Err: %v", err)
 	}
 
 	return block.Height
@@ -192,10 +190,9 @@ func GetIndexerStartingHeight(configStartHeight int64, cl *client.ChainClient, d
 		return configStartHeight
 	}
 
-	latestBlock, bErr := rpc.GetLatestBlockHeight(cl)
-	if bErr != nil {
-		fmt.Println("Error getting blockchain latest height, exiting")
-		os.Exit(1)
+	latestBlock, err := rpc.GetLatestBlockHeight(cl)
+	if err != nil {
+		log.Fatalf("Error getting blockchain latest height. Err: %v", err)
 	}
 
 	fmt.Println("Found latest block", latestBlock)
@@ -308,10 +305,11 @@ func ProcessTxs(
 		//Note that this does not turn off certain reads or DB connections.
 		if indexingEnabled {
 			fmt.Printf("Indexing block %d, threaded.\n", txToProcess.Height)
-			err := dbTypes.IndexNewBlock(db, txToProcess.Height, txDBWrappers, chainID, chainName)
+			err = dbTypes.IndexNewBlock(db, txToProcess.Height, txDBWrappers, chainID, chainName)
 			if err != nil {
-				fmt.Printf("Error %s indexing block %d\n", err, txToProcess.Height)
-				os.Exit(1)
+				if err != nil {
+					log.Fatalf("Error indexing block %v. Err: %v", txToProcess.Height, err)
+				}
 			}
 		}
 
