@@ -64,14 +64,13 @@ var indexCmd = &cobra.Command{
 
 		//Depending on the app configuration, wait for the chain to catch up
 		chainCatchingUp, err := rpc.IsCatchingUp(cl)
-		if err != nil {
-			log.Fatalf("Error querying chain status. Err: %v", err)
-		}
-
-		for (config.Base.WaitForChain || config.Base.ExitWhenCaughtUp) && chainCatchingUp {
+		for (config.Base.WaitForChain || config.Base.ExitWhenCaughtUp) && chainCatchingUp && err == nil {
 			//Wait between status checks, don't spam the node with requests
 			time.Sleep(time.Second * time.Duration(config.Base.WaitForChainDelay))
 			chainCatchingUp, err = rpc.IsCatchingUp(cl)
+		}
+		if err != nil {
+			log.Fatalf("Error querying chain status. Err: %v", err)
 		}
 
 		//Jobs are just the block height; limit max jobs in the queue, otherwise this queue would contain one
