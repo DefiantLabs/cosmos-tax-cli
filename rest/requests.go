@@ -2,9 +2,9 @@ package rest
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 
 	denoms "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/denoms"
@@ -130,13 +130,9 @@ func GetLatestBlock(host string) (tx.GetLatestBlockResponse, error) {
 func checkResponseErrorCode(requestEndpoint string, resp *http.Response) error {
 
 	if resp.StatusCode != 200 {
-		fmt.Println("Error getting response")
+		log.Printf("Error getting response. Code: %v", resp.StatusCode)
 		body, _ := io.ReadAll(resp.Body)
-		errorString := fmt.Sprintf("Error getting response for endpoint %s: Status %s Body %s", requestEndpoint, resp.Status, body)
-
-		err := errors.New(errorString)
-
-		return err
+		return fmt.Errorf("error getting response for endpoint %s: Status %s Body %s", requestEndpoint, resp.Status, body)
 	}
 
 	return nil

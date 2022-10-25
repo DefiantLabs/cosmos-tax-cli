@@ -39,10 +39,8 @@ var indexCmd = &cobra.Command{
 		//TODO: split out setup methods and only call necessary ones
 		config, db, scheduler, err := setup(conf)
 		cobra.CheckErr(err)
-
 		if err != nil {
-			fmt.Println("Error during application setup, exiting")
-			os.Exit(1)
+			log.Fatalf("Error during application setup. Err: %v", err)
 		}
 
 		apiHost := config.Lens.Rpc
@@ -65,16 +63,15 @@ var indexCmd = &cobra.Command{
 		configHelpers.SetChainConfig(config.Base.AddressPrefix)
 
 		//Depending on the app configuration, wait for the chain to catch up
-		chainCatchingUp, qErr := rpc.IsCatchingUp(cl)
-		for (config.Base.WaitForChain || config.Base.ExitWhenCaughtUp) && chainCatchingUp && qErr == nil {
-			//Wait between status checks, don't spam the node with requests
-			time.Sleep(time.Second * time.Duration(config.Base.WaitForChainDelay))
-			chainCatchingUp, qErr = rpc.IsCatchingUp(cl)
+		chainCatchingUp, err := rpc.IsCatchingUp(cl)
+		if err != nil {
+			log.Fatalf("Error querying chain status. Err: %v", err)
 		}
 
-		if qErr != nil {
-			fmt.Print("Error querying chain status, exiting")
-			os.Exit(1)
+		for (config.Base.WaitForChain || config.Base.ExitWhenCaughtUp) && chainCatchingUp {
+			//Wait between status checks, don't spam the node with requests
+			time.Sleep(time.Second * time.Duration(config.Base.WaitForChainDelay))
+			chainCatchingUp, err = rpc.IsCatchingUp(cl)
 		}
 
 		//Jobs are just the block height; limit max jobs in the queue, otherwise this queue would contain one
@@ -111,10 +108,9 @@ var indexCmd = &cobra.Command{
 				rewardsIndexerStartHeight = OsmosisGetRewardsStartIndexHeight(db, config.Lens.ChainID)
 			}
 
-			latestOsmosisBlock, bErr := rpc.GetLatestBlockHeight(cl)
-			if bErr != nil {
-				fmt.Println("Error getting blockchain latest height, exiting")
-				os.Exit(1)
+			latestOsmosisBlock, err := rpc.GetLatestBlockHeight(cl)
+			if err != nil {
+				log.Fatalf("Error getting blockchain latest height. Err: %v", err)
 			}
 
 			rpcClient := osmosis.URIClient{
@@ -145,10 +141,9 @@ var indexCmd = &cobra.Command{
 				//fmt.Println("Filling jobs queue")
 
 				//This is the latest block height available on the Node.
-				latestBlock, bErr := rpc.GetLatestBlockHeight(cl)
-				if bErr != nil {
-					fmt.Println(bErr)
-					os.Exit(1)
+				latestBlock, err := rpc.GetLatestBlockHeight(cl)
+				if err != nil {
+					log.Fatalf("Error getting blockchain latest height. Err: %v", err)
 				}
 
 				//Throttling in case of hitting public APIs
