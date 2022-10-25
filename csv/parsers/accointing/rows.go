@@ -26,7 +26,7 @@ func (row AccointingRow) GetRowForCsv() []string {
 	}
 }
 
-//ParseBasic: Handles the fields that are shared between most types.
+// ParseBasic: Handles the fields that are shared between most types.
 func (row *AccointingRow) EventParseBasic(address string, event db.TaxableEvent) error {
 	//row.Date = FormatDatetime(event.Message.Tx.TimeStamp) TODO, FML, I forgot to add a DB field for this. Ideally it should come from the block time.
 	//row.OperationId = ??? TODO - maybe use the block hash or something. This isn't a TX so there is no TX hash. Have to test Accointing response to using block hash.
@@ -48,7 +48,7 @@ func (row *AccointingRow) EventParseBasic(address string, event db.TaxableEvent)
 	return errors.New("unknown TaxableEvent with ID " + strconv.FormatUint(uint64(event.ID), 10))
 }
 
-//ParseBasic: Handles the fields that are shared between most types.
+// ParseBasic: Handles the fields that are shared between most types.
 func (row *AccointingRow) ParseBasic(address string, event db.TaxableTransaction) error {
 	row.Date = FormatDatetime(event.Message.Tx.TimeStamp)
 	row.OperationId = event.Message.Tx.Hash

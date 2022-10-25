@@ -22,7 +22,7 @@ func setPrefixes(accountAddressPrefix string) {
 	config.Seal()
 }
 
-//SetChainConfig Set the chain prefix e.g. juno (prefix for account addresses).
+// SetChainConfig Set the chain prefix e.g. juno (prefix for account addresses).
 func SetChainConfig(prefix string) {
 	setPrefixes(prefix)
 }

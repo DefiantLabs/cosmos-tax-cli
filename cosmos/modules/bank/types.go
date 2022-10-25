@@ -21,8 +21,8 @@ var IsMsgMultiSend = map[string]bool{
 	"/cosmos.bank.v1beta1.MsgMultiSend": true,
 }
 
-//HandleMsg: Unmarshal JSON for MsgSend.
-//Note that MsgSend ignores the TxLogMessage because it isn't needed.
+// HandleMsg: Unmarshal JSON for MsgSend.
+// Note that MsgSend ignores the TxLogMessage because it isn't needed.
 func (sf *WrapperMsgSend) HandleMsg(msgType string, msg sdk.Msg, log *txModule.TxLogMessage) error {
 	sf.Type = msgType
 	sf.CosmosMsgSend = msg.(*bankTypes.MsgSend)

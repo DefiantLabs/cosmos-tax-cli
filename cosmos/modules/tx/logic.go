@@ -24,8 +24,8 @@ func GetEventWithType(event_type string, msg *TxLogMessage) *LogMessageEvent {
 	return nil
 }
 
-//If order is reversed, the last attribute containing the given key will be returned
-//otherwise the first attribute will be returned
+// If order is reversed, the last attribute containing the given key will be returned
+// otherwise the first attribute will be returned
 func GetValueForAttribute(key string, evt *LogMessageEvent) string {
 	if evt == nil || evt.Attributes == nil {
 		return ""

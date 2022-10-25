@@ -12,7 +12,7 @@ const (
 	OsmosisNodeRewardIndexError
 )
 
-//Log error to stdout. Not much else we can do to handle right now.
+// Log error to stdout. Not much else we can do to handle right now.
 func HandleFailedBlock(height int64, code BlockProcessingFailure, err error) {
 	reason := "{unknown error}"
 	if code == NodeMissingBlockTxs {

@@ -49,7 +49,7 @@ type WrapperMsgWithdrawDelegatorReward struct {
 	MultiCoinsReceived               stdTypes.Coins
 }
 
-//HandleMsg: Handle type checking for MsgFundCommunityPool
+// HandleMsg: Handle type checking for MsgFundCommunityPool
 func (sf *WrapperMsgFundCommunityPool) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.TxLogMessage) error {
 	sf.Type = msgType
 	sf.CosmosMsgFundCommunityPool = msg.(*distTypes.MsgFundCommunityPool)
@@ -67,7 +67,7 @@ func (sf *WrapperMsgFundCommunityPool) HandleMsg(msgType string, msg stdTypes.Ms
 	return nil
 }
 
-//HandleMsg: Handle type checking for MsgWithdrawDelegatorReward
+// HandleMsg: Handle type checking for MsgWithdrawDelegatorReward
 func (sf *WrapperMsgWithdrawValidatorCommission) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.TxLogMessage) error {
 	sf.Type = msgType
 	sf.CosmosMsgWithdrawValidatorCommission = msg.(*distTypes.MsgWithdrawValidatorCommission)
@@ -103,7 +103,7 @@ func (sf *WrapperMsgWithdrawValidatorCommission) HandleMsg(msgType string, msg s
 	return err
 }
 
-//CosmUnmarshal(): Unmarshal JSON for MsgWithdrawDelegatorReward
+// CosmUnmarshal(): Unmarshal JSON for MsgWithdrawDelegatorReward
 func (sf *WrapperMsgWithdrawDelegatorReward) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.TxLogMessage) error {
 	sf.Type = msgType
 	sf.CosmosMsgWithdrawDelegatorReward = msg.(*distTypes.MsgWithdrawDelegatorReward)

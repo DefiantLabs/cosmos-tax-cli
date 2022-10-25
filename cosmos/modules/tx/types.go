@@ -13,7 +13,7 @@ type GetTxsEventResponseWrapper struct {
 	Height                    int64
 }
 
-//TODO: Clean up types
+// TODO: Clean up types
 type GetBlockByHeightResponse struct {
 	BlockId BlockId       `json:"block_id"`
 	Block   BlockResponse `json:"block"`
@@ -61,6 +61,7 @@ type TxResponse struct {
 // Cosmos blockchains return Transactions with an array of "logs" e.g.
 //
 // "logs": [
+//
 //	{
 //		"msg_index": 0,
 //		"events": [
@@ -128,7 +129,7 @@ type Pagination struct {
 	Total   string `json:"total"`
 }
 
-//In the json, TX data is split into 2 arrays, used to merge the full dataset
+// In the json, TX data is split into 2 arrays, used to merge the full dataset
 type MergedTx struct {
 	Tx         IndexerTx
 	TxResponse TxResponse
@@ -147,9 +148,9 @@ func (sf *Message) GetType() string {
 	return sf.Type
 }
 
-//CosmosMessage represents a Cosmos blockchain Message (part of a transaction).
-//CosmUnmarshal() unmarshals the specific cosmos message type (e.g. MsgSend).
-//First arg must always be the message type itself, as this won't be parsed in CosmUnmarshal.
+// CosmosMessage represents a Cosmos blockchain Message (part of a transaction).
+// CosmUnmarshal() unmarshals the specific cosmos message type (e.g. MsgSend).
+// First arg must always be the message type itself, as this won't be parsed in CosmUnmarshal.
 type CosmosMessage interface {
 	HandleMsg(string, sdk.Msg, *TxLogMessage) error
 	ParseRelevantData() []parsingTypes.MessageRelevantInformation
