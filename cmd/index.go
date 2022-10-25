@@ -231,12 +231,7 @@ func IndexOsmosisRewards(
 	}
 }
 
-func QueryRpc(
-	blockHeightToProcess chan int64,
-	results chan *indexerTx.GetTxsEventResponseWrapper,
-	cl *client.ChainClient,
-	failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error),
-) {
+func QueryRpc(blockHeightToProcess chan int64, results chan *indexerTx.GetTxsEventResponseWrapper, cl *client.ChainClient, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error)) {
 	reprocessBlock := int64(0)
 
 	for {
@@ -280,15 +275,7 @@ func QueryRpc(
 	}
 }
 
-func ProcessTxs(
-	results chan *indexerTx.GetTxsEventResponseWrapper,
-	numBlocksTimed int64,
-	indexingEnabled bool,
-	db *gorm.DB,
-	chainID string,
-	chainName string,
-	failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error),
-) {
+func ProcessTxs(results chan *indexerTx.GetTxsEventResponseWrapper, numBlocksTimed int64, indexingEnabled bool, db *gorm.DB, chainID string, chainName string, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error)) {
 	blocksProcessed := 0
 	timeStart := time.Now()
 
