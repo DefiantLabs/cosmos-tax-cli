@@ -1,6 +1,10 @@
 package core
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"go.uber.org/zap"
+)
 
 type BlockProcessingFailure int
 
@@ -25,5 +29,5 @@ func HandleFailedBlock(height int64, code BlockProcessingFailure, err error) {
 		reason = "Failed Osmosis rewards indexing for block"
 	}
 
-	fmt.Printf("%s %d, details: %s", reason, height, err.Error())
+	config.Log.Error(fmt.Sprintf("Block %v failed. Reason: %v", height, reason), zap.Error(err))
 }

@@ -2,7 +2,6 @@ package tasks
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -137,9 +136,8 @@ func DenomUpsertTask(apiHost string, db *gorm.DB) {
 
 	err = dbTypes.UpsertDenoms(db, denoms)
 	if err != nil {
-		fmt.Println("Error upserting in DenomUpsertTask")
-		fmt.Println(err)
+		config.Log.Error("Error upserting in DenomUpsertTask", zap.Error(err))
 		return
 	}
-	fmt.Println("Task ended for DenomUpsertTask")
+	config.Log.Info("Task ended for DenomUpsertTask")
 }
