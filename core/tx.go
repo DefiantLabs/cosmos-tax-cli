@@ -198,14 +198,18 @@ func AnalyzeSwaps() {
 	fmt.Printf("Profit (OSMO): %.10f, days: %f\n", profit, latestTime.Sub(earliestTime).Hours()/24)
 }
 
-func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (dbTypes.TxDBWrapper, error) {
-	var txDBWapper dbTypes.TxDBWrapper
-
-	timeStamp, _ := time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
+func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper, err error) {
+	timeStamp, err := time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
+	if err != nil {
+		log.Printf("Error parsing tx timestamp. Err: %v", err)
+		// FIXME: should we return or panic here?
+	}
 
 	code := tx.TxResponse.Code
 
 	var messages []dbTypes.MessageDBWrapper
+
+	// non-zero code means the Tx was unsuccessful. We will still need to account for fees in both cases though.
 	if code == 0 {
 		//TODO: Pull this out into its own function for easier reading
 		for messageIndex, message := range tx.Tx.Body.Messages {
@@ -213,20 +217,27 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (dbTypes.TxDBWrapper, error) {
 			currMessage.MessageIndex = messageIndex
 
 			//Get the message log that corresponds to the current message
+			var currMessageDBWrapper dbTypes.MessageDBWrapper
 			messageLog := txTypes.GetMessageLogForIndex(tx.TxResponse.Log, messageIndex)
 			cosmosMessage, err := ParseCosmosMessage(message, messageLog)
+			if err != nil {
+				log.Printf("[Block: %v] ParseCosmosMessage failed. Err: %v", tx.TxResponse.Height, err)
 
-			if msgSwapExactIn, ok := cosmosMessage.(*gamm.WrapperMsgSwapExactAmountIn); ok {
-				t, err := time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
-				if err == nil {
-					newSwap := gamm.ArbitrageTx{TokenIn: msgSwapExactIn.TokenIn, TokenOut: msgSwapExactIn.TokenOut, BlockTime: t}
-					allSwaps = append(allSwaps, newSwap)
+				//type cast on error allows getting message type if it was parsed correctly
+				re, ok := err.(*txTypes.UnknownMessageError)
+				if ok {
+					currMessage.MessageType = re.Type()
+					currMessageDBWrapper.Message = currMessage
+				} else {
+					//What should we do here? This is an actual error during parsing
+					log.Println("issue casting the unknown message error to an error... please investigate.")
 				}
-			}
 
-			var currMessageDBWrapper dbTypes.MessageDBWrapper
-			if err == nil {
-				fmt.Printf("Cosmos message of known type: %s", cosmosMessage)
+				//println("------------------Cosmos message parsing failed. MESSAGE FORMAT FOLLOWS:---------------- \n\n")
+				//spew.Dump(message)
+				//println("\n------------------END MESSAGE----------------------\n")
+			} else {
+				log.Printf("[Block: %v] Cosmos message of known type: %s", tx.TxResponse.Height, cosmosMessage)
 				currMessage.MessageType = cosmosMessage.GetType()
 				currMessageDBWrapper.Message = currMessage
 
@@ -283,22 +294,14 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (dbTypes.TxDBWrapper, error) {
 				} else {
 					currMessageDBWrapper.TaxableEvents = []dbTypes.TaxableEventDBWrapper{}
 				}
-			} else {
-				println(err.Error())
+			}
 
-				//type cast on error allows getting message type if it was parsed correctly
-				re, ok := err.(*txTypes.UnknownMessageError)
-				if ok {
-					currMessage.MessageType = re.Type()
-					currMessageDBWrapper.Message = currMessage
-				} else {
-					//What should we do here? This is an actual error during parsing
-					log.Println("issue casting the unknown message error to an error... please investigate.")
+			if msgSwapExactIn, ok := cosmosMessage.(*gamm.WrapperMsgSwapExactAmountIn); ok {
+				t, err := time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
+				if err == nil {
+					newSwap := gamm.ArbitrageTx{TokenIn: msgSwapExactIn.TokenIn, TokenOut: msgSwapExactIn.TokenOut, BlockTime: t}
+					allSwaps = append(allSwaps, newSwap)
 				}
-
-				//println("------------------Cosmos message parsing failed. MESSAGE FORMAT FOLLOWS:---------------- \n\n")
-				//spew.Dump(message)
-				//println("\n------------------END MESSAGE----------------------\n")
 			}
 
 			messages = append(messages, currMessageDBWrapper)

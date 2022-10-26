@@ -290,7 +290,7 @@ func ProcessTxs(results chan *indexerTx.GetTxsEventResponseWrapper, numBlocksTim
 		//While debugging we'll sometimes want to turn off INSERTS to the DB
 		//Note that this does not turn off certain reads or DB connections.
 		if indexingEnabled {
-			fmt.Printf("Indexing block %d, threaded.\n", txToProcess.Height)
+			log.Printf("Indexing block %d, threaded.\n", txToProcess.Height)
 			err = dbTypes.IndexNewBlock(db, txToProcess.Height, txDBWrappers, chainID, chainName)
 			if err != nil {
 				if err != nil {
