@@ -3,7 +3,7 @@ package tasks
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 	"net/http"
 	"os"
 	"time"
@@ -31,6 +31,12 @@ type DenomUnit struct {
 	Denom    string
 	Exponent int
 	Aliases  []string
+}
+
+var lg *util.Logger
+
+func init() {
+	lg = util.NewLogger()
 }
 
 func DoChainSpecificUpsertDenoms(db *gorm.DB, chain string) {
@@ -117,10 +123,10 @@ func getJson(url string, target interface{}) error {
 }
 
 func DenomUpsertTask(apiHost string, db *gorm.DB) {
-	log.Println("Task started for DenomUpsertTask")
+	lg.Info("Task started for DenomUpsertTask")
 	denomsMetadata, err := rest.GetDenomsMetadatas(apiHost)
 	if err != nil {
-		log.Printf("Error in DenomUpsertTask when reaching out to the API. Err: %v", err)
+		lg.Errorf("Error in DenomUpsertTask when reaching out to the API. Err: %v", err)
 		return
 	}
 
