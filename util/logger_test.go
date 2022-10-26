@@ -19,9 +19,8 @@ func TestLevels(t *testing.T) {
 	lg.SetLvl(DebugLevel)
 	lg.Debugf("Test 2")
 
-	// Raise level to Err (test is flaky without sleep here)
+	// Raise level to Err
 	lg.SetLvl(ErrorLevel)
-	//time.Sleep(time.Second)
 
 	// Info and Debug msgs should now be missed
 	lg.Debug("Test 3")
