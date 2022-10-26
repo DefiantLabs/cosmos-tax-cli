@@ -221,7 +221,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 			messageLog := txTypes.GetMessageLogForIndex(tx.TxResponse.Log, messageIndex)
 			cosmosMessage, err := ParseCosmosMessage(message, messageLog)
 			if err != nil {
-				log.Printf("[Block: %v] ParseCosmosMessage failed. Err: %v", tx.TxResponse.Height, err)
+				config.Log.Warn(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed.", tx.TxResponse.Height), zap.Error(err))
 
 				//type cast on error allows getting message type if it was parsed correctly
 				re, ok := err.(*txTypes.UnknownMessageError)
@@ -237,7 +237,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 				//spew.Dump(message)
 				//println("\n------------------END MESSAGE----------------------\n")
 			} else {
-				log.Printf("[Block: %v] Cosmos message of known type: %s", tx.TxResponse.Height, cosmosMessage)
+				config.Log.Debug(fmt.Sprintf("[Block: %v] Cosmos message of known type: %s", tx.TxResponse.Height, cosmosMessage))
 				currMessage.MessageType = cosmosMessage.GetType()
 				currMessageDBWrapper.Message = currMessage
 
@@ -259,11 +259,11 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 							denomSent, err = dbTypes.GetDenomForBase(v.DenominationSent)
 							if err != nil {
 								//attempt to add missing denoms to the database
-								config.Logger.Error("Denom lookup", zap.Error(err), zap.String("denom sent", v.DenominationSent))
+								config.Log.Error("Denom lookup", zap.Error(err), zap.String("denom sent", v.DenominationSent))
 
 								denomSent, err = dbTypes.AddUnknownDenom(db, v.DenominationSent)
 								if err != nil {
-									config.Logger.Error("There was an error adding a missing denom", zap.Error(err), zap.String("denom received", v.DenominationSent))
+									config.Log.Error("There was an error adding a missing denom", zap.Error(err), zap.String("denom received", v.DenominationSent))
 									return txDBWapper, err
 								}
 							}
@@ -277,10 +277,10 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 
 							if err != nil {
 								//attempt to add missing denoms to the database
-								config.Logger.Error("Denom lookup", zap.Error(err), zap.String("denom received", v.DenominationReceived))
+								config.Log.Error("Denom lookup", zap.Error(err), zap.String("denom received", v.DenominationReceived))
 								denomReceived, err = dbTypes.AddUnknownDenom(db, v.DenominationReceived)
 								if err != nil {
-									config.Logger.Error("There was an error adding a missing denom", zap.Error(err), zap.String("denom received", v.DenominationReceived))
+									config.Log.Error("There was an error adding a missing denom", zap.Error(err), zap.String("denom received", v.DenominationReceived))
 									return txDBWapper, err
 								}
 							}

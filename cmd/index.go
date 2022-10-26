@@ -284,14 +284,14 @@ func ProcessTxs(results chan *indexerTx.GetTxsEventResponseWrapper, numBlocksTim
 		txToProcess := <-results
 		txDBWrappers, err := core.ProcessRpcTxs(db, txToProcess.CosmosGetTxsEventResponse)
 		if err != nil {
-			config.Logger.Error("ProcessRpcTxs: unhandled error", zap.Error(err))
+			config.Log.Error("ProcessRpcTxs: unhandled error", zap.Error(err))
 			failedBlockHandler(txToProcess.Height, core.UnprocessableTxError, err)
 		}
 
 		//While debugging we'll sometimes want to turn off INSERTS to the DB
 		//Note that this does not turn off certain reads or DB connections.
 		if indexingEnabled {
-			log.Printf("Indexing block %d, threaded.\n", txToProcess.Height)
+			config.Log.Info(fmt.Sprintf("Indexing block %d, threaded.\n", txToProcess.Height))
 			err = dbTypes.IndexNewBlock(db, txToProcess.Height, txDBWrappers, chainID, chainName)
 			if err != nil {
 				if err != nil {

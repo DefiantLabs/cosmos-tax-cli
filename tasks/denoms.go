@@ -3,7 +3,6 @@ package tasks
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"time"
@@ -50,26 +49,26 @@ func UpsertOsmosisDenoms(db *gorm.DB) {
 
 	denomAssets, err := getOsmosisAssetsList(url)
 	if err != nil {
-		config.Logger.Error("Download Osmosis Denom Metadata", zap.Error(err))
+		config.Log.Error("Download Osmosis Denom Metadata", zap.Error(err))
 		os.Exit(1)
 	} else {
 		denoms := toDenoms(denomAssets)
 		err = dbTypes.UpsertDenoms(db, denoms)
 		if err != nil {
-			config.Logger.Error("Upsert Osmosis Denom Metadata", zap.Error(err))
+			config.Log.Error("Upsert Osmosis Denom Metadata", zap.Error(err))
 			os.Exit(1)
 		}
 	}
 
 	frontierDenomAssets, err := getOsmosisAssetsList(frontierUrl)
 	if err != nil {
-		config.Logger.Error("Download Osmosis Frontier Denom Metadata", zap.Error(err))
+		config.Log.Error("Download Osmosis Frontier Denom Metadata", zap.Error(err))
 		os.Exit(1)
 	} else {
 		denoms := toDenoms(frontierDenomAssets)
 		err = dbTypes.UpsertDenoms(db, denoms)
 		if err != nil {
-			config.Logger.Error("Upsert Osmosis Frontier Denom Metadata", zap.Error(err))
+			config.Log.Error("Upsert Osmosis Frontier Denom Metadata", zap.Error(err))
 			os.Exit(1)
 		}
 	}
@@ -117,10 +116,10 @@ func getJson(url string, target interface{}) error {
 }
 
 func DenomUpsertTask(apiHost string, db *gorm.DB) {
-	log.Println("Task started for DenomUpsertTask")
+	config.Log.Debug("Task started for DenomUpsertTask")
 	denomsMetadata, err := rest.GetDenomsMetadatas(apiHost)
 	if err != nil {
-		log.Printf("Error in DenomUpsertTask when reaching out to the API. Err: %v", err)
+		config.Log.Error("Error in DenomUpsertTask when reaching out to the API. ", zap.Error(err))
 		return
 	}
 
