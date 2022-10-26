@@ -94,82 +94,76 @@ var indexCmd = &cobra.Command{
 		//Start a thread to process transactions after the RPC querier retrieves them.
 		go ProcessTxs(jobResultsChannel, config.Base.BlockTimer, config.Base.IndexingEnabled, db, config.Lens.ChainID, config.Lens.ChainName, core.HandleFailedBlock)
 
-		//Start at the last indexed block height (or the block height in the config, if set)
-		currBlock := GetIndexerStartingHeight(config.Base.StartBlock, cl, db)
-		//Don't index past this block no matter what
-		lastBlock := config.Base.EndBlock
+		//lastBlock := config.Base.EndBlock
 		var wg sync.WaitGroup
 
 		//Osmosis specific indexing requirements. Osmosis distributes rewards to LP holders on a daily basis.
 		if configHelpers.IsOsmosis(config) {
-			rewardsIndexerStartHeight := config.Base.StartBlock
-			if rewardsIndexerStartHeight == -1 {
-				rewardsIndexerStartHeight = OsmosisGetRewardsStartIndexHeight(db, config.Lens.ChainID)
-			}
-
-			latestOsmosisBlock, err := rpc.GetLatestBlockHeight(cl)
-			if err != nil {
-				log.Fatalf("Error getting blockchain latest height. Err: %v", err)
-			}
-
-			rpcClient := osmosis.URIClient{
-				Address: cl.Config.RPCAddr,
-				Client:  &http.Client{},
-			}
-
-			go IndexOsmosisRewards(&wg, db, rpcClient, config.Lens.ChainID, config.Lens.ChainName, rewardsIndexerStartHeight, latestOsmosisBlock, core.HandleFailedBlock)
+			go IndexOsmosisRewards(&wg, config, cl, db, config.Lens.ChainID, config.Lens.ChainName, core.HandleFailedBlock)
 		}
 
 		wg.Add(1)
-		var latestBlock int64 = math.MaxInt64
 
 		//Add jobs to the queue to be processed
-		for !config.Base.OsmosisRewardsOnly {
-			//The program is configured to stop running after a set block height.
-			//Generally this will only be done while debugging or if a particular block was incorrectly processed.
-			if lastBlock != -1 && currBlock >= lastBlock {
-				configHelpers.Log.Info("Hit the last block we're allowed to index, exiting.")
-				break
-			} else if config.Base.ExitWhenCaughtUp && currBlock >= latestBlock {
-				configHelpers.Log.Info("Hit the last block we're allowed to index, exiting.")
-				break
-			}
-
-			//The job queue is running out of jobs to process, see if the blockchain has produced any new blocks we haven't indexed yet.
-			if len(blockHeightToProcess) <= cap(blockHeightToProcess)/4 {
-				//This is the latest block height available on the Node.
-				latestBlock, err := rpc.GetLatestBlockHeight(cl)
-				if err != nil {
-					configHelpers.Log.Fatal("Error getting blockchain latest height. Err: %v", zap.Error(err))
-				}
-
-				//Throttling in case of hitting public APIs
-				//TODO: track tx/s downloaded from each RPC endpoint and implement throttling limits per endpoint.
-				if config.Base.Throttling != 0 {
-					time.Sleep(time.Second * time.Duration(config.Base.Throttling))
-				}
-
-				//Already at the latest block, wait for the next block to be available.
-				for currBlock <= latestBlock && currBlock <= lastBlock && len(blockHeightToProcess) != cap(blockHeightToProcess) {
-
-					if config.Base.Throttling != 0 {
-						time.Sleep(time.Second * time.Duration(config.Base.Throttling))
-					}
-
-					//Add the new block to the queue
-					//fmt.Printf("Added block %d to the queue\n", currBlock)
-					blockHeightToProcess <- currBlock
-					currBlock++
-				}
-			}
+		if !config.Base.OsmosisRewardsOnly {
+			enqueueBlocksToProcess(config, cl, db, blockHeightToProcess)
 		}
-
-		//if len(ch) == cap(ch) {
 
 		//If we error out in the main loop, this will block. Meaning we may not know of an error for 6 hours until last scheduled task stops
 		scheduler.Stop()
 		wg.Wait() //FIXME: I think this may end up missing some of the end of the last blocks to be processed b/c the workers are not part of the waitgroup...
 	},
+}
+
+// enqueueBlocksToProcess will pass the blocks that need to be processed to the blockchannel
+func enqueueBlocksToProcess(config *config.Config, cl *client.ChainClient, db *gorm.DB, blockHeightToProcess chan int64) {
+	//Start at the last indexed block height (or the block height in the config, if set)
+	currBlock := GetIndexerStartingHeight(config.Base.StartBlock, cl, db)
+
+	//Don't index past this block no matter what
+	lastBlock := config.Base.EndBlock
+	var latestBlock int64 = math.MaxInt64
+
+	//Add jobs to the queue to be processed
+	for {
+		//The program is configured to stop running after a set block height.
+		//Generally this will only be done while debugging or if a particular block was incorrectly processed.
+		if lastBlock != -1 && currBlock >= lastBlock {
+			configHelpers.Log.Info("Hit the last block we're allowed to index, exiting.")
+			return
+		} else if config.Base.ExitWhenCaughtUp && currBlock >= latestBlock {
+			configHelpers.Log.Info("Hit the last block we're allowed to index, exiting.")
+			return
+		}
+
+		//The job queue is running out of jobs to process, see if the blockchain has produced any new blocks we haven't indexed yet.
+		if len(blockHeightToProcess) <= cap(blockHeightToProcess)/4 {
+			//This is the latest block height available on the Node.
+			var err error
+			latestBlock, err = rpc.GetLatestBlockHeight(cl)
+			if err != nil {
+				configHelpers.Log.Fatal("Error getting blockchain latest height. Err: %v", zap.Error(err))
+			}
+
+			//Throttling in case of hitting public APIs
+			//TODO: track tx/s downloaded from each RPC endpoint and implement throttling limits per endpoint.
+			if config.Base.Throttling != 0 {
+				time.Sleep(time.Second * time.Duration(config.Base.Throttling))
+			}
+
+			//Already at the latest block, wait for the next block to be available.
+			for currBlock <= latestBlock && currBlock <= lastBlock && len(blockHeightToProcess) != cap(blockHeightToProcess) {
+				if config.Base.Throttling != 0 {
+					time.Sleep(time.Second * time.Duration(config.Base.Throttling))
+				}
+
+				//Add the new block to the queue
+				//fmt.Printf("Added block %d to the queue\n", currBlock)
+				blockHeightToProcess <- currBlock
+				currBlock++
+			}
+		}
+	}
 }
 
 // If nothing has been indexed yet, the start height should be 0.
@@ -203,8 +197,23 @@ func GetIndexerStartingHeight(configStartHeight int64, cl *client.ChainClient, d
 	return latestBlock
 }
 
-func IndexOsmosisRewards(wg *sync.WaitGroup, db *gorm.DB, rpcClient osmosis.URIClient, chainID, chainName string, startHeight, endHeight int64, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error)) {
+func IndexOsmosisRewards(wg *sync.WaitGroup, config *config.Config, cl *client.ChainClient, db *gorm.DB, chainID, chainName string, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error)) {
 	defer wg.Done()
+
+	startHeight := config.Base.StartBlock
+	if startHeight == -1 {
+		startHeight = OsmosisGetRewardsStartIndexHeight(db, config.Lens.ChainID)
+	}
+
+	endHeight, err := rpc.GetLatestBlockHeight(cl)
+	if err != nil {
+		configHelpers.Log.Fatal("Error getting blockchain latest height.", zap.Error(err))
+	}
+
+	rpcClient := osmosis.URIClient{
+		Address: cl.Config.RPCAddr,
+		Client:  &http.Client{},
+	}
 
 	for epoch := startHeight; epoch <= endHeight; epoch++ {
 		rewards, indexErr := rpcClient.GetEpochRewards(epoch)
