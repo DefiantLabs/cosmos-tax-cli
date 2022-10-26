@@ -240,6 +240,8 @@ func indexOsmosisRewards(wg *sync.WaitGroup, config *config.Config, cl *client.C
 		_, err := indexOsmosisReward(db, chainID, chainName, rpcClient, epoch)
 		for err != nil && attempts < maxAttempts {
 			attempts++
+			// for some reason these need an exponential backoff....
+			time.Sleep(time.Second * time.Duration(math.Pow(2, float64(attempts))))
 			code, err := indexOsmosisReward(db, chainID, chainName, rpcClient, epoch)
 			if err != nil && attempts == maxAttempts {
 				failedBlockHandler(epoch, code, err)
