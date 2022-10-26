@@ -237,10 +237,10 @@ func indexOsmosisRewards(wg *sync.WaitGroup, config *config.Config, cl *client.C
 	maxAttempts := 5
 	for epoch := startHeight; epoch <= endHeight; epoch++ {
 		attempts := 1
-		code, err := indexOsmosisReward(db, chainID, chainName, rpcClient, epoch)
+		_, err := indexOsmosisReward(db, chainID, chainName, rpcClient, epoch)
 		for err != nil && attempts < maxAttempts {
 			attempts++
-			code, err = indexOsmosisReward(db, chainID, chainName, rpcClient, epoch)
+			code, err := indexOsmosisReward(db, chainID, chainName, rpcClient, epoch)
 			if err != nil && attempts == maxAttempts {
 				failedBlockHandler(epoch, code, err)
 			}
@@ -272,7 +272,10 @@ func queryRpc(blockChan chan int64, blockTXsChan chan *indexerTx.GetTxsEventResp
 			attemptCount++
 			if attemptCount == maxAttempts {
 				config.Log.Error(fmt.Sprintf("Failed to process block %v after %v attempts. Will add to failed blocks table", blockToProcess, maxAttempts))
-				dbTypes.UpsertFailedBlock(db, blockToProcess, chainID, chainName) // TODO: We could hang this off the DB connection...
+				err := dbTypes.UpsertFailedBlock(db, blockToProcess, chainID, chainName) // TODO: We could hang this off the DB connection...
+				if err != nil {
+					config.Log.Fatal(fmt.Sprintf("Failed to store that block %v failed. Not safe to continue.", blockToProcess), zap.Error(err))
+				}
 			}
 		}
 	}
