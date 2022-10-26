@@ -298,7 +298,6 @@ func (sf *WrapperMsgSwapExactAmountOut) HandleMsg(msgType string, msg sdk.Msg, l
 	sf.TokenOut = tokenOut
 
 	return err
-
 }
 
 func (sf *WrapperMsgJoinSwapExternAmountIn) HandleMsg(msgType string, msg sdk.Msg, log *txModule.TxLogMessage) error {
@@ -342,7 +341,6 @@ func (sf *WrapperMsgJoinSwapExternAmountIn) HandleMsg(msgType string, msg sdk.Ms
 	sf.Address = senderAddress
 
 	return err
-
 }
 
 func (sf *WrapperMsgJoinSwapShareAmountOut) HandleMsg(msgType string, msg sdk.Msg, log *txModule.TxLogMessage) error {
@@ -387,7 +385,6 @@ func (sf *WrapperMsgJoinSwapShareAmountOut) HandleMsg(msgType string, msg sdk.Ms
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 	sf.TokenIn, err = sdk.ParseCoinNormalized(tokenIn)
-
 	if err != nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
@@ -444,7 +441,6 @@ func (sf *WrapperMsgJoinPool) HandleMsg(msgType string, msg sdk.Msg, log *txModu
 	}
 
 	return err
-
 }
 
 func (sf *WrapperMsgExitSwapShareAmountIn) HandleMsg(msgType string, msg sdk.Msg, log *txModule.TxLogMessage) error {
@@ -596,7 +592,6 @@ func (sf *WrapperMsgExitPool) HandleMsg(msgType string, msg sdk.Msg, log *txModu
 	}
 
 	return err
-
 }
 
 type ArbitrageTx struct {

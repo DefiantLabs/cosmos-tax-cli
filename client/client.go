@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
@@ -19,7 +20,6 @@ var DB *gorm.DB
 var Config *config.Config
 
 func setup() (*gorm.DB, *config.Config, error) {
-
 	argConfig, err := configHelpers.ParseArgs(os.Stderr, os.Args[1:])
 
 	if err != nil {
@@ -34,7 +34,6 @@ func setup() (*gorm.DB, *config.Config, error) {
 	}
 
 	fileConfig, err := configHelpers.GetConfig(location)
-
 	if err != nil {
 		fmt.Println("Error opening configuration file", err)
 		return nil, nil, err
@@ -52,11 +51,9 @@ func setup() (*gorm.DB, *config.Config, error) {
 	dbTypes.CacheDenoms(db)
 
 	return db, &config, nil
-
 }
 
 func main() {
-
 	db, config, err := setup()
 
 	DB = db
@@ -72,7 +69,10 @@ func main() {
 	r.Use(CORSMiddleware())
 
 	r.POST("/events.csv", GetTaxableEventsCSV)
-	r.Run(":8080")
+	err = r.Run(":8080")
+	if err != nil {
+		log.Fatalf("Error starting server. Err: %v", err)
+	}
 }
 
 func CORSMiddleware() gin.HandlerFunc {
@@ -101,11 +101,11 @@ type TaxableEventsCSVRequest struct {
 }
 
 func GetTaxableEventsCSV(c *gin.Context) {
-
 	var requestBody TaxableEventsCSVRequest
 	err := c.BindJSON(&requestBody)
 	if err != nil {
-		c.AbortWithError(500, errors.New("Error processing request body"))
+		// the error returned here has already been pushed to the context... I think.
+		c.AbortWithError(500, errors.New("Error processing request body")) //nolint:staticcheck,errcheck
 		return
 	}
 
@@ -132,9 +132,9 @@ func GetTaxableEventsCSV(c *gin.Context) {
 	}
 
 	accountRows, headers, err := csv.ParseForAddress(requestBody.Address, DB, requestBody.Format, *Config)
-
 	if err != nil {
-		c.AbortWithError(500, errors.New("Error getting rows for address"))
+		// the error returned here has already been pushed to the context... I think.
+		c.AbortWithError(500, errors.New("Error getting rows for address")) //nolint:staticcheck,errcheck
 		return
 	}
 

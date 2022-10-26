@@ -8,7 +8,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
 )
 
-//Create the CSV and write it to byte buffer
+// Create the CSV and write it to byte buffer
 func ToCsv(rows []parsers.CsvRow, headers []string) bytes.Buffer {
 	var b bytes.Buffer
 	w := csv.NewWriter(&b)

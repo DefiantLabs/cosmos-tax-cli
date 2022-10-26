@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/hex"
 	"errors"
+	"log"
 	"math/big"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
@@ -29,7 +30,7 @@ import (
 	cosmosTx "github.com/cosmos/cosmos-sdk/types/tx"
 )
 
-//Unmarshal JSON to a particular type.
+// Unmarshal JSON to a particular type.
 var messageTypeHandler = map[string]func() txTypes.CosmosMessage{
 	"/cosmos.bank.v1beta1.MsgSend":                                func() txTypes.CosmosMessage { return &bank.WrapperMsgSend{} },
 	"/cosmos.bank.v1beta1.MsgMultiSend":                           func() txTypes.CosmosMessage { return &bank.WrapperMsgMultiSend{} },
@@ -41,9 +42,9 @@ var messageTypeHandler = map[string]func() txTypes.CosmosMessage{
 	"/cosmos.staking.v1beta1.MsgBeginRedelegate":                  func() txTypes.CosmosMessage { return &staking.WrapperMsgBeginRedelegate{} },
 }
 
-//Merge the chain specific message type handlers into the core message type handler map
-//If a core message type is defined in the chain specific, it will overide the value
-//in the core message type handler (useful if a chain has changed the core behavior of a base type and needs to be parsed differently).
+// Merge the chain specific message type handlers into the core message type handler map
+// If a core message type is defined in the chain specific, it will overide the value
+// in the core message type handler (useful if a chain has changed the core behavior of a base type and needs to be parsed differently).
 func ChainSpecificMessageTypeHandlerBootstrap(chainId string) {
 	var chainSpecificMessageTpeHandler map[string]func() txTypes.CosmosMessage
 	switch chainId {
@@ -55,7 +56,7 @@ func ChainSpecificMessageTypeHandlerBootstrap(chainId string) {
 	}
 }
 
-//ParseCosmosMessageJSON - Parse a SINGLE Cosmos Message into the appropriate type.
+// ParseCosmosMessageJSON - Parse a SINGLE Cosmos Message into the appropriate type.
 func ParseCosmosMessage(message types.Msg, log *txTypes.TxLogMessage) (txTypes.CosmosMessage, error) {
 	//Figure out what type of Message this is based on the '@type' field that is included
 	//in every Cosmos Message (can be seen in raw JSON for any cosmos transaction).
@@ -96,9 +97,9 @@ func toEvents(msgEvents types.StringEvents) []txTypes.LogMessageEvent {
 	return list
 }
 
-//TODO: get rid of some of the unnecessary types like cosmos-tax-cli/TxResponse.
-//All those structs were legacy and for REST API support but we no longer really need it.
-//For now I'm keeping it until we have RPC compatibility fully working and tested.
+// TODO: get rid of some of the unnecessary types like cosmos-tax-cli/TxResponse.
+// All those structs were legacy and for REST API support but we no longer really need it.
+// For now I'm keeping it until we have RPC compatibility fully working and tested.
 func ProcessRpcTxs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]dbTypes.TxDBWrapper, error) {
 	var currTxDbWrappers = make([]dbTypes.TxDBWrapper, len(txEventResp.Txs))
 
@@ -133,7 +134,6 @@ func ProcessRpcTxs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]db
 			} else {
 				return nil, errors.New("tx message could not be processed. CachedValue is not present")
 			}
-
 		}
 
 		txBody.Messages = currMessages
@@ -198,15 +198,18 @@ func AnalyzeSwaps() {
 	fmt.Printf("Profit (OSMO): %.10f, days: %f\n", profit, latestTime.Sub(earliestTime).Hours()/24)
 }
 
-func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (dbTypes.TxDBWrapper, error) {
-
-	var txDBWapper dbTypes.TxDBWrapper
-
-	timeStamp, _ := time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
+func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper, err error) {
+	timeStamp, err := time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
+	if err != nil {
+		log.Printf("Error parsing tx timestamp. Err: %v", err)
+		// FIXME: should we return or panic here?
+	}
 
 	code := tx.TxResponse.Code
 
 	var messages []dbTypes.MessageDBWrapper
+
+	// non-zero code means the Tx was unsuccessful. We will still need to account for fees in both cases though.
 	if code == 0 {
 		//TODO: Pull this out into its own function for easier reading
 		for messageIndex, message := range tx.Tx.Body.Messages {
@@ -214,20 +217,27 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (dbTypes.TxDBWrapper, error) {
 			currMessage.MessageIndex = messageIndex
 
 			//Get the message log that corresponds to the current message
+			var currMessageDBWrapper dbTypes.MessageDBWrapper
 			messageLog := txTypes.GetMessageLogForIndex(tx.TxResponse.Log, messageIndex)
 			cosmosMessage, err := ParseCosmosMessage(message, messageLog)
+			if err != nil {
+				log.Printf("[Block: %v] ParseCosmosMessage failed. Err: %v", tx.TxResponse.Height, err)
 
-			if msgSwapExactIn, ok := cosmosMessage.(*gamm.WrapperMsgSwapExactAmountIn); ok {
-				t, err := time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
-				if err == nil {
-					newSwap := gamm.ArbitrageTx{TokenIn: msgSwapExactIn.TokenIn, TokenOut: msgSwapExactIn.TokenOut, BlockTime: t}
-					allSwaps = append(allSwaps, newSwap)
+				//type cast on error allows getting message type if it was parsed correctly
+				re, ok := err.(*txTypes.UnknownMessageError)
+				if ok {
+					currMessage.MessageType = re.Type()
+					currMessageDBWrapper.Message = currMessage
+				} else {
+					//What should we do here? This is an actual error during parsing
+					log.Println("issue casting the unknown message error to an error... please investigate.")
 				}
-			}
 
-			var currMessageDBWrapper dbTypes.MessageDBWrapper
-			if err == nil {
-				fmt.Printf("Cosmos message of known type: %s", cosmosMessage)
+				//println("------------------Cosmos message parsing failed. MESSAGE FORMAT FOLLOWS:---------------- \n\n")
+				//spew.Dump(message)
+				//println("\n------------------END MESSAGE----------------------\n")
+			} else {
+				log.Printf("[Block: %v] Cosmos message of known type: %s", tx.TxResponse.Height, cosmosMessage)
 				currMessage.MessageType = cosmosMessage.GetType()
 				currMessageDBWrapper.Message = currMessage
 
@@ -247,7 +257,6 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (dbTypes.TxDBWrapper, error) {
 						var denomSent dbTypes.Denom
 						if v.DenominationSent != "" {
 							denomSent, err = dbTypes.GetDenomForBase(v.DenominationSent)
-
 							if err != nil {
 								//attempt to add missing denoms to the database
 								config.Logger.Error("Denom lookup", zap.Error(err), zap.String("denom sent", v.DenominationSent))
@@ -285,26 +294,17 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (dbTypes.TxDBWrapper, error) {
 				} else {
 					currMessageDBWrapper.TaxableEvents = []dbTypes.TaxableEventDBWrapper{}
 				}
+			}
 
-			} else {
-				println(err.Error())
-
-				//type cast on error allows getting message type if it was parsed correctly
-				re, ok := err.(*txTypes.UnknownMessageError)
-				if ok {
-					currMessage.MessageType = re.Type()
-					currMessageDBWrapper.Message = currMessage
-				} else {
-					//What should we do here? This is an actual error during parsing
+			if msgSwapExactIn, ok := cosmosMessage.(*gamm.WrapperMsgSwapExactAmountIn); ok {
+				t, err := time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
+				if err == nil {
+					newSwap := gamm.ArbitrageTx{TokenIn: msgSwapExactIn.TokenIn, TokenOut: msgSwapExactIn.TokenOut, BlockTime: t}
+					allSwaps = append(allSwaps, newSwap)
 				}
-
-				//println("------------------Cosmos message parsing failed. MESSAGE FORMAT FOLLOWS:---------------- \n\n")
-				//spew.Dump(message)
-				//println("\n------------------END MESSAGE----------------------\n")
 			}
 
 			messages = append(messages, currMessageDBWrapper)
-
 		}
 	}
 
@@ -319,7 +319,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (dbTypes.TxDBWrapper, error) {
 	return txDBWapper, nil
 }
 
-//ProcessFees returns a comma delimited list of fee amount/denoms
+// ProcessFees returns a comma delimited list of fee amount/denoms
 func ProcessFees(authInfo cosmosTx.AuthInfo) ([]dbTypes.Fee, error) {
 	//TODO handle granter? Almost nobody uses it.
 	feeCoins := authInfo.Fee.Amount

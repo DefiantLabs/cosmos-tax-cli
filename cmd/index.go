@@ -3,9 +3,9 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"log"
 	"math"
 	"net/http"
-	"os"
 	"sync"
 	"time"
 
@@ -38,10 +38,8 @@ var indexCmd = &cobra.Command{
 		//TODO: split out setup methods and only call necessary ones
 		config, db, scheduler, err := setup(conf)
 		cobra.CheckErr(err)
-
 		if err != nil {
-			fmt.Println("Error during application setup, exiting")
-			os.Exit(1)
+			log.Fatalf("Error during application setup. Err: %v", err)
 		}
 
 		apiHost := config.Lens.Rpc
@@ -51,7 +49,10 @@ var indexCmd = &cobra.Command{
 		core.ChainSpecificMessageTypeHandlerBootstrap(config.Lens.ChainID)
 
 		//TODO may need to run this task in setup() so that we have a cold start functionality before the indexer starts
-		scheduler.Every(6).Hours().Do(tasks.DenomUpsertTask, apiHost, db)
+		_, err = scheduler.Every(6).Hours().Do(tasks.DenomUpsertTask, apiHost, db)
+		if err != nil {
+			log.Println("Error scheduling denmon upsert task. Err: ", err)
+		}
 		scheduler.StartAsync()
 
 		//Some chains do not have the denom metadata URL available on chain, so we do chain specific downloads instead.
@@ -61,16 +62,14 @@ var indexCmd = &cobra.Command{
 		configHelpers.SetChainConfig(config.Base.AddressPrefix)
 
 		//Depending on the app configuration, wait for the chain to catch up
-		chainCatchingUp, qErr := rpc.IsCatchingUp(cl)
-		for (config.Base.WaitForChain || config.Base.ExitWhenCaughtUp) && chainCatchingUp && qErr == nil {
+		chainCatchingUp, err := rpc.IsCatchingUp(cl)
+		for (config.Base.WaitForChain || config.Base.ExitWhenCaughtUp) && chainCatchingUp && err == nil {
 			//Wait between status checks, don't spam the node with requests
 			time.Sleep(time.Second * time.Duration(config.Base.WaitForChainDelay))
-			chainCatchingUp, qErr = rpc.IsCatchingUp(cl)
+			chainCatchingUp, err = rpc.IsCatchingUp(cl)
 		}
-
-		if qErr != nil {
-			fmt.Print("Error querying chain status, exiting")
-			os.Exit(1)
+		if err != nil {
+			log.Fatalf("Error querying chain status. Err: %v", err)
 		}
 
 		//Jobs are just the block height; limit max jobs in the queue, otherwise this queue would contain one
@@ -107,10 +106,9 @@ var indexCmd = &cobra.Command{
 				rewardsIndexerStartHeight = OsmosisGetRewardsStartIndexHeight(db, config.Lens.ChainID)
 			}
 
-			latestOsmosisBlock, bErr := rpc.GetLatestBlockHeight(cl)
-			if bErr != nil {
-				fmt.Println("Error getting blockchain latest height, exiting")
-				os.Exit(1)
+			latestOsmosisBlock, err := rpc.GetLatestBlockHeight(cl)
+			if err != nil {
+				log.Fatalf("Error getting blockchain latest height. Err: %v", err)
 			}
 
 			rpcClient := osmosis.URIClient{
@@ -141,10 +139,9 @@ var indexCmd = &cobra.Command{
 				//fmt.Println("Filling jobs queue")
 
 				//This is the latest block height available on the Node.
-				latestBlock, bErr := rpc.GetLatestBlockHeight(cl)
-				if bErr != nil {
-					fmt.Println(bErr)
-					os.Exit(1)
+				latestBlock, err := rpc.GetLatestBlockHeight(cl)
+				if err != nil {
+					log.Fatalf("Error getting blockchain latest height. Err: %v", err)
 				}
 
 				//Throttling in case of hitting public APIs
@@ -176,12 +173,11 @@ var indexCmd = &cobra.Command{
 	},
 }
 
-//If nothing has been indexed yet, the start height should be 0.
+// If nothing has been indexed yet, the start height should be 0.
 func OsmosisGetRewardsStartIndexHeight(db *gorm.DB, chainID string) int64 {
 	block, err := dbTypes.GetHighestTaxableEventBlock(db, chainID)
 	if err != nil && err.Error() != "record not found" {
-		fmt.Printf("Cannot retrieve highest indexed Osmosis rewards block. Exiting. %s\n", err.Error())
-		os.Exit(1)
+		log.Fatalf("Cannot retrieve highest indexed Osmosis rewards block. Err: %v", err)
 	}
 
 	return block.Height
@@ -194,10 +190,9 @@ func GetIndexerStartingHeight(configStartHeight int64, cl *client.ChainClient, d
 		return configStartHeight
 	}
 
-	latestBlock, bErr := rpc.GetLatestBlockHeight(cl)
-	if bErr != nil {
-		fmt.Println("Error getting blockchain latest height, exiting")
-		os.Exit(1)
+	latestBlock, err := rpc.GetLatestBlockHeight(cl)
+	if err != nil {
+		log.Fatalf("Error getting blockchain latest height. Err: %v", err)
 	}
 
 	fmt.Println("Found latest block", latestBlock)
@@ -207,7 +202,6 @@ func GetIndexerStartingHeight(configStartHeight int64, cl *client.ChainClient, d
 	}
 
 	return latestBlock
-
 }
 
 func IndexOsmosisRewards(
@@ -237,12 +231,7 @@ func IndexOsmosisRewards(
 	}
 }
 
-func QueryRpc(
-	blockHeightToProcess chan int64,
-	results chan *indexerTx.GetTxsEventResponseWrapper,
-	cl *client.ChainClient,
-	failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error),
-) {
+func QueryRpc(blockHeightToProcess chan int64, results chan *indexerTx.GetTxsEventResponseWrapper, cl *client.ChainClient, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error)) {
 	reprocessBlock := int64(0)
 
 	for {
@@ -286,15 +275,7 @@ func QueryRpc(
 	}
 }
 
-func ProcessTxs(
-	results chan *indexerTx.GetTxsEventResponseWrapper,
-	numBlocksTimed int64,
-	indexingEnabled bool,
-	db *gorm.DB,
-	chainID string,
-	chainName string,
-	failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error),
-) {
+func ProcessTxs(results chan *indexerTx.GetTxsEventResponseWrapper, numBlocksTimed int64, indexingEnabled bool, db *gorm.DB, chainID string, chainName string, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error)) {
 	blocksProcessed := 0
 	timeStart := time.Now()
 
@@ -309,11 +290,12 @@ func ProcessTxs(
 		//While debugging we'll sometimes want to turn off INSERTS to the DB
 		//Note that this does not turn off certain reads or DB connections.
 		if indexingEnabled {
-			fmt.Printf("Indexing block %d, threaded.\n", txToProcess.Height)
-			err := dbTypes.IndexNewBlock(db, txToProcess.Height, txDBWrappers, chainID, chainName)
+			log.Printf("Indexing block %d, threaded.\n", txToProcess.Height)
+			err = dbTypes.IndexNewBlock(db, txToProcess.Height, txDBWrappers, chainID, chainName)
 			if err != nil {
-				fmt.Printf("Error %s indexing block %d\n", err, txToProcess.Height)
-				os.Exit(1)
+				if err != nil {
+					log.Fatalf("Error indexing block %v. Err: %v", txToProcess.Height, err)
+				}
 			}
 		}
 
@@ -326,6 +308,5 @@ func ProcessTxs(
 				timeStart = time.Now()
 			}
 		}
-
 	}
 }

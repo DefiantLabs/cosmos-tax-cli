@@ -18,15 +18,15 @@ var IsOsmosisExit = map[string]bool{
 	"/osmosis.gamm.v1beta1.MsgExitPool":                true,
 }
 
-//Guard for adding messages to the group
+// Guard for adding messages to the group
 var IsOsmosisLpTxGroup = make(map[string]bool)
 
 func init() {
-	for messageType, _ := range IsOsmosisJoin {
+	for messageType := range IsOsmosisJoin {
 		IsOsmosisLpTxGroup[messageType] = true
 	}
 
-	for messageType, _ := range IsOsmosisExit {
+	for messageType := range IsOsmosisExit {
 		IsOsmosisLpTxGroup[messageType] = true
 	}
 }
@@ -68,7 +68,6 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 	//TODO: Do specialized processing on LP messages
 	for _, txMessages := range sf.GroupedTxes {
 		for _, message := range txMessages {
-
 			row := AccointingRow{}
 			row.OperationId = message.Message.Tx.Hash
 			row.Date = FormatDatetime(message.Message.Tx.TimeStamp)

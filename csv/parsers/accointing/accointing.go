@@ -2,6 +2,7 @@ package accointing
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"sort"
 
@@ -81,7 +82,6 @@ func (p *AccointingParser) ProcessTaxableTx(address string, taxableTxs []db.Taxa
 				txMap[v] = tx
 				numElementsRemoved = numElementsRemoved + 1
 			}
-
 		}
 	}
 
@@ -104,21 +104,21 @@ func (p *AccointingParser) ProcessTaxableTx(address string, taxableTxs []db.Taxa
 
 	//Parse all the txes found in the Parsing Groups
 	for _, txParsingGroup := range p.ParsingGroups {
-		txParsingGroup.ParseGroup()
+		err := txParsingGroup.ParseGroup()
+		if err != nil {
+			return err
+		}
 	}
 
 	//Handle fees on all taxableTxs at once, we don't do this in the regular parser or in the parsing groups
 	//This requires HandleFees to process the fees into unique mappings of tx -> fees (since we gather Taxable Messages in the taxableTxs)
 	//If we move it into the ParseTx function or into the ParseGroup function, we may be able to reduce the logic in the HandleFees func
 	feeRows, err := HandleFees(address, taxableTxs)
-
 	if err != nil {
 		return err
 	}
 
-	for _, v := range feeRows {
-		p.Rows = append(p.Rows, v)
-	}
+	p.Rows = append(p.Rows, feeRows...)
 
 	return nil
 }
@@ -142,14 +142,11 @@ func (p *AccointingParser) ProcessTaxableEvent(address string, taxableEvents []d
 func (p *AccointingParser) InitializeParsingGroups(config config.Config) {
 	switch config.Lens.ChainID {
 	case "osmosis-1":
-		for _, v := range GetOsmosisTxParsingGroups() {
-			p.ParsingGroups = append(p.ParsingGroups, v)
-		}
+		p.ParsingGroups = append(p.ParsingGroups, GetOsmosisTxParsingGroups()...)
 	}
 }
 
 func (p *AccointingParser) GetRows() []parsers.CsvRow {
-
 	//Combine all normal rows and parser group rows into 1
 	var accointingRows []AccointingRow
 	var parserGroupRows []AccointingRow
@@ -193,12 +190,11 @@ func (parser AccointingParser) GetHeaders() []string {
 		"feeAmount (optional)", "feeAsset (optional)", "classification (optional)", "operationId (optional)", "comments (optional)"}
 }
 
-//HandleFees:
-//If the transaction lists the same amount of fees as there are rows in the CSV,
-//then we spread the fees out one per row. Otherwise we add a line for the fees,
-//where each fee has a separate line.
+// HandleFees:
+// If the transaction lists the same amount of fees as there are rows in the CSV,
+// then we spread the fees out one per row. Otherwise we add a line for the fees,
+// where each fee has a separate line.
 func HandleFees(address string, events []db.TaxableTransaction) ([]AccointingRow, error) {
-
 	var rows []AccointingRow
 	//No events -- This address didn't pay any fees
 	if len(events) == 0 {
@@ -220,7 +216,10 @@ func HandleFees(address string, events []db.TaxableTransaction) ([]AccointingRow
 		for _, fee := range txFees {
 			if fee.PayerAddress.Address == address {
 				newRow := AccointingRow{}
-				newRow.ParseFee(txIdsToTx[id], fee)
+				err := newRow.ParseFee(txIdsToTx[id], fee)
+				if err != nil {
+					return nil, err
+				}
 				rows = append(rows, newRow)
 			}
 		}
@@ -229,7 +228,7 @@ func HandleFees(address string, events []db.TaxableTransaction) ([]AccointingRow
 	return rows, nil
 }
 
-//ParseEvent: Parse the potentially taxable event
+// ParseEvent: Parse the potentially taxable event
 func ParseEvent(address string, event db.TaxableEvent) []AccointingRow {
 	rows := []AccointingRow{}
 
@@ -247,9 +246,9 @@ func ParseEvent(address string, event db.TaxableEvent) []AccointingRow {
 	return rows
 }
 
-//ParseTx: Parse the potentially taxable TX and Messages
-//This function is used for parsing a single TX that will not need to relate to any others
-//Use TX Parsing Groups to parse txes as a group
+// ParseTx: Parse the potentially taxable TX and Messages
+// This function is used for parsing a single TX that will not need to relate to any others
+// Use TX Parsing Groups to parse txes as a group
 func ParseTx(address string, events []db.TaxableTransaction) ([]parsers.CsvRow, error) {
 	rows := []parsers.CsvRow{}
 
@@ -283,59 +282,83 @@ func ParseTx(address string, events []db.TaxableTransaction) ([]parsers.CsvRow, 
 	return rows, nil
 }
 
-//ParseMsgValidatorWithdraw:
-//This transaction is always a withdrawal.
+// ParseMsgValidatorWithdraw:
+// This transaction is always a withdrawal.
 func ParseMsgWithdrawValidatorCommission(address string, event db.TaxableTransaction) AccointingRow {
 	row := &AccointingRow{}
-	row.ParseBasic(address, event)
+	err := row.ParseBasic(address, event)
+	if err != nil {
+		log.Printf("Error with ParseMsgWithdrawValidatorCommission. Err: %v", err)
+	}
 	row.Classification = Staked
 	return *row
 }
 
-//ParseMsgValidatorWithdraw:
-//This transaction is always a withdrawal.
+// ParseMsgValidatorWithdraw:
+// This transaction is always a withdrawal.
 func ParseMsgWithdrawDelegatorReward(address string, event db.TaxableTransaction) AccointingRow {
 	row := &AccointingRow{}
-	row.ParseBasic(address, event)
+	err := row.ParseBasic(address, event)
+	if err != nil {
+		log.Printf("Error with ParseMsgWithdrawDelegatorReward. Err: %v", err)
+	}
 	row.Classification = Staked
 	return *row
 }
 
-//ParseMsgSend:
-//If the address we searched is the receiver, then this transaction is a deposit.
-//If the address we searched is the sender, then this transaction is a withdrawal.
+// ParseMsgSend:
+// If the address we searched is the receiver, then this transaction is a deposit.
+// If the address we searched is the sender, then this transaction is a withdrawal.
 func ParseMsgSend(address string, event db.TaxableTransaction) AccointingRow {
 	row := &AccointingRow{}
-	row.ParseBasic(address, event)
+	err := row.ParseBasic(address, event)
+	if err != nil {
+		log.Printf("Error with ParseMsgSend. Err: %v", err)
+	}
 	return *row
 }
 
 func ParseMsgMultiSend(address string, event db.TaxableTransaction) AccointingRow {
 	row := &AccointingRow{}
-	row.ParseBasic(address, event)
+	err := row.ParseBasic(address, event)
+	if err != nil {
+		log.Printf("Error with ParseMsgMultiSend. Err: %v", err)
+	}
 	return *row
 }
 
 func ParseMsgFundCommunityPool(address string, event db.TaxableTransaction) AccointingRow {
 	row := &AccointingRow{}
-	row.ParseBasic(address, event)
+	err := row.ParseBasic(address, event)
+	if err != nil {
+		log.Printf("Error with ParseMsgFundCommunityPool. Err: %v", err)
+	}
 	return *row
 }
 
 func ParseMsgSwapExactAmountIn(address string, event db.TaxableTransaction) AccointingRow {
 	row := &AccointingRow{}
-	row.ParseSwap(address, event)
+	err := row.ParseSwap(address, event)
+	if err != nil {
+		log.Printf("Error with ParseMsgSwapExactAmountIn. Err: %v", err)
+	}
 	return *row
 }
 
 func ParseMsgSwapExactAmountOut(address string, event db.TaxableTransaction) AccointingRow {
 	row := &AccointingRow{}
-	row.ParseSwap(address, event)
+	err := row.ParseSwap(address, event)
+	if err != nil {
+		log.Printf("Error with ParseMsgSwapExactAmountOut. Err: %v", err)
+	}
 	return *row
 }
 
 func ParseOsmosisReward(address string, event db.TaxableEvent) (AccointingRow, error) {
 	row := &AccointingRow{}
 	err := row.EventParseBasic(address, event)
+	if err != nil {
+		log.Printf("Error with ParseOsmosisReward. Err: %v", err)
+	}
 	return *row, err
 }

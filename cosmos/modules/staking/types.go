@@ -45,7 +45,7 @@ type WrapperMsgBeginRedelegate struct {
 	AutoWithdrawalRewards    stdTypes.Coins
 }
 
-//HandleMsg: Handle type checking for MsgFundCommunityPool
+// HandleMsg: Handle type checking for MsgFundCommunityPool
 func (sf *WrapperMsgDelegate) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.TxLogMessage) error {
 	sf.Type = msgType
 	sf.CosmosMsgDelegate = msg.(*stakeTypes.MsgDelegate)
@@ -120,7 +120,7 @@ func (sf *WrapperMsgUndelegate) HandleMsg(msgType string, msg stdTypes.Msg, log 
 	return nil
 }
 
-//HandleMsg: Handle type checking for MsgFundCommunityPool
+// HandleMsg: Handle type checking for MsgFundCommunityPool
 func (sf *WrapperMsgBeginRedelegate) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.TxLogMessage) error {
 	sf.Type = msgType
 	sf.CosmosMsgBeginRedelegate = msg.(*stakeTypes.MsgBeginRedelegate)
@@ -217,7 +217,6 @@ func (sf *WrapperMsgUndelegate) String() string {
 }
 
 func (sf *WrapperMsgBeginRedelegate) String() string {
-
 	var coinsRecievedStrings []string
 	for _, coin := range sf.AutoWithdrawalRewards {
 		coinsRecievedStrings = append(coinsRecievedStrings, coin.String())

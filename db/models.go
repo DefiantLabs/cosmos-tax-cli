@@ -60,8 +60,8 @@ const (
 	OsmosisRewardDistribution uint = iota
 )
 
-//An event does not necessarily need to be part of a Transaction. For example, Osmosis rewards.
-//Events can happen on chain and generate tendermint ABCI events that do not show up in transactions.
+// An event does not necessarily need to be part of a Transaction. For example, Osmosis rewards.
+// Events can happen on chain and generate tendermint ABCI events that do not show up in transactions.
 type TaxableEvent struct {
 	ID             uint
 	Source         uint            //This will indicate what type of event occurred on chain. Currently, only used for Osmosis rewards.
@@ -126,20 +126,20 @@ type DenomUnitAlias struct {
 	Alias       string `gorm:"unique"`
 }
 
-//Store transactions with their messages for easy database creation
+// Store transactions with their messages for easy database creation
 type TxDBWrapper struct {
 	Tx            Tx
 	SignerAddress Address
 	Messages      []MessageDBWrapper
 }
 
-//Store messages with their taxable events for easy database creation
+// Store messages with their taxable events for easy database creation
 type MessageDBWrapper struct {
 	Message       Message
 	TaxableEvents []TaxableEventDBWrapper
 }
 
-//Store taxable events with their sender/receiver address for easy database creation
+// Store taxable events with their sender/receiver address for easy database creation
 type TaxableEventDBWrapper struct {
 	TaxableTx       TaxableTransaction
 	SenderAddress   Address

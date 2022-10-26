@@ -17,6 +17,10 @@ where addr.address = 'osmo...'
 */
 func TestOsmosisCsvForAddress(t *testing.T) {
 	config, err := configUtils.GetConfig("../config.toml")
+	if err != nil {
+		t.Fatalf("Error getting config. Err: %v", err)
+	}
+
 	addressRegex := "osmo(valoper)?1[a-z0-9]{38}"
 	addressPrefix := "osmo"
 	gorm, _ := db_setup(addressRegex, addressPrefix)
@@ -39,6 +43,10 @@ func TestOsmosisCsvForAddress(t *testing.T) {
 
 func TestCsvForAddress(t *testing.T) {
 	config, err := configUtils.GetConfig("../config.toml")
+	if err != nil {
+		t.Fatalf("Error getting config. Err: %v", err)
+	}
+
 	addressRegex := "juno(valoper)?1[a-z0-9]{38}"
 	addressPrefix := "juno"
 	gorm, _ := db_setup(addressRegex, addressPrefix)

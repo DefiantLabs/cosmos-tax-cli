@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/BurntSushi/toml"
 	"github.com/imdario/mergo"
+	lg "log"
 )
 
 type Config struct {
@@ -55,15 +56,16 @@ type log struct {
 	Path  string
 }
 
-func GetConfig(configFileLocation string) (Config, error) {
-	var conf Config
-	_, err := toml.DecodeFile(configFileLocation, &conf)
-	return conf, err
+func GetConfig(configFileLocation string) (conf Config, err error) {
+	_, err = toml.DecodeFile(configFileLocation, &conf)
+	return
 }
 
 func MergeConfigs(def Config, overide Config) Config {
-
-	mergo.Merge(&overide, def)
+	err := mergo.Merge(&overide, def)
+	if err != nil {
+		lg.Panicf("Config merge failed. Err: %v", err)
+	}
 
 	return overide
 }

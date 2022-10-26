@@ -6,7 +6,6 @@ import (
 )
 
 func ParseArgs(w io.Writer, args []string) (Config, error) {
-
 	c := Config{}
 	fs := flag.NewFlagSet("config", flag.ContinueOnError)
 
@@ -25,5 +24,4 @@ func ParseArgs(w io.Writer, args []string) (Config, error) {
 	}
 
 	return c, nil
-
 }

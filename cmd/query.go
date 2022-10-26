@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/csv"
@@ -27,7 +28,8 @@ var queryCmd = &cobra.Command{
 		}
 
 		if !found {
-			cmd.Help()
+			err := cmd.Help()
+			log.Println("Error getting cmd help. Err: ", err)
 			cobra.CheckErr(fmt.Sprintf("Invalid format %s, valid formats are %s", format, parsers))
 		}
 
@@ -60,10 +62,12 @@ func init() {
 	}
 
 	queryCmd.Flags().StringVar(&address, "address", "", "The address to query for")
-	queryCmd.MarkFlagRequired("address")
+	err := queryCmd.MarkFlagRequired("address")
+	if err != nil {
+		log.Println("Error marking address field as required during query init. Err: ", err)
+	}
 	queryCmd.Flags().StringVar(&output, "output", "./output.csv", "The output location")
 	queryCmd.Flags().StringVar(&format, "format", validFormats[0], "The format to output")
 
 	rootCmd.AddCommand(queryCmd)
-
 }

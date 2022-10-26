@@ -1,18 +1,15 @@
 package config
 
 import (
-	"fmt"
-	"os"
-
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	lg "log"
 )
 
 var Logger *zap.Logger //Global logger
 
 func DoConfigureLogger(logPath string, logLevel string) {
 	//Logger
-	var logErr error
 	cfg := zap.Config{
 		OutputPaths: []string{logPath},
 		EncoderConfig: zapcore.EncoderConfig{
@@ -25,16 +22,14 @@ func DoConfigureLogger(logPath string, logLevel string) {
 		Level:    zap.NewAtomicLevel(),
 	}
 
-	al, logErr := zap.ParseAtomicLevel(logLevel)
-	if logErr != nil {
-		fmt.Println("logger setup failure")
-		os.Exit(1)
+	al, err := zap.ParseAtomicLevel(logLevel)
+	if err != nil {
+		lg.Fatalf("logger setup failure. Err: %v", err)
 	}
-	cfg.Level = al
-	Logger, logErr = cfg.Build()
 
-	if logErr != nil {
-		fmt.Println("logger setup failure")
-		os.Exit(1)
+	cfg.Level = al
+	Logger, err = cfg.Build()
+	if err != nil {
+		lg.Fatalf("logger setup failure. Err: %v", err)
 	}
 }

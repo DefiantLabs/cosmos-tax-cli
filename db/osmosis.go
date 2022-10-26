@@ -47,7 +47,6 @@ func createTaxableEvents(db *gorm.DB, events []TaxableEvent) error {
 				fmt.Printf("Error %s creating tx.\n", err)
 				return err
 			}
-
 		}
 
 		return nil
@@ -55,7 +54,6 @@ func createTaxableEvents(db *gorm.DB, events []TaxableEvent) error {
 }
 
 func IndexOsmoRewards(db *gorm.DB, chainID string, chainName string, rewards []*osmosis.OsmosisRewards) error {
-
 	dbEvents := []TaxableEvent{}
 
 	for _, curr := range rewards {

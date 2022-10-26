@@ -1,0 +1,36 @@
+name: test
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+  push:
+    branches:
+      - master
+
+env:
+  GO_VERSION: '^1.19'
+
+jobs:
+
+  go-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - uses: actions/checkout@v3
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          args: -v --timeout 5m -E gofmt -E whitespace
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      # TODO: uncomment to add go test the ci once lint issues are addressed
+      #- name: test code
+      #  run: |
+      #    cd backend
+      #    go test -v ./...

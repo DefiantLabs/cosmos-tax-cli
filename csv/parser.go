@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm"
 )
 
-//Theres got to be a better way to do this
+// Theres got to be a better way to do this
 func init() {
 	parsers.RegisterParser(accointing.ParserKey)
 }
@@ -25,33 +25,33 @@ func GetParser(parserKey string) parsers.Parser {
 }
 
 func ParseForAddress(address string, pgSql *gorm.DB, parserKey string, config config.Config) ([]parsers.CsvRow, []string, error) {
-
 	parser := GetParser(parserKey)
 	parser.InitializeParsingGroups(config)
 
 	//TODO: need to pass in chain and date range
 	taxableTxs, err := db.GetTaxableTransactions(address, pgSql)
-
 	if err != nil {
 		fmt.Println(err)
 		return nil, nil, err
 	}
 
 	err = parser.ProcessTaxableTx(address, taxableTxs)
-
 	if err != nil {
 		fmt.Println(err)
 		return nil, nil, err
 	}
 
 	taxableEvents, err := db.GetTaxableEvents(address, pgSql)
-
 	if err != nil {
 		fmt.Println(err)
 		return nil, nil, err
 	}
 
-	parser.ProcessTaxableEvent(address, taxableEvents)
+	err = parser.ProcessTaxableEvent(address, taxableEvents)
+	if err != nil {
+		fmt.Println(err)
+		return nil, nil, err
+	}
 
 	//Get rows once right at the end
 	rows := parser.GetRows()

@@ -69,15 +69,14 @@ func initConfig() {
 	}
 }
 
-//TODO: Refactor all of this code. Move to config folder, make it work for multiple chains.
-//Separate the DB logic, scheduler logic, and blockchain logic into different functions.
+// TODO: Refactor all of this code. Move to config folder, make it work for multiple chains.
+// Separate the DB logic, scheduler logic, and blockchain logic into different functions.
 //
-//setup does pre-run setup configurations.
-//	* Loads the application config from config.tml, cli args and parses/merges
-//	* Connects to the database and returns the db object
-//	* Returns various values used throughout the application
+// setup does pre-run setup configurations.
+//   - Loads the application config from config.tml, cli args and parses/merges
+//   - Connects to the database and returns the db object
+//   - Returns various values used throughout the application
 func setup(config config.Config) (*configHelpers.Config, *gorm.DB, *gocron.Scheduler, error) {
-
 	//Logger
 	logLevel := config.Log.Level
 	logPath := config.Log.Path

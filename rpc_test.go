@@ -17,12 +17,13 @@ import (
 	"github.com/go-co-op/gocron"
 )
 
-//setup does pre-run setup configurations.
-//	* Loads the application config from config.tml, cli args and parses/merges
-//	* Connects to the database and returns the db object
-//	* Returns various values used throughout the application
+// setup does pre-run setup configurations.
+//   - Loads the application config from config.tml, cli args and parses/merges
+//   - Connects to the database and returns the db object
+//   - Returns various values used throughout the application
+//
+//nolint:unused
 func setup_rpc() (*configHelpers.Config, *gocron.Scheduler, error) {
-
 	argConfig, err := configHelpers.ParseArgs(os.Stderr, os.Args[1:])
 
 	if err != nil {
@@ -66,7 +67,10 @@ func TestRpc(t *testing.T) {
 		t.Fatal("Failed to write CSV to disk")
 	}
 
-	rpc_query_tx(int64(block))
+	err = rpc_query_tx(int64(block))
+	if err != nil {
+		t.Fatal("Error calling rpc_query_tx. Err: ", err)
+	}
 }
 
 func GetTestClient() *lensClient.ChainClient {
