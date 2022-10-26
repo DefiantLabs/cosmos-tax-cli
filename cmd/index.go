@@ -95,7 +95,7 @@ func index(cmd *cobra.Command, args []string) {
 	for i := 0; i < rpcQueryThreads; i++ {
 		txChanWaitGroup.Add(1)
 		go func() {
-			queryRpc(blockChan, blockTXsChan, cl, core.HandleFailedBlock)
+			queryRpc(blockChan, blockTXsChan, db, cl, config.Lens.ChainID, config.Lens.ChainName, core.HandleFailedBlock)
 			txChanWaitGroup.Done()
 		}()
 	}
@@ -263,7 +263,7 @@ func indexOsmosisReward(db *gorm.DB, chainID, chainName string, rpcClient osmosi
 	return 0, nil
 }
 
-func queryRpc(blockChan chan int64, blockTXsChan chan *indexerTx.GetTxsEventResponseWrapper, cl *client.ChainClient, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error)) {
+func queryRpc(blockChan chan int64, blockTXsChan chan *indexerTx.GetTxsEventResponseWrapper, db *gorm.DB, cl *client.ChainClient, chainID, chainName string, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error)) {
 	maxAttempts := 5
 	for blockToProcess := range blockChan {
 		// attempt to process the block 5 times and then give up
@@ -271,7 +271,8 @@ func queryRpc(blockChan chan int64, blockTXsChan chan *indexerTx.GetTxsEventResp
 		for processBlock(cl, failedBlockHandler, blockTXsChan, blockToProcess) != nil && attemptCount < maxAttempts {
 			attemptCount++
 			if attemptCount == maxAttempts {
-				log.Fatalf("Failed to process block %v after %v attempts.", blockToProcess, maxAttempts)
+				config.Log.Error(fmt.Sprintf("Failed to process block %v after %v attempts. Will add to failed blocks table", blockToProcess, maxAttempts))
+				dbTypes.UpsertFailedBlock(db, blockToProcess, chainID, chainName) // TODO: We could hang this off the DB connection...
 			}
 		}
 	}
@@ -285,7 +286,7 @@ func processBlock(cl *client.ChainClient, failedBlockHandler func(height int64, 
 	//TODO: Do something smarter than giving up when we encounter an error.
 	txsEventResp, err := rpc.GetTxsByBlockHeight(cl, newBlock.Height)
 	if err != nil {
-		fmt.Println("Error getting transactions by block height. Adding block back to chan to reprocess", err)
+		config.Log.Error("Error getting transactions by block height. Will reattempt", zap.Error(err))
 		return err
 	}
 
