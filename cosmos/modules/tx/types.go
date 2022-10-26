@@ -52,7 +52,7 @@ type TxResponse struct {
 	TxHash    string         `json:"txhash"`
 	Height    string         `json:"height"`
 	TimeStamp string         `json:"timestamp"`
-	Code      int64          `json:"code"`
+	Code      uint32         `json:"code"`
 	RawLog    string         `json:"raw_log"`
 	Log       []TxLogMessage `json:"logs"`
 }

@@ -109,7 +109,7 @@ func index(cmd *cobra.Command, args []string) {
 	wg.Add(1)
 
 	//Add jobs to the queue to be processed
-	if !config.Base.OsmosisRewardsOnly {
+	if !config.Base.OsmosisRewardsOnly { //TODO: if we are putting this behind an if check, should we do the same with the go routines related to it?
 		enqueueBlocksToProcess(config, cl, db, blockChan)
 	}
 

@@ -23,7 +23,7 @@ type Tx struct {
 	ID              uint
 	TimeStamp       time.Time
 	Hash            string
-	Code            int64
+	Code            uint32
 	BlockId         uint
 	Block           Block
 	SignerAddressId *int //*int allows foreign key to be null
