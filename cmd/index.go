@@ -10,18 +10,18 @@ import (
 	"time"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	configHelpers "github.com/DefiantLabs/cosmos-tax-cli/config"
 	"github.com/DefiantLabs/cosmos-tax-cli/core"
+	indexerTx "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
+	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 	"github.com/DefiantLabs/cosmos-tax-cli/rpc"
 	"github.com/DefiantLabs/cosmos-tax-cli/tasks"
+
 	"github.com/spf13/cobra"
 	"github.com/strangelove-ventures/lens/client"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-
-	configHelpers "github.com/DefiantLabs/cosmos-tax-cli/config"
-	indexerTx "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
-	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
 )
 
 func init() {
@@ -34,89 +34,92 @@ var indexCmd = &cobra.Command{
 	Long: `Indexes the Cosmos-based blockchain according to the configurations found on the command line
 	or in the specified config file. Indexes taxable events into a database for easy querying. It is
 	highly recommended to keep this command running as a background service to keep your index up to date.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		//TODO: split out setup methods and only call necessary ones
-		config, db, scheduler, err := setup(conf)
-		if err != nil {
-			log.Fatalf("Error during application setup. Err: %v", err)
-		}
+	Run: index,
+}
 
-		dbConn, err := db.DB()
-		if err != nil {
-			configHelpers.Log.Fatal("Failed to connect to DB", zap.Error(err))
-		}
-		defer dbConn.Close()
+func index(cmd *cobra.Command, args []string) {
+	//TODO: split out setup methods and only call necessary ones
+	config, db, scheduler, err := setup(conf)
+	if err != nil {
+		log.Fatalf("Error during application setup. Err: %v", err)
+	}
 
-		core.ChainSpecificMessageTypeHandlerBootstrap(config.Lens.ChainID)
+	dbConn, err := db.DB()
+	if err != nil {
+		configHelpers.Log.Fatal("Failed to connect to DB", zap.Error(err))
+	}
+	defer dbConn.Close()
 
-		//TODO may need to run this task in setup() so that we have a cold start functionality before the indexer starts
-		_, err = scheduler.Every(6).Hours().Do(tasks.DenomUpsertTask, config.Lens.Rpc, db)
-		if err != nil {
-			configHelpers.Log.Error("Error scheduling denmon upsert task. Err: ", zap.Error(err))
-		}
-		scheduler.StartAsync()
+	core.ChainSpecificMessageTypeHandlerBootstrap(config.Lens.ChainID)
 
-		//Some chains do not have the denom metadata URL available on chain, so we do chain specific downloads instead.
-		tasks.DoChainSpecificUpsertDenoms(db, config.Lens.ChainID)
+	//TODO may need to run this task in setup() so that we have a cold start functionality before the indexer starts
+	_, err = scheduler.Every(6).Hours().Do(tasks.DenomUpsertTask, config.Lens.Rpc, db)
+	if err != nil {
+		configHelpers.Log.Error("Error scheduling denmon upsert task. Err: ", zap.Error(err))
+	}
+	scheduler.StartAsync()
 
-		cl := configHelpers.GetLensClient(config.Lens)
-		configHelpers.SetChainConfig(config.Base.AddressPrefix)
+	//Some chains do not have the denom metadata URL available on chain, so we do chain specific downloads instead.
+	tasks.DoChainSpecificUpsertDenoms(db, config.Lens.ChainID)
 
-		//Depending on the app configuration, wait for the chain to catch up
-		chainCatchingUp, err := rpc.IsCatchingUp(cl)
-		for (config.Base.WaitForChain || config.Base.ExitWhenCaughtUp) && chainCatchingUp && err == nil {
-			//Wait between status checks, don't spam the node with requests
-			time.Sleep(time.Second * time.Duration(config.Base.WaitForChainDelay))
-			chainCatchingUp, err = rpc.IsCatchingUp(cl)
-		}
-		if err != nil {
-			configHelpers.Log.Fatal("Error querying chain status.", zap.Error(err))
-		}
+	cl := configHelpers.GetLensClient(config.Lens)
+	configHelpers.SetChainConfig(config.Base.AddressPrefix)
 
-		//Jobs are just the block height; limit max jobs in the queue, otherwise this queue would contain one
-		//item (block height) for every block on the entire blockchain we're indexing. Furthermore, once the queue
-		//is close to empty, we will spin up a new thread to fill it up with new jobs.
-		blockHeightToProcess := make(chan int64, 10000)
+	//Depending on the app configuration, wait for the chain to catch up
+	chainCatchingUp, err := rpc.IsCatchingUp(cl)
+	for (config.Base.WaitForChain || config.Base.ExitWhenCaughtUp) && chainCatchingUp && err == nil {
+		//Wait between status checks, don't spam the node with requests
+		time.Sleep(time.Second * time.Duration(config.Base.WaitForChainDelay))
+		chainCatchingUp, err = rpc.IsCatchingUp(cl)
+	}
+	if err != nil {
+		configHelpers.Log.Fatal("Error querying chain status.", zap.Error(err))
+	}
 
-		//This channel represents query job results for the RPC queries to Cosmos Nodes. Every time an RPC query
-		//completes, the query result will be sent to this channel (for later processing by a different thread).
-		//Realistically, I expect that RPC queries will be slower than our relational DB on the local network.
-		//If RPC queries are faster than DB inserts this buffer will fill up.
-		//We will periodically check the buffer size to monitor performance so we can optimize later.
-		rpcQueryThreads := 4 //TODO: set this from the config
-		jobResultsChannel := make(chan *indexerTx.GetTxsEventResponseWrapper, 2*rpcQueryThreads)
+	//blockChan are just the block heights; limit max jobs in the queue, otherwise this queue would contain one
+	//item (block height) for every block on the entire blockchain we're indexing. Furthermore, once the queue
+	//is close to empty, we will spin up a new thread to fill it up with new jobs.
+	blockChan := make(chan int64, 10000)
 
-		//Spin up a (configurable) number of threads to query RPC endpoints for Transactions.
-		for i := 0; i < rpcQueryThreads; i++ {
-			go QueryRpc(blockHeightToProcess, jobResultsChannel, cl, core.HandleFailedBlock)
-		}
+	//This channel represents query job results for the RPC queries to Cosmos Nodes. Every time an RPC query
+	//completes, the query result will be sent to this channel (for later processing by a different thread).
+	//Realistically, I expect that RPC queries will be slower than our relational DB on the local network.
+	//If RPC queries are faster than DB inserts this buffer will fill up.
+	//We will periodically check the buffer size to monitor performance so we can optimize later.
+	rpcQueryThreads := 4 //TODO: set this from the config
+	blockTXs := make(chan *indexerTx.GetTxsEventResponseWrapper, 4*rpcQueryThreads)
 
-		//Start a thread to process transactions after the RPC querier retrieves them.
-		go ProcessTxs(jobResultsChannel, config.Base.BlockTimer, config.Base.IndexingEnabled, db, config.Lens.ChainID, config.Lens.ChainName, core.HandleFailedBlock)
+	//Spin up a (configurable) number of threads to query RPC endpoints for Transactions.
+	//this is assumed to be the slowest process that allows concurrency and thus has the most dedicated go routines.
+	for i := 0; i < rpcQueryThreads; i++ {
+		go queryRpc(blockChan, blockTXs, cl, core.HandleFailedBlock)
+	}
 
-		//lastBlock := config.Base.EndBlock
-		var wg sync.WaitGroup
+	//Start a thread to process transactions after the RPC querier retrieves them.
+	go processTxs(blockTXs, config.Base.BlockTimer, config.Base.IndexingEnabled, db, config.Lens.ChainID, config.Lens.ChainName, core.HandleFailedBlock)
 
-		//Osmosis specific indexing requirements. Osmosis distributes rewards to LP holders on a daily basis.
-		if configHelpers.IsOsmosis(config) {
-			go IndexOsmosisRewards(&wg, config, cl, db, config.Lens.ChainID, config.Lens.ChainName, core.HandleFailedBlock)
-		}
+	//lastBlock := config.Base.EndBlock
+	var wg sync.WaitGroup
 
-		wg.Add(1)
+	//Osmosis specific indexing requirements. Osmosis distributes rewards to LP holders on a daily basis.
+	if configHelpers.IsOsmosis(config) {
+		go indexOsmosisRewards(&wg, config, cl, db, config.Lens.ChainID, config.Lens.ChainName, core.HandleFailedBlock)
+	}
 
-		//Add jobs to the queue to be processed
-		if !config.Base.OsmosisRewardsOnly {
-			enqueueBlocksToProcess(config, cl, db, blockHeightToProcess)
-		}
+	wg.Add(1)
 
-		//If we error out in the main loop, this will block. Meaning we may not know of an error for 6 hours until last scheduled task stops
-		scheduler.Stop()
-		wg.Wait() //FIXME: I think this may end up missing some of the end of the last blocks to be processed b/c the workers are not part of the waitgroup...
-	},
+	//Add jobs to the queue to be processed
+	if !config.Base.OsmosisRewardsOnly {
+		enqueueBlocksToProcess(config, cl, db, blockChan)
+	}
+
+	//If we error out in the main loop, this will block. Meaning we may not know of an error for 6 hours until last scheduled task stops
+	scheduler.Stop()
+	wg.Wait() //FIXME: I think this may end up missing some of the end of the last blocks to be processed b/c the workers are not part of the waitgroup...
 }
 
 // enqueueBlocksToProcess will pass the blocks that need to be processed to the blockchannel
-func enqueueBlocksToProcess(config *config.Config, cl *client.ChainClient, db *gorm.DB, blockHeightToProcess chan int64) {
+func enqueueBlocksToProcess(config *config.Config, cl *client.ChainClient, db *gorm.DB, blockChan chan int64) {
 	//Start at the last indexed block height (or the block height in the config, if set)
 	currBlock := GetIndexerStartingHeight(config.Base.StartBlock, cl, db)
 
@@ -137,7 +140,7 @@ func enqueueBlocksToProcess(config *config.Config, cl *client.ChainClient, db *g
 		}
 
 		//The job queue is running out of jobs to process, see if the blockchain has produced any new blocks we haven't indexed yet.
-		if len(blockHeightToProcess) <= cap(blockHeightToProcess)/4 {
+		if len(blockChan) <= cap(blockChan)/4 {
 			//This is the latest block height available on the Node.
 			var err error
 			latestBlock, err = rpc.GetLatestBlockHeight(cl)
@@ -152,14 +155,14 @@ func enqueueBlocksToProcess(config *config.Config, cl *client.ChainClient, db *g
 			}
 
 			//Already at the latest block, wait for the next block to be available.
-			for currBlock <= latestBlock && currBlock <= lastBlock && len(blockHeightToProcess) != cap(blockHeightToProcess) {
+			for currBlock <= latestBlock && currBlock <= lastBlock && len(blockChan) != cap(blockChan) {
 				if config.Base.Throttling != 0 {
 					time.Sleep(time.Second * time.Duration(config.Base.Throttling))
 				}
 
 				//Add the new block to the queue
 				//fmt.Printf("Added block %d to the queue\n", currBlock)
-				blockHeightToProcess <- currBlock
+				blockChan <- currBlock
 				currBlock++
 			}
 		}
@@ -197,7 +200,7 @@ func GetIndexerStartingHeight(configStartHeight int64, cl *client.ChainClient, d
 	return latestBlock
 }
 
-func IndexOsmosisRewards(wg *sync.WaitGroup, config *config.Config, cl *client.ChainClient, db *gorm.DB, chainID, chainName string, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error)) {
+func indexOsmosisRewards(wg *sync.WaitGroup, config *config.Config, cl *client.ChainClient, db *gorm.DB, chainID, chainName string, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error)) {
 	defer wg.Done()
 
 	startHeight := config.Base.StartBlock
@@ -230,14 +233,14 @@ func IndexOsmosisRewards(wg *sync.WaitGroup, config *config.Config, cl *client.C
 	}
 }
 
-func QueryRpc(blockHeightToProcess chan int64, results chan *indexerTx.GetTxsEventResponseWrapper, cl *client.ChainClient, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error)) {
+func queryRpc(blockChan chan int64, blockTXs chan *indexerTx.GetTxsEventResponseWrapper, cl *client.ChainClient, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error)) {
 	reprocessBlock := int64(0)
 
 	for {
 		blockToProcess := reprocessBlock
 
 		if reprocessBlock == 0 {
-			blockToProcess = <-blockHeightToProcess
+			blockToProcess = <-blockChan
 		} else {
 			reprocessBlock = 0
 		}
@@ -271,16 +274,16 @@ func QueryRpc(blockHeightToProcess chan int64, results chan *indexerTx.GetTxsEve
 			CosmosGetTxsEventResponse: txsEventResp,
 			Height:                    blockToProcess,
 		}
-		results <- res
+		blockTXs <- res
 	}
 }
 
-func ProcessTxs(results chan *indexerTx.GetTxsEventResponseWrapper, numBlocksTimed int64, indexingEnabled bool, db *gorm.DB, chainID string, chainName string, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error)) {
+func processTxs(blockTXs chan *indexerTx.GetTxsEventResponseWrapper, numBlocksTimed int64, indexingEnabled bool, db *gorm.DB, chainID string, chainName string, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error)) {
 	blocksProcessed := 0
 	timeStart := time.Now()
 
 	for {
-		txToProcess := <-results
+		txToProcess := <-blockTXs
 		txDBWrappers, err := core.ProcessRpcTxs(db, txToProcess.CosmosGetTxsEventResponse)
 		if err != nil {
 			config.Log.Error("ProcessRpcTxs: unhandled error", zap.Error(err))
