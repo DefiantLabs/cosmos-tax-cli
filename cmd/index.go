@@ -87,35 +87,47 @@ func index(cmd *cobra.Command, args []string) {
 	//If RPC queries are faster than DB inserts this buffer will fill up.
 	//We will periodically check the buffer size to monitor performance so we can optimize later.
 	rpcQueryThreads := 4 //TODO: set this from the config
-	blockTXs := make(chan *indexerTx.GetTxsEventResponseWrapper, 4*rpcQueryThreads)
+	blockTXsChan := make(chan *indexerTx.GetTxsEventResponseWrapper, 4*rpcQueryThreads)
 
 	//Spin up a (configurable) number of threads to query RPC endpoints for Transactions.
 	//this is assumed to be the slowest process that allows concurrency and thus has the most dedicated go routines.
+	var txChanWaitGroup sync.WaitGroup
 	for i := 0; i < rpcQueryThreads; i++ {
-		go queryRpc(blockChan, blockTXs, cl, core.HandleFailedBlock)
+		txChanWaitGroup.Add(1)
+		go func() {
+			queryRpc(blockChan, blockTXsChan, cl, core.HandleFailedBlock)
+			txChanWaitGroup.Done()
+		}()
 	}
 
-	//Start a thread to process transactions after the RPC querier retrieves them.
-	go processTxs(blockTXs, config.Base.BlockTimer, config.Base.IndexingEnabled, db, config.Lens.ChainID, config.Lens.ChainName, core.HandleFailedBlock)
+	// close the transaction chan once all transactions have been written to it
+	go func() {
+		txChanWaitGroup.Wait()
+		close(blockTXsChan)
+	}()
 
-	//lastBlock := config.Base.EndBlock
 	var wg sync.WaitGroup
+
+	//Start a thread to process transactions after the RPC querier retrieves them.
+	wg.Add(1)
+	go processTxs(&wg, blockTXsChan, config.Base.BlockTimer, config.Base.IndexingEnabled, db, config.Lens.ChainID, config.Lens.ChainName, core.HandleFailedBlock)
 
 	//Osmosis specific indexing requirements. Osmosis distributes rewards to LP holders on a daily basis.
 	if configHelpers.IsOsmosis(config) {
+		wg.Add(1)
 		go indexOsmosisRewards(&wg, config, cl, db, config.Lens.ChainID, config.Lens.ChainName, core.HandleFailedBlock)
 	}
-
-	wg.Add(1)
 
 	//Add jobs to the queue to be processed
 	if !config.Base.OsmosisRewardsOnly { //TODO: if we are putting this behind an if check, should we do the same with the go routines related to it?
 		enqueueBlocksToProcess(config, cl, db, blockChan)
+		// close the block chan once all blocks have been written to it
+		close(blockChan)
 	}
 
 	//If we error out in the main loop, this will block. Meaning we may not know of an error for 6 hours until last scheduled task stops
 	scheduler.Stop()
-	wg.Wait() //FIXME: I think this may end up missing some of the end of the last blocks to be processed b/c the workers are not part of the waitgroup...
+	wg.Wait()
 }
 
 // enqueueBlocksToProcess will pass the blocks that need to be processed to the blockchannel
@@ -237,57 +249,60 @@ func indexOsmosisRewards(wg *sync.WaitGroup, config *config.Config, cl *client.C
 	}
 }
 
-func queryRpc(blockChan chan int64, blockTXs chan *indexerTx.GetTxsEventResponseWrapper, cl *client.ChainClient, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error)) {
-	reprocessBlock := int64(0)
-	//FIXME: add logic to only retry block N times, if block fails, add to failed block table in DB
-	for {
-		blockToProcess := reprocessBlock
-
-		if reprocessBlock == 0 {
-			blockToProcess = <-blockChan
-		} else {
-			reprocessBlock = 0
-		}
-		//fmt.Printf("Querying RPC transactions for block %d\n", blockToProcess)
-		newBlock := dbTypes.Block{Height: blockToProcess}
-
-		//TODO: There is currently no pagination implemented!
-		//TODO: Do something smarter than giving up when we encounter an error.
-		txsEventResp, err := rpc.GetTxsByBlockHeight(cl, newBlock.Height)
-		if err != nil {
-			fmt.Println("Error getting transactions by block height", err)
-			reprocessBlock = newBlock.Height
-			continue
-		}
-
-		if len(txsEventResp.Txs) == 0 {
-			//The node might have pruned history resulting in a failed lookup. Recheck to see if the block was supposed to have TX results.
-			blockResults, err := rpc.GetBlockByHeight(cl, newBlock.Height)
-			if err != nil || blockResults == nil {
-				failedBlockHandler(newBlock.Height, core.BlockQueryError, err)
-			} else if len(blockResults.TxsResults) > 0 {
-				//Two queries for the same block got a diff # of TXs. Though it is not guaranteed,
-				//DeliverTx events typically make it into a block so this warrants manual investigation.
-				//In this case, we couldn't look up TXs on the node but the Node's block has DeliverTx events,
-				//so we should log this and manually review the block on e.g. mintscan or another tool.
-				failedBlockHandler(newBlock.Height, core.NodeMissingBlockTxs, errors.New("node has DeliverTx results for block, but querying txs by height failed"))
+func queryRpc(blockChan chan int64, blockTXsChan chan *indexerTx.GetTxsEventResponseWrapper, cl *client.ChainClient, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error)) {
+	maxAttempts := 5
+	for blockToProcess := range blockChan {
+		// attempt to process the block 5 times and then give up
+		var attemptCount int
+		for processBlock(cl, failedBlockHandler, blockTXsChan, blockToProcess) != nil && attemptCount < maxAttempts {
+			attemptCount++
+			if attemptCount == maxAttempts {
+				log.Fatalf("Failed to process block %v after %v attempts.", blockToProcess, maxAttempts)
 			}
 		}
-
-		res := &indexerTx.GetTxsEventResponseWrapper{
-			CosmosGetTxsEventResponse: txsEventResp,
-			Height:                    blockToProcess,
-		}
-		blockTXs <- res
 	}
 }
 
-func processTxs(blockTXs chan *indexerTx.GetTxsEventResponseWrapper, numBlocksTimed int64, indexingEnabled bool, db *gorm.DB, chainID string, chainName string, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error)) {
+func processBlock(cl *client.ChainClient, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error), blockTXsChan chan *indexerTx.GetTxsEventResponseWrapper, blockToProcess int64) error {
+	//fmt.Printf("Querying RPC transactions for block %d\n", blockToProcess)
+	newBlock := dbTypes.Block{Height: blockToProcess}
+
+	//TODO: There is currently no pagination implemented!
+	//TODO: Do something smarter than giving up when we encounter an error.
+	txsEventResp, err := rpc.GetTxsByBlockHeight(cl, newBlock.Height)
+	if err != nil {
+		fmt.Println("Error getting transactions by block height. Adding block back to chan to reprocess", err)
+		return err
+	}
+
+	if len(txsEventResp.Txs) == 0 {
+		//The node might have pruned history resulting in a failed lookup. Recheck to see if the block was supposed to have TX results.
+		blockResults, err := rpc.GetBlockByHeight(cl, newBlock.Height)
+		if err != nil || blockResults == nil {
+			failedBlockHandler(newBlock.Height, core.BlockQueryError, err)
+		} else if len(blockResults.TxsResults) > 0 {
+			//Two queries for the same block got a diff # of TXs. Though it is not guaranteed,
+			//DeliverTx events typically make it into a block so this warrants manual investigation.
+			//In this case, we couldn't look up TXs on the node but the Node's block has DeliverTx events,
+			//so we should log this and manually review the block on e.g. mintscan or another tool.
+			failedBlockHandler(newBlock.Height, core.NodeMissingBlockTxs, errors.New("node has DeliverTx results for block, but querying txs by height failed"))
+		}
+	}
+
+	res := &indexerTx.GetTxsEventResponseWrapper{
+		CosmosGetTxsEventResponse: txsEventResp,
+		Height:                    blockToProcess,
+	}
+	blockTXsChan <- res
+	return nil
+}
+
+func processTxs(wg *sync.WaitGroup, blockTXsChan chan *indexerTx.GetTxsEventResponseWrapper, numBlocksTimed int64, indexingEnabled bool, db *gorm.DB, chainID string, chainName string, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error)) {
 	blocksProcessed := 0
 	timeStart := time.Now()
+	defer wg.Done()
 
-	for {
-		txToProcess := <-blockTXs
+	for txToProcess := range blockTXsChan {
 		txDBWrappers, err := core.ProcessRpcTxs(db, txToProcess.CosmosGetTxsEventResponse)
 		if err != nil {
 			config.Log.Error("ProcessRpcTxs: unhandled error", zap.Error(err))
