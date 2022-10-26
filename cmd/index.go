@@ -239,6 +239,7 @@ func QueryRpc(blockHeightToProcess chan int64, results chan *indexerTx.GetTxsEve
 
 		if reprocessBlock == 0 {
 			blockToProcess = <-blockHeightToProcess
+		} else {
 			reprocessBlock = 0
 		}
 		//fmt.Printf("Querying RPC transactions for block %d\n", blockToProcess)
