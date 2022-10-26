@@ -208,9 +208,13 @@ func indexOsmosisRewards(wg *sync.WaitGroup, config *config.Config, cl *client.C
 		startHeight = OsmosisGetRewardsStartIndexHeight(db, config.Lens.ChainID)
 	}
 
-	endHeight, err := rpc.GetLatestBlockHeight(cl)
-	if err != nil {
-		configHelpers.Log.Fatal("Error getting blockchain latest height.", zap.Error(err))
+	endHeight := config.Base.EndBlock
+	if endHeight == -1 {
+		var err error
+		endHeight, err = rpc.GetLatestBlockHeight(cl)
+		if err != nil {
+			configHelpers.Log.Fatal("Error getting blockchain latest height.", zap.Error(err))
+		}
 	}
 
 	rpcClient := osmosis.URIClient{
