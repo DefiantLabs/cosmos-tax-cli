@@ -234,19 +234,33 @@ func indexOsmosisRewards(wg *sync.WaitGroup, config *config.Config, cl *client.C
 		Client:  &http.Client{},
 	}
 
+	maxAttempts := 5
 	for epoch := startHeight; epoch <= endHeight; epoch++ {
-		rewards, err := rpcClient.GetEpochRewards(epoch)
-		if err != nil {
-			failedBlockHandler(epoch, core.OsmosisNodeRewardLookupError, err)
-		}
-
-		if len(rewards) > 0 {
-			err = dbTypes.IndexOsmoRewards(db, chainID, chainName, rewards)
-			if err != nil {
-				failedBlockHandler(epoch, core.OsmosisNodeRewardIndexError, err)
+		attempts := 1
+		code, err := indexOsmosisReward(db, chainID, chainName, rpcClient, epoch)
+		for err != nil && attempts < maxAttempts {
+			attempts++
+			code, err = indexOsmosisReward(db, chainID, chainName, rpcClient, epoch)
+			if err != nil && attempts == maxAttempts {
+				failedBlockHandler(epoch, code, err)
 			}
 		}
 	}
+}
+
+func indexOsmosisReward(db *gorm.DB, chainID, chainName string, rpcClient osmosis.URIClient, epoch int64) (core.BlockProcessingFailure, error) {
+	rewards, err := rpcClient.GetEpochRewards(epoch)
+	if err != nil {
+		return core.OsmosisNodeRewardLookupError, err
+	}
+
+	if len(rewards) > 0 {
+		err = dbTypes.IndexOsmoRewards(db, chainID, chainName, rewards)
+		if err != nil {
+			return core.OsmosisNodeRewardIndexError, err
+		}
+	}
+	return 0, nil
 }
 
 func queryRpc(blockChan chan int64, blockTXsChan chan *indexerTx.GetTxsEventResponseWrapper, cl *client.ChainClient, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error)) {
