@@ -40,5 +40,4 @@ func TestLevels(t *testing.T) {
 	assert.NotContains(t, output, "Test 1", "Test 1 should not be in the output.")
 	assert.NotContains(t, output, "Test 3", "Test 3 should not be in the output.")
 	assert.NotContains(t, output, "Test 4", "Test 4 should not be in the output.")
-
 }

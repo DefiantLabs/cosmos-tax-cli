@@ -83,7 +83,7 @@ var indexCmd = &cobra.Command{
 		//If RPC queries are faster than DB inserts this buffer will fill up.
 		//We will periodically check the buffer size to monitor performance so we can optimize later.
 		jobResultsChannel := make(chan *indexerTx.GetTxsEventResponseWrapper, 10)
-		rpcQueryThreads := 4
+		rpcQueryThreads := 4 //TODO: move this into config
 
 		//Spin up a (configurable) number of threads to query RPC endpoints for Transactions.
 		for i := 0; i < rpcQueryThreads; i++ {
@@ -169,7 +169,7 @@ var indexCmd = &cobra.Command{
 
 		//If we error out in the main loop, this will block. Meaning we may not know of an error for 6 hours until last scheduled task stops
 		scheduler.Stop()
-		wg.Wait()
+		wg.Wait() // FIXME: I'm not sure if this is going to wait for the actual indexing to finish... looks like it only cares about the rewards...
 	},
 }
 
