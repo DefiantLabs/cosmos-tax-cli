@@ -41,7 +41,7 @@ func (client *URIClient) GetRewardsBetween(startHeight int64, endHeight int64) (
 func (client *URIClient) GetEpochRewards(height int64) ([]*OsmosisRewards, error) {
 	rewards, err := client.getRewards(height)
 	if err != nil {
-		config.Log.Error(fmt.Sprintf("Error processing epoch %d\n", height), zap.Error(err))
+		config.Log.Error(fmt.Sprintf("Error getting rewards for epoch %d\n", height), zap.Error(err))
 		return nil, err
 	}
 	return rewards, nil

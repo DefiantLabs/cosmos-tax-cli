@@ -5,10 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"go.uber.org/zap"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"reflect"
+	"time"
 
 	tmjson "github.com/tendermint/tendermint/libs/json"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
@@ -62,24 +66,20 @@ func argsToJSON(args map[string]interface{}) error {
 }
 
 // Call issues a POST form HTTP request.
-func (c *URIClient) DoHttpGet(ctx context.Context, method string, params map[string]interface{}, result interface{}) (interface{}, error) {
+func (c *URIClient) DoHttpGetWithRetry(ctx context.Context, method string, params map[string]interface{}, result interface{}, attmptNum int) (interface{}, error) {
 	values, err := argsToURLValues(params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode params: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodGet,
-		c.Address+"/"+method,
-		nil,
-	)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.Address+"/"+method, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating new request: %w", err)
+	}
+
 	req.URL.RawQuery = values.Encode()
 	//fmt.Printf("Query string: %s\n", values.Encode())
 
-	if err != nil {
-		return nil, fmt.Errorf("new request: %w", err)
-	}
 	// req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	if c.AuthHeader != "" {
 		req.Header.Add("Authorization", c.AuthHeader)
@@ -96,7 +96,18 @@ func (c *URIClient) DoHttpGet(ctx context.Context, method string, params map[str
 		return nil, fmt.Errorf("read response body: %w", err)
 	}
 
-	return unmarshalResponseBytes(responseBytes, jsonrpc.URIClientRequestID, result)
+	responseUnmarshalled, err := unmarshalResponseBytes(responseBytes, jsonrpc.URIClientRequestID, result)
+	if err != nil {
+		if len(responseBytes) < 2 && attmptNum < 5 {
+			attmptNum++
+			config.Log.Warn(fmt.Sprintf("Unmarshal failed... reattempt #%v.", attmptNum-1), zap.Error(err))
+			time.Sleep(time.Second * time.Duration(math.Pow(2, float64(attmptNum))))
+			return c.DoHttpGetWithRetry(ctx, method, params, result, attmptNum)
+		}
+		config.Log.Error("Unmarshal never succeeded... giving up.", zap.Error(err))
+		return responseUnmarshalled, err
+	}
+	return responseUnmarshalled, err
 }
 
 // From the JSON-RPC 2.0 spec:
@@ -159,7 +170,7 @@ func (c *URIClient) DoBlockSearch(ctx context.Context, query string, page, perPa
 		params["per_page"] = perPage
 	}
 
-	_, err := c.DoHttpGet(ctx, "block_search", params, result)
+	_, err := c.DoHttpGetWithRetry(ctx, "block_search", params, result, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +185,7 @@ func (c *URIClient) DoBlockResults(ctx context.Context, height *int64) (*ctypes.
 		params["height"] = height
 	}
 
-	_, err := c.DoHttpGet(ctx, "block_results", params, result)
+	_, err := c.DoHttpGetWithRetry(ctx, "block_results", params, result, 0)
 	if err != nil {
 		return nil, err
 	}

@@ -219,15 +219,15 @@ func indexOsmosisRewards(wg *sync.WaitGroup, config *config.Config, cl *client.C
 	}
 
 	for epoch := startHeight; epoch <= endHeight; epoch++ {
-		rewards, indexErr := rpcClient.GetEpochRewards(epoch)
-		if indexErr != nil {
-			failedBlockHandler(epoch, core.OsmosisNodeRewardLookupError, indexErr)
+		rewards, err := rpcClient.GetEpochRewards(epoch)
+		if err != nil {
+			failedBlockHandler(epoch, core.OsmosisNodeRewardLookupError, err)
 		}
 
 		if len(rewards) > 0 {
-			indexErr = dbTypes.IndexOsmoRewards(db, chainID, chainName, rewards)
-			if indexErr != nil {
-				failedBlockHandler(epoch, core.OsmosisNodeRewardIndexError, indexErr)
+			err = dbTypes.IndexOsmoRewards(db, chainID, chainName, rewards)
+			if err != nil {
+				failedBlockHandler(epoch, core.OsmosisNodeRewardIndexError, err)
 			}
 		}
 	}
@@ -235,7 +235,7 @@ func indexOsmosisRewards(wg *sync.WaitGroup, config *config.Config, cl *client.C
 
 func queryRpc(blockChan chan int64, blockTXs chan *indexerTx.GetTxsEventResponseWrapper, cl *client.ChainClient, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error)) {
 	reprocessBlock := int64(0)
-
+	//FIXME: add logic to only retry block N times, if block fails, add to failed block table in DB
 	for {
 		blockToProcess := reprocessBlock
 
