@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
@@ -49,27 +48,23 @@ func UpsertOsmosisDenoms(db *gorm.DB) {
 
 	denomAssets, err := getOsmosisAssetsList(url)
 	if err != nil {
-		config.Log.Error("Download Osmosis Denom Metadata", zap.Error(err))
-		os.Exit(1)
+		config.Log.Fatal("Download Osmosis Denom Metadata", zap.Error(err))
 	} else {
 		denoms := toDenoms(denomAssets)
 		err = dbTypes.UpsertDenoms(db, denoms)
 		if err != nil {
-			config.Log.Error("Upsert Osmosis Denom Metadata", zap.Error(err))
-			os.Exit(1)
+			config.Log.Fatal("Upsert Osmosis Denom Metadata", zap.Error(err))
 		}
 	}
 
 	frontierDenomAssets, err := getOsmosisAssetsList(frontierUrl)
 	if err != nil {
-		config.Log.Error("Download Osmosis Frontier Denom Metadata", zap.Error(err))
-		os.Exit(1)
+		config.Log.Fatal("Download Osmosis Frontier Denom Metadata", zap.Error(err))
 	} else {
 		denoms := toDenoms(frontierDenomAssets)
 		err = dbTypes.UpsertDenoms(db, denoms)
 		if err != nil {
-			config.Log.Error("Upsert Osmosis Frontier Denom Metadata", zap.Error(err))
-			os.Exit(1)
+			config.Log.Fatal("Upsert Osmosis Frontier Denom Metadata", zap.Error(err))
 		}
 	}
 }

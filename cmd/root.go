@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"go.uber.org/zap"
 	"os"
 	"time"
 
@@ -89,15 +90,14 @@ func setup(config config.Config) (*configHelpers.Config, *gorm.DB, *gocron.Sched
 
 	db, err := dbTypes.PostgresDbConnect(config.Database.Host, config.Database.Port, config.Database.Database,
 		config.Database.User, config.Database.Password, config.Log.Level)
+	if err != nil {
+		configHelpers.Log.Error("Could not establish connection to the database", zap.Error(err))
+	}
 
 	sqldb, _ := db.DB()
 	sqldb.SetMaxIdleConns(10)
 	sqldb.SetMaxOpenConns(100)
 	sqldb.SetConnMaxLifetime(time.Hour)
-
-	if err != nil {
-		fmt.Println("Could not establish connection to the database", err)
-	}
 
 	//TODO: make mapping for all chains, globally initialized
 	core.SetupAddressRegex(config.Base.AddressRegex)   //e.g. "juno(valoper)?1[a-z0-9]{38}"
@@ -108,6 +108,7 @@ func setup(config config.Config) (*configHelpers.Config, *gorm.DB, *gocron.Sched
 	//run database migrations at every runtime
 	err = dbTypes.MigrateModels(db)
 	if err != nil {
+		configHelpers.Log.Error("Error running DB migrations", zap.Error(err))
 		return nil, nil, nil, err
 	}
 

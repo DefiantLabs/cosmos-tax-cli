@@ -37,21 +37,22 @@ var indexCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		//TODO: split out setup methods and only call necessary ones
 		config, db, scheduler, err := setup(conf)
-		cobra.CheckErr(err)
 		if err != nil {
 			log.Fatalf("Error during application setup. Err: %v", err)
 		}
 
-		apiHost := config.Lens.Rpc
-		dbConn, _ := db.DB()
+		dbConn, err := db.DB()
+		if err != nil {
+			configHelpers.Log.Fatal("Failed to connect to DB", zap.Error(err))
+		}
 		defer dbConn.Close()
 
 		core.ChainSpecificMessageTypeHandlerBootstrap(config.Lens.ChainID)
 
 		//TODO may need to run this task in setup() so that we have a cold start functionality before the indexer starts
-		_, err = scheduler.Every(6).Hours().Do(tasks.DenomUpsertTask, apiHost, db)
+		_, err = scheduler.Every(6).Hours().Do(tasks.DenomUpsertTask, config.Lens.Rpc, db)
 		if err != nil {
-			log.Println("Error scheduling denmon upsert task. Err: ", err)
+			configHelpers.Log.Error("Error scheduling denmon upsert task. Err: ", zap.Error(err))
 		}
 		scheduler.StartAsync()
 
@@ -69,7 +70,7 @@ var indexCmd = &cobra.Command{
 			chainCatchingUp, err = rpc.IsCatchingUp(cl)
 		}
 		if err != nil {
-			log.Fatalf("Error querying chain status. Err: %v", err)
+			configHelpers.Log.Fatal("Error querying chain status.", zap.Error(err))
 		}
 
 		//Jobs are just the block height; limit max jobs in the queue, otherwise this queue would contain one
@@ -82,8 +83,8 @@ var indexCmd = &cobra.Command{
 		//Realistically, I expect that RPC queries will be slower than our relational DB on the local network.
 		//If RPC queries are faster than DB inserts this buffer will fill up.
 		//We will periodically check the buffer size to monitor performance so we can optimize later.
-		jobResultsChannel := make(chan *indexerTx.GetTxsEventResponseWrapper, 10)
-		rpcQueryThreads := 4
+		rpcQueryThreads := 4 //TODO: set this from the config
+		jobResultsChannel := make(chan *indexerTx.GetTxsEventResponseWrapper, 2*rpcQueryThreads)
 
 		//Spin up a (configurable) number of threads to query RPC endpoints for Transactions.
 		for i := 0; i < rpcQueryThreads; i++ {
@@ -127,21 +128,19 @@ var indexCmd = &cobra.Command{
 			//The program is configured to stop running after a set block height.
 			//Generally this will only be done while debugging or if a particular block was incorrectly processed.
 			if lastBlock != -1 && currBlock >= lastBlock {
-				fmt.Println("Hit the last block we're allowed to index, exiting.")
+				configHelpers.Log.Info("Hit the last block we're allowed to index, exiting.")
 				break
 			} else if config.Base.ExitWhenCaughtUp && currBlock >= latestBlock {
-				fmt.Println("Hit the last block we're allowed to index, exiting.")
+				configHelpers.Log.Info("Hit the last block we're allowed to index, exiting.")
 				break
 			}
 
 			//The job queue is running out of jobs to process, see if the blockchain has produced any new blocks we haven't indexed yet.
 			if len(blockHeightToProcess) <= cap(blockHeightToProcess)/4 {
-				//fmt.Println("Filling jobs queue")
-
 				//This is the latest block height available on the Node.
 				latestBlock, err := rpc.GetLatestBlockHeight(cl)
 				if err != nil {
-					log.Fatalf("Error getting blockchain latest height. Err: %v", err)
+					configHelpers.Log.Fatal("Error getting blockchain latest height. Err: %v", zap.Error(err))
 				}
 
 				//Throttling in case of hitting public APIs
@@ -169,7 +168,7 @@ var indexCmd = &cobra.Command{
 
 		//If we error out in the main loop, this will block. Meaning we may not know of an error for 6 hours until last scheduled task stops
 		scheduler.Stop()
-		wg.Wait()
+		wg.Wait() //FIXME: I think this may end up missing some of the end of the last blocks to be processed b/c the workers are not part of the waitgroup...
 	},
 }
 
@@ -204,16 +203,7 @@ func GetIndexerStartingHeight(configStartHeight int64, cl *client.ChainClient, d
 	return latestBlock
 }
 
-func IndexOsmosisRewards(
-	wg *sync.WaitGroup,
-	db *gorm.DB,
-	rpcClient osmosis.URIClient,
-	chainID string,
-	chainName string,
-	startHeight int64,
-	endHeight int64,
-	failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error),
-) {
+func IndexOsmosisRewards(wg *sync.WaitGroup, db *gorm.DB, rpcClient osmosis.URIClient, chainID, chainName string, startHeight, endHeight int64, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error)) {
 	defer wg.Done()
 
 	for epoch := startHeight; epoch <= endHeight; epoch++ {
