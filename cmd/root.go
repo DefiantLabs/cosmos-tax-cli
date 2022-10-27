@@ -14,7 +14,6 @@ import (
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
 
-	configHelpers "github.com/DefiantLabs/cosmos-tax-cli/config"
 	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
 )
 
@@ -86,21 +85,21 @@ func initConfig() {
 //   - Loads the application config from config.tml, cli args and parses/merges
 //   - Connects to the database and returns the db object
 //   - Returns various values used throughout the application
-func setup(config config.Config) (*configHelpers.Config, *gorm.DB, *gocron.Scheduler, error) {
+func setup(cfg config.Config) (*config.Config, *gorm.DB, *gocron.Scheduler, error) {
 	//Logger
-	logLevel := config.Log.Level
-	logPath := config.Log.Path
-	configHelpers.DoConfigureLogger(logPath, logLevel)
+	logLevel := cfg.Log.Level
+	logPath := cfg.Log.Path
+	config.DoConfigureLogger(logPath, logLevel)
 
 	//0 is an invalid starting block, set it to 1
-	if config.Base.StartBlock == 0 {
-		config.Base.StartBlock = 1
+	if cfg.Base.StartBlock == 0 {
+		cfg.Base.StartBlock = 1
 	}
 
-	db, err := dbTypes.PostgresDbConnect(config.Database.Host, config.Database.Port, config.Database.Database,
-		config.Database.User, config.Database.Password, config.Log.Level)
+	db, err := dbTypes.PostgresDbConnect(cfg.Database.Host, cfg.Database.Port, cfg.Database.Database,
+		cfg.Database.User, cfg.Database.Password, cfg.Log.Level)
 	if err != nil {
-		configHelpers.Log.Fatal("Could not establish connection to the database", zap.Error(err))
+		config.Log.Fatal("Could not establish connection to the database", zap.Error(err))
 	}
 
 	sqldb, _ := db.DB()
@@ -109,20 +108,20 @@ func setup(config config.Config) (*configHelpers.Config, *gorm.DB, *gocron.Sched
 	sqldb.SetConnMaxLifetime(time.Hour)
 
 	//TODO: make mapping for all chains, globally initialized
-	core.SetupAddressRegex(config.Base.AddressRegex)   //e.g. "juno(valoper)?1[a-z0-9]{38}"
-	core.SetupAddressPrefix(config.Base.AddressPrefix) //e.g. juno
+	core.SetupAddressRegex(cfg.Base.AddressRegex)   //e.g. "juno(valoper)?1[a-z0-9]{38}"
+	core.SetupAddressPrefix(cfg.Base.AddressPrefix) //e.g. juno
 
 	scheduler := gocron.NewScheduler(time.UTC)
 
 	//run database migrations at every runtime
 	err = dbTypes.MigrateModels(db)
 	if err != nil {
-		configHelpers.Log.Error("Error running DB migrations", zap.Error(err))
+		config.Log.Error("Error running DB migrations", zap.Error(err))
 		return nil, nil, nil, err
 	}
 
 	//We should stop relying on the denom cache now that we are running this as a CLI tool only
 	dbTypes.CacheDenoms(db)
 
-	return &config, db, scheduler, nil
+	return &cfg, db, scheduler, nil
 }
