@@ -89,9 +89,9 @@ func index(cmd *cobra.Command, args []string) {
 	rpcQueryThreads := 4 //TODO: set this from the config
 	blockTXsChan := make(chan *indexerTx.GetTxsEventResponseWrapper, 4*rpcQueryThreads)
 
+	var txChanWaitGroup sync.WaitGroup // This group is to ensure we are done getting transactions before we close the TX channel
 	//Spin up a (configurable) number of threads to query RPC endpoints for Transactions.
 	//this is assumed to be the slowest process that allows concurrency and thus has the most dedicated go routines.
-	var txChanWaitGroup sync.WaitGroup
 	for i := 0; i < rpcQueryThreads; i++ {
 		txChanWaitGroup.Add(1)
 		go func() {
@@ -106,7 +106,7 @@ func index(cmd *cobra.Command, args []string) {
 		close(blockTXsChan)
 	}()
 
-	var wg sync.WaitGroup
+	var wg sync.WaitGroup // This group is to ensure we are done processing transactions (as well as osmo rewards) before returning
 
 	//Start a thread to process transactions after the RPC querier retrieves them.
 	wg.Add(1)
@@ -119,7 +119,7 @@ func index(cmd *cobra.Command, args []string) {
 	}
 
 	//Add jobs to the queue to be processed
-	if !config.Base.OsmosisRewardsOnly { //TODO: if we are putting this behind an if check, should we do the same with the go routines related to it?
+	if !config.Base.OsmosisRewardsOnly {
 		enqueueBlocksToProcess(config, cl, db, blockChan)
 		// close the block chan once all blocks have been written to it
 		close(blockChan)

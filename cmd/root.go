@@ -91,7 +91,7 @@ func setup(config config.Config) (*configHelpers.Config, *gorm.DB, *gocron.Sched
 	db, err := dbTypes.PostgresDbConnect(config.Database.Host, config.Database.Port, config.Database.Database,
 		config.Database.User, config.Database.Password, config.Log.Level)
 	if err != nil {
-		configHelpers.Log.Error("Could not establish connection to the database", zap.Error(err))
+		configHelpers.Log.Fatal("Could not establish connection to the database", zap.Error(err))
 	}
 
 	sqldb, _ := db.DB()
