@@ -3,13 +3,12 @@ package main
 import (
 	"errors"
 	"fmt"
+	"go.uber.org/zap"
 	"log"
 	"os"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
-	configHelpers "github.com/DefiantLabs/cosmos-tax-cli/config"
 	"github.com/DefiantLabs/cosmos-tax-cli/csv"
-
 	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
 
 	"github.com/gin-gonic/gin"
@@ -17,11 +16,10 @@ import (
 )
 
 var DB *gorm.DB
-var Config *config.Config
+var GlobalCfg *config.Config
 
 func setup() (*gorm.DB, *config.Config, error) {
-	argConfig, err := configHelpers.ParseArgs(os.Stderr, os.Args[1:])
-
+	argConfig, err := config.ParseArgs(os.Stderr, os.Args[1:])
 	if err != nil {
 		return nil, nil, err
 	}
@@ -33,37 +31,33 @@ func setup() (*gorm.DB, *config.Config, error) {
 		location = "./config.toml"
 	}
 
-	fileConfig, err := configHelpers.GetConfig(location)
+	fileConfig, err := config.GetConfig(location)
 	if err != nil {
-		fmt.Println("Error opening configuration file", err)
+		config.Log.Error("Error opening configuration file.", zap.Error(err))
 		return nil, nil, err
 	}
 
-	config := configHelpers.MergeConfigs(fileConfig, argConfig)
-	logLevel := config.Log.Level
-	db, err := dbTypes.PostgresDbConnect(config.Database.Host, config.Database.Port, config.Database.Database,
-		config.Database.User, config.Database.Password, logLevel)
+	cfg := config.MergeConfigs(fileConfig, argConfig)
+	logLevel := cfg.Log.Level
+	db, err := dbTypes.PostgresDbConnect(cfg.Database.Host, cfg.Database.Port, cfg.Database.Database, cfg.Database.User, cfg.Database.Password, logLevel)
 	if err != nil {
-		fmt.Println("Could not establish connection to the database", err)
+		config.Log.Error("Could not establish connection to the database", zap.Error(err))
 		return nil, nil, err
 	}
 
 	dbTypes.CacheDenoms(db)
 
-	return db, &config, nil
+	return db, &cfg, nil
 }
 
 func main() {
-	db, config, err := setup()
+	db, cfg, err := setup()
+	if err != nil {
+		log.Fatalf("Error setting up. Err: %v", err)
+	}
 
 	DB = db
-	Config = config
-
-	if err != nil {
-		fmt.Println("Error setting up")
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	GlobalCfg = cfg
 
 	r := gin.Default()
 	r.Use(CORSMiddleware())
@@ -71,7 +65,7 @@ func main() {
 	r.POST("/events.csv", GetTaxableEventsCSV)
 	err = r.Run(":8080")
 	if err != nil {
-		log.Fatalf("Error starting server. Err: %v", err)
+		config.Log.Fatal("Error starting server.", zap.Error(err))
 	}
 }
 
@@ -131,7 +125,7 @@ func GetTaxableEventsCSV(c *gin.Context) {
 		return
 	}
 
-	accountRows, headers, err := csv.ParseForAddress(requestBody.Address, DB, requestBody.Format, *Config)
+	accountRows, headers, err := csv.ParseForAddress(requestBody.Address, DB, requestBody.Format, *GlobalCfg)
 	if err != nil {
 		// the error returned here has already been pushed to the context... I think.
 		c.AbortWithError(500, errors.New("Error getting rows for address")) //nolint:staticcheck,errcheck
