@@ -3,7 +3,6 @@ package core
 import (
 	"encoding/hex"
 	"errors"
-	"log"
 	"math/big"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
@@ -87,8 +86,7 @@ func toAttributes(attrs []types.Attribute) []txTypes.Attribute {
 	return list
 }
 
-func toEvents(msgEvents types.StringEvents) []txTypes.LogMessageEvent {
-	list := []txTypes.LogMessageEvent{}
+func toEvents(msgEvents types.StringEvents) (list []txTypes.LogMessageEvent) {
 	for _, evt := range msgEvents {
 		lme := tx.LogMessageEvent{Type: evt.Type, Attributes: toAttributes(evt.Attributes)}
 		list = append(list, lme)
@@ -103,32 +101,28 @@ func toEvents(msgEvents types.StringEvents) []txTypes.LogMessageEvent {
 func ProcessRpcTxs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]dbTypes.TxDBWrapper, error) {
 	var currTxDbWrappers = make([]dbTypes.TxDBWrapper, len(txEventResp.Txs))
 
-	for txIdx := 0; txIdx < len(txEventResp.Txs); txIdx++ {
+	for txIdx := range txEventResp.Txs {
 		//Indexer types only used by the indexer app (similar to the cosmos types)
-		indexerMergedTx := txTypes.MergedTx{}
-		indexerTx := txTypes.IndexerTx{}
-		txBody := txTypes.TxBody{}
-
+		var indexerMergedTx txTypes.MergedTx
+		var indexerTx txTypes.IndexerTx
+		var txBody txTypes.TxBody
+		var currMessages []types.Msg
+		var currLogMsgs []tx.TxLogMessage
 		currTx := txEventResp.Txs[txIdx]
 		currTxResp := txEventResp.TxResponses[txIdx]
-		currMessages := []types.Msg{}
-		currLogMsgs := []tx.TxLogMessage{}
 
 		//Get the Messages and Message Logs
-		for msgIdx := 0; msgIdx < len(currTx.Body.Messages); msgIdx++ {
-			currMsg := currTx.Body.Messages[msgIdx].GetCachedValue()
+		for msgIdx := range currTx.Body.Messages {
+			currMsg := currTx.Body.Messages[msgIdx].GetCachedValue() // FIXME: understand why we use this....
 			if currMsg != nil {
 				msg := currMsg.(types.Msg)
 				currMessages = append(currMessages, msg)
-
 				if len(currTxResp.Logs) >= msgIdx+1 {
 					msgEvents := currTxResp.Logs[msgIdx].Events
-
 					currTxLog := tx.TxLogMessage{
 						MessageIndex: msgIdx,
 						Events:       toEvents(msgEvents),
 					}
-
 					currLogMsgs = append(currLogMsgs, currTxLog)
 				}
 			} else {
@@ -145,7 +139,7 @@ func ProcessRpcTxs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]db
 			TimeStamp: currTxResp.Timestamp,
 			RawLog:    currTxResp.RawLog,
 			Log:       currLogMsgs,
-			Code:      int64(currTxResp.Code),
+			Code:      currTxResp.Code,
 		}
 
 		indexerTx.AuthInfo = *currTx.AuthInfo
@@ -201,8 +195,7 @@ func AnalyzeSwaps() {
 func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper, err error) {
 	timeStamp, err := time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
 	if err != nil {
-		log.Printf("Error parsing tx timestamp. Err: %v", err)
-		// FIXME: should we return or panic here?
+		config.Log.Error("Error parsing tx timestamp.", zap.Error(err))
 	}
 
 	code := tx.TxResponse.Code
@@ -221,7 +214,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 			messageLog := txTypes.GetMessageLogForIndex(tx.TxResponse.Log, messageIndex)
 			cosmosMessage, err := ParseCosmosMessage(message, messageLog)
 			if err != nil {
-				log.Printf("[Block: %v] ParseCosmosMessage failed. Err: %v", tx.TxResponse.Height, err)
+				config.Log.Warn(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed.", tx.TxResponse.Height), zap.Error(err))
 
 				//type cast on error allows getting message type if it was parsed correctly
 				re, ok := err.(*txTypes.UnknownMessageError)
@@ -230,14 +223,14 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 					currMessageDBWrapper.Message = currMessage
 				} else {
 					//What should we do here? This is an actual error during parsing
-					log.Println("issue casting the unknown message error to an error... please investigate.")
+					config.Log.Error("issue casting the unknown message error to an error... please investigate.")
 				}
 
 				//println("------------------Cosmos message parsing failed. MESSAGE FORMAT FOLLOWS:---------------- \n\n")
 				//spew.Dump(message)
 				//println("\n------------------END MESSAGE----------------------\n")
 			} else {
-				log.Printf("[Block: %v] Cosmos message of known type: %s", tx.TxResponse.Height, cosmosMessage)
+				config.Log.Debug(fmt.Sprintf("[Block: %v] Cosmos message of known type: %s", tx.TxResponse.Height, cosmosMessage))
 				currMessage.MessageType = cosmosMessage.GetType()
 				currMessageDBWrapper.Message = currMessage
 
@@ -259,11 +252,11 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 							denomSent, err = dbTypes.GetDenomForBase(v.DenominationSent)
 							if err != nil {
 								//attempt to add missing denoms to the database
-								config.Logger.Error("Denom lookup", zap.Error(err), zap.String("denom sent", v.DenominationSent))
+								config.Log.Error("Denom lookup", zap.Error(err), zap.String("denom sent", v.DenominationSent))
 
 								denomSent, err = dbTypes.AddUnknownDenom(db, v.DenominationSent)
 								if err != nil {
-									config.Logger.Error("There was an error adding a missing denom", zap.Error(err), zap.String("denom received", v.DenominationSent))
+									config.Log.Error("There was an error adding a missing denom", zap.Error(err), zap.String("denom received", v.DenominationSent))
 									return txDBWapper, err
 								}
 							}
@@ -277,10 +270,10 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 
 							if err != nil {
 								//attempt to add missing denoms to the database
-								config.Logger.Error("Denom lookup", zap.Error(err), zap.String("denom received", v.DenominationReceived))
+								config.Log.Error("Denom lookup", zap.Error(err), zap.String("denom received", v.DenominationReceived))
 								denomReceived, err = dbTypes.AddUnknownDenom(db, v.DenominationReceived)
 								if err != nil {
-									config.Logger.Error("There was an error adding a missing denom", zap.Error(err), zap.String("denom received", v.DenominationReceived))
+									config.Log.Error("There was an error adding a missing denom", zap.Error(err), zap.String("denom received", v.DenominationReceived))
 									return txDBWapper, err
 								}
 							}
@@ -297,11 +290,8 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 			}
 
 			if msgSwapExactIn, ok := cosmosMessage.(*gamm.WrapperMsgSwapExactAmountIn); ok {
-				t, err := time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
-				if err == nil {
-					newSwap := gamm.ArbitrageTx{TokenIn: msgSwapExactIn.TokenIn, TokenOut: msgSwapExactIn.TokenOut, BlockTime: t}
-					allSwaps = append(allSwaps, newSwap)
-				}
+				newSwap := gamm.ArbitrageTx{TokenIn: msgSwapExactIn.TokenIn, TokenOut: msgSwapExactIn.TokenOut, BlockTime: timeStamp}
+				allSwaps = append(allSwaps, newSwap)
 			}
 
 			messages = append(messages, currMessageDBWrapper)

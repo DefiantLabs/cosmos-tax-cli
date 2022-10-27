@@ -2,6 +2,7 @@ package config
 
 import (
 	lensClient "github.com/strangelove-ventures/lens/client"
+	"go.uber.org/zap"
 )
 
 func GetLensClient(conf lens) *lensClient.ChainClient {
@@ -9,7 +10,10 @@ func GetLensClient(conf lens) *lensClient.ChainClient {
 	//You can use lens default settings to generate that directory appropriately then move it to the desired path.
 	//For example, 'lens keys restore default' will restore the key to the default keyring (e.g. /home/kyle/.lens/...)
 	//and you can move all of the necessary keys to whatever homepath you want to use. Or you can use --home flag.
-	cl, _ := lensClient.NewChainClient(GetLensConfig(conf, true), conf.Homepath, nil, nil)
+	cl, err := lensClient.NewChainClient(GetLensConfig(conf, true), conf.Homepath, nil, nil)
+	if err != nil {
+		Log.Fatal("Error connecting to cain.", zap.Error(err))
+	}
 	return cl
 }
 

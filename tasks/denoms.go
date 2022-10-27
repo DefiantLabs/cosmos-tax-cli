@@ -2,10 +2,7 @@ package tasks
 
 import (
 	"encoding/json"
-	"fmt"
-	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
@@ -50,27 +47,23 @@ func UpsertOsmosisDenoms(db *gorm.DB) {
 
 	denomAssets, err := getOsmosisAssetsList(url)
 	if err != nil {
-		config.Logger.Error("Download Osmosis Denom Metadata", zap.Error(err))
-		os.Exit(1)
+		config.Log.Fatal("Download Osmosis Denom Metadata", zap.Error(err))
 	} else {
 		denoms := toDenoms(denomAssets)
 		err = dbTypes.UpsertDenoms(db, denoms)
 		if err != nil {
-			config.Logger.Error("Upsert Osmosis Denom Metadata", zap.Error(err))
-			os.Exit(1)
+			config.Log.Fatal("Upsert Osmosis Denom Metadata", zap.Error(err))
 		}
 	}
 
 	frontierDenomAssets, err := getOsmosisAssetsList(frontierUrl)
 	if err != nil {
-		config.Logger.Error("Download Osmosis Frontier Denom Metadata", zap.Error(err))
-		os.Exit(1)
+		config.Log.Fatal("Download Osmosis Frontier Denom Metadata", zap.Error(err))
 	} else {
 		denoms := toDenoms(frontierDenomAssets)
 		err = dbTypes.UpsertDenoms(db, denoms)
 		if err != nil {
-			config.Logger.Error("Upsert Osmosis Frontier Denom Metadata", zap.Error(err))
-			os.Exit(1)
+			config.Log.Fatal("Upsert Osmosis Frontier Denom Metadata", zap.Error(err))
 		}
 	}
 }
@@ -117,10 +110,10 @@ func getJson(url string, target interface{}) error {
 }
 
 func DenomUpsertTask(apiHost string, db *gorm.DB) {
-	log.Println("Task started for DenomUpsertTask")
+	config.Log.Debug("Task started for DenomUpsertTask")
 	denomsMetadata, err := rest.GetDenomsMetadatas(apiHost)
 	if err != nil {
-		log.Printf("Error in DenomUpsertTask when reaching out to the API. Err: %v", err)
+		config.Log.Error("Error in DenomUpsertTask when reaching out to the API. ", zap.Error(err))
 		return
 	}
 
@@ -143,9 +136,8 @@ func DenomUpsertTask(apiHost string, db *gorm.DB) {
 
 	err = dbTypes.UpsertDenoms(db, denoms)
 	if err != nil {
-		fmt.Println("Error upserting in DenomUpsertTask")
-		fmt.Println(err)
+		config.Log.Error("Error upserting in DenomUpsertTask", zap.Error(err))
 		return
 	}
-	fmt.Println("Task ended for DenomUpsertTask")
+	config.Log.Info("Task ended for DenomUpsertTask")
 }

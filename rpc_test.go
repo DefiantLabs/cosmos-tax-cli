@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	configHelpers "github.com/DefiantLabs/cosmos-tax-cli/config"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	"github.com/DefiantLabs/cosmos-tax-cli/core"
 
 	"github.com/strangelove-ventures/lens/client"
@@ -23,8 +23,8 @@ import (
 //   - Returns various values used throughout the application
 //
 //nolint:unused
-func setup_rpc() (*configHelpers.Config, *gocron.Scheduler, error) {
-	argConfig, err := configHelpers.ParseArgs(os.Stderr, os.Args[1:])
+func setup_rpc() (*config.Config, *gocron.Scheduler, error) {
+	argConfig, err := config.ParseArgs(os.Stderr, os.Args[1:])
 
 	if err != nil {
 		return nil, nil, err
@@ -37,18 +37,18 @@ func setup_rpc() (*configHelpers.Config, *gocron.Scheduler, error) {
 		location = "./config.toml"
 	}
 
-	fileConfig, err := configHelpers.GetConfig(location)
+	fileConfig, err := config.GetConfig(location)
 
 	if err != nil {
 		fmt.Println("Error opening configuration file", err)
 		return nil, nil, err
 	}
 
-	config := configHelpers.MergeConfigs(fileConfig, argConfig)
+	cfg := config.MergeConfigs(fileConfig, argConfig)
 
 	//0 is an invalid starting block, set it to 1
-	if config.Base.StartBlock == 0 {
-		config.Base.StartBlock = 1
+	if cfg.Base.StartBlock == 0 {
+		cfg.Base.StartBlock = 1
 	}
 
 	//TODO: create config values for the prefixes here
@@ -57,7 +57,7 @@ func setup_rpc() (*configHelpers.Config, *gocron.Scheduler, error) {
 	core.SetupAddressPrefix("juno")
 
 	scheduler := gocron.NewScheduler(time.UTC)
-	return &config, scheduler, nil
+	return &cfg, scheduler, nil
 }
 
 func TestRpc(t *testing.T) {

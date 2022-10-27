@@ -3,6 +3,8 @@ package osmosis
 import (
 	"context"
 	"fmt"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"go.uber.org/zap"
 	"strings"
 	"time"
 
@@ -37,12 +39,11 @@ func (client *URIClient) GetRewardsBetween(startHeight int64, endHeight int64) (
 // If a block does not contain a reward distribution, it gets skipped.
 // An error indicates a problem with the RPC search or the DB indexer.
 func (client *URIClient) GetEpochRewards(height int64) ([]*OsmosisRewards, error) {
-	rewards, epochErr := client.getRewards(height)
-	if epochErr != nil {
-		fmt.Printf("Error %s processing epoch %d\n", epochErr.Error(), height)
-		return nil, epochErr
+	rewards, err := client.getRewards(height)
+	if err != nil {
+		config.Log.Error(fmt.Sprintf("Error getting rewards for epoch %d\n", height), zap.Error(err))
+		return nil, err
 	}
-
 	return rewards, nil
 }
 
@@ -63,10 +64,9 @@ func (client *URIClient) getRewardEpochs(startHeight int64, endHeight int64) ([]
 		query := fmt.Sprintf("block.height = %d AND %s", i, osmosisRewardsQuery)
 		page := 1
 		per_page := 30
-		blockSearch, blockSearchErr := client.DoBlockSearch(context.Background(), query, &page, &per_page, "desc")
-
-		if blockSearchErr != nil {
-			return nil, blockSearchErr
+		blockSearch, err := client.DoBlockSearch(context.Background(), query, &page, &per_page, "desc")
+		if err != nil {
+			return nil, err
 		}
 
 		for _, block := range blockSearch.Blocks {

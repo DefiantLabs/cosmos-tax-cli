@@ -3,7 +3,6 @@ package db
 import (
 	"errors"
 	"fmt"
-
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -43,6 +42,7 @@ func PostgresDbConnectLogInfo(host string, port string, database string, user st
 func MigrateModels(db *gorm.DB) error {
 	return db.AutoMigrate(
 		&Block{},
+		&FailedBlock{},
 		&Chain{},
 		&Tx{},
 		&Fee{},
@@ -61,6 +61,23 @@ func GetHighestIndexedBlock(db *gorm.DB) Block {
 	//this can potentially be optimized by getting max first and selecting it (this gets translated into a select * limit 1)
 	db.Table("blocks").Order("height desc").First(&block)
 	return block
+}
+
+func UpsertFailedBlock(db *gorm.DB, blockHeight int64, chainID string, chainName string) error {
+	return db.Transaction(func(dbTransaction *gorm.DB) error {
+		failedBlock := FailedBlock{Height: blockHeight, Chain: Chain{ChainID: chainID, Name: chainName}}
+
+		if chainErr := dbTransaction.Where(&failedBlock.Chain).FirstOrCreate(&failedBlock.Chain).Error; chainErr != nil {
+			fmt.Printf("Error %s creating chain DB object.\n", chainErr)
+			return chainErr
+		}
+
+		if err := dbTransaction.Where(&failedBlock).FirstOrCreate(&failedBlock).Error; err != nil {
+			fmt.Printf("Error %s creating failed block DB object.\n", err)
+			return err
+		}
+		return nil
+	})
 }
 
 func IndexNewBlock(db *gorm.DB, blockHeight int64, txs []TxDBWrapper, chainID string, chainName string) error {

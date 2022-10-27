@@ -68,18 +68,14 @@ func (c *URIClient) DoHttpGet(ctx context.Context, method string, params map[str
 		return nil, fmt.Errorf("failed to encode params: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodGet,
-		c.Address+"/"+method,
-		nil,
-	)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.Address+"/"+method, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating new request: %w", err)
+	}
+
 	req.URL.RawQuery = values.Encode()
 	//fmt.Printf("Query string: %s\n", values.Encode())
 
-	if err != nil {
-		return nil, fmt.Errorf("new request: %w", err)
-	}
 	// req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	if c.AuthHeader != "" {
 		req.Header.Add("Authorization", c.AuthHeader)

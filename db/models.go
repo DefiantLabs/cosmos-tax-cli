@@ -13,6 +13,13 @@ type Block struct {
 	Chain        Chain `gorm:"foreignKey:BlockchainID"`
 }
 
+type FailedBlock struct {
+	ID           uint
+	Height       int64 `gorm:"uniqueIndex:failedchainheight"`
+	BlockchainID uint  `gorm:"uniqueIndex:failedchainheight"`
+	Chain        Chain `gorm:"foreignKey:BlockchainID"`
+}
+
 type Chain struct {
 	ID      uint   `gorm:"primaryKey"`
 	ChainID string `gorm:"uniqueIndex"` //e.g. osmosis-1
@@ -23,7 +30,7 @@ type Tx struct {
 	ID              uint
 	TimeStamp       time.Time
 	Hash            string
-	Code            int64
+	Code            uint32
 	BlockId         uint
 	Block           Block
 	SignerAddressId *int //*int allows foreign key to be null
