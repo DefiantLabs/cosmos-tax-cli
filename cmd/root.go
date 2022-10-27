@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"go.uber.org/zap"
+	"log"
 	"os"
 	"time"
 
@@ -47,7 +48,9 @@ func initConfig() {
 	} else {
 		// Find home directory.
 		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
+		if err != nil {
+			log.Fatalf("Failed to find user home dir. Err: %v", err)
+		}
 		defaultCfgLocation := fmt.Sprintf("%s/.cosmos-tax-cli", home)
 
 		viper.AddConfigPath(defaultCfgLocation)
@@ -55,18 +58,24 @@ func initConfig() {
 		viper.SetConfigName("config")
 	}
 
-	//TODO: What do we do on first time app run if config file doesnt exit?
 	//Load defaults into a file at $HOME?
-	//Require users to run an init command?
-	if err := viper.ReadInConfig(); err == nil {
-		err := viper.Unmarshal(&conf)
-		cobra.CheckErr(err)
-		//TODO: validate the config by making sure values exist for required struct values
-		//Either set required values on Viper or
-		//Write a function to check explicitly
-		//Consider creating a set of defaults
-	} else {
-		cobra.CheckErr(err)
+	err := viper.ReadInConfig()
+	if err != nil {
+		log.Fatalf("Failed to read config file. Err: %v", err)
+	}
+
+	// Unmarshal the config into struct
+	err = viper.Unmarshal(&conf)
+	if err != nil {
+		log.Fatalf("Failed to unmarshal config. Err: %v", err)
+	}
+
+	//TODO: Consider creating a set of defaults
+
+	// Validate config
+	err = conf.Validate()
+	if err != nil {
+		log.Fatalf("Failed to validate config. Err: %v", err)
 	}
 }
 

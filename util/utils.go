@@ -51,3 +51,11 @@ func WalkFindStrings(data interface{}, regex *regexp.Regexp) []string {
 		return ret
 	}
 }
+
+// StrNotSet will return true if the string value provided is empty
+func StrNotSet(value string) bool {
+	if len(value) == 0 {
+		return true
+	}
+	return false
+}
