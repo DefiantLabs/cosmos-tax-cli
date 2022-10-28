@@ -352,7 +352,7 @@ func (idxr *Indexer) processTxs(wg *sync.WaitGroup, blockTXsChan chan *indexerTx
 			err = dbTypes.IndexNewBlock(idxr.db, txToProcess.Height, txDBWrappers, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
 			if err != nil {
 				if err != nil {
-					log.Fatalf("Error indexing block %v. Err: %v", txToProcess.Height, err)
+					config.Log.Fatal(fmt.Sprintf("Error indexing block %v.", txToProcess.Height), zap.Error(err))
 				}
 			}
 		}

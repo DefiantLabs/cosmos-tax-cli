@@ -207,6 +207,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 		//TODO: Pull this out into its own function for easier reading
 		for messageIndex, message := range tx.Tx.Body.Messages {
 			var currMessage dbTypes.Message
+			var currMessageType dbTypes.MessageType
 			currMessage.MessageIndex = messageIndex
 
 			//Get the message log that corresponds to the current message
@@ -219,7 +220,8 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 				//type cast on error allows getting message type if it was parsed correctly
 				re, ok := err.(*txTypes.UnknownMessageError)
 				if ok {
-					currMessage.MessageType = re.Type()
+					currMessageType.MessageType = re.Type()
+					currMessage.MessageType = currMessageType
 					currMessageDBWrapper.Message = currMessage
 				} else {
 					//What should we do here? This is an actual error during parsing
@@ -231,20 +233,21 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 				//println("\n------------------END MESSAGE----------------------\n")
 			} else {
 				config.Log.Debug(fmt.Sprintf("[Block: %v] Cosmos message of known type: %s", tx.TxResponse.Height, cosmosMessage))
-				currMessage.MessageType = cosmosMessage.GetType()
+				currMessageType.MessageType = cosmosMessage.GetType()
+				currMessage.MessageType = currMessageType
 				currMessageDBWrapper.Message = currMessage
 
 				//TODO: ParseRelevantData may need the logs to get the relevant information, unless we forever do that on the ParseCosmosMessageJSON side
 				var relevantData []parsingTypes.MessageRelevantInformation = cosmosMessage.ParseRelevantData()
 
 				if len(relevantData) > 0 {
-					var taxableEvents []dbTypes.TaxableEventDBWrapper = make([]dbTypes.TaxableEventDBWrapper, len(relevantData))
+					var taxableTxs = make([]dbTypes.TaxableTxDBWrapper, len(relevantData))
 					for i, v := range relevantData {
 						if v.AmountSent != nil {
-							taxableEvents[i].TaxableTx.AmountSent = util.ToNumeric(v.AmountSent)
+							taxableTxs[i].TaxableTx.AmountSent = util.ToNumeric(v.AmountSent)
 						}
 						if v.AmountReceived != nil {
-							taxableEvents[i].TaxableTx.AmountReceived = util.ToNumeric(v.AmountReceived)
+							taxableTxs[i].TaxableTx.AmountReceived = util.ToNumeric(v.AmountReceived)
 						}
 
 						var denomSent dbTypes.Denom
@@ -261,7 +264,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 								}
 							}
 
-							taxableEvents[i].TaxableTx.DenominationSent = denomSent
+							taxableTxs[i].TaxableTx.DenominationSent = denomSent
 						}
 
 						var denomReceived dbTypes.Denom
@@ -277,15 +280,15 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 									return txDBWapper, err
 								}
 							}
-							taxableEvents[i].TaxableTx.DenominationReceived = denomReceived
+							taxableTxs[i].TaxableTx.DenominationReceived = denomReceived
 						}
 
-						taxableEvents[i].SenderAddress = dbTypes.Address{Address: v.SenderAddress}
-						taxableEvents[i].ReceiverAddress = dbTypes.Address{Address: v.ReceiverAddress}
+						taxableTxs[i].SenderAddress = dbTypes.Address{Address: v.SenderAddress}
+						taxableTxs[i].ReceiverAddress = dbTypes.Address{Address: v.ReceiverAddress}
 					}
-					currMessageDBWrapper.TaxableEvents = taxableEvents
+					currMessageDBWrapper.TaxableTxs = taxableTxs
 				} else {
-					currMessageDBWrapper.TaxableEvents = []dbTypes.TaxableEventDBWrapper{}
+					currMessageDBWrapper.TaxableTxs = []dbTypes.TaxableTxDBWrapper{}
 				}
 			}
 
@@ -293,7 +296,6 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 				newSwap := gamm.ArbitrageTx{TokenIn: msgSwapExactIn.TokenIn, TokenOut: msgSwapExactIn.TokenOut, BlockTime: timeStamp}
 				allSwaps = append(allSwaps, newSwap)
 			}
-
 			messages = append(messages, currMessageDBWrapper)
 		}
 	}

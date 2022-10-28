@@ -254,28 +254,28 @@ func ParseTx(address string, events []db.TaxableTransaction) ([]parsers.CsvRow, 
 
 	for _, event := range events {
 		//Is this a MsgSend
-		if bank.IsMsgSend[event.Message.MessageType] {
+		if bank.IsMsgSend[event.Message.MessageType.MessageType] {
 			rows = append(rows, ParseMsgSend(address, event))
-		} else if bank.IsMsgMultiSend[event.Message.MessageType] {
+		} else if bank.IsMsgMultiSend[event.Message.MessageType.MessageType] {
 			rows = append(rows, ParseMsgMultiSend(address, event))
-		} else if distribution.IsMsgFundCommunityPool[event.Message.MessageType] {
+		} else if distribution.IsMsgFundCommunityPool[event.Message.MessageType.MessageType] {
 			rows = append(rows, ParseMsgFundCommunityPool(address, event))
-		} else if distribution.IsMsgWithdrawValidatorCommission[event.Message.MessageType] {
+		} else if distribution.IsMsgWithdrawValidatorCommission[event.Message.MessageType.MessageType] {
 			rows = append(rows, ParseMsgWithdrawValidatorCommission(address, event))
-		} else if distribution.IsMsgWithdrawDelegatorReward[event.Message.MessageType] {
+		} else if distribution.IsMsgWithdrawDelegatorReward[event.Message.MessageType.MessageType] {
 			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
-		} else if staking.IsMsgDelegate[event.Message.MessageType] {
+		} else if staking.IsMsgDelegate[event.Message.MessageType.MessageType] {
 			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
-		} else if staking.IsMsgUndelegate[event.Message.MessageType] {
+		} else if staking.IsMsgUndelegate[event.Message.MessageType.MessageType] {
 			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
-		} else if staking.IsMsgBeginRedelegate[event.Message.MessageType] {
+		} else if staking.IsMsgBeginRedelegate[event.Message.MessageType.MessageType] {
 			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
-		} else if gamm.IsMsgSwapExactAmountIn[event.Message.MessageType] {
+		} else if gamm.IsMsgSwapExactAmountIn[event.Message.MessageType.MessageType] {
 			rows = append(rows, ParseMsgSwapExactAmountIn(address, event))
-		} else if gamm.IsMsgSwapExactAmountOut[event.Message.MessageType] {
+		} else if gamm.IsMsgSwapExactAmountOut[event.Message.MessageType.MessageType] {
 			rows = append(rows, ParseMsgSwapExactAmountOut(address, event))
 		} else {
-			fmt.Println("No parser for message type", event.Message.MessageType)
+			fmt.Println("No parser for message type", event.Message.MessageType.MessageType)
 		}
 	}
 
