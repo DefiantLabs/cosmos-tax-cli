@@ -228,7 +228,7 @@ func GetIndexerStartingHeight(configStartHeight int64, cl *client.ChainClient, d
 	return latestBlock
 }
 
-func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error)) {
+func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler core.FailedBlockHandler) {
 	defer wg.Done()
 
 	startHeight := idxr.cfg.Base.StartBlock
@@ -281,7 +281,7 @@ func (idxr *Indexer) indexOsmosisReward(rpcClient osmosis.URIClient, epoch int64
 	return 0, nil
 }
 
-func (idxr *Indexer) queryRpc(blockChan chan int64, blockTXsChan chan *indexerTx.GetTxsEventResponseWrapper, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error)) {
+func (idxr *Indexer) queryRpc(blockChan chan int64, blockTXsChan chan *indexerTx.GetTxsEventResponseWrapper, failedBlockHandler core.FailedBlockHandler) {
 	maxAttempts := 5
 	for blockToProcess := range blockChan {
 		// attempt to process the block 5 times and then give up
@@ -289,8 +289,9 @@ func (idxr *Indexer) queryRpc(blockChan chan int64, blockTXsChan chan *indexerTx
 		for processBlock(idxr.cl, failedBlockHandler, blockTXsChan, blockToProcess) != nil && attemptCount < maxAttempts {
 			attemptCount++
 			if attemptCount == maxAttempts {
+				// TODO: When we work on resume functionality, we need to build in a way to clear blocks out of the failure table when they succeed
 				config.Log.Error(fmt.Sprintf("Failed to process block %v after %v attempts. Will add to failed blocks table", blockToProcess, maxAttempts))
-				err := dbTypes.UpsertFailedBlock(idxr.db, blockToProcess, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName) // TODO: We could hang this off the DB connection...
+				err := dbTypes.UpsertFailedBlock(idxr.db, blockToProcess, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
 				if err != nil {
 					config.Log.Fatal(fmt.Sprintf("Failed to store that block %v failed. Not safe to continue.", blockToProcess), zap.Error(err))
 				}
@@ -333,7 +334,7 @@ func processBlock(cl *client.ChainClient, failedBlockHandler func(height int64, 
 	return nil
 }
 
-func (idxr *Indexer) processTxs(wg *sync.WaitGroup, blockTXsChan chan *indexerTx.GetTxsEventResponseWrapper, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error)) {
+func (idxr *Indexer) processTxs(wg *sync.WaitGroup, blockTXsChan chan *indexerTx.GetTxsEventResponseWrapper, failedBlockHandler core.FailedBlockHandler) {
 	blocksProcessed := 0
 	timeStart := time.Now()
 	defer wg.Done()
