@@ -56,7 +56,7 @@ func ChainSpecificMessageTypeHandlerBootstrap(chainId string) {
 }
 
 // ParseCosmosMessageJSON - Parse a SINGLE Cosmos Message into the appropriate type.
-func ParseCosmosMessage(message types.Msg, log *txTypes.TxLogMessage) (txTypes.CosmosMessage, error) {
+func ParseCosmosMessage(message types.Msg, log *txTypes.TxLogMessage) (txTypes.CosmosMessage, string, error) {
 	//Figure out what type of Message this is based on the '@type' field that is included
 	//in every Cosmos Message (can be seen in raw JSON for any cosmos transaction).
 	var msg txTypes.CosmosMessage
@@ -67,13 +67,13 @@ func ParseCosmosMessage(message types.Msg, log *txTypes.TxLogMessage) (txTypes.C
 	if msgHandlerFunc, ok := messageTypeHandler[cosmosMessage.Type]; ok {
 		msg = msgHandlerFunc()
 	} else {
-		return nil, &txTypes.UnknownMessageError{MessageType: cosmosMessage.Type}
+		return nil, cosmosMessage.Type, txTypes.ErrUnknownMessage
 	}
 
 	//Unmarshal the rest of the JSON now that we know the specific type.
 	//Note that depending on the type, it may or may not care about logs.
 	err := msg.HandleMsg(cosmosMessage.Type, message, log)
-	return msg, err
+	return msg, cosmosMessage.Type, err
 }
 
 func toAttributes(attrs []types.Attribute) []txTypes.Attribute {
@@ -213,19 +213,16 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 			//Get the message log that corresponds to the current message
 			var currMessageDBWrapper dbTypes.MessageDBWrapper
 			messageLog := txTypes.GetMessageLogForIndex(tx.TxResponse.Log, messageIndex)
-			cosmosMessage, err := ParseCosmosMessage(message, messageLog)
+			cosmosMessage, msgType, err := ParseCosmosMessage(message, messageLog)
 			if err != nil {
 				config.Log.Warn(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed.", tx.TxResponse.Height), zap.Error(err))
-
-				//type cast on error allows getting message type if it was parsed correctly
-				re, ok := err.(*txTypes.UnknownMessageError)
-				if ok {
-					currMessageType.MessageType = re.Type()
-					currMessage.MessageType = currMessageType
-					currMessageDBWrapper.Message = currMessage
-				} else {
+				currMessageType.MessageType = msgType
+				currMessage.MessageType = currMessageType
+				currMessageDBWrapper.Message = currMessage
+				if err != txTypes.ErrUnknownMessage {
 					//What should we do here? This is an actual error during parsing
-					config.Log.Error("issue casting the unknown message error to an error... please investigate.")
+					config.Log.Error("msg parse error.", zap.Error(err))
+					config.Log.Error("Issue parsing a cosmos msg that we DO have a parser for! PLEASE INVESTIGATE")
 				}
 
 				//println("------------------Cosmos message parsing failed. MESSAGE FORMAT FOLLOWS:---------------- \n\n")

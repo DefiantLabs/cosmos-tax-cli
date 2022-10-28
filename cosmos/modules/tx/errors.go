@@ -1,18 +1,11 @@
 package tx
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
-type UnknownMessageError struct {
-	MessageType string
-}
-
-func (e *UnknownMessageError) Error() string {
-	return fmt.Sprintf("No message handler for message type '%s'\n", e.MessageType)
-}
-
-func (e *UnknownMessageError) Type() string {
-	return e.MessageType
-}
+var ErrUnknownMessage = errors.New("no message handler for message type")
 
 type MessageLogFormatError struct {
 	Log         string
