@@ -2,8 +2,8 @@ package accointing
 
 import (
 	"fmt"
+	"go.uber.org/zap"
 	"log"
-	"os"
 	"sort"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
@@ -164,12 +164,12 @@ func (p *AccointingParser) GetRows() []parsers.CsvRow {
 	sort.Slice(accointingRows, func(i int, j int) bool {
 		leftDate, err := DateFromString(accointingRows[i].Date)
 		if err != nil {
-			fmt.Println("Error sorting", err)
+			config.Log.Error("Error sorting left date.", zap.Error(err))
 			return false
 		}
 		rightDate, err := DateFromString(accointingRows[j].Date)
 		if err != nil {
-			fmt.Println("Error sorting", err)
+			config.Log.Error("Error sorting right date.", zap.Error(err))
 			return false
 		}
 		return leftDate.Before(rightDate)
@@ -234,12 +234,11 @@ func ParseEvent(address string, event db.TaxableEvent) []AccointingRow {
 
 	if event.Source == db.OsmosisRewardDistribution {
 		row, err := ParseOsmosisReward(address, event)
-		if err == nil {
-			rows = append(rows, row)
-		} else {
+		if err != nil {
 			//TODO: handle error parsing row. Should be impossible to reach this condition, ideally (once all bugs worked out)
-			os.Exit(1)
+			config.Log.Fatal("error parsing row. Should be impossible to reach this condition, ideally (once all bugs worked out)", zap.Error(err))
 		}
+		rows = append(rows, row)
 	}
 
 	//rows = HandleFees(address, events, rows) TODO we have no fee handler for taxable EVENTS right now
@@ -275,7 +274,7 @@ func ParseTx(address string, events []db.TaxableTransaction) ([]parsers.CsvRow, 
 		} else if gamm.IsMsgSwapExactAmountOut[event.Message.MessageType.MessageType] {
 			rows = append(rows, ParseMsgSwapExactAmountOut(address, event))
 		} else {
-			fmt.Println("No parser for message type", event.Message.MessageType.MessageType)
+			config.Log.Error(fmt.Sprintf("No parser for message type '%v'", event.Message.MessageType.MessageType))
 		}
 	}
 
