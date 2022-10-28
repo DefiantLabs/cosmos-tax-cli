@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"go.uber.org/zap"
 	"log"
 	"os"
 
@@ -17,7 +19,6 @@ var queryCmd = &cobra.Command{
 	your address to the command and a CSV export with your data for your address will be generated.`,
 	//If we want to pass errors up to the
 	Run: func(cmd *cobra.Command, args []string) {
-
 		found := false
 		parsers := parsers.GetParserKeys()
 		for _, v := range parsers {
@@ -54,17 +55,20 @@ var (
 )
 
 func init() {
-	validFormats := parsers.GetParserKeys()
+	//Setup Logger
+	logLevel := conf.Log.Level
+	logPath := conf.Log.Path
+	config.DoConfigureLogger(logPath, logLevel)
 
+	validFormats := parsers.GetParserKeys()
 	if len(validFormats) == 0 {
-		fmt.Println("Error during intialization, no CSV parsers found.")
-		os.Exit(1)
+		config.Log.Fatal("Error during intialization, no CSV parsers found.")
 	}
 
 	queryCmd.Flags().StringVar(&address, "address", "", "The address to query for")
 	err := queryCmd.MarkFlagRequired("address")
 	if err != nil {
-		log.Println("Error marking address field as required during query init. Err: ", err)
+		config.Log.Fatal("Error marking address field as required during query init. Err: ", zap.Error(err))
 	}
 	queryCmd.Flags().StringVar(&output, "output", "./output.csv", "The output location")
 	queryCmd.Flags().StringVar(&format, "format", validFormats[0], "The format to output")
