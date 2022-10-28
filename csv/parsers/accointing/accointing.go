@@ -3,7 +3,6 @@ package accointing
 import (
 	"fmt"
 	"go.uber.org/zap"
-	"log"
 	"sort"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
@@ -17,9 +16,9 @@ import (
 
 func (p *AccointingParser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransaction) error {
 	//process taxableTx into Rows above
-	txMap := map[uint][]db.TaxableTransaction{} //Map transaction ID to List of events
+	txMap := map[uint][]db.TaxableTransaction{} //Map transaction ID to List of taxable transactions
 
-	//Build a map so we know which TX go with which messages
+	//Build a map, so we know which TX go with which messages
 	for _, taxableTx := range taxableTxs {
 		if list, ok := txMap[taxableTx.Message.Tx.ID]; ok {
 			list = append(list, taxableTx)
@@ -33,9 +32,9 @@ func (p *AccointingParser) ProcessTaxableTx(address string, taxableTxs []db.Taxa
 	//The basic idea is we want to do the following:
 	//1. Loop through each message for each transaction
 	//2. Check if it belongs in a group by message type
-	//3. Gather indicies of all messages that belong in each group
+	//3. Gather indices of all messages that belong in each group
 	//4. Remove them from the normal txMap
-	//5. Add them to the group-secific txMap
+	//5. Add them to the group-specific txMap
 	//The last two steps ensure that the message will not be parsed twice
 	for v, tx := range txMap {
 		//map: [group index] to []indexes of the current tx messages that belong in that group
@@ -287,7 +286,7 @@ func ParseMsgWithdrawValidatorCommission(address string, event db.TaxableTransac
 	row := &AccointingRow{}
 	err := row.ParseBasic(address, event)
 	if err != nil {
-		log.Printf("Error with ParseMsgWithdrawValidatorCommission. Err: %v", err)
+		config.Log.Fatal("Error with ParseMsgWithdrawValidatorCommission.", zap.Error(err))
 	}
 	row.Classification = Staked
 	return *row
@@ -299,7 +298,7 @@ func ParseMsgWithdrawDelegatorReward(address string, event db.TaxableTransaction
 	row := &AccointingRow{}
 	err := row.ParseBasic(address, event)
 	if err != nil {
-		log.Printf("Error with ParseMsgWithdrawDelegatorReward. Err: %v", err)
+		config.Log.Fatal("Error with ParseMsgWithdrawDelegatorReward.", zap.Error(err))
 	}
 	row.Classification = Staked
 	return *row
@@ -312,7 +311,7 @@ func ParseMsgSend(address string, event db.TaxableTransaction) AccointingRow {
 	row := &AccointingRow{}
 	err := row.ParseBasic(address, event)
 	if err != nil {
-		log.Printf("Error with ParseMsgSend. Err: %v", err)
+		config.Log.Fatal("Error with ParseMsgSend.", zap.Error(err))
 	}
 	return *row
 }
@@ -321,7 +320,7 @@ func ParseMsgMultiSend(address string, event db.TaxableTransaction) AccointingRo
 	row := &AccointingRow{}
 	err := row.ParseBasic(address, event)
 	if err != nil {
-		log.Printf("Error with ParseMsgMultiSend. Err: %v", err)
+		config.Log.Fatal("Error with ParseMsgMultiSend.", zap.Error(err))
 	}
 	return *row
 }
@@ -330,7 +329,7 @@ func ParseMsgFundCommunityPool(address string, event db.TaxableTransaction) Acco
 	row := &AccointingRow{}
 	err := row.ParseBasic(address, event)
 	if err != nil {
-		log.Printf("Error with ParseMsgFundCommunityPool. Err: %v", err)
+		config.Log.Fatal("Error with ParseMsgFundCommunityPool.", zap.Error(err))
 	}
 	return *row
 }
@@ -339,7 +338,7 @@ func ParseMsgSwapExactAmountIn(address string, event db.TaxableTransaction) Acco
 	row := &AccointingRow{}
 	err := row.ParseSwap(address, event)
 	if err != nil {
-		log.Printf("Error with ParseMsgSwapExactAmountIn. Err: %v", err)
+		config.Log.Fatal("Error with ParseMsgSwapExactAmountIn.", zap.Error(err))
 	}
 	return *row
 }
@@ -348,7 +347,7 @@ func ParseMsgSwapExactAmountOut(address string, event db.TaxableTransaction) Acc
 	row := &AccointingRow{}
 	err := row.ParseSwap(address, event)
 	if err != nil {
-		log.Printf("Error with ParseMsgSwapExactAmountOut. Err: %v", err)
+		config.Log.Fatal("Error with ParseMsgSwapExactAmountOut.", zap.Error(err))
 	}
 	return *row
 }
@@ -357,7 +356,7 @@ func ParseOsmosisReward(address string, event db.TaxableEvent) (AccointingRow, e
 	row := &AccointingRow{}
 	err := row.EventParseBasic(address, event)
 	if err != nil {
-		log.Printf("Error with ParseOsmosisReward. Err: %v", err)
+		config.Log.Fatal("Error with ParseOsmosisReward.", zap.Error(err))
 	}
 	return *row, err
 }

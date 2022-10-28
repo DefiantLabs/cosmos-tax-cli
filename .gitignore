@@ -7,4 +7,5 @@ cosmos-tax-cli-backend
 client/client
 env
 vendor/
+**/.DS_Store
 .idea/*
