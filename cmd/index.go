@@ -183,13 +183,12 @@ func (idxr *Indexer) enqueueBlocksToProcess(blockChan chan int64) {
 			}
 
 			//Already at the latest block, wait for the next block to be available.
-			for currBlock <= latestBlock && currBlock <= lastBlock && len(blockChan) != cap(blockChan) {
+			for currBlock <= latestBlock && (currBlock <= lastBlock || lastBlock == -1) && len(blockChan) != cap(blockChan) {
 				if idxr.cfg.Base.Throttling != 0 {
 					time.Sleep(time.Second * time.Duration(idxr.cfg.Base.Throttling))
 				}
 
 				//Add the new block to the queue
-				//fmt.Printf("Added block %d to the queue\n", currBlock)
 				blockChan <- currBlock
 				currBlock++
 			}
