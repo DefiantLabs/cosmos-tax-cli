@@ -2,6 +2,8 @@ package distribution
 
 import (
 	"fmt"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"go.uber.org/zap"
 
 	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 
@@ -111,12 +113,14 @@ func (sf *WrapperMsgWithdrawDelegatorReward) HandleMsg(msgType string, msg stdTy
 	//Confirm that the action listed in the message log matches the Message type
 	valid_log := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !valid_log {
+		config.Log.Error("Msg log invalid")
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
 	//The attribute in the log message that shows you the delegator withdrawal address and amount received
 	delegatorReceivedCoinsEvt := txModule.GetEventWithType(bankTypes.EventTypeCoinReceived, log)
 	if delegatorReceivedCoinsEvt == nil {
+		config.Log.Error("Failed to get delegatorReceivedCoinsEvt from msg")
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
@@ -128,8 +132,7 @@ func (sf *WrapperMsgWithdrawDelegatorReward) HandleMsg(msgType string, msg stdTy
 	if err != nil {
 		coins, err := stdTypes.ParseCoinsNormalized(coins_received)
 		if err != nil {
-			fmt.Println("Error parsing coins normalized")
-			fmt.Println(err)
+			config.Log.Error("Error parsing coins normalized", zap.Error(err))
 			return err
 		}
 		sf.MultiCoinsReceived = coins

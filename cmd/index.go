@@ -126,7 +126,7 @@ func index(cmd *cobra.Command, args []string) {
 
 	//Start a thread to process transactions after the RPC querier retrieves them.
 	wg.Add(1)
-	go idxr.processTxs(&wg, blockTXsChan, core.HandleFailedBlock)
+	go idxr.processTxs(&wg, blockTXsChan, core.HandleFailedBlock) // TODO: are we sure more workers here wouldn't make this faster?
 
 	//Osmosis specific indexing requirements. Osmosis distributes rewards to LP holders on a daily basis.
 	if config.IsOsmosis(idxr.cfg) {
