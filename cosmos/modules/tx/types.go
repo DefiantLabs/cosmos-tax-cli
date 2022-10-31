@@ -15,7 +15,7 @@ type GetTxsEventResponseWrapper struct {
 
 // TODO: Clean up types
 type GetBlockByHeightResponse struct {
-	BlockId BlockId       `json:"block_id"`
+	BlockID BlockID       `json:"block_id"`
 	Block   BlockResponse `json:"block"`
 }
 
@@ -24,7 +24,7 @@ type BlockResponse struct {
 	BlockHeader BlockHeader `json:"header"`
 }
 
-type BlockId struct {
+type BlockID struct {
 	Hash string `json:"hash"`
 }
 
@@ -37,24 +37,24 @@ type BlockHeader struct {
 }
 
 type GetTxByBlockHeightResponse struct {
-	Txs         []IndexerTx  `json:"txs"`
-	TxResponses []TxResponse `json:"tx_responses"`
-	Pagination  Pagination   `json:"pagination"`
+	Txs         []IndexerTx `json:"txs"`
+	TxResponses []Response  `json:"tx_responses"`
+	Pagination  Pagination  `json:"pagination"`
 }
 
 type IndexerTx struct {
-	Body       TxBody `json:"body"`
+	Body       Body `json:"body"`
 	AuthInfo   cosmTx.AuthInfo
 	Signatures []string `json:"signatures"`
 }
 
-type TxResponse struct {
-	TxHash    string         `json:"txhash"`
-	Height    string         `json:"height"`
-	TimeStamp string         `json:"timestamp"`
-	Code      uint32         `json:"code"`
-	RawLog    string         `json:"raw_log"`
-	Log       []TxLogMessage `json:"logs"`
+type Response struct {
+	TxHash    string       `json:"txhash"`
+	Height    string       `json:"height"`
+	TimeStamp string       `json:"timestamp"`
+	Code      uint32       `json:"code"`
+	RawLog    string       `json:"raw_log"`
+	Log       []LogMessage `json:"logs"`
 }
 
 // TxLogMessage:
@@ -81,7 +81,7 @@ type TxResponse struct {
 //
 // This struct just parses the KNOWN fields and leaves the other fields as raw JSON.
 // More specific type parsers for each message type can parse those fields if they choose to.
-type TxLogMessage struct {
+type LogMessage struct {
 	MessageIndex int               `json:"msg_index"`
 	Events       []LogMessageEvent `json:"events"`
 }
@@ -96,26 +96,26 @@ type LogMessageEvent struct {
 	Attributes []Attribute `json:"attributes"`
 }
 
-type TxBody struct {
+type Body struct {
 	Messages []sdk.Msg `json:"messages"`
 }
 
-type TxAuthInfo struct {
-	TxFee         TxFee          `json:"fee"`
-	TxSignerInfos []TxSignerInfo `json:"signer_infos"` //this is used in REST but not RPC parsers
+type AuthInfo struct {
+	TxFee         Fee          `json:"fee"`
+	TxSignerInfos []SignerInfo `json:"signer_infos"` //this is used in REST but not RPC parsers
 }
 
-type TxFee struct {
-	TxFeeAmount []TxFeeAmount `json:"amount"`
-	GasLimit    string        `json:"gas_limit"`
+type Fee struct {
+	TxFeeAmount []FeeAmount `json:"amount"`
+	GasLimit    string      `json:"gas_limit"`
 }
 
-type TxFeeAmount struct {
+type FeeAmount struct {
 	Denom  string `json:"denom"`
 	Amount string `json:"amount"`
 }
 
-type TxSignerInfo struct {
+type SignerInfo struct {
 	PublicKey PublicKey `json:"public_key"`
 }
 
@@ -132,11 +132,11 @@ type Pagination struct {
 // In the json, TX data is split into 2 arrays, used to merge the full dataset
 type MergedTx struct {
 	Tx         IndexerTx
-	TxResponse TxResponse
+	TxResponse Response
 }
 
 type GetLatestBlockResponse struct {
-	BlockId BlockId       `json:"block_id"`
+	BlockID BlockID       `json:"block_id"`
 	Block   BlockResponse `json:"block"`
 }
 
@@ -152,7 +152,7 @@ func (sf *Message) GetType() string {
 // CosmUnmarshal() unmarshals the specific cosmos message type (e.g. MsgSend).
 // First arg must always be the message type itself, as this won't be parsed in CosmUnmarshal.
 type CosmosMessage interface {
-	HandleMsg(string, sdk.Msg, *TxLogMessage) error
+	HandleMsg(string, sdk.Msg, *LogMessage) error
 	ParseRelevantData() []parsingTypes.MessageRelevantInformation
 	GetType() string
 	String() string

@@ -57,7 +57,7 @@ func setupIndexer() *Indexer {
 	core.ChainSpecificMessageTypeHandlerBootstrap(idxr.cfg.Lens.ChainID)
 
 	//TODO may need to run this task in setup() so that we have a cold start functionality before the indexer starts
-	_, err = idxr.scheduler.Every(6).Hours().Do(tasks.DenomUpsertTask, idxr.cfg.Lens.Rpc, idxr.db)
+	_, err = idxr.scheduler.Every(6).Hours().Do(tasks.DenomUpsertTask, idxr.cfg.Lens.RPC, idxr.db)
 	if err != nil {
 		config.Log.Error("Error scheduling denmon upsert task. Err: ", zap.Error(err))
 	}
@@ -111,7 +111,7 @@ func index(cmd *cobra.Command, args []string) {
 	for i := 0; i < rpcQueryThreads; i++ {
 		txChanWaitGroup.Add(1)
 		go func() {
-			idxr.queryRpc(blockChan, blockTXsChan, core.HandleFailedBlock)
+			idxr.queryRPC(blockChan, blockTXsChan, core.HandleFailedBlock)
 			txChanWaitGroup.Done()
 		}()
 	}
@@ -280,7 +280,7 @@ func (idxr *Indexer) indexOsmosisReward(rpcClient osmosis.URIClient, epoch int64
 	return 0, nil
 }
 
-func (idxr *Indexer) queryRpc(blockChan chan int64, blockTXsChan chan *indexerTx.GetTxsEventResponseWrapper, failedBlockHandler core.FailedBlockHandler) {
+func (idxr *Indexer) queryRPC(blockChan chan int64, blockTXsChan chan *indexerTx.GetTxsEventResponseWrapper, failedBlockHandler core.FailedBlockHandler) {
 	maxAttempts := 5
 	for blockToProcess := range blockChan {
 		// attempt to process the block 5 times and then give up
@@ -339,7 +339,7 @@ func (idxr *Indexer) processTxs(wg *sync.WaitGroup, blockTXsChan chan *indexerTx
 	defer wg.Done()
 
 	for txToProcess := range blockTXsChan {
-		txDBWrappers, err := core.ProcessRpcTxs(idxr.db, txToProcess.CosmosGetTxsEventResponse)
+		txDBWrappers, err := core.ProcessRPCTXs(idxr.db, txToProcess.CosmosGetTxsEventResponse)
 		if err != nil {
 			config.Log.Error("ProcessRpcTxs: unhandled error", zap.Error(err))
 			failedBlockHandler(txToProcess.Height, core.UnprocessableTxError, err)

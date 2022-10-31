@@ -13,7 +13,8 @@ type RewardEpoch struct {
 	Error            error
 }
 
-type OsmosisRewards struct {
+// Rewards rewards from osmosis
+type Rewards struct {
 	EpochBlockHeight int64
 	Address          string
 	Coins            sdk.Coins

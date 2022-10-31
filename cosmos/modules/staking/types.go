@@ -46,13 +46,13 @@ type WrapperMsgBeginRedelegate struct {
 }
 
 // HandleMsg: Handle type checking for MsgFundCommunityPool
-func (sf *WrapperMsgDelegate) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.TxLogMessage) error {
+func (sf *WrapperMsgDelegate) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
 	sf.CosmosMsgDelegate = msg.(*stakeTypes.MsgDelegate)
 
 	//Confirm that the action listed in the message log matches the Message type
-	valid_log := txModule.IsMessageActionEquals(sf.GetType(), log)
-	if !valid_log {
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
@@ -62,8 +62,8 @@ func (sf *WrapperMsgDelegate) HandleMsg(msgType string, msg stdTypes.Msg, log *t
 		sf.AutoWithdrawalReward = nil
 		sf.DelegatorAddress = sf.CosmosMsgDelegate.DelegatorAddress
 	} else {
-		coins_received := txModule.GetValueForAttribute("amount", delegatorReceivedCoinsEvt)
-		coin, err := stdTypes.ParseCoinNormalized(coins_received)
+		coinsReceived := txModule.GetValueForAttribute("amount", delegatorReceivedCoinsEvt)
+		coin, err := stdTypes.ParseCoinNormalized(coinsReceived)
 		if err == nil {
 			sf.AutoWithdrawalReward = &coin
 		} else {
@@ -75,13 +75,13 @@ func (sf *WrapperMsgDelegate) HandleMsg(msgType string, msg stdTypes.Msg, log *t
 	return nil
 }
 
-func (sf *WrapperMsgUndelegate) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.TxLogMessage) error {
+func (sf *WrapperMsgUndelegate) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
 	sf.CosmosMsgUndelegate = msg.(*stakeTypes.MsgUndelegate)
 
 	//Confirm that the action listed in the message log matches the Message type
-	valid_log := txModule.IsMessageActionEquals(sf.GetType(), log)
-	if !valid_log {
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
@@ -121,13 +121,13 @@ func (sf *WrapperMsgUndelegate) HandleMsg(msgType string, msg stdTypes.Msg, log 
 }
 
 // HandleMsg: Handle type checking for MsgFundCommunityPool
-func (sf *WrapperMsgBeginRedelegate) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.TxLogMessage) error {
+func (sf *WrapperMsgBeginRedelegate) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
 	sf.CosmosMsgBeginRedelegate = msg.(*stakeTypes.MsgBeginRedelegate)
 
 	//Confirm that the action listed in the message log matches the Message type
-	valid_log := txModule.IsMessageActionEquals(sf.GetType(), log)
-	if !valid_log {
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 

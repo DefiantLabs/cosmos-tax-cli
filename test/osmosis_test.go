@@ -32,7 +32,7 @@ func TestGetRewardsForAddress(t *testing.T) {
 
 	addressRegex := "osmo(valoper)?1[a-z0-9]{38}"
 	addressPrefix := "osmo"
-	gorm, err := db_setup(addressRegex, addressPrefix)
+	gorm, err := dbSetup(addressRegex, addressPrefix)
 	if err != nil {
 		t.Fail()
 	}
@@ -63,7 +63,7 @@ func TestGetRewardsForAddress(t *testing.T) {
 func TestGetOsmosisRewardIndex(t *testing.T) {
 	addressRegex := "osmo(valoper)?1[a-z0-9]{38}"
 	addressPrefix := "osmo"
-	gorm, err := db_setup(addressRegex, addressPrefix)
+	gorm, err := dbSetup(addressRegex, addressPrefix)
 	if err != nil {
 		t.Fail()
 	}
@@ -82,7 +82,7 @@ func TestGetOsmosisRewardIndex(t *testing.T) {
 func TestInsertOsmosisRewards(t *testing.T) {
 	addressRegex := "osmo(valoper)?1[a-z0-9]{38}"
 	addressPrefix := "osmo"
-	gorm, err := db_setup(addressRegex, addressPrefix)
+	gorm, err := dbSetup(addressRegex, addressPrefix)
 	if err != nil {
 		t.Fail()
 	}

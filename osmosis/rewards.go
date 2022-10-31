@@ -13,16 +13,16 @@ import (
 
 // GetRewardsBetween figures out which blocks (in the given range, start height to end height)
 // contain Osmosis rewards, and queries the reward info. Blocks without rewards are skipped.
-// An error is returned if we cannot query a list of reward epochs. Otherwise []*OsmosisRewards
+// An error is returned if we cannot query a list of reward epochs. Otherwise []*Rewards
 // is returned, which contains all of the rewards for a given block height and address.
 // See Osmosis repo x/incentives/keeper/distribute.go, doDistributionSends for more info.
-func (client *URIClient) GetRewardsBetween(startHeight int64, endHeight int64) ([]*OsmosisRewards, error) {
+func (client *URIClient) GetRewardsBetween(startHeight int64, endHeight int64) ([]*Rewards, error) {
 	// rewardEpochs, epochLookupErr := client.getRewardEpochs(startHeight, endHeight)
 	// if epochLookupErr != nil {
 	// 	return nil, epochLookupErr
 	// }
 
-	epochList := []*OsmosisRewards{}
+	epochList := []*Rewards{}
 	// for _, epoch := range rewardEpochs {
 	for epoch := startHeight; epoch <= endHeight; epoch++ {
 		rewards, indexErr := client.GetEpochRewards(epoch)
@@ -38,7 +38,7 @@ func (client *URIClient) GetRewardsBetween(startHeight int64, endHeight int64) (
 // IndexEpoch indexes any reward distribution at the given block height.
 // If a block does not contain a reward distribution, it gets skipped.
 // An error indicates a problem with the RPC search or the DB indexer.
-func (client *URIClient) GetEpochRewards(height int64) ([]*OsmosisRewards, error) {
+func (client *URIClient) GetEpochRewards(height int64) ([]*Rewards, error) {
 	rewards, err := client.getRewards(height)
 	if err != nil {
 		config.Log.Error(fmt.Sprintf("Error getting rewards for epoch %d\n", height), zap.Error(err))
@@ -63,8 +63,8 @@ func (client *URIClient) getRewardEpochs(startHeight int64, endHeight int64) ([]
 	for i := startHeight; i <= endHeight; i++ {
 		query := fmt.Sprintf("block.height = %d AND %s", i, osmosisRewardsQuery)
 		page := 1
-		per_page := 30
-		blockSearch, err := client.DoBlockSearch(context.Background(), query, &page, &per_page, "desc")
+		perPage := 30
+		blockSearch, err := client.DoBlockSearch(context.Background(), query, &page, &perPage, "desc")
 		if err != nil {
 			return nil, err
 		}
@@ -84,8 +84,8 @@ func (client *URIClient) getRewardEpochs(startHeight int64, endHeight int64) ([]
 // during processing of this block height, an error will be returned
 // and no reward information will be returned. This forces reprocessing
 // of failed blocks.
-func (client *URIClient) getRewards(height int64) ([]*OsmosisRewards, error) {
-	rewards := map[string]*OsmosisRewards{}
+func (client *URIClient) getRewards(height int64) ([]*Rewards, error) {
+	rewards := map[string]*Rewards{}
 
 	//Nodes are very slow at responding to queries for reward distribution blocks.
 	//I believe you must set the Node's timeout_broadcast_tx_commit higher than 10s
@@ -102,31 +102,31 @@ func (client *URIClient) getRewards(height int64) ([]*OsmosisRewards, error) {
 	//which means they show up in the BeginBlockEvents section
 	for _, event := range bresults.BeginBlockEvents {
 		if event.Type == "distribution" {
-			receiver_addr := ""
-			receiver_amount := ""
+			receiverAddr := ""
+			receiverAmount := ""
 
 			for _, attr := range event.Attributes {
 				if string(attr.Key) == "receiver" {
-					receiver_addr = string(attr.Value)
+					receiverAddr = string(attr.Value)
 				}
 				if string(attr.Key) == "amount" {
-					receiver_amount = string(attr.Value)
+					receiverAmount = string(attr.Value)
 				}
 
-				if strings.Contains(receiver_amount, ",") {
+				if strings.Contains(receiverAmount, ",") {
 					fmt.Printf("Fuck VSCode")
 				}
 			}
 
-			if receiver_addr != "" && receiver_amount != "" {
-				coins, parseErr := sdk.ParseCoinsNormalized(receiver_amount)
+			if receiverAddr != "" && receiverAmount != "" {
+				coins, parseErr := sdk.ParseCoinsNormalized(receiverAmount)
 				if parseErr == nil {
-					if prevRewards, ok := rewards[receiver_addr]; ok {
+					if prevRewards, ok := rewards[receiverAddr]; ok {
 						fmt.Printf("Receiver has more than one entry for Osmosis rewards at block height %d\n", prevRewards.EpochBlockHeight)
 						coinsCombined := addCoins(prevRewards.Coins, coins)
-						rewards[receiver_addr].Coins = coinsCombined
+						rewards[receiverAddr].Coins = coinsCombined
 					} else {
-						rewards[receiver_addr] = &OsmosisRewards{Address: receiver_addr, Coins: coins, EpochBlockHeight: height}
+						rewards[receiverAddr] = &Rewards{Address: receiverAddr, Coins: coins, EpochBlockHeight: height}
 					}
 				} else {
 					return nil, parseErr
@@ -135,7 +135,7 @@ func (client *URIClient) getRewards(height int64) ([]*OsmosisRewards, error) {
 		}
 	}
 
-	allRewards := []*OsmosisRewards{}
+	allRewards := []*Rewards{}
 	for _, reward := range rewards {
 		allRewards = append(allRewards, reward)
 	}

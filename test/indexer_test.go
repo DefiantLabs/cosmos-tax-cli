@@ -23,7 +23,7 @@ func TestOsmosisCsvForAddress(t *testing.T) {
 
 	addressRegex := "osmo(valoper)?1[a-z0-9]{38}"
 	addressPrefix := "osmo"
-	gorm, _ := db_setup(addressRegex, addressPrefix)
+	gorm, _ := dbSetup(addressRegex, addressPrefix)
 	address := "osmo14mmus5h7m6vkp0pteks8wawaj4wf3sx7fy3s2r" //local test key address
 	csvRows, headers, err := csv.ParseForAddress(address, gorm, "accointing", config)
 	if err != nil || len(csvRows) == 0 {
@@ -49,7 +49,7 @@ func TestCsvForAddress(t *testing.T) {
 
 	addressRegex := "juno(valoper)?1[a-z0-9]{38}"
 	addressPrefix := "juno"
-	gorm, _ := db_setup(addressRegex, addressPrefix)
+	gorm, _ := dbSetup(addressRegex, addressPrefix)
 	//address := "juno1mt72y3jny20456k247tc5gf2dnat76l4ynvqwl"
 	//address := "juno130mdu9a0etmeuw52qfxk73pn0ga6gawk4k539x" //strangelove's delegator
 	address := "juno1m2hg5t7n8f6kzh8kmh98phenk8a4xp5wyuz34y" //local test key address
@@ -72,7 +72,7 @@ func TestCsvForAddress(t *testing.T) {
 func TestLookupTxForAddresses(t *testing.T) {
 	addressRegex := "juno(valoper)?1[a-z0-9]{38}"
 	addressPrefix := "juno"
-	gorm, _ := db_setup(addressRegex, addressPrefix)
+	gorm, _ := dbSetup(addressRegex, addressPrefix)
 	//"juno1txpxafd7q96nkj5jxnt7qnqy4l0rrjyuv6dgte"
 	//juno1mt72y3jny20456k247tc5gf2dnat76l4ynvqwl
 	taxableEvts, err := db.GetTaxableTransactions("juno1txpxafd7q96nkj5jxnt7qnqy4l0rrjyuv6dgte", gorm)

@@ -44,9 +44,9 @@ var messageTypeHandler = map[string]func() txTypes.CosmosMessage{
 // Merge the chain specific message type handlers into the core message type handler map
 // If a core message type is defined in the chain specific, it will overide the value
 // in the core message type handler (useful if a chain has changed the core behavior of a base type and needs to be parsed differently).
-func ChainSpecificMessageTypeHandlerBootstrap(chainId string) {
+func ChainSpecificMessageTypeHandlerBootstrap(chainID string) {
 	var chainSpecificMessageTpeHandler map[string]func() txTypes.CosmosMessage
-	switch chainId {
+	switch chainID {
 	case "osmosis-1":
 		chainSpecificMessageTpeHandler = osmosis.MessageTypeHandler
 	}
@@ -56,7 +56,7 @@ func ChainSpecificMessageTypeHandlerBootstrap(chainId string) {
 }
 
 // ParseCosmosMessageJSON - Parse a SINGLE Cosmos Message into the appropriate type.
-func ParseCosmosMessage(message types.Msg, log *txTypes.TxLogMessage) (txTypes.CosmosMessage, string, error) {
+func ParseCosmosMessage(message types.Msg, log *txTypes.LogMessage) (txTypes.CosmosMessage, string, error) {
 	//Figure out what type of Message this is based on the '@type' field that is included
 	//in every Cosmos Message (can be seen in raw JSON for any cosmos transaction).
 	var msg txTypes.CosmosMessage
@@ -98,16 +98,16 @@ func toEvents(msgEvents types.StringEvents) (list []txTypes.LogMessageEvent) {
 // TODO: get rid of some of the unnecessary types like cosmos-tax-cli/TxResponse.
 // All those structs were legacy and for REST API support but we no longer really need it.
 // For now I'm keeping it until we have RPC compatibility fully working and tested.
-func ProcessRpcTxs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]dbTypes.TxDBWrapper, error) {
+func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]dbTypes.TxDBWrapper, error) {
 	var currTxDbWrappers = make([]dbTypes.TxDBWrapper, len(txEventResp.Txs))
 
 	for txIdx := range txEventResp.Txs {
 		//Indexer types only used by the indexer app (similar to the cosmos types)
 		var indexerMergedTx txTypes.MergedTx
 		var indexerTx txTypes.IndexerTx
-		var txBody txTypes.TxBody
+		var txBody txTypes.Body
 		var currMessages []types.Msg
-		var currLogMsgs []tx.TxLogMessage
+		var currLogMsgs []tx.LogMessage
 		currTx := txEventResp.Txs[txIdx]
 		currTxResp := txEventResp.TxResponses[txIdx]
 
@@ -119,7 +119,7 @@ func ProcessRpcTxs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]db
 				currMessages = append(currMessages, msg)
 				if len(currTxResp.Logs) >= msgIdx+1 {
 					msgEvents := currTxResp.Logs[msgIdx].Events
-					currTxLog := tx.TxLogMessage{
+					currTxLog := tx.LogMessage{
 						MessageIndex: msgIdx,
 						Events:       toEvents(msgEvents),
 					}
@@ -133,7 +133,7 @@ func ProcessRpcTxs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]db
 		txBody.Messages = currMessages
 		indexerTx.Body = txBody
 
-		indexerTxResp := tx.TxResponse{
+		indexerTxResp := tx.Response{
 			TxHash:    currTxResp.TxHash,
 			Height:    fmt.Sprintf("%d", currTxResp.Height),
 			TimeStamp: currTxResp.Timestamp,

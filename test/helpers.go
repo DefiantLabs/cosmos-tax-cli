@@ -64,7 +64,7 @@ func ensureTestAddress(db *gorm.DB) dbUtils.Address {
 //   - Loads the application config from config.tml, cli args and parses/merges
 //   - Connects to the database and returns the db object
 //   - Returns various values used throughout the application
-func db_setup(addressRegex string, addressPrefix string) (*gorm.DB, error) {
+func dbSetup(addressRegex string, addressPrefix string) (*gorm.DB, error) {
 	config, err := configUtils.GetConfig("../config.toml")
 
 	if err != nil {

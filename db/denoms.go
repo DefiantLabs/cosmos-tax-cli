@@ -55,7 +55,7 @@ func GetBaseDenomUnitForDenom(denom Denom) (DenomUnit, error) {
 }
 
 func GetHighestDenomUnit(denomUnit DenomUnit, denomUnits []DenomUnit) (DenomUnit, error) {
-	var highestDenomUnit DenomUnit = DenomUnit{Exponent: 0, Name: "not found for denom"}
+	highestDenomUnit := DenomUnit{Exponent: 0, Name: "not found for denom"}
 
 	for _, currDenomUnit := range denomUnits {
 		if currDenomUnit.Denom.ID == denomUnit.Denom.ID {

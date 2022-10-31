@@ -2,14 +2,14 @@ package accointing
 
 import "github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
 
-var ParserKey string = "accointing"
+var ParserKey = "accointing"
 
-type AccointingParser struct {
-	Rows          []AccointingRow
+type Parser struct {
+	Rows          []Row
 	ParsingGroups []parsers.ParsingGroup
 }
 
-type AccointingRow struct {
+type Row struct {
 	Date            string
 	InBuyAmount     string
 	InBuyAsset      string
@@ -17,28 +17,28 @@ type AccointingRow struct {
 	OutSellAsset    string
 	FeeAmount       string
 	FeeAsset        string
-	Classification  AccointingClassification
-	TransactionType AccointingTransaction
-	OperationId     string
+	Classification  Classification
+	TransactionType Transaction
+	OperationID     string
 	Comments        string
 }
 
-type AccointingTransaction int
+type Transaction int
 
 const (
-	Deposit AccointingTransaction = iota
+	Deposit Transaction = iota
 	Withdraw
 	Order
 )
 
-func (at AccointingTransaction) String() string {
+func (at Transaction) String() string {
 	return [...]string{"deposit", "withdraw", "order"}[at]
 }
 
-type AccointingClassification int
+type Classification int
 
 const (
-	None AccointingClassification = iota
+	None Classification = iota
 	Staked
 	Airdrop
 	Payment
@@ -47,7 +47,7 @@ const (
 	RemoveFunds //Used for GAMM module exits, is this correct?
 )
 
-func (ac AccointingClassification) String() string {
+func (ac Classification) String() string {
 	//Note that "None" returns empty string since we're using this for CSV parsing.
 	//Accointing considers 'Classification' an optional field, so empty is a valid value.
 	return [...]string{"", "staked", "airdrop", "payment", "fee", "liquidity_pool", "remove_funds"}[ac]
