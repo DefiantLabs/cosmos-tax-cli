@@ -38,7 +38,7 @@ func (p *AccointingParser) ProcessTaxableTx(address string, taxableTxs []db.Taxa
 	//The last two steps ensure that the message will not be parsed twice
 	for v, tx := range txMap {
 		//map: [group index] to []indexes of the current tx messages that belong in that group
-		var groupsToMessageIds map[int][]int = make(map[int][]int)
+		groupsToMessageIds := make(map[int][]int)
 
 		//TODO: Remove me, useless outside print for demo
 		messagesToRemove := 0
@@ -54,7 +54,7 @@ func (p *AccointingParser) ProcessTaxableTx(address string, taxableTxs []db.Taxa
 						messageArray = append(messageArray, messageIndex)
 						groupsToMessageIds[groupIndex] = messageArray
 					}
-					messagesToRemove += 1
+					messagesToRemove++
 
 					//Add it to the first group it belongs to and no others
 					//This establishes a precedence and prevents messages from being duplicated in many groups
@@ -65,21 +65,21 @@ func (p *AccointingParser) ProcessTaxableTx(address string, taxableTxs []db.Taxa
 
 		//split off the messages into their respective group
 		for groupIndex, messageIndices := range groupsToMessageIds {
-			var currentGroup parsers.ParsingGroup = p.ParsingGroups[groupIndex]
+			currentGroup := p.ParsingGroups[groupIndex]
 
 			//used to keep the index relevant after splicing
 			numElementsRemoved := 0
 			for _, messageIndex := range messageIndices {
 				//Get message to remove at index - numElementsRemoved
-				var indexToRemove int = messageIndex - numElementsRemoved
-				var messageToRemove db.TaxableTransaction = tx[indexToRemove]
+				indexToRemove := messageIndex - numElementsRemoved
+				messageToRemove := tx[indexToRemove]
 
 				//Add to group and remove from original TX
 				currentGroup.AddTxToGroup(messageToRemove)
 				tx = append(tx[:indexToRemove], tx[indexToRemove+1:]...)
 				//overwrite the txMaps value at this tx to remove
 				txMap[v] = tx
-				numElementsRemoved = numElementsRemoved + 1
+				numElementsRemoved++
 			}
 		}
 	}
@@ -124,7 +124,6 @@ func (p *AccointingParser) ProcessTaxableTx(address string, taxableTxs []db.Taxa
 
 func (p *AccointingParser) ProcessTaxableEvent(address string, taxableEvents []db.TaxableEvent) error {
 	//process taxableTx into Rows above
-
 	if len(taxableEvents) == 0 {
 		return nil
 	}
