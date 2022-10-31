@@ -216,13 +216,13 @@ func (sf *WrapperMsgExitPool) String() string {
 		sf.Address, tokenIn, strings.Join(tokensOut, ", "))
 }
 
-func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, log *txModule.TxLogMessage) error {
+func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
 	sf.OsmosisMsgSwapExactAmountIn = msg.(*gammTypes.MsgSwapExactAmountIn)
 
 	//Confirm that the action listed in the message log matches the Message type
-	valid_log := txModule.IsMessageActionEquals(sf.GetType(), log)
-	if !valid_log {
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
@@ -258,13 +258,13 @@ func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, lo
 	return err
 }
 
-func (sf *WrapperMsgSwapExactAmountOut) HandleMsg(msgType string, msg sdk.Msg, log *txModule.TxLogMessage) error {
+func (sf *WrapperMsgSwapExactAmountOut) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
 	sf.OsmosisMsgSwapExactAmountOut = msg.(*gammTypes.MsgSwapExactAmountOut)
 
 	//Confirm that the action listed in the message log matches the Message type
-	valid_log := txModule.IsMessageActionEquals(sf.GetType(), log)
-	if !valid_log {
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
@@ -300,13 +300,13 @@ func (sf *WrapperMsgSwapExactAmountOut) HandleMsg(msgType string, msg sdk.Msg, l
 	return err
 }
 
-func (sf *WrapperMsgJoinSwapExternAmountIn) HandleMsg(msgType string, msg sdk.Msg, log *txModule.TxLogMessage) error {
+func (sf *WrapperMsgJoinSwapExternAmountIn) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
 	sf.OsmosisMsgJoinSwapExternAmountIn = msg.(*gammTypes.MsgJoinSwapExternAmountIn)
 
 	//Confirm that the action listed in the message log matches the Message type
-	valid_log := txModule.IsMessageActionEquals(sf.GetType(), log)
-	if !valid_log {
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
@@ -343,13 +343,13 @@ func (sf *WrapperMsgJoinSwapExternAmountIn) HandleMsg(msgType string, msg sdk.Ms
 	return err
 }
 
-func (sf *WrapperMsgJoinSwapShareAmountOut) HandleMsg(msgType string, msg sdk.Msg, log *txModule.TxLogMessage) error {
+func (sf *WrapperMsgJoinSwapShareAmountOut) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
 	sf.OsmosisMsgJoinSwapShareAmountOut = msg.(*gammTypes.MsgJoinSwapShareAmountOut)
 
 	//Confirm that the action listed in the message log matches the Message type
-	valid_log := txModule.IsMessageActionEquals(sf.GetType(), log)
-	if !valid_log {
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
@@ -392,13 +392,13 @@ func (sf *WrapperMsgJoinSwapShareAmountOut) HandleMsg(msgType string, msg sdk.Ms
 	return err
 }
 
-func (sf *WrapperMsgJoinPool) HandleMsg(msgType string, msg sdk.Msg, log *txModule.TxLogMessage) error {
+func (sf *WrapperMsgJoinPool) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
 	sf.OsmosisMsgJoinPool = msg.(*gammTypes.MsgJoinPool)
 
 	//Confirm that the action listed in the message log matches the Message type
-	valid_log := txModule.IsMessageActionEquals(sf.GetType(), log)
-	if !valid_log {
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
@@ -443,13 +443,13 @@ func (sf *WrapperMsgJoinPool) HandleMsg(msgType string, msg sdk.Msg, log *txModu
 	return err
 }
 
-func (sf *WrapperMsgExitSwapShareAmountIn) HandleMsg(msgType string, msg sdk.Msg, log *txModule.TxLogMessage) error {
+func (sf *WrapperMsgExitSwapShareAmountIn) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
 	sf.OsmosisMsgExitSwapShareAmountIn = msg.(*gammTypes.MsgExitSwapShareAmountIn)
 
 	//Confirm that the action listed in the message log matches the Message type
-	valid_log := txModule.IsMessageActionEquals(sf.GetType(), log)
-	if !valid_log {
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
@@ -493,13 +493,13 @@ func (sf *WrapperMsgExitSwapShareAmountIn) HandleMsg(msgType string, msg sdk.Msg
 	return err
 }
 
-func (sf *WrapperMsgExitSwapExternAmountOut) HandleMsg(msgType string, msg sdk.Msg, log *txModule.TxLogMessage) error {
+func (sf *WrapperMsgExitSwapExternAmountOut) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
 	sf.OsmosisMsgExitSwapExternAmountOut = msg.(*gammTypes.MsgExitSwapExternAmountOut)
 
 	//Confirm that the action listed in the message log matches the Message type
-	valid_log := txModule.IsMessageActionEquals(sf.GetType(), log)
-	if !valid_log {
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
@@ -543,13 +543,13 @@ func (sf *WrapperMsgExitSwapExternAmountOut) HandleMsg(msgType string, msg sdk.M
 	return err
 }
 
-func (sf *WrapperMsgExitPool) HandleMsg(msgType string, msg sdk.Msg, log *txModule.TxLogMessage) error {
+func (sf *WrapperMsgExitPool) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
 	sf.OsmosisMsgExitPool = msg.(*gammTypes.MsgExitPool)
 
 	//Confirm that the action listed in the message log matches the Message type
-	valid_log := txModule.IsMessageActionEquals(sf.GetType(), log)
-	if !valid_log {
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 

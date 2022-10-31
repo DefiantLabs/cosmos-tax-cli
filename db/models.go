@@ -31,9 +31,9 @@ type Tx struct {
 	TimeStamp       time.Time
 	Hash            string
 	Code            uint32
-	BlockId         uint
+	BlockID         uint
 	Block           Block
-	SignerAddressId *int //*int allows foreign key to be null
+	SignerAddressID *int //*int allows foreign key to be null
 	SignerAddress   Address
 	Fees            []Fee
 }
@@ -71,7 +71,7 @@ type UnhandledMessage struct {
 
 type Message struct {
 	ID            uint
-	TxId          uint
+	TxID          uint
 	Tx            Tx
 	MessageTypeID uint `gorm:"foreignKey:MessageTypeID"`
 	MessageType   MessageType
@@ -108,7 +108,7 @@ func (TaxableEvent) TableName() string {
 
 type TaxableTransaction struct {
 	ID                     uint
-	MessageId              uint
+	MessageID              uint
 	Message                Message
 	AmountSent             decimal.Decimal `gorm:"type:decimal(78,0);"`
 	AmountReceived         decimal.Decimal `gorm:"type:decimal(78,0);"`
@@ -116,9 +116,9 @@ type TaxableTransaction struct {
 	DenominationSent       Denom `gorm:"foreignKey:DenominationSentID"`
 	DenominationReceivedID *uint
 	DenominationReceived   Denom `gorm:"foreignKey:DenominationReceivedID"`
-	SenderAddressId        *uint `gorm:"index:idx_sender"`
+	SenderAddressID        *uint `gorm:"index:idx_sender"`
 	SenderAddress          Address
-	ReceiverAddressId      *uint `gorm:"index:idx_receiver"`
+	ReceiverAddressID      *uint `gorm:"index:idx_receiver"`
 	ReceiverAddress        Address
 }
 
@@ -143,7 +143,7 @@ type DenomUnit struct {
 
 type DenomUnitAlias struct {
 	ID          uint
-	DenomUnitId uint
+	DenomUnitID uint
 	DenomUnit   DenomUnit
 	Alias       string `gorm:"unique"`
 }

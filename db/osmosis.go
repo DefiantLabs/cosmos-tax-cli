@@ -53,7 +53,7 @@ func createTaxableEvents(db *gorm.DB, events []TaxableEvent) error {
 	})
 }
 
-func IndexOsmoRewards(db *gorm.DB, chainID string, chainName string, rewards []*osmosis.OsmosisRewards) error {
+func IndexOsmoRewards(db *gorm.DB, chainID string, chainName string, rewards []*osmosis.Rewards) error {
 	dbEvents := []TaxableEvent{}
 
 	for _, curr := range rewards {

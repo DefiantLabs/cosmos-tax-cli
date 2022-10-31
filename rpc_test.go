@@ -23,7 +23,7 @@ import (
 //   - Returns various values used throughout the application
 //
 //nolint:unused
-func setup_rpc() (*config.Config, *gocron.Scheduler, error) {
+func setupRPC() (*config.Config, *gocron.Scheduler, error) {
 	argConfig, err := config.ParseArgs(os.Stderr, os.Args[1:])
 
 	if err != nil {
@@ -60,14 +60,14 @@ func setup_rpc() (*config.Config, *gocron.Scheduler, error) {
 	return &cfg, scheduler, nil
 }
 
-func TestRpc(t *testing.T) {
+func TestRPC(t *testing.T) {
 	block := 2
-	err := lens_query_bank(int64(block))
+	err := lensQueryBank(int64(block))
 	if err != nil {
 		t.Fatal("Failed to write CSV to disk")
 	}
 
-	err = rpc_query_tx(int64(block))
+	err = rpcQueryTx(int64(block))
 	if err != nil {
 		t.Fatal("Error calling rpc_query_tx. Err: ", err)
 	}
@@ -102,7 +102,7 @@ func GetJunoConfig(keyHome string, debug bool) *lensClient.ChainClientConfig {
 	}
 }
 
-func lens_query_bank(height int64) error {
+func lensQueryBank(height int64) error {
 	cl := GetTestClient()
 	keyNameOrAddress := cl.Config.Key
 
@@ -118,7 +118,7 @@ func lens_query_bank(height int64) error {
 	return err
 }
 
-func rpc_query_tx(height int64) error {
+func rpcQueryTx(height int64) error {
 	cl := GetTestClient()
 	//requestEndpoint := fmt.Sprintf(rest.GetEndpoint("txs_by_block_height_endpoint"), height)
 	options := lensQuery.QueryOptions{Height: height}
@@ -127,7 +127,7 @@ func rpc_query_tx(height int64) error {
 	if err != nil {
 		return err
 	}
-	j_resp, err := json.Marshal(*resp)
-	fmt.Printf("Resp: %s\n", j_resp)
+	jResp, err := json.Marshal(*resp)
+	fmt.Printf("Resp: %s\n", jResp)
 	return err
 }

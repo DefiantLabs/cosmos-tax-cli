@@ -43,7 +43,7 @@ func DoChainSpecificUpsertDenoms(db *gorm.DB, chain string) {
 
 func UpsertOsmosisDenoms(db *gorm.DB) {
 	url := "https://raw.githubusercontent.com/osmosis-labs/assetlists/main/osmosis-1/osmosis-1.assetlist.json"
-	frontierUrl := "https://raw.githubusercontent.com/osmosis-labs/assetlists/main/osmosis-1/osmosis-frontier.assetlist.json"
+	frontierURL := "https://raw.githubusercontent.com/osmosis-labs/assetlists/main/osmosis-1/osmosis-frontier.assetlist.json"
 
 	denomAssets, err := getOsmosisAssetsList(url)
 	if err != nil {
@@ -56,7 +56,7 @@ func UpsertOsmosisDenoms(db *gorm.DB) {
 		}
 	}
 
-	frontierDenomAssets, err := getOsmosisAssetsList(frontierUrl)
+	frontierDenomAssets, err := getOsmosisAssetsList(frontierURL)
 	if err != nil {
 		config.Log.Fatal("Download Osmosis Frontier Denom Metadata", zap.Error(err))
 	} else {
@@ -87,9 +87,9 @@ func toDenoms(assets *OsmosisAssets) []dbTypes.DenomDBWrapper {
 	return denoms
 }
 
-func getOsmosisAssetsList(assetsUrl string) (*OsmosisAssets, error) {
+func getOsmosisAssetsList(assetsURL string) (*OsmosisAssets, error) {
 	assets := &OsmosisAssets{}
-	err := getJson(assetsUrl, assets)
+	err := getJSON(assetsURL, assets)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func getOsmosisAssetsList(assetsUrl string) (*OsmosisAssets, error) {
 	return assets, nil
 }
 
-func getJson(url string, target interface{}) error {
+func getJSON(url string, target interface{}) error {
 	var myClient = &http.Client{Timeout: 10 * time.Second}
 
 	r, err := myClient.Get(url)

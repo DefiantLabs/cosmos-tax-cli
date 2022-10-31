@@ -18,18 +18,18 @@ func init() {
 
 func GetParser(parserKey string) parsers.Parser {
 	if parserKey == "accointing" {
-		parser := accointing.AccointingParser{}
+		parser := accointing.Parser{}
 		return &parser
 	}
 	return nil
 }
 
-func ParseForAddress(address string, pgSql *gorm.DB, parserKey string, cfg config.Config) ([]parsers.CsvRow, []string, error) {
+func ParseForAddress(address string, pgSQL *gorm.DB, parserKey string, cfg config.Config) ([]parsers.CsvRow, []string, error) {
 	parser := GetParser(parserKey)
 	parser.InitializeParsingGroups(cfg)
 
 	//TODO: need to pass in chain and date range
-	taxableTxs, err := db.GetTaxableTransactions(address, pgSql)
+	taxableTxs, err := db.GetTaxableTransactions(address, pgSQL)
 	if err != nil {
 		config.Log.Error("Error getting taxable transaction.", zap.Error(err))
 		return nil, nil, err
@@ -41,7 +41,7 @@ func ParseForAddress(address string, pgSql *gorm.DB, parserKey string, cfg confi
 		return nil, nil, err
 	}
 
-	taxableEvents, err := db.GetTaxableEvents(address, pgSql)
+	taxableEvents, err := db.GetTaxableEvents(address, pgSQL)
 	if err != nil {
 		config.Log.Error("Error getting taxable events.", zap.Error(err))
 		return nil, nil, err
