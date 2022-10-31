@@ -15,7 +15,7 @@ env:
 
 jobs:
 
-  go-tests:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-go@v3
@@ -26,11 +26,14 @@ jobs:
         uses: golangci/golangci-lint-action@v3
         with:
           args: -v --timeout 5m -E gofmt -E whitespace -E revive
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
       - uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GO_VERSION }}
-      # TODO: uncomment to add go test the ci once lint issues are addressed
-      #- name: test code
-      #  run: |
-      #    cd backend
-      #    go test -v ./...
+      - name: test code
+        run: |
+          cd csv
+          go test -v ./...
