@@ -10,7 +10,7 @@ import (
 
 type Config struct {
 	Database           database
-	Api                api //deprecated in favor of lens.Rpc (at least in this app)
+	API                api //deprecated in favor of lens.Rpc (at least in this app)
 	ConfigFileLocation string
 	Base               base
 	Log                log
@@ -61,7 +61,7 @@ func (conf *Config) Validate() error {
 	// Both level and path can safely be blank
 
 	// Lens
-	if util.StrNotSet(conf.Lens.Rpc) {
+	if util.StrNotSet(conf.Lens.RPC) {
 		return errors.New("lens rpc must be set")
 	}
 	if util.StrNotSet(conf.Lens.Key) {
@@ -93,7 +93,7 @@ type database struct {
 
 type lens struct {
 	Homepath       string
-	Rpc            string
+	RPC            string
 	Key            string
 	AccountPrefix  string
 	KeyringBackend string

@@ -1,6 +1,6 @@
 package tx
 
-func GetMessageLogForIndex(logs []TxLogMessage, index int) *TxLogMessage {
+func GetMessageLogForIndex(logs []LogMessage, index int) *LogMessage {
 	for _, log := range logs {
 		if log.MessageIndex == index {
 			return &log
@@ -10,14 +10,14 @@ func GetMessageLogForIndex(logs []TxLogMessage, index int) *TxLogMessage {
 	return nil
 }
 
-func GetEventWithType(event_type string, msg *TxLogMessage) *LogMessageEvent {
+func GetEventWithType(eventType string, msg *LogMessage) *LogMessageEvent {
 	if msg == nil || msg.Events == nil {
 		return nil
 	}
 
-	for _, log_event := range msg.Events {
-		if log_event.Type == event_type {
-			return &log_event
+	for _, logEvent := range msg.Events {
+		if logEvent.Type == eventType {
+			return &logEvent
 		}
 	}
 
@@ -55,15 +55,15 @@ func GetLastValueForAttribute(key string, evt *LogMessageEvent) string {
 	return ""
 }
 
-func IsMessageActionEquals(message_type string, msg *TxLogMessage) bool {
-	log_event := GetEventWithType("message", msg)
-	if log_event == nil {
+func IsMessageActionEquals(messageType string, msg *LogMessage) bool {
+	logEvent := GetEventWithType("message", msg)
+	if logEvent == nil {
 		return false
 	}
 
-	for _, attr := range log_event.Attributes {
+	for _, attr := range logEvent.Attributes {
 		if attr.Key == "action" {
-			return attr.Value == message_type
+			return attr.Value == messageType
 		}
 	}
 

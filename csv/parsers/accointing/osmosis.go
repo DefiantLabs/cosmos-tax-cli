@@ -68,8 +68,8 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 	//TODO: Do specialized processing on LP messages
 	for _, txMessages := range sf.GroupedTxes {
 		for _, message := range txMessages {
-			row := AccointingRow{}
-			row.OperationId = message.Message.Tx.Hash
+			row := Row{}
+			row.OperationID = message.Message.Tx.Hash
 			row.Date = FormatDatetime(message.Message.Tx.TimeStamp)
 			//We deliberately exclude the GAMM tokens from OutSell/InBuy for Exits/Joins respectively
 			//Accointing has no way of using the GAMM token to determine LP cost basis etc...

@@ -16,7 +16,7 @@ import (
 	types "github.com/tendermint/tendermint/rpc/jsonrpc/types"
 )
 
-func DoHttpReq(url string, authHeader string) (*http.Response, error) {
+func DoHTTPReq(url string, authHeader string) (*http.Response, error) {
 	// Send req using http Client
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", url, nil)
@@ -62,7 +62,7 @@ func argsToJSON(args map[string]interface{}) error {
 }
 
 // Call issues a POST form HTTP request.
-func (c *URIClient) DoHttpGet(ctx context.Context, method string, params map[string]interface{}, result interface{}) (interface{}, error) {
+func (c *URIClient) DoHTTPGet(ctx context.Context, method string, params map[string]interface{}, result interface{}) (interface{}, error) {
 	values, err := argsToURLValues(params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode params: %w", err)
@@ -155,7 +155,7 @@ func (c *URIClient) DoBlockSearch(ctx context.Context, query string, page, perPa
 		params["per_page"] = perPage
 	}
 
-	_, err := c.DoHttpGet(ctx, "block_search", params, result)
+	_, err := c.DoHTTPGet(ctx, "block_search", params, result)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +170,7 @@ func (c *URIClient) DoBlockResults(ctx context.Context, height *int64) (*ctypes.
 		params["height"] = height
 	}
 
-	_, err := c.DoHttpGet(ctx, "block_results", params, result)
+	_, err := c.DoHTTPGet(ctx, "block_results", params, result)
 	if err != nil {
 		return nil, err
 	}

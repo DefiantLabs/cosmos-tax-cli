@@ -22,14 +22,14 @@ var IsMsgMultiSend = map[string]bool{
 }
 
 // HandleMsg: Unmarshal JSON for MsgSend.
-// Note that MsgSend ignores the TxLogMessage because it isn't needed.
-func (sf *WrapperMsgSend) HandleMsg(msgType string, msg sdk.Msg, log *txModule.TxLogMessage) error {
+// Note that MsgSend ignores the LogMessage because it isn't needed.
+func (sf *WrapperMsgSend) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
 	sf.CosmosMsgSend = msg.(*bankTypes.MsgSend)
 
 	//Confirm that the action listed in the message log matches the Message type
-	valid_log := txModule.IsMessageActionEquals(sf.GetType(), log)
-	if !valid_log {
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
@@ -39,18 +39,18 @@ func (sf *WrapperMsgSend) HandleMsg(msgType string, msg sdk.Msg, log *txModule.T
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
-	receiver_address := txModule.GetValueForAttribute(bankTypes.AttributeKeyReceiver, receivedCoinsEvt)
+	receiverAddress := txModule.GetValueForAttribute(bankTypes.AttributeKeyReceiver, receivedCoinsEvt)
 	//coins_received := txModule.GetValueForAttribute("amount", receivedCoinsEvt)
 
-	if sf.CosmosMsgSend.ToAddress != receiver_address {
+	if sf.CosmosMsgSend.ToAddress != receiverAddress {
 		return fmt.Errorf("transaction receiver address %s does not match log event '%s' receiver address %s",
-			sf.CosmosMsgSend.ToAddress, bankTypes.EventTypeCoinReceived, receiver_address)
+			sf.CosmosMsgSend.ToAddress, bankTypes.EventTypeCoinReceived, receiverAddress)
 	}
 
 	return nil
 }
 
-func (sf *WrapperMsgMultiSend) HandleMsg(msgType string, msg sdk.Msg, log *txModule.TxLogMessage) error {
+func (sf *WrapperMsgMultiSend) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
 	sf.CosmosMsgMultiSend = msg.(*bankTypes.MsgMultiSend)
 
@@ -65,9 +65,8 @@ func (sf *WrapperMsgMultiSend) HandleMsg(msgType string, msg sdk.Msg, log *txMod
 
 			if !correspondingCoin.IsEqual(coinSent) {
 				return fmt.Errorf("Error processing MultiSend, inputs and outputs mismatch, send %s != received %s in standard ordering", coinSent, correspondingCoin)
-			} else {
-				sf.SenderReceiverAmounts = append(sf.SenderReceiverAmounts, SenderReceiverAmount{Sender: input.Address, Receiver: correspondingOutput.Address, Amount: coinSent})
 			}
+			sf.SenderReceiverAmounts = append(sf.SenderReceiverAmounts, SenderReceiverAmount{Sender: input.Address, Receiver: correspondingOutput.Address, Amount: coinSent})
 		}
 	}
 

@@ -21,7 +21,7 @@ func GetLensConfig(conf lens, debug bool) *lensClient.ChainClientConfig {
 	return &lensClient.ChainClientConfig{
 		Key:            conf.Key,
 		ChainID:        conf.ChainID,
-		RPCAddr:        conf.Rpc,
+		RPCAddr:        conf.RPC,
 		GRPCAddr:       "UNSUPPORTED",
 		AccountPrefix:  conf.AccountPrefix,
 		KeyringBackend: conf.KeyringBackend,

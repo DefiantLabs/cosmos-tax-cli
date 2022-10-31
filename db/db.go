@@ -140,7 +140,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, txs []TxDBWrapper, chainID st
 				//store null foreign key relation in signer address id
 				//This should never happen and indicates an error somewhere in parsing
 				//Consider removing?
-				transaction.Tx.SignerAddressId = nil
+				transaction.Tx.SignerAddressID = nil
 			}
 
 			transaction.Tx.Block = block
@@ -176,7 +176,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, txs []TxDBWrapper, chainID st
 						taxableTx.TaxableTx.SenderAddress = taxableTx.SenderAddress
 					} else {
 						//nil creates null foreign key relation
-						taxableTx.TaxableTx.SenderAddressId = nil
+						taxableTx.TaxableTx.SenderAddressID = nil
 					}
 
 					if taxableTx.ReceiverAddress.Address != "" {
@@ -188,7 +188,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, txs []TxDBWrapper, chainID st
 						taxableTx.TaxableTx.ReceiverAddress = taxableTx.ReceiverAddress
 					} else {
 						//nil creates null foreign key relation
-						taxableTx.TaxableTx.ReceiverAddressId = nil
+						taxableTx.TaxableTx.ReceiverAddressID = nil
 					}
 					taxableTx.TaxableTx.Message = message.Message
 					if err := dbTransaction.Create(&taxableTx.TaxableTx).Error; err != nil {
