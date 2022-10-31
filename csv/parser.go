@@ -1,7 +1,7 @@
 package csv
 
 import (
-	"fmt"
+	"go.uber.org/zap"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
@@ -24,32 +24,32 @@ func GetParser(parserKey string) parsers.Parser {
 	return nil
 }
 
-func ParseForAddress(address string, pgSql *gorm.DB, parserKey string, config config.Config) ([]parsers.CsvRow, []string, error) {
+func ParseForAddress(address string, pgSql *gorm.DB, parserKey string, cfg config.Config) ([]parsers.CsvRow, []string, error) {
 	parser := GetParser(parserKey)
-	parser.InitializeParsingGroups(config)
+	parser.InitializeParsingGroups(cfg)
 
 	//TODO: need to pass in chain and date range
 	taxableTxs, err := db.GetTaxableTransactions(address, pgSql)
 	if err != nil {
-		fmt.Println(err)
+		config.Log.Error("Error getting taxable transaction.", zap.Error(err))
 		return nil, nil, err
 	}
 
 	err = parser.ProcessTaxableTx(address, taxableTxs)
 	if err != nil {
-		fmt.Println(err)
+		config.Log.Error("Error processing taxable transaction.", zap.Error(err))
 		return nil, nil, err
 	}
 
 	taxableEvents, err := db.GetTaxableEvents(address, pgSql)
 	if err != nil {
-		fmt.Println(err)
+		config.Log.Error("Error getting taxable events.", zap.Error(err))
 		return nil, nil, err
 	}
 
 	err = parser.ProcessTaxableEvent(address, taxableEvents)
 	if err != nil {
-		fmt.Println(err)
+		config.Log.Error("Error processing taxable events.", zap.Error(err))
 		return nil, nil, err
 	}
 

@@ -2,8 +2,7 @@ package accointing
 
 import (
 	"fmt"
-	"log"
-	"os"
+	"go.uber.org/zap"
 	"sort"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
@@ -17,9 +16,9 @@ import (
 
 func (p *AccointingParser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransaction) error {
 	//process taxableTx into Rows above
-	txMap := map[uint][]db.TaxableTransaction{} //Map transaction ID to List of events
+	txMap := map[uint][]db.TaxableTransaction{} //Map transaction ID to List of taxable transactions
 
-	//Build a map so we know which TX go with which messages
+	//Build a map, so we know which TX go with which messages
 	for _, taxableTx := range taxableTxs {
 		if list, ok := txMap[taxableTx.Message.Tx.ID]; ok {
 			list = append(list, taxableTx)
@@ -33,56 +32,26 @@ func (p *AccointingParser) ProcessTaxableTx(address string, taxableTxs []db.Taxa
 	//The basic idea is we want to do the following:
 	//1. Loop through each message for each transaction
 	//2. Check if it belongs in a group by message type
-	//3. Gather indicies of all messages that belong in each group
+	//3. Gather indices of all messages that belong in each group
 	//4. Remove them from the normal txMap
-	//5. Add them to the group-secific txMap
+	//5. Add them to the group-specific txMap
 	//The last two steps ensure that the message will not be parsed twice
-	for v, tx := range txMap {
-		//map: [group index] to []indexes of the current tx messages that belong in that group
-		var groupsToMessageIds map[int][]int = make(map[int][]int)
-
-		//TODO: Remove me, useless outside print for demo
-		messagesToRemove := 0
-
-		for messageIndex, message := range tx {
-			for groupIndex, txGroup := range p.ParsingGroups {
-				//Store index of current message if it belongs in the group
+	for txIdx, txMsgs := range txMap {
+		var remainingTxMsgs []db.TaxableTransaction
+		// Loop through the transactions
+		for _, message := range txMsgs {
+			// if the msg in this tx belongs to the group
+			for _, txGroup := range p.ParsingGroups {
 				if txGroup.BelongsToGroup(message) {
-					if _, ok := groupsToMessageIds[groupIndex]; ok {
-						groupsToMessageIds[groupIndex] = append(groupsToMessageIds[groupIndex], messageIndex)
-					} else {
-						var messageArray []int
-						messageArray = append(messageArray, messageIndex)
-						groupsToMessageIds[groupIndex] = messageArray
-					}
-					messagesToRemove += 1
-
-					//Add it to the first group it belongs to and no others
-					//This establishes a precedence and prevents messages from being duplicated in many groups
-					break
+					// add to the group list
+					txGroup.AddTxToGroup(message)
+				} else {
+					// add it to the output list
+					remainingTxMsgs = append(remainingTxMsgs, message)
 				}
 			}
 		}
-
-		//split off the messages into their respective group
-		for groupIndex, messageIndices := range groupsToMessageIds {
-			var currentGroup parsers.ParsingGroup = p.ParsingGroups[groupIndex]
-
-			//used to keep the index relevant after splicing
-			numElementsRemoved := 0
-			for _, messageIndex := range messageIndices {
-				//Get message to remove at index - numElementsRemoved
-				var indexToRemove int = messageIndex - numElementsRemoved
-				var messageToRemove db.TaxableTransaction = tx[indexToRemove]
-
-				//Add to group and remove from original TX
-				currentGroup.AddTxToGroup(messageToRemove)
-				tx = append(tx[:indexToRemove], tx[indexToRemove+1:]...)
-				//overwrite the txMaps value at this tx to remove
-				txMap[v] = tx
-				numElementsRemoved = numElementsRemoved + 1
-			}
-		}
+		txMap[txIdx] = remainingTxMsgs
 	}
 
 	//Parse all the potentially taxable events (one transaction group at a time)
@@ -125,7 +94,6 @@ func (p *AccointingParser) ProcessTaxableTx(address string, taxableTxs []db.Taxa
 
 func (p *AccointingParser) ProcessTaxableEvent(address string, taxableEvents []db.TaxableEvent) error {
 	//process taxableTx into Rows above
-
 	if len(taxableEvents) == 0 {
 		return nil
 	}
@@ -164,12 +132,12 @@ func (p *AccointingParser) GetRows() []parsers.CsvRow {
 	sort.Slice(accointingRows, func(i int, j int) bool {
 		leftDate, err := DateFromString(accointingRows[i].Date)
 		if err != nil {
-			fmt.Println("Error sorting", err)
+			config.Log.Error("Error sorting left date.", zap.Error(err))
 			return false
 		}
 		rightDate, err := DateFromString(accointingRows[j].Date)
 		if err != nil {
-			fmt.Println("Error sorting", err)
+			config.Log.Error("Error sorting right date.", zap.Error(err))
 			return false
 		}
 		return leftDate.Before(rightDate)
@@ -234,12 +202,11 @@ func ParseEvent(address string, event db.TaxableEvent) []AccointingRow {
 
 	if event.Source == db.OsmosisRewardDistribution {
 		row, err := ParseOsmosisReward(address, event)
-		if err == nil {
-			rows = append(rows, row)
-		} else {
+		if err != nil {
 			//TODO: handle error parsing row. Should be impossible to reach this condition, ideally (once all bugs worked out)
-			os.Exit(1)
+			config.Log.Fatal("error parsing row. Should be impossible to reach this condition, ideally (once all bugs worked out)", zap.Error(err))
 		}
+		rows = append(rows, row)
 	}
 
 	//rows = HandleFees(address, events, rows) TODO we have no fee handler for taxable EVENTS right now
@@ -275,7 +242,7 @@ func ParseTx(address string, events []db.TaxableTransaction) ([]parsers.CsvRow, 
 		} else if gamm.IsMsgSwapExactAmountOut[event.Message.MessageType.MessageType] {
 			rows = append(rows, ParseMsgSwapExactAmountOut(address, event))
 		} else {
-			fmt.Println("No parser for message type", event.Message.MessageType.MessageType)
+			config.Log.Error(fmt.Sprintf("No parser for message type '%v'", event.Message.MessageType.MessageType))
 		}
 	}
 
@@ -288,7 +255,7 @@ func ParseMsgWithdrawValidatorCommission(address string, event db.TaxableTransac
 	row := &AccointingRow{}
 	err := row.ParseBasic(address, event)
 	if err != nil {
-		log.Printf("Error with ParseMsgWithdrawValidatorCommission. Err: %v", err)
+		config.Log.Fatal("Error with ParseMsgWithdrawValidatorCommission.", zap.Error(err))
 	}
 	row.Classification = Staked
 	return *row
@@ -300,7 +267,7 @@ func ParseMsgWithdrawDelegatorReward(address string, event db.TaxableTransaction
 	row := &AccointingRow{}
 	err := row.ParseBasic(address, event)
 	if err != nil {
-		log.Printf("Error with ParseMsgWithdrawDelegatorReward. Err: %v", err)
+		config.Log.Fatal("Error with ParseMsgWithdrawDelegatorReward.", zap.Error(err))
 	}
 	row.Classification = Staked
 	return *row
@@ -313,7 +280,7 @@ func ParseMsgSend(address string, event db.TaxableTransaction) AccointingRow {
 	row := &AccointingRow{}
 	err := row.ParseBasic(address, event)
 	if err != nil {
-		log.Printf("Error with ParseMsgSend. Err: %v", err)
+		config.Log.Fatal("Error with ParseMsgSend.", zap.Error(err))
 	}
 	return *row
 }
@@ -322,7 +289,7 @@ func ParseMsgMultiSend(address string, event db.TaxableTransaction) AccointingRo
 	row := &AccointingRow{}
 	err := row.ParseBasic(address, event)
 	if err != nil {
-		log.Printf("Error with ParseMsgMultiSend. Err: %v", err)
+		config.Log.Fatal("Error with ParseMsgMultiSend.", zap.Error(err))
 	}
 	return *row
 }
@@ -331,7 +298,7 @@ func ParseMsgFundCommunityPool(address string, event db.TaxableTransaction) Acco
 	row := &AccointingRow{}
 	err := row.ParseBasic(address, event)
 	if err != nil {
-		log.Printf("Error with ParseMsgFundCommunityPool. Err: %v", err)
+		config.Log.Fatal("Error with ParseMsgFundCommunityPool.", zap.Error(err))
 	}
 	return *row
 }
@@ -340,7 +307,7 @@ func ParseMsgSwapExactAmountIn(address string, event db.TaxableTransaction) Acco
 	row := &AccointingRow{}
 	err := row.ParseSwap(address, event)
 	if err != nil {
-		log.Printf("Error with ParseMsgSwapExactAmountIn. Err: %v", err)
+		config.Log.Fatal("Error with ParseMsgSwapExactAmountIn.", zap.Error(err))
 	}
 	return *row
 }
@@ -349,7 +316,7 @@ func ParseMsgSwapExactAmountOut(address string, event db.TaxableTransaction) Acc
 	row := &AccointingRow{}
 	err := row.ParseSwap(address, event)
 	if err != nil {
-		log.Printf("Error with ParseMsgSwapExactAmountOut. Err: %v", err)
+		config.Log.Fatal("Error with ParseMsgSwapExactAmountOut.", zap.Error(err))
 	}
 	return *row
 }
@@ -358,7 +325,7 @@ func ParseOsmosisReward(address string, event db.TaxableEvent) (AccointingRow, e
 	row := &AccointingRow{}
 	err := row.EventParseBasic(address, event)
 	if err != nil {
-		log.Printf("Error with ParseOsmosisReward. Err: %v", err)
+		config.Log.Fatal("Error with ParseOsmosisReward.", zap.Error(err))
 	}
 	return *row, err
 }
