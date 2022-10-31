@@ -41,7 +41,7 @@ func (sf *WrapperLpTxGroup) GetRowsForParsingGroup() []parsers.CsvRow {
 }
 
 func (sf *WrapperLpTxGroup) BelongsToGroup(message db.TaxableTransaction) bool {
-	_, isInGroup := IsOsmosisLpTxGroup[message.Message.MessageType]
+	_, isInGroup := IsOsmosisLpTxGroup[message.Message.MessageType.MessageType]
 	return isInGroup
 }
 
@@ -73,7 +73,7 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 			row.Date = FormatDatetime(message.Message.Tx.TimeStamp)
 			//We deliberately exclude the GAMM tokens from OutSell/InBuy for Exits/Joins respectively
 			//Accointing has no way of using the GAMM token to determine LP cost basis etc...
-			if _, ok := IsOsmosisExit[message.Message.MessageType]; ok {
+			if _, ok := IsOsmosisExit[message.Message.MessageType.MessageType]; ok {
 				denomRecieved := message.DenominationReceived
 				valueRecieved := message.AmountReceived
 				conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(valueRecieved), denomRecieved)
@@ -88,7 +88,7 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 				row.TransactionType = Deposit
 				row.Classification = LiquidityPool
 				sf.Rows = append(sf.Rows, row)
-			} else if _, ok := IsOsmosisJoin[message.Message.MessageType]; ok {
+			} else if _, ok := IsOsmosisJoin[message.Message.MessageType.MessageType]; ok {
 				denomSent := message.DenominationSent
 				valueSent := message.AmountSent
 				conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(valueSent), denomSent)

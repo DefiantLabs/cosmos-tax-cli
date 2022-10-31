@@ -55,12 +55,27 @@ type Address struct {
 	Address string `gorm:"uniqueIndex"`
 }
 
+type MessageType struct {
+	ID          uint   `gorm:"primaryKey"`
+	MessageType string `gorm:"uniqueIndex;not null"`
+}
+
+/*
+type UnhandledMessage struct {
+	ID            uint
+	MessageTypeID string `gorm:"foreignKey:MessageTypeID"`
+	MessageIndex  int
+}
+
+*/
+
 type Message struct {
-	ID           uint
-	TxId         uint
-	Tx           Tx
-	MessageType  string `gorm:"index"`
-	MessageIndex int
+	ID            uint
+	TxId          uint
+	Tx            Tx
+	MessageTypeID uint `gorm:"foreignKey:MessageTypeID"`
+	MessageType   MessageType
+	MessageIndex  int
 }
 
 const (
@@ -142,12 +157,12 @@ type TxDBWrapper struct {
 
 // Store messages with their taxable events for easy database creation
 type MessageDBWrapper struct {
-	Message       Message
-	TaxableEvents []TaxableEventDBWrapper
+	Message    Message
+	TaxableTxs []TaxableTxDBWrapper
 }
 
-// Store taxable events with their sender/receiver address for easy database creation
-type TaxableEventDBWrapper struct {
+// Store taxable tx with their sender/receiver address for easy database creation
+type TaxableTxDBWrapper struct {
 	TaxableTx       TaxableTransaction
 	SenderAddress   Address
 	ReceiverAddress Address

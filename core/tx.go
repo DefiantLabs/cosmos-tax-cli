@@ -56,7 +56,7 @@ func ChainSpecificMessageTypeHandlerBootstrap(chainId string) {
 }
 
 // ParseCosmosMessageJSON - Parse a SINGLE Cosmos Message into the appropriate type.
-func ParseCosmosMessage(message types.Msg, log *txTypes.TxLogMessage) (txTypes.CosmosMessage, error) {
+func ParseCosmosMessage(message types.Msg, log *txTypes.TxLogMessage) (txTypes.CosmosMessage, string, error) {
 	//Figure out what type of Message this is based on the '@type' field that is included
 	//in every Cosmos Message (can be seen in raw JSON for any cosmos transaction).
 	var msg txTypes.CosmosMessage
@@ -67,13 +67,13 @@ func ParseCosmosMessage(message types.Msg, log *txTypes.TxLogMessage) (txTypes.C
 	if msgHandlerFunc, ok := messageTypeHandler[cosmosMessage.Type]; ok {
 		msg = msgHandlerFunc()
 	} else {
-		return nil, &txTypes.UnknownMessageError{MessageType: cosmosMessage.Type}
+		return nil, cosmosMessage.Type, txTypes.ErrUnknownMessage
 	}
 
 	//Unmarshal the rest of the JSON now that we know the specific type.
 	//Note that depending on the type, it may or may not care about logs.
 	err := msg.HandleMsg(cosmosMessage.Type, message, log)
-	return msg, err
+	return msg, cosmosMessage.Type, err
 }
 
 func toAttributes(attrs []types.Attribute) []txTypes.Attribute {
@@ -207,23 +207,22 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 		//TODO: Pull this out into its own function for easier reading
 		for messageIndex, message := range tx.Tx.Body.Messages {
 			var currMessage dbTypes.Message
+			var currMessageType dbTypes.MessageType
 			currMessage.MessageIndex = messageIndex
 
 			//Get the message log that corresponds to the current message
 			var currMessageDBWrapper dbTypes.MessageDBWrapper
 			messageLog := txTypes.GetMessageLogForIndex(tx.TxResponse.Log, messageIndex)
-			cosmosMessage, err := ParseCosmosMessage(message, messageLog)
+			cosmosMessage, msgType, err := ParseCosmosMessage(message, messageLog)
 			if err != nil {
-				config.Log.Warn(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed.", tx.TxResponse.Height), zap.Error(err))
-
-				//type cast on error allows getting message type if it was parsed correctly
-				re, ok := err.(*txTypes.UnknownMessageError)
-				if ok {
-					currMessage.MessageType = re.Type()
-					currMessageDBWrapper.Message = currMessage
-				} else {
+				config.Log.Warn(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed for msg of type '%v'.", tx.TxResponse.Height, msgType), zap.Error(err))
+				currMessageType.MessageType = msgType
+				currMessage.MessageType = currMessageType
+				currMessageDBWrapper.Message = currMessage
+				if err != txTypes.ErrUnknownMessage {
 					//What should we do here? This is an actual error during parsing
-					config.Log.Error("issue casting the unknown message error to an error... please investigate.")
+					config.Log.Error("msg parse error.", zap.Error(err))
+					config.Log.Error("Issue parsing a cosmos msg that we DO have a parser for! PLEASE INVESTIGATE")
 				}
 
 				//println("------------------Cosmos message parsing failed. MESSAGE FORMAT FOLLOWS:---------------- \n\n")
@@ -231,20 +230,21 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 				//println("\n------------------END MESSAGE----------------------\n")
 			} else {
 				config.Log.Debug(fmt.Sprintf("[Block: %v] Cosmos message of known type: %s", tx.TxResponse.Height, cosmosMessage))
-				currMessage.MessageType = cosmosMessage.GetType()
+				currMessageType.MessageType = cosmosMessage.GetType()
+				currMessage.MessageType = currMessageType
 				currMessageDBWrapper.Message = currMessage
 
 				//TODO: ParseRelevantData may need the logs to get the relevant information, unless we forever do that on the ParseCosmosMessageJSON side
 				var relevantData []parsingTypes.MessageRelevantInformation = cosmosMessage.ParseRelevantData()
 
 				if len(relevantData) > 0 {
-					var taxableEvents []dbTypes.TaxableEventDBWrapper = make([]dbTypes.TaxableEventDBWrapper, len(relevantData))
+					var taxableTxs = make([]dbTypes.TaxableTxDBWrapper, len(relevantData))
 					for i, v := range relevantData {
 						if v.AmountSent != nil {
-							taxableEvents[i].TaxableTx.AmountSent = util.ToNumeric(v.AmountSent)
+							taxableTxs[i].TaxableTx.AmountSent = util.ToNumeric(v.AmountSent)
 						}
 						if v.AmountReceived != nil {
-							taxableEvents[i].TaxableTx.AmountReceived = util.ToNumeric(v.AmountReceived)
+							taxableTxs[i].TaxableTx.AmountReceived = util.ToNumeric(v.AmountReceived)
 						}
 
 						var denomSent dbTypes.Denom
@@ -261,7 +261,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 								}
 							}
 
-							taxableEvents[i].TaxableTx.DenominationSent = denomSent
+							taxableTxs[i].TaxableTx.DenominationSent = denomSent
 						}
 
 						var denomReceived dbTypes.Denom
@@ -277,15 +277,15 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 									return txDBWapper, err
 								}
 							}
-							taxableEvents[i].TaxableTx.DenominationReceived = denomReceived
+							taxableTxs[i].TaxableTx.DenominationReceived = denomReceived
 						}
 
-						taxableEvents[i].SenderAddress = dbTypes.Address{Address: v.SenderAddress}
-						taxableEvents[i].ReceiverAddress = dbTypes.Address{Address: v.ReceiverAddress}
+						taxableTxs[i].SenderAddress = dbTypes.Address{Address: v.SenderAddress}
+						taxableTxs[i].ReceiverAddress = dbTypes.Address{Address: v.ReceiverAddress}
 					}
-					currMessageDBWrapper.TaxableEvents = taxableEvents
+					currMessageDBWrapper.TaxableTxs = taxableTxs
 				} else {
-					currMessageDBWrapper.TaxableEvents = []dbTypes.TaxableEventDBWrapper{}
+					currMessageDBWrapper.TaxableTxs = []dbTypes.TaxableTxDBWrapper{}
 				}
 			}
 
@@ -293,7 +293,6 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 				newSwap := gamm.ArbitrageTx{TokenIn: msgSwapExactIn.TokenIn, TokenOut: msgSwapExactIn.TokenOut, BlockTime: timeStamp}
 				allSwaps = append(allSwaps, newSwap)
 			}
-
 			messages = append(messages, currMessageDBWrapper)
 		}
 	}

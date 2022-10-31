@@ -3,6 +3,8 @@ package db
 import (
 	"errors"
 	"fmt"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -15,7 +17,7 @@ func GetAddresses(addressList []string, db *gorm.DB) ([]Address, error) {
 	result := db.Where("address IN ?", addressList).Find(&addresses)
 	fmt.Printf("Found %d addresses in the db\n", result.RowsAffected)
 	if result.Error != nil {
-		fmt.Printf("Error %s searching DB for addresses.\n", result.Error)
+		config.Log.Error("Error searching DB for addresses.", zap.Error(result.Error))
 	}
 
 	return addresses, result.Error
@@ -47,6 +49,7 @@ func MigrateModels(db *gorm.DB) error {
 		&Tx{},
 		&Fee{},
 		&Address{},
+		&MessageType{},
 		&Message{},
 		&TaxableTransaction{},
 		&TaxableEvent{},
@@ -67,13 +70,13 @@ func UpsertFailedBlock(db *gorm.DB, blockHeight int64, chainID string, chainName
 	return db.Transaction(func(dbTransaction *gorm.DB) error {
 		failedBlock := FailedBlock{Height: blockHeight, Chain: Chain{ChainID: chainID, Name: chainName}}
 
-		if chainErr := dbTransaction.Where(&failedBlock.Chain).FirstOrCreate(&failedBlock.Chain).Error; chainErr != nil {
-			fmt.Printf("Error %s creating chain DB object.\n", chainErr)
-			return chainErr
+		if err := dbTransaction.Where(&failedBlock.Chain).FirstOrCreate(&failedBlock.Chain).Error; err != nil {
+			config.Log.Error("Error creating chain DB object.", zap.Error(err))
+			return err
 		}
 
 		if err := dbTransaction.Where(&failedBlock).FirstOrCreate(&failedBlock).Error; err != nil {
-			fmt.Printf("Error %s creating failed block DB object.\n", err)
+			config.Log.Error("Error creating failed block DB object.", zap.Error(err))
 			return err
 		}
 		return nil
@@ -87,16 +90,16 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, txs []TxDBWrapper, chainID st
 	return db.Transaction(func(dbTransaction *gorm.DB) error {
 		block := Block{Height: blockHeight, Chain: Chain{ChainID: chainID, Name: chainName}}
 
-		if chainErr := dbTransaction.Where(&block.Chain).FirstOrCreate(&block.Chain).Error; chainErr != nil {
-			fmt.Printf("Error %s creating chain DB object.\n", chainErr)
-			return chainErr
+		if err := dbTransaction.Where(&block.Chain).FirstOrCreate(&block.Chain).Error; err != nil {
+			config.Log.Error("Error getting/creating chain DB object.", zap.Error(err))
+			return err
 		}
 
 		//block.BlockchainID = block.Chain.ID
 
-		if blockErr := dbTransaction.Where(&block).FirstOrCreate(&block).Error; blockErr != nil {
-			fmt.Printf("Error %s getting block DB object.\n", blockErr)
-			return blockErr
+		if err := dbTransaction.Where(&block).FirstOrCreate(&block).Error; err != nil {
+			config.Log.Error("Error getting/creating block DB object.", zap.Error(err))
+			return err
 		}
 
 		for _, transaction := range txs {
@@ -104,7 +107,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, txs []TxDBWrapper, chainID st
 			for _, fee := range transaction.Tx.Fees {
 				if fee.PayerAddress.Address != "" {
 					if err := dbTransaction.Where(&fee.PayerAddress).FirstOrCreate(&fee.PayerAddress).Error; err != nil {
-						fmt.Printf("Error %s creating fee payer address.\n", err)
+						config.Log.Error("Error getting/creating fee payer address.", zap.Error(err))
 						return err
 					}
 
@@ -128,7 +131,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, txs []TxDBWrapper, chainID st
 			if transaction.SignerAddress.Address != "" {
 				//viewing gorm logs shows this gets translated into a single ON CONFLICT DO NOTHING RETURNING "id"
 				if err := dbTransaction.Where(&transaction.SignerAddress).FirstOrCreate(&transaction.SignerAddress).Error; err != nil {
-					fmt.Printf("Error %s creating signer address for tx.\n", err)
+					config.Log.Error("Error getting/creating signer address for tx.", zap.Error(err))
 					return err
 				}
 				//store created db model in signer address, creates foreign key relation
@@ -144,44 +147,52 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, txs []TxDBWrapper, chainID st
 			transaction.Tx.Fees = fees
 
 			if err := dbTransaction.Create(&transaction.Tx).Error; err != nil {
-				fmt.Printf("Error %s creating tx.\n", err)
+				config.Log.Error("Error creating tx.", zap.Error(err))
 				return err
 			}
 
 			for _, message := range transaction.Messages {
-				message.Message.Tx = transaction.Tx
-				if err := dbTransaction.Create(&message.Message).Error; err != nil {
-					fmt.Printf("Error %s creating message.\n", err)
+				if message.Message.MessageType.MessageType == "" {
+					config.Log.Fatal("Message type not getting to DB")
+				}
+				if err := dbTransaction.Where(&message.Message.MessageType).FirstOrCreate(&message.Message.MessageType).Error; err != nil {
+					config.Log.Error("Error getting/creating message_type.", zap.Error(err))
 					return err
 				}
 
-				for _, taxableEvent := range message.TaxableEvents {
-					if taxableEvent.SenderAddress.Address != "" {
-						if err := dbTransaction.Where(&taxableEvent.SenderAddress).FirstOrCreate(&taxableEvent.SenderAddress).Error; err != nil {
-							fmt.Printf("Error %s creating sender address.\n", err)
+				message.Message.Tx = transaction.Tx
+				if err := dbTransaction.Create(&message.Message).Error; err != nil {
+					config.Log.Error("Error creating message.", zap.Error(err))
+					return err
+				}
+
+				for _, taxableTx := range message.TaxableTxs {
+					if taxableTx.SenderAddress.Address != "" {
+						if err := dbTransaction.Where(&taxableTx.SenderAddress).FirstOrCreate(&taxableTx.SenderAddress).Error; err != nil {
+							config.Log.Error("Error getting/creating sender address.", zap.Error(err))
 							return err
 						}
 						//store created db model in sender address, creates foreign key relation
-						taxableEvent.TaxableTx.SenderAddress = taxableEvent.SenderAddress
+						taxableTx.TaxableTx.SenderAddress = taxableTx.SenderAddress
 					} else {
 						//nil creates null foreign key relation
-						taxableEvent.TaxableTx.SenderAddressId = nil
+						taxableTx.TaxableTx.SenderAddressId = nil
 					}
 
-					if taxableEvent.ReceiverAddress.Address != "" {
-						if err := dbTransaction.Where(&taxableEvent.ReceiverAddress).FirstOrCreate(&taxableEvent.ReceiverAddress).Error; err != nil {
-							fmt.Printf("Error %s creating receiver address.\n", err)
+					if taxableTx.ReceiverAddress.Address != "" {
+						if err := dbTransaction.Where(&taxableTx.ReceiverAddress).FirstOrCreate(&taxableTx.ReceiverAddress).Error; err != nil {
+							config.Log.Error("Error getting/creating receiver address.", zap.Error(err))
 							return err
 						}
 						//store created db model in receiver address, creates foreign key relation
-						taxableEvent.TaxableTx.ReceiverAddress = taxableEvent.ReceiverAddress
+						taxableTx.TaxableTx.ReceiverAddress = taxableTx.ReceiverAddress
 					} else {
 						//nil creates null foreign key relation
-						taxableEvent.TaxableTx.ReceiverAddressId = nil
+						taxableTx.TaxableTx.ReceiverAddressId = nil
 					}
-					taxableEvent.TaxableTx.Message = message.Message
-					if err := dbTransaction.Create(&taxableEvent.TaxableTx).Error; err != nil {
-						fmt.Printf("Error %s creating taxable event.\n", err)
+					taxableTx.TaxableTx.Message = message.Message
+					if err := dbTransaction.Create(&taxableTx.TaxableTx).Error; err != nil {
+						config.Log.Error("Error creating taxable event.", zap.Error(err))
 						return err
 					}
 				}
