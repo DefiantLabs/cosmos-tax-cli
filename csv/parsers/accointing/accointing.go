@@ -36,52 +36,22 @@ func (p *AccointingParser) ProcessTaxableTx(address string, taxableTxs []db.Taxa
 	//4. Remove them from the normal txMap
 	//5. Add them to the group-specific txMap
 	//The last two steps ensure that the message will not be parsed twice
-	for v, tx := range txMap {
-		//map: [group index] to []indexes of the current tx messages that belong in that group
-		groupsToMessageIds := make(map[int][]int)
-
-		//TODO: Remove me, useless outside print for demo
-		messagesToRemove := 0
-
-		for messageIndex, message := range tx {
-			for groupIndex, txGroup := range p.ParsingGroups {
-				//Store index of current message if it belongs in the group
+	for txIdx, txMsgs := range txMap {
+		var remainingTxMsgs []db.TaxableTransaction
+		// Loop through the transactions
+		for _, message := range txMsgs {
+			// if the msg in this tx belongs to the group
+			for _, txGroup := range p.ParsingGroups {
 				if txGroup.BelongsToGroup(message) {
-					if _, ok := groupsToMessageIds[groupIndex]; ok {
-						groupsToMessageIds[groupIndex] = append(groupsToMessageIds[groupIndex], messageIndex)
-					} else {
-						var messageArray []int
-						messageArray = append(messageArray, messageIndex)
-						groupsToMessageIds[groupIndex] = messageArray
-					}
-					messagesToRemove++
-
-					//Add it to the first group it belongs to and no others
-					//This establishes a precedence and prevents messages from being duplicated in many groups
-					break
+					// add to the group list
+					txGroup.AddTxToGroup(message)
+				} else {
+					// add it to the output list
+					remainingTxMsgs = append(remainingTxMsgs, message)
 				}
 			}
 		}
-
-		//split off the messages into their respective group
-		for groupIndex, messageIndices := range groupsToMessageIds {
-			currentGroup := p.ParsingGroups[groupIndex]
-
-			//used to keep the index relevant after splicing
-			numElementsRemoved := 0
-			for _, messageIndex := range messageIndices {
-				//Get message to remove at index - numElementsRemoved
-				indexToRemove := messageIndex - numElementsRemoved
-				messageToRemove := tx[indexToRemove]
-
-				//Add to group and remove from original TX
-				currentGroup.AddTxToGroup(messageToRemove)
-				tx = append(tx[:indexToRemove], tx[indexToRemove+1:]...)
-				//overwrite the txMaps value at this tx to remove
-				txMap[v] = tx
-				numElementsRemoved++
-			}
-		}
+		txMap[txIdx] = remainingTxMsgs
 	}
 
 	//Parse all the potentially taxable events (one transaction group at a time)
