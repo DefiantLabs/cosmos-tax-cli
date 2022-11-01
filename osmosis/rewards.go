@@ -3,8 +3,6 @@ package osmosis
 import (
 	"context"
 	"fmt"
-	"github.com/DefiantLabs/cosmos-tax-cli/config"
-	"go.uber.org/zap"
 	"strings"
 	"time"
 
@@ -25,9 +23,9 @@ func (client *URIClient) GetRewardsBetween(startHeight int64, endHeight int64) (
 	epochList := []*Rewards{}
 	// for _, epoch := range rewardEpochs {
 	for epoch := startHeight; epoch <= endHeight; epoch++ {
-		rewards, indexErr := client.GetEpochRewards(epoch)
-		if indexErr != nil {
-			return nil, indexErr
+		rewards, err := client.GetEpochRewards(epoch)
+		if err != nil {
+			return nil, err
 		}
 		epochList = append(epochList, rewards...)
 	}
@@ -41,7 +39,6 @@ func (client *URIClient) GetRewardsBetween(startHeight int64, endHeight int64) (
 func (client *URIClient) GetEpochRewards(height int64) ([]*Rewards, error) {
 	rewards, err := client.getRewards(height)
 	if err != nil {
-		config.Log.Error(fmt.Sprintf("Error getting rewards for epoch %d\n", height), zap.Error(err))
 		return nil, err
 	}
 	return rewards, nil

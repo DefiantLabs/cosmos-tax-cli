@@ -47,7 +47,7 @@ var messageTypeHandler = map[string]func() txTypes.CosmosMessage{
 func ChainSpecificMessageTypeHandlerBootstrap(chainID string) {
 	var chainSpecificMessageTpeHandler map[string]func() txTypes.CosmosMessage
 	switch chainID {
-	case "osmosis-1":
+	case osmosis.ChainID:
 		chainSpecificMessageTpeHandler = osmosis.MessageTypeHandler
 	}
 	for key, value := range chainSpecificMessageTpeHandler {

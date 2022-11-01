@@ -18,12 +18,12 @@ func TestOsmoParsing(t *testing.T) {
 	// setup parser
 	parser := GetParser(accointing.ParserKey)
 	cfg := config.Config{}
-	cfg.Lens.ChainID = osmosis.OsmoChainID
+	cfg.Lens.ChainID = osmosis.ChainID
 	parser.InitializeParsingGroups(cfg)
 
 	// setup user and chain
 	targetAddress := mkAddress(t, 1)
-	chain := mkChain(1, osmosis.OsmoChainID, osmosis.OsmoName)
+	chain := mkChain(1, osmosis.ChainID, osmosis.Name)
 
 	// make transactions like those you would get from the DB
 	taxableTxs := getTestTXs(t, targetAddress, chain)

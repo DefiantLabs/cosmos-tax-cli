@@ -2,6 +2,7 @@ package accointing
 
 import (
 	"fmt"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 	"go.uber.org/zap"
 	"sort"
 
@@ -109,7 +110,7 @@ func (p *Parser) ProcessTaxableEvent(address string, taxableEvents []db.TaxableE
 
 func (p *Parser) InitializeParsingGroups(config config.Config) {
 	switch config.Lens.ChainID {
-	case "osmosis-1":
+	case osmosis.ChainID:
 		p.ParsingGroups = append(p.ParsingGroups, GetOsmosisTxParsingGroups()...)
 	}
 }

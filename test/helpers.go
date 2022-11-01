@@ -2,6 +2,7 @@ package test
 
 import (
 	"fmt"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 	"math/big"
 
 	configUtils "github.com/DefiantLabs/cosmos-tax-cli/config"
@@ -14,7 +15,7 @@ import (
 func createOsmosisTaxableEvent(db *gorm.DB, blockHeight int64) {
 	addr := ensureTestAddress(db)
 	simpleDenom := ensureTestDenom(db)
-	chain := ensureTestChain(db, "osmosis-1", "Osmosis")
+	chain := ensureTestChain(db, osmosis.ChainID, osmosis.Name)
 	block := ensureTestBlock(db, chain, blockHeight)
 	ensureOsmosisRewardsTaxableEvent(db, simpleDenom, addr, block, big.NewInt(420))
 }
@@ -22,7 +23,7 @@ func createOsmosisTaxableEvent(db *gorm.DB, blockHeight int64) {
 func setupOsmosisTestModels(db *gorm.DB) {
 	addr := ensureTestAddress(db)
 	simpleDenom := ensureTestDenom(db)
-	chain := ensureTestChain(db, "osmosis-1", "Osmosis")
+	chain := ensureTestChain(db, osmosis.ChainID, osmosis.Name)
 	block := ensureTestBlock(db, chain, 1)
 
 	ensureOsmosisRewardsTaxableEvent(db, simpleDenom, addr, block, big.NewInt(100))

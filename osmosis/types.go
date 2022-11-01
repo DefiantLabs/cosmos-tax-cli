@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	OsmoChainID = "osmosis-1"
-	OsmoName    = "osmosis"
+	ChainID = "osmosis-1"
+	Name    = "osmosis"
 )
 
 type RewardEpoch struct {

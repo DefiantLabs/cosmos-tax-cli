@@ -268,6 +268,7 @@ func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler 
 func (idxr *Indexer) indexOsmosisReward(rpcClient osmosis.URIClient, epoch int64) (core.BlockProcessingFailure, error) {
 	rewards, err := rpcClient.GetEpochRewards(epoch)
 	if err != nil {
+		config.Log.Error(fmt.Sprintf("Error getting rewards for epoch %d\n", epoch), zap.Error(err))
 		return core.OsmosisNodeRewardLookupError, err
 	}
 
