@@ -61,11 +61,6 @@ func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransac
 }
 
 func (p *Parser) ProcessTaxableEvent(address string, taxableEvents []db.TaxableEvent) error {
-	//process taxableTx into Rows above
-	if len(taxableEvents) == 0 {
-		return nil
-	}
-
 	//Parse all the potentially taxable events
 	for _, event := range taxableEvents {
 		//generate the rows for the CSV.
@@ -206,9 +201,9 @@ func ParseTx(address string, events []db.TaxableTransaction) ([]parsers.CsvRow, 
 		} else if staking.IsMsgBeginRedelegate[event.Message.MessageType.MessageType] {
 			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
 		} else if gamm.IsMsgSwapExactAmountIn[event.Message.MessageType.MessageType] {
-			rows = append(rows, ParseMsgSwapExactAmountIn(address, event))
+			rows = append(rows, ParseMsgSwapExactAmountIn(event))
 		} else if gamm.IsMsgSwapExactAmountOut[event.Message.MessageType.MessageType] {
-			rows = append(rows, ParseMsgSwapExactAmountOut(address, event))
+			rows = append(rows, ParseMsgSwapExactAmountOut(event))
 		} else {
 			config.Log.Error(fmt.Sprintf("No parser for message type '%v'", event.Message.MessageType.MessageType))
 		}
@@ -271,18 +266,18 @@ func ParseMsgFundCommunityPool(address string, event db.TaxableTransaction) Row 
 	return *row
 }
 
-func ParseMsgSwapExactAmountIn(address string, event db.TaxableTransaction) Row {
+func ParseMsgSwapExactAmountIn(event db.TaxableTransaction) Row {
 	row := &Row{}
-	err := row.ParseSwap(address, event)
+	err := row.ParseSwap(event)
 	if err != nil {
 		config.Log.Fatal("Error with ParseMsgSwapExactAmountIn.", zap.Error(err))
 	}
 	return *row
 }
 
-func ParseMsgSwapExactAmountOut(address string, event db.TaxableTransaction) Row {
+func ParseMsgSwapExactAmountOut(event db.TaxableTransaction) Row {
 	row := &Row{}
-	err := row.ParseSwap(address, event)
+	err := row.ParseSwap(event)
 	if err != nil {
 		config.Log.Fatal("Error with ParseMsgSwapExactAmountOut.", zap.Error(err))
 	}
