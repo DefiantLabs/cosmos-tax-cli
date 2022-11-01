@@ -19,19 +19,8 @@ const (
 	MsgFundCommunityPool           = "/cosmos.distribution.v1beta1.MsgFundCommunityPool"
 	MsgWithdrawValidatorCommission = "/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission"
 	MsgWithdrawDelegatorReward     = "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward"
+	MsgWithdrawRewards             = "withdraw-rewards" // FIXME: this is used in 2 places and only 1 will work....
 )
-
-// TODO: are these maps needed? When is that other string used?
-
-var IsMsgWithdrawValidatorCommission = map[string]bool{
-	MsgWithdrawValidatorCommission: true,
-	"withdraw-rewards":             true, //NOTE/TODO: not 100% sure if this is only on delegator or validator withdrawal...
-}
-
-var IsMsgWithdrawDelegatorReward = map[string]bool{
-	MsgWithdrawDelegatorReward: true,
-	"withdraw-rewards":         true, //NOTE/TODO: not 100% sure if this is only on delegator or validator withdrawal...
-}
 
 type WrapperMsgFundCommunityPool struct {
 	txModule.Message

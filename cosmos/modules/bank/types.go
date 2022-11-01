@@ -12,21 +12,12 @@ import (
 )
 
 const (
-	MsgSend      = "/cosmos.bank.v1beta1.MsgSend"
-	MsgMultiSend = "/cosmos.bank.v1beta1.MsgMultiSend"
+	MsgSendV0 = "MsgSend"
+	MsgSend   = "/cosmos.bank.v1beta1.MsgSend"
+
+	MsgMultiSendV0 = "MsgMultiSend"
+	MsgMultiSend   = "/cosmos.bank.v1beta1.MsgMultiSend"
 )
-
-// TODO: are these maps needed? When is that other string used?
-
-var IsMsgSend = map[string]bool{
-	"MsgSend": true,
-	MsgSend:   true,
-}
-
-var IsMsgMultiSend = map[string]bool{
-	"MsgMultiSend": true,
-	MsgMultiSend:   true,
-}
 
 // HandleMsg: Unmarshal JSON for MsgSend.
 // Note that MsgSend ignores the LogMessage because it isn't needed.
