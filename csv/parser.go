@@ -11,13 +11,15 @@ import (
 	"gorm.io/gorm"
 )
 
-// Theres got to be a better way to do this
+// Register new parsers by adding them to this list
+var supportedParsers = []string{accointing.ParserKey}
+
 func init() {
-	parsers.RegisterParser(accointing.ParserKey)
+	parsers.RegisterParsers(supportedParsers)
 }
 
 func GetParser(parserKey string) parsers.Parser {
-	if parserKey == "accointing" {
+	if parserKey == accointing.ParserKey {
 		parser := accointing.Parser{}
 		return &parser
 	}

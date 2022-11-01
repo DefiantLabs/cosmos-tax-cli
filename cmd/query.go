@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	"go.uber.org/zap"
-	"log"
 	"os"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/csv"
@@ -30,21 +29,26 @@ var queryCmd = &cobra.Command{
 
 		if !found {
 			err := cmd.Help()
-			log.Println("Error getting cmd help. Err: ", err)
-			cobra.CheckErr(fmt.Sprintf("Invalid format %s, valid formats are %s", format, parsers))
+			config.Log.Error("Error getting cmd help.", zap.Error(err))
+			config.Log.Fatal(fmt.Sprintf("Invalid format %s, valid formats are %s", format, parsers))
 		}
 
 		//TODO: split out setup methods and only call necessary ones
 		_, db, _, err := setup(conf)
-		cobra.CheckErr(err)
+		if err != nil {
+			config.Log.Fatal("Error setting up query", zap.Error(err))
+		}
 
 		csvRows, headers, err := csv.ParseForAddress(address, db, format, conf)
-		cobra.CheckErr(err)
+		if err != nil {
+			config.Log.Fatal("Error calling parser for address", zap.Error(err))
+		}
 
 		buffer := csv.ToCsv(csvRows, headers)
-
 		err = os.WriteFile(output, buffer.Bytes(), 0644)
-		cobra.CheckErr(err)
+		if err != nil {
+			config.Log.Fatal("Error writing out CSV", zap.Error(err))
+		}
 	},
 }
 
@@ -62,7 +66,7 @@ func init() {
 
 	validFormats := parsers.GetParserKeys()
 	if len(validFormats) == 0 {
-		config.Log.Fatal("Error during intialization, no CSV parsers found.")
+		config.Log.Fatal("Error during initialization, no CSV parsers found.")
 	}
 
 	queryCmd.Flags().StringVar(&address, "address", "", "The address to query for")

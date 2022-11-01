@@ -7,6 +7,11 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+const (
+	ChainID = "osmosis-1"
+	Name    = "osmosis"
+)
+
 type RewardEpoch struct {
 	EpochBlockHeight int64
 	Indexed          bool

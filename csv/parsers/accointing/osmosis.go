@@ -3,19 +3,20 @@ package accointing
 import (
 	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
 )
 
 var IsOsmosisJoin = map[string]bool{
-	"/osmosis.gamm.v1beta1.MsgJoinSwapExternAmountIn": true,
-	"/osmosis.gamm.v1beta1.MsgJoinSwapShareAmountOut": true,
-	"/osmosis.gamm.v1beta1.MsgJoinPool":               true,
+	gamm.MsgJoinSwapExternAmountIn: true,
+	gamm.MsgJoinSwapShareAmountOut: true,
+	gamm.MsgJoinPool:               true,
 }
 
 var IsOsmosisExit = map[string]bool{
-	"/osmosis.gamm.v1beta1.MsgExitSwapShareAmountIn":   true,
-	"/osmosis.gamm.v1beta1.MsgExitSwapExternAmountOut": true,
-	"/osmosis.gamm.v1beta1.MsgExitPool":                true,
+	gamm.MsgExitSwapShareAmountIn:   true,
+	gamm.MsgExitSwapExternAmountOut: true,
+	gamm.MsgExitPool:                true,
 }
 
 // Guard for adding messages to the group
@@ -70,7 +71,7 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 		for _, message := range txMessages {
 			row := Row{}
 			row.OperationID = message.Message.Tx.Hash
-			row.Date = FormatDatetime(message.Message.Tx.TimeStamp)
+			row.Date = message.Message.Tx.TimeStamp.Format(timeLayout)
 			//We deliberately exclude the GAMM tokens from OutSell/InBuy for Exits/Joins respectively
 			//Accointing has no way of using the GAMM token to determine LP cost basis etc...
 			if _, ok := IsOsmosisExit[message.Message.MessageType.MessageType]; ok {

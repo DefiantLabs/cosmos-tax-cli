@@ -2,7 +2,13 @@ package accointing
 
 import "github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
 
-var ParserKey = "accointing"
+const (
+	// ParserKey is the key used to identify this parser
+	ParserKey = "accointing"
+
+	// timeLayout is the golang time format string for this parser
+	timeLayout = "01/02/2006 15:04:05"
+)
 
 type Parser struct {
 	Rows          []Row

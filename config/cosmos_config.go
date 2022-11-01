@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -30,6 +31,6 @@ func SetChainConfig(prefix string) {
 func IsOsmosis(conf *Config) bool {
 	return strings.Contains(
 		strings.ToLower(conf.Lens.ChainID),
-		"osmosis",
+		osmosis.Name,
 	)
 }

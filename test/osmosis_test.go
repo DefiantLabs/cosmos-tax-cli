@@ -1,6 +1,7 @@
 package test
 
 import (
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 	"math/big"
 	"strings"
 	"testing"
@@ -48,8 +49,8 @@ func TestGetRewardsForAddress(t *testing.T) {
 		assert.Equal(t, evt.EventAddress.Address, addr)
 		assert.Greater(t, evt.Amount, 0.0)
 		assert.Greater(t, evt.Block.Height, int64(0))
-		assert.Contains(t, strings.ToLower(evt.Block.Chain.Name), "osmosis")
-		assert.Contains(t, strings.ToLower(evt.Block.Chain.ChainID), "osmosis")
+		assert.Contains(t, strings.ToLower(evt.Block.Chain.Name), osmosis.Name)
+		assert.Contains(t, strings.ToLower(evt.Block.Chain.ChainID), osmosis.ChainID)
 
 		if evt.Block.Height == 4823317 && evt.EventAddress.Address == addr && util.FromNumeric(evt.Amount).Cmp(big.NewInt(3632580308)) == 0 {
 			foundBlockEvent = true
@@ -71,7 +72,7 @@ func TestGetOsmosisRewardIndex(t *testing.T) {
 	setupOsmosisTestModels(gorm)
 	createOsmosisTaxableEvent(gorm, 100)
 
-	block, err := dbUtils.GetHighestTaxableEventBlock(gorm, "osmosis-1")
+	block, err := dbUtils.GetHighestTaxableEventBlock(gorm, osmosis.ChainID)
 	if err != nil {
 		t.Fail()
 	}
@@ -90,7 +91,7 @@ func TestInsertOsmosisRewards(t *testing.T) {
 	setupOsmosisTestModels(gorm)
 	createOsmosisTaxableEvent(gorm, 1111111111)
 
-	block, err := dbUtils.GetHighestTaxableEventBlock(gorm, "osmosis-1")
+	block, err := dbUtils.GetHighestTaxableEventBlock(gorm, osmosis.ChainID)
 	if err != nil {
 		t.Fail()
 	}

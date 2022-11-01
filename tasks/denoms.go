@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"encoding/json"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 	"net/http"
 	"time"
 
@@ -32,7 +33,7 @@ type DenomUnit struct {
 
 func DoChainSpecificUpsertDenoms(db *gorm.DB, chain string) {
 	switch chain {
-	case "osmosis-1":
+	case osmosis.ChainID:
 		UpsertOsmosisDenoms(db)
 	}
 	//may want to move this elsewhere, or eliminate entirely
