@@ -15,6 +15,7 @@ require (
 	go.uber.org/zap v1.21.0
 	gorm.io/driver/postgres v1.3.1
 	gorm.io/gorm v1.23.6
+	github.com/cosmos/cosmos-sdk/x/ibc v0.42.11
 )
 
 require (
@@ -160,6 +161,7 @@ replace (
 	github.com/cosmos/ibc-go/v2 => github.com/osmosis-labs/ibc-go/v2 v2.0.2-osmo
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 	google.golang.org/grpc => google.golang.org/grpc v1.33.2
+	github.com/cosmos/cosmos-sdk/x/ibc => "../cosmos-tax-cli/cosmos/modules/ibclegacy"
 )
 
 //github.com/strangelove-ventures/lens => /home/kyle/projects/DefiantLabs/lens
