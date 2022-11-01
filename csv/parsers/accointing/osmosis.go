@@ -70,7 +70,7 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 		for _, message := range txMessages {
 			row := Row{}
 			row.OperationID = message.Message.Tx.Hash
-			row.Date = FormatDatetime(message.Message.Tx.TimeStamp)
+			row.Date = message.Message.Tx.TimeStamp.Format(timeLayout)
 			//We deliberately exclude the GAMM tokens from OutSell/InBuy for Exits/Joins respectively
 			//Accointing has no way of using the GAMM token to determine LP cost basis etc...
 			if _, ok := IsOsmosisExit[message.Message.MessageType.MessageType]; ok {

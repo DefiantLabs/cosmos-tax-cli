@@ -49,7 +49,7 @@ func (row *Row) EventParseBasic(address string, event db.TaxableEvent) error {
 
 // ParseBasic: Handles the fields that are shared between most types.
 func (row *Row) ParseBasic(address string, event db.TaxableTransaction) error {
-	row.Date = FormatDatetime(event.Message.Tx.TimeStamp)
+	row.Date = event.Message.Tx.TimeStamp.Format(timeLayout)
 	row.OperationID = event.Message.Tx.Hash
 
 	//deposit
@@ -77,7 +77,7 @@ func (row *Row) ParseBasic(address string, event db.TaxableTransaction) error {
 }
 
 func (row *Row) ParseSwap(address string, event db.TaxableTransaction) error {
-	row.Date = FormatDatetime(event.Message.Tx.TimeStamp)
+	row.Date = event.Message.Tx.TimeStamp.Format(timeLayout)
 	row.OperationID = event.Message.Tx.Hash
 	row.TransactionType = Order
 
@@ -101,7 +101,7 @@ func (row *Row) ParseSwap(address string, event db.TaxableTransaction) error {
 }
 
 func (row *Row) ParseFee(tx db.Tx, fee db.Fee) error {
-	row.Date = FormatDatetime(tx.TimeStamp)
+	row.Date = tx.TimeStamp.Format(timeLayout)
 	row.OperationID = tx.Hash
 	row.TransactionType = Withdraw
 	row.Classification = Fee

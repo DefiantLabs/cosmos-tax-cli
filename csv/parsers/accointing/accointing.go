@@ -2,9 +2,9 @@ package accointing
 
 import (
 	"fmt"
-	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 	"go.uber.org/zap"
 	"sort"
+	"time"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/bank"
@@ -12,48 +12,16 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/staking"
 	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
 )
 
 func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransaction) error {
-	//process taxableTx into Rows above
-	txMap := map[uint][]db.TaxableTransaction{} //Map transaction ID to List of taxable transactions
+	// Build a map, so we know which TX go with which messages
+	txMap := parsers.MakeTXMap(taxableTxs)
 
-	//Build a map, so we know which TX go with which messages
-	for _, taxableTx := range taxableTxs {
-		if list, ok := txMap[taxableTx.Message.Tx.ID]; ok {
-			list = append(list, taxableTx)
-			txMap[taxableTx.Message.Tx.ID] = list
-		} else {
-			txMap[taxableTx.Message.Tx.ID] = []db.TaxableTransaction{taxableTx}
-		}
-	}
-
-	//TODO: Can probably reduce complexity
-	//The basic idea is we want to do the following:
-	//1. Loop through each message for each transaction
-	//2. Check if it belongs in a group by message type
-	//3. Gather indices of all messages that belong in each group
-	//4. Remove them from the normal txMap
-	//5. Add them to the group-specific txMap
-	//The last two steps ensure that the message will not be parsed twice
-	for txIdx, txMsgs := range txMap {
-		var remainingTxMsgs []db.TaxableTransaction
-		// Loop through the transactions
-		for _, message := range txMsgs {
-			// if the msg in this tx belongs to the group
-			for _, txGroup := range p.ParsingGroups {
-				if txGroup.BelongsToGroup(message) {
-					// add to the group list
-					txGroup.AddTxToGroup(message)
-				} else {
-					// add it to the output list
-					remainingTxMsgs = append(remainingTxMsgs, message)
-				}
-			}
-		}
-		txMap[txIdx] = remainingTxMsgs
-	}
+	// Pull messages out of txMap that must be grouped together
+	parsers.SeparateParsingGroups(txMap, p.ParsingGroups)
 
 	//Parse all the potentially taxable events (one transaction group at a time)
 	for _, txGroup := range txMap {
@@ -62,17 +30,16 @@ func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransac
 			//For the current transaction group, generate the rows for the CSV.
 			//Usually (but not always) a transaction will only have a single row in the CSV.
 			txRows, err := ParseTx(address, txGroup)
-			if err == nil {
-				for _, v := range txRows {
-					p.Rows = append(p.Rows, v.(Row))
-				}
-			} else {
+			if err != nil {
 				return err
+			}
+			for _, v := range txRows {
+				p.Rows = append(p.Rows, v.(Row))
 			}
 		}
 	}
 
-	//Parse all the txes found in the Parsing Groups
+	//Parse all the TXs found in the Parsing Groups
 	for _, txParsingGroup := range p.ParsingGroups {
 		err := txParsingGroup.ParseGroup()
 		if err != nil {
@@ -131,12 +98,12 @@ func (p *Parser) GetRows() []parsers.CsvRow {
 
 	//Sort by date
 	sort.Slice(accointingRows, func(i int, j int) bool {
-		leftDate, err := DateFromString(accointingRows[i].Date)
+		leftDate, err := time.Parse(timeLayout, accointingRows[i].Date)
 		if err != nil {
 			config.Log.Error("Error sorting left date.", zap.Error(err))
 			return false
 		}
-		rightDate, err := DateFromString(accointingRows[j].Date)
+		rightDate, err := time.Parse(timeLayout, accointingRows[j].Date)
 		if err != nil {
 			config.Log.Error("Error sorting right date.", zap.Error(err))
 			return false
