@@ -11,37 +11,16 @@ import (
 	gammTypes "github.com/osmosis-labs/osmosis/v9/x/gamm/types"
 )
 
-var IsMsgSwapExactAmountIn = map[string]bool{
-	"/osmosis.gamm.v1beta1.MsgSwapExactAmountIn": true,
-}
-
-var IsMsgSwapExactAmountOut = map[string]bool{
-	"/osmosis.gamm.v1beta1.MsgSwapExactAmountOut": true,
-}
-
-var IsMsgJoinSwapExternAmountIn = map[string]bool{
-	"/osmosis.gamm.v1beta1.MsgJoinSwapExternAmountIn": true,
-}
-
-var IsMsgJoinSwapShareAmountOut = map[string]bool{
-	"/osmosis.gamm.v1beta1.MsgJoinSwapShareAmountOut": true,
-}
-
-var IsMsgJoinPool = map[string]bool{
-	"/osmosis.gamm.v1beta1.MsgJoinPool": true,
-}
-
-var IsMsgExitSwapShareAmountIn = map[string]bool{
-	"/osmosis.gamm.v1beta1.MsgExitSwapShareAmountIn": true,
-}
-
-var IsMsgExitSwapExternAmountOut = map[string]bool{
-	"/osmosis.gamm.v1beta1.MsgExitSwapExternAmountOut": true,
-}
-
-var IsMsgExitPool = map[string]bool{
-	"/osmosis.gamm.v1beta1.MsgExitPool": true,
-}
+const (
+	MsgSwapExactAmountIn       = "/osmosis.gamm.v1beta1.MsgSwapExactAmountIn"
+	MsgSwapExactAmountOut      = "/osmosis.gamm.v1beta1.MsgSwapExactAmountOut"
+	MsgJoinSwapExternAmountIn  = "/osmosis.gamm.v1beta1.MsgJoinSwapExternAmountIn"
+	MsgJoinSwapShareAmountOut  = "/osmosis.gamm.v1beta1.MsgJoinSwapShareAmountOut"
+	MsgJoinPool                = "/osmosis.gamm.v1beta1.MsgJoinPool"
+	MsgExitSwapShareAmountIn   = "/osmosis.gamm.v1beta1.MsgExitSwapShareAmountIn"
+	MsgExitSwapExternAmountOut = "/osmosis.gamm.v1beta1.MsgExitSwapExternAmountOut"
+	MsgExitPool                = "/osmosis.gamm.v1beta1.MsgExitPool"
+)
 
 type WrapperMsgSwapExactAmountIn struct {
 	txModule.Message

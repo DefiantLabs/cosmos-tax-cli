@@ -12,17 +12,11 @@ import (
 	stakeTypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
-var IsMsgDelegate = map[string]bool{
-	"/cosmos.staking.v1beta1.MsgDelegate": true,
-}
-
-var IsMsgUndelegate = map[string]bool{
-	"/cosmos.staking.v1beta1.MsgUndelegate": true,
-}
-
-var IsMsgBeginRedelegate = map[string]bool{
-	"/cosmos.staking.v1beta1.MsgBeginRedelegate": true,
-}
+const (
+	MsgDelegate        = "/cosmos.staking.v1beta1.MsgDelegate"
+	MsgUndelegate      = "/cosmos.staking.v1beta1.MsgUndelegate"
+	MsgBeginRedelegate = "/cosmos.staking.v1beta1.MsgBeginRedelegate"
+)
 
 type WrapperMsgDelegate struct {
 	txModule.Message

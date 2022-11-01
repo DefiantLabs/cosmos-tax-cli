@@ -119,8 +119,7 @@ func (p Parser) GetHeaders() []string {
 // If the transaction lists the same amount of fees as there are rows in the CSV,
 // then we spread the fees out one per row. Otherwise we add a line for the fees,
 // where each fee has a separate line.
-func HandleFees(address string, events []db.TaxableTransaction) ([]Row, error) {
-	var rows []Row
+func HandleFees(address string, events []db.TaxableTransaction) (rows []Row, err error) {
 	//No events -- This address didn't pay any fees
 	if len(events) == 0 {
 		return rows, nil
@@ -141,7 +140,7 @@ func HandleFees(address string, events []db.TaxableTransaction) ([]Row, error) {
 		for _, fee := range txFees {
 			if fee.PayerAddress.Address == address {
 				newRow := Row{}
-				err := newRow.ParseFee(txIdsToTx[id], fee)
+				err = newRow.ParseFee(txIdsToTx[id], fee)
 				if err != nil {
 					return nil, err
 				}
@@ -154,9 +153,7 @@ func HandleFees(address string, events []db.TaxableTransaction) ([]Row, error) {
 }
 
 // ParseEvent: Parse the potentially taxable event
-func ParseEvent(address string, event db.TaxableEvent) []Row {
-	rows := []Row{}
-
+func ParseEvent(address string, event db.TaxableEvent) (rows []Row) {
 	if event.Source == db.OsmosisRewardDistribution {
 		row, err := ParseOsmosisReward(address, event)
 		if err != nil {
@@ -173,33 +170,31 @@ func ParseEvent(address string, event db.TaxableEvent) []Row {
 // ParseTx: Parse the potentially taxable TX and Messages
 // This function is used for parsing a single TX that will not need to relate to any others
 // Use TX Parsing Groups to parse txes as a group
-func ParseTx(address string, events []db.TaxableTransaction) ([]parsers.CsvRow, error) {
-	rows := []parsers.CsvRow{}
-
+func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.CsvRow, err error) {
 	for _, event := range events {
 		//Is this a MsgSend
 		if bank.IsMsgSend[event.Message.MessageType.MessageType] {
 			rows = append(rows, ParseMsgSend(address, event))
 		} else if bank.IsMsgMultiSend[event.Message.MessageType.MessageType] {
 			rows = append(rows, ParseMsgMultiSend(address, event))
-		} else if distribution.IsMsgFundCommunityPool[event.Message.MessageType.MessageType] {
+		} else if distribution.MsgFundCommunityPool == event.Message.MessageType.MessageType {
 			rows = append(rows, ParseMsgFundCommunityPool(address, event))
 		} else if distribution.IsMsgWithdrawValidatorCommission[event.Message.MessageType.MessageType] {
 			rows = append(rows, ParseMsgWithdrawValidatorCommission(address, event))
 		} else if distribution.IsMsgWithdrawDelegatorReward[event.Message.MessageType.MessageType] {
 			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
-		} else if staking.IsMsgDelegate[event.Message.MessageType.MessageType] {
+		} else if staking.MsgDelegate == event.Message.MessageType.MessageType {
 			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
-		} else if staking.IsMsgUndelegate[event.Message.MessageType.MessageType] {
+		} else if staking.MsgUndelegate == event.Message.MessageType.MessageType {
 			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
-		} else if staking.IsMsgBeginRedelegate[event.Message.MessageType.MessageType] {
+		} else if staking.MsgBeginRedelegate == event.Message.MessageType.MessageType {
 			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
-		} else if gamm.IsMsgSwapExactAmountIn[event.Message.MessageType.MessageType] {
+		} else if gamm.MsgSwapExactAmountIn == event.Message.MessageType.MessageType {
 			rows = append(rows, ParseMsgSwapExactAmountIn(event))
-		} else if gamm.IsMsgSwapExactAmountOut[event.Message.MessageType.MessageType] {
+		} else if gamm.MsgSwapExactAmountOut == event.Message.MessageType.MessageType {
 			rows = append(rows, ParseMsgSwapExactAmountOut(event))
 		} else {
-			config.Log.Error(fmt.Sprintf("No parser for message type '%v'", event.Message.MessageType.MessageType))
+			return nil, fmt.Errorf("no parser for message type '%v'", event.Message.MessageType.MessageType)
 		}
 	}
 

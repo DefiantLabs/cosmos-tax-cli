@@ -60,15 +60,6 @@ type MessageType struct {
 	MessageType string `gorm:"uniqueIndex;not null"`
 }
 
-/*
-type UnhandledMessage struct {
-	ID            uint
-	MessageTypeID string `gorm:"foreignKey:MessageTypeID"`
-	MessageIndex  int
-}
-
-*/
-
 type Message struct {
 	ID            uint
 	TxID          uint

@@ -31,14 +31,14 @@ import (
 
 // Unmarshal JSON to a particular type.
 var messageTypeHandler = map[string]func() txTypes.CosmosMessage{
-	"/cosmos.bank.v1beta1.MsgSend":                                func() txTypes.CosmosMessage { return &bank.WrapperMsgSend{} },
-	"/cosmos.bank.v1beta1.MsgMultiSend":                           func() txTypes.CosmosMessage { return &bank.WrapperMsgMultiSend{} },
-	"/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward":     func() txTypes.CosmosMessage { return &distribution.WrapperMsgWithdrawDelegatorReward{} },
-	"/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission": func() txTypes.CosmosMessage { return &distribution.WrapperMsgWithdrawValidatorCommission{} },
-	"/cosmos.distribution.v1beta1.MsgFundCommunityPool":           func() txTypes.CosmosMessage { return &distribution.WrapperMsgFundCommunityPool{} },
-	"/cosmos.staking.v1beta1.MsgDelegate":                         func() txTypes.CosmosMessage { return &staking.WrapperMsgDelegate{} },
-	"/cosmos.staking.v1beta1.MsgUndelegate":                       func() txTypes.CosmosMessage { return &staking.WrapperMsgUndelegate{} },
-	"/cosmos.staking.v1beta1.MsgBeginRedelegate":                  func() txTypes.CosmosMessage { return &staking.WrapperMsgBeginRedelegate{} },
+	bank.MsgSend:                                func() txTypes.CosmosMessage { return &bank.WrapperMsgSend{} },
+	bank.MsgMultiSend:                           func() txTypes.CosmosMessage { return &bank.WrapperMsgMultiSend{} },
+	distribution.MsgWithdrawDelegatorReward:     func() txTypes.CosmosMessage { return &distribution.WrapperMsgWithdrawDelegatorReward{} },
+	distribution.MsgWithdrawValidatorCommission: func() txTypes.CosmosMessage { return &distribution.WrapperMsgWithdrawValidatorCommission{} },
+	distribution.MsgFundCommunityPool:           func() txTypes.CosmosMessage { return &distribution.WrapperMsgFundCommunityPool{} },
+	staking.MsgDelegate:                         func() txTypes.CosmosMessage { return &staking.WrapperMsgDelegate{} },
+	staking.MsgUndelegate:                       func() txTypes.CosmosMessage { return &staking.WrapperMsgUndelegate{} },
+	staking.MsgBeginRedelegate:                  func() txTypes.CosmosMessage { return &staking.WrapperMsgBeginRedelegate{} },
 }
 
 // Merge the chain specific message type handlers into the core message type handler map

@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func TestOsmoParsing(t *testing.T) {
+func TestOsmoTransferParsing(t *testing.T) {
 	// setup parser
 	parser := GetParser(accointing.ParserKey)
 	cfg := config.Config{}
@@ -26,19 +26,29 @@ func TestOsmoParsing(t *testing.T) {
 	chain := mkChain(1, osmosis.ChainID, osmosis.Name)
 
 	// make transactions like those you would get from the DB
-	taxableTxs := getTestTXs(t, targetAddress, chain)
+	transferTxs := getTestTransferTXs(t, targetAddress, chain)
 
 	// attempt to parse
-	err := parser.ProcessTaxableTx(targetAddress.Address, taxableTxs)
+	err := parser.ProcessTaxableTx(targetAddress.Address, transferTxs)
 	assert.Nil(t, err, "should not get error from parsing these transactions")
 
 	// validate output
+	rows := parser.GetRows()
+	assert.Equalf(t, len(transferTxs), len(rows), "you should have one row for each transfer transaction ")
 	// TODO: validate the output from the process func
 }
 
-func getTestTXs(t *testing.T, targetAddress db.Address, targetChain db.Chain) []db.TaxableTransaction {
+func getTestTransferTXs(t *testing.T, targetAddress db.Address, targetChain db.Chain) []db.TaxableTransaction {
+	// TODO: create test transaction
+
 	TXs := []db.TaxableTransaction{}
-	// TODO: actually make some transactions
+	// create some blocks to put the transactions in
+	//block1 := mkBlk(1, 1, targetChain)
+	//block2 := mkBlk(2, 2, targetChain)
+
+	// create the transfer msg type
+	//mkMsgType(1, gamm.MsgSwapExactAmountIn)
+
 	return TXs
 }
 
@@ -101,11 +111,11 @@ func mkTx(id uint, time time.Time, hash string, code uint32, blockID uint, block
 	}
 }
 
-func mkBlk(id uint, height int64, chainID uint, chain db.Chain) db.Block {
+func mkBlk(id uint, height int64, chain db.Chain) db.Block {
 	return db.Block{
 		ID:           id,
 		Height:       height,
-		BlockchainID: chainID,
+		BlockchainID: chain.ID,
 		Chain:        chain,
 	}
 }

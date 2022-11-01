@@ -15,18 +15,22 @@ import (
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
-var IsMsgFundCommunityPool = map[string]bool{
-	"/cosmos.distribution.v1beta1.MsgFundCommunityPool": true,
-}
+const (
+	MsgFundCommunityPool           = "/cosmos.distribution.v1beta1.MsgFundCommunityPool"
+	MsgWithdrawValidatorCommission = "/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission"
+	MsgWithdrawDelegatorReward     = "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward"
+)
+
+// TODO: are these maps needed? When is that other string used?
 
 var IsMsgWithdrawValidatorCommission = map[string]bool{
-	"/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission": true,
-	"withdraw-rewards": true, //NOTE/TODO: not 100% sure if this is only on delegator or validator withdrawal...
+	MsgWithdrawValidatorCommission: true,
+	"withdraw-rewards":             true, //NOTE/TODO: not 100% sure if this is only on delegator or validator withdrawal...
 }
 
 var IsMsgWithdrawDelegatorReward = map[string]bool{
-	"/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward": true,
-	"withdraw-rewards": true, //NOTE/TODO: not 100% sure if this is only on delegator or validator withdrawal...
+	MsgWithdrawDelegatorReward: true,
+	"withdraw-rewards":         true, //NOTE/TODO: not 100% sure if this is only on delegator or validator withdrawal...
 }
 
 type WrapperMsgFundCommunityPool struct {

@@ -11,14 +11,21 @@ import (
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
+const (
+	MsgSend      = "/cosmos.bank.v1beta1.MsgSend"
+	MsgMultiSend = "/cosmos.bank.v1beta1.MsgMultiSend"
+)
+
+// TODO: are these maps needed? When is that other string used?
+
 var IsMsgSend = map[string]bool{
-	"MsgSend":                      true,
-	"/cosmos.bank.v1beta1.MsgSend": true,
+	"MsgSend": true,
+	MsgSend:   true,
 }
 
 var IsMsgMultiSend = map[string]bool{
-	"MsgMultiSend":                      true,
-	"/cosmos.bank.v1beta1.MsgMultiSend": true,
+	"MsgMultiSend": true,
+	MsgMultiSend:   true,
 }
 
 // HandleMsg: Unmarshal JSON for MsgSend.

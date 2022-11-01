@@ -3,19 +3,20 @@ package accointing
 import (
 	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
 )
 
 var IsOsmosisJoin = map[string]bool{
-	"/osmosis.gamm.v1beta1.MsgJoinSwapExternAmountIn": true,
-	"/osmosis.gamm.v1beta1.MsgJoinSwapShareAmountOut": true,
-	"/osmosis.gamm.v1beta1.MsgJoinPool":               true,
+	gamm.MsgJoinSwapExternAmountIn: true,
+	gamm.MsgJoinSwapShareAmountOut: true,
+	gamm.MsgJoinPool:               true,
 }
 
 var IsOsmosisExit = map[string]bool{
-	"/osmosis.gamm.v1beta1.MsgExitSwapShareAmountIn":   true,
-	"/osmosis.gamm.v1beta1.MsgExitSwapExternAmountOut": true,
-	"/osmosis.gamm.v1beta1.MsgExitPool":                true,
+	gamm.MsgExitSwapShareAmountIn:   true,
+	gamm.MsgExitSwapExternAmountOut: true,
+	gamm.MsgExitPool:                true,
 }
 
 // Guard for adding messages to the group
