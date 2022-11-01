@@ -79,17 +79,12 @@ func (p *Parser) InitializeParsingGroups(config config.Config) {
 
 func (p *Parser) GetRows() []parsers.CsvRow {
 	//Combine all normal rows and parser group rows into 1
-	var accointingRows []Row
-	var parserGroupRows []Row
-
+	accointingRows := p.Rows // contains TX rows and fees as well as taxable events
 	for _, v := range p.ParsingGroups {
 		for _, row := range v.GetRowsForParsingGroup() {
-			parserGroupRows = append(parserGroupRows, row.(Row))
+			accointingRows = append(accointingRows, row.(Row))
 		}
 	}
-
-	accointingRows = append(accointingRows, p.Rows...)
-	accointingRows = append(accointingRows, parserGroupRows...)
 
 	//Sort by date
 	sort.Slice(accointingRows, func(i int, j int) bool {
@@ -106,14 +101,13 @@ func (p *Parser) GetRows() []parsers.CsvRow {
 		return leftDate.Before(rightDate)
 	})
 
-	//Copy AccointingRows into CsvRows for return val
-	rows := make([]parsers.CsvRow, len(accointingRows))
-
+	//Copy AccointingRows into csvRows for return val
+	csvRows := make([]parsers.CsvRow, len(accointingRows))
 	for i, v := range accointingRows {
-		rows[i] = v
+		csvRows[i] = v
 	}
 
-	return rows
+	return csvRows
 }
 
 func (p Parser) GetHeaders() []string {
