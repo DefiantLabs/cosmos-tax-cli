@@ -70,6 +70,7 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 	for _, txMessages := range sf.GroupedTxes {
 		for _, message := range txMessages {
 			row := Row{}
+			row.TransactionType = Order
 			row.OperationID = message.Message.Tx.Hash
 			row.Date = message.Message.Tx.TimeStamp.Format(timeLayout)
 			//We deliberately exclude the GAMM tokens from OutSell/InBuy for Exits/Joins respectively
@@ -85,10 +86,6 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 					row.InBuyAmount = conversionAmount.Text('f', -1)
 					row.InBuyAsset = conversionSymbol
 				}
-
-				row.TransactionType = Deposit
-				row.Classification = LiquidityPool
-				sf.Rows = append(sf.Rows, row)
 			} else if _, ok := IsOsmosisJoin[message.Message.MessageType.MessageType]; ok {
 				denomSent := message.DenominationSent
 				valueSent := message.AmountSent
@@ -100,9 +97,9 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 					row.OutSellAmount = conversionAmount.Text('f', -1)
 					row.OutSellAsset = conversionSymbol
 				}
-				row.TransactionType = Withdraw
-				sf.Rows = append(sf.Rows, row)
 			}
+			//FIXME: add the value of gam tokens
+			sf.Rows = append(sf.Rows, row)
 		}
 	}
 	return nil

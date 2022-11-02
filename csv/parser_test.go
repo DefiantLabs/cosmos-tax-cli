@@ -11,9 +11,12 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
+	"log"
 	"testing"
 	"time"
 )
+
+// TODO: Write test to assert that osmosis rewards (aka taxable events) are tagged as deposits and classified as 'liquidity_pool'
 
 func TestOsmoLPParsing(t *testing.T) {
 	// setup parser
@@ -36,6 +39,17 @@ func TestOsmoLPParsing(t *testing.T) {
 	// validate output
 	rows := parser.GetRows()
 	assert.Equalf(t, len(transferTxs), len(rows), "you should have one row for each transfer transaction ")
+
+	// all transactions should be orders classified as liquidity_pool
+	for _, row := range rows {
+		cols := row.GetRowForCsv()
+		assert.Equal(t, cols[0], "order", "transaction type should be an order")
+		assert.Equal(t, cols[8], "", "transaction should not have a classification")
+		assert.Contains(t, cols[10], "USD", "comment should say value of gam at that point in time")
+	}
+
+	log.Printf("%+v", rows)
+
 	// TODO: validate the output from the process func
 }
 
