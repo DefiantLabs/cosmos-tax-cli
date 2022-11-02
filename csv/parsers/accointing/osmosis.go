@@ -74,33 +74,36 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 			row.TransactionType = Order
 			row.OperationID = message.Message.Tx.Hash
 			row.Date = message.Message.Tx.TimeStamp.Format(timeLayout)
+
+			denomRecieved := message.DenominationReceived
+			valueRecieved := message.AmountReceived
+			conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(valueRecieved), denomRecieved)
+			if err != nil {
+				row.InBuyAmount = util.NumericToString(valueRecieved)
+				row.InBuyAsset = denomRecieved.Base
+			} else {
+				row.InBuyAmount = conversionAmount.Text('f', -1)
+				row.InBuyAsset = conversionSymbol
+			}
+
+			denomSent := message.DenominationSent
+			valueSent := message.AmountSent
+			conversionAmount, conversionSymbol, err = db.ConvertUnits(util.FromNumeric(valueSent), denomSent)
+			if err != nil {
+				row.OutSellAmount = util.NumericToString(valueSent)
+				row.OutSellAsset = denomSent.Base
+			} else {
+				row.OutSellAmount = conversionAmount.Text('f', -1)
+				row.OutSellAsset = conversionSymbol
+			}
+
 			//We deliberately exclude the GAMM tokens from OutSell/InBuy for Exits/Joins respectively
 			//Accointing has no way of using the GAMM token to determine LP cost basis etc...
 			if _, ok := IsOsmosisExit[message.Message.MessageType.MessageType]; ok {
-				denomRecieved := message.DenominationReceived
-				valueRecieved := message.AmountReceived
-				conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(valueRecieved), denomRecieved)
-				if err != nil {
-					row.InBuyAmount = util.NumericToString(valueRecieved)
-					row.InBuyAsset = denomRecieved.Base
-				} else {
-					row.InBuyAmount = conversionAmount.Text('f', -1)
-					row.InBuyAsset = conversionSymbol
-				}
 				// add the value of gam tokens
 				gamValue := 100 //FIXME: pull this from API
 				row.Comments = fmt.Sprintf("%v %v on %v was $%v USD", message.AmountSent, message.DenominationSent.Base, row.Date, gamValue)
 			} else if _, ok := IsOsmosisJoin[message.Message.MessageType.MessageType]; ok {
-				denomSent := message.DenominationSent
-				valueSent := message.AmountSent
-				conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(valueSent), denomSent)
-				if err != nil {
-					row.OutSellAmount = util.NumericToString(valueSent)
-					row.OutSellAsset = denomSent.Base
-				} else {
-					row.OutSellAmount = conversionAmount.Text('f', -1)
-					row.OutSellAsset = conversionSymbol
-				}
 				// add the value of gam tokens
 				gamValue := 100 //FIXME: pull this from API
 				row.Comments = fmt.Sprintf("%v %v on %v was $%v USD", message.AmountReceived, message.DenominationReceived.Base, row.Date, gamValue)

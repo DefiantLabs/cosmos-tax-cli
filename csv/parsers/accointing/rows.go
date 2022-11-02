@@ -21,7 +21,7 @@ func (row Row) GetRowForCsv() []string {
 		row.FeeAsset,
 		row.Classification.String(),
 		row.OperationID,
-		"",
+		row.Comments,
 	}
 }
 

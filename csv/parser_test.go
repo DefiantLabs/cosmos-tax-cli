@@ -11,7 +11,6 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
-	"log"
 	"testing"
 	"time"
 )
@@ -49,8 +48,6 @@ func TestOsmoLPParsing(t *testing.T) {
 		assert.Equal(t, cols[8], "", "transaction should not have a classification")
 		assert.Contains(t, cols[10], "USD", "comment should say value of gam at that point in time")
 	}
-
-	log.Printf("%+v", rows)
 
 	// TODO: validate the output from the process func
 }
@@ -96,8 +93,8 @@ func getTestTransferTXs(t *testing.T, targetAddress db.Address, targetChain db.C
 
 	// create denoms
 	osmo, osmoDenomUnit := mkDenom(1, "uosmo", "Osmosis", "OSMO")
-	gamm560, gamm560DenomUnit := mkDenom(704, "gamm/pool/560", "UNKNOWN", "UNKNOWN")
 	terraClassicUSD, terraClassicUSDDenomUnit := mkDenom(2, "ibc/BE1BB42D4BE3C30D50B68D7C41DB4DFCE9678E8EF8C539F6E6A9345048894FCC", "TerraClassicUSD", "USTC")
+	gamm560, gamm560DenomUnit := mkDenom(704, "gamm/pool/560", "UNKNOWN", "UNKNOWN")
 
 	// populate denom cache
 	db.CachedDenomUnits = []db.DenomUnit{osmoDenomUnit, gamm560DenomUnit, terraClassicUSDDenomUnit}
@@ -105,11 +102,11 @@ func getTestTransferTXs(t *testing.T, targetAddress db.Address, targetChain db.C
 	// create taxable transactions
 	joinSwapExternAmountInTaxableTX := mkTaxableTransaction(1, joinSwapExternAmountInMsg, decimal.NewFromInt(12200000), decimal.NewFromInt(1384385853426963652), osmo, gamm560, targetAddress, randoAddress)
 	//joinSwapShareAmountOutTX := mkTaxableTransaction(2, joinSwapShareAmountOutMsg, decimal.NewFromInt(12200000), decimal.NewFromInt(1384385853426963652), OSMO, gamm560, targetAddress, randoAddress)
-	joinPoolTaxableTX1 := mkTaxableTransaction(3, joinPoolMsg, decimal.NewFromInt(116419), decimal.NewFromFloat(51300417885616316441389), terraClassicUSD, gamm560, targetAddress, randoAddress)
-	joinPoolTaxableTX2 := mkTaxableTransaction(4, joinPoolMsg, decimal.NewFromInt(29999999), decimal.NewFromInt(0), osmo, gamm560, targetAddress, randoAddress)
+	joinPoolTaxableTX1 := mkTaxableTransaction(3, joinPoolMsg, decimal.NewFromInt(116419), decimal.NewFromFloat(25650208942808158220694), terraClassicUSD, gamm560, targetAddress, randoAddress)
+	joinPoolTaxableTX2 := mkTaxableTransaction(4, joinPoolMsg, decimal.NewFromInt(29999999), decimal.NewFromFloat(25650208942808158220695), osmo, gamm560, targetAddress, randoAddress)
 
-	exitPoolTaxableTX1 := mkTaxableTransaction(5, exitPoolMsg, decimal.NewFromInt(1098138740099371688), decimal.NewFromInt(31167087), gamm560, terraClassicUSD, targetAddress, targetAddress)
-	exitPoolTaxableTX2 := mkTaxableTransaction(6, exitPoolMsg, decimal.NewFromInt(0), decimal.NewFromInt(4839721), gamm560, osmo, targetAddress, targetAddress)
+	exitPoolTaxableTX1 := mkTaxableTransaction(5, exitPoolMsg, decimal.NewFromInt(549069370049685844), decimal.NewFromInt(31167087), gamm560, terraClassicUSD, targetAddress, targetAddress)
+	exitPoolTaxableTX2 := mkTaxableTransaction(6, exitPoolMsg, decimal.NewFromInt(549069370049685844), decimal.NewFromInt(4839721), gamm560, osmo, targetAddress, targetAddress)
 
 	return []db.TaxableTransaction{joinSwapExternAmountInTaxableTX, joinPoolTaxableTX1, joinPoolTaxableTX2, exitPoolTaxableTX1, exitPoolTaxableTX2}
 }
