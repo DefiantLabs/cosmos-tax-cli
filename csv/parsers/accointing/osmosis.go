@@ -8,9 +8,33 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
 	"github.com/preichenberger/go-coinbasepro/v2"
 	"github.com/shopspring/decimal"
-	"strings"
 	"time"
 )
+
+var IsOsmosisJoin = map[string]bool{
+	gamm.MsgJoinSwapExternAmountIn: true,
+	gamm.MsgJoinSwapShareAmountOut: true,
+	gamm.MsgJoinPool:               true,
+}
+
+var IsOsmosisExit = map[string]bool{
+	gamm.MsgExitSwapShareAmountIn:   true,
+	gamm.MsgExitSwapExternAmountOut: true,
+	gamm.MsgExitPool:                true,
+}
+
+// Guard for adding messages to the group
+var IsOsmosisLpTxGroup = make(map[string]bool)
+
+func init() {
+	for messageType := range IsOsmosisJoin {
+		IsOsmosisLpTxGroup[messageType] = true
+	}
+
+	for messageType := range IsOsmosisExit {
+		IsOsmosisLpTxGroup[messageType] = true
+	}
+}
 
 type WrapperLpTxGroup struct {
 	GroupedTxes map[uint][]db.TaxableTransaction //TX db ID to its messages
@@ -22,7 +46,7 @@ func (sf *WrapperLpTxGroup) GetRowsForParsingGroup() []parsers.CsvRow {
 }
 
 func (sf *WrapperLpTxGroup) BelongsToGroup(message db.TaxableTransaction) bool {
-	_, isInGroup := gamm.IsOsmosisLpMsg[message.Message.MessageType.MessageType]
+	_, isInGroup := IsOsmosisLpTxGroup[message.Message.MessageType.MessageType]
 	return isInGroup
 }
 
@@ -61,18 +85,6 @@ func getRate(cbClient *coinbasepro.Client, coin string, transactionTime time.Tim
 	return histRate[0].Close, nil
 }
 
-func lpTransactionType(denomSent, denomRecieved string) gamm.LPTransaction {
-	gammsSent := strings.Contains(denomSent, "gamm")
-	gammsRecieved := strings.Contains(denomRecieved, "gamm")
-	if gammsSent && !gammsRecieved {
-		return gamm.Exit
-	}
-	if gammsRecieved && !gammsSent {
-		return gamm.Join
-	}
-	return gamm.None
-}
-
 func (sf *WrapperLpTxGroup) ParseGroup() error {
 	//TODO: Do specialized processing on LP messages
 	cbClient := coinbasepro.NewClient()
@@ -107,8 +119,7 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 
 			//We deliberately exclude the GAMM tokens from OutSell/InBuy for Exits/Joins respectively
 			//Accointing has no way of using the GAMM token to determine LP cost basis etc...
-			lpTXType := lpTransactionType(denomSent.Base, denomRecieved.Base)
-			if lpTXType == gamm.Exit {
+			if _, ok := IsOsmosisExit[message.Message.MessageType.MessageType]; ok {
 				// add the value of gam tokens
 				price, err := getRate(cbClient, message.DenominationReceived.Symbol, message.Message.Tx.TimeStamp)
 				if err != nil {
@@ -117,7 +128,7 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 					gamValue := message.AmountReceived.Mul(decimal.NewFromFloat(price))
 					row.Comments = fmt.Sprintf("%v %v on %v was $%v USD", message.AmountSent, message.DenominationSent.Base, row.Date, gamValue)
 				}
-			} else if lpTXType == gamm.Join {
+			} else if _, ok := IsOsmosisJoin[message.Message.MessageType.MessageType]; ok {
 				// add the value of gam tokens
 				price, err := getRate(cbClient, message.DenominationSent.Symbol, message.Message.Tx.TimeStamp)
 				if err != nil {

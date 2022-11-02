@@ -23,25 +23,6 @@ const (
 	MsgExitPool                = "/osmosis.gamm.v1beta1.MsgExitPool"
 )
 
-var IsOsmosisLpMsg = map[string]bool{
-	MsgSwapExactAmountIn:       true,
-	MsgSwapExactAmountOut:      true,
-	MsgJoinSwapExternAmountIn:  true,
-	MsgJoinSwapShareAmountOut:  true,
-	MsgJoinPool:                true,
-	MsgExitSwapShareAmountIn:   true,
-	MsgExitSwapExternAmountOut: true,
-	MsgExitPool:                true,
-}
-
-type LPTransaction int
-
-const (
-	None LPTransaction = iota
-	Join
-	Exit
-)
-
 type WrapperMsgSwapExactAmountIn struct {
 	txModule.Message
 	OsmosisMsgSwapExactAmountIn *gammTypes.MsgSwapExactAmountIn

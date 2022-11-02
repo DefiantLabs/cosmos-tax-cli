@@ -17,7 +17,6 @@ import (
 )
 
 // TODO: Write test to assert that osmosis rewards (aka taxable events) are tagged as deposits and classified as 'liquidity_pool'
-// TODO: Write tests for the rest of the LP swap msgs
 
 func TestOsmoLPParsing(t *testing.T) {
 	// setup parser
@@ -64,15 +63,13 @@ func getTestTransferTXs(t *testing.T, targetAddress db.Address, targetChain db.C
 
 	// create the transfer msg type
 	// joins
-	//swapExactAmountIn := mkMsgType(1, gamm.MsgSwapExactAmountIn) // FIXME: We don't currently handle these in IsOsmosisJoin/IsOsmosisExit
-	//swapExactAmountOut := mkMsgType(2, gamm.MsgSwapExactAmountOut)
-	joinSwapExternAmountIn := mkMsgType(3, gamm.MsgJoinSwapExternAmountIn)
-	//joinSwapShareAmountOut := mkMsgType(4, gamm.MsgJoinSwapShareAmountOut) // FIXME: I need an example transaction for this....
-	joinPool := mkMsgType(5, gamm.MsgJoinPool)
+	joinSwapExternAmountIn := mkMsgType(1, gamm.MsgJoinSwapExternAmountIn)
+	//joinSwapShareAmountOut := mkMsgType(2, gamm.MsgJoinSwapShareAmountOut) // FIXME: add this in
+	joinPool := mkMsgType(3, gamm.MsgJoinPool)
 	// leaves
-	//exitSwapShareAmountIn := mkMsgType(6, gamm.MsgExitSwapShareAmountIn)     // FIXME: I need an example transaction for this....
-	//exitSwapExternAmountOut := mkMsgType(7, gamm.MsgExitSwapExternAmountOut) // FIXME: I need an example transaction for this....
-	exitPool := mkMsgType(8, gamm.MsgExitPool)
+	//exitSwapShareAmountIn := mkMsgType(4, gamm.MsgExitSwapShareAmountIn)     // FIXME: add this in
+	//exitSwapExternAmountOut := mkMsgType(5, gamm.MsgExitSwapExternAmountOut) // FIXME: add this in
+	exitPool := mkMsgType(6, gamm.MsgExitPool)
 
 	// TxTimes
 	oneYearAgo := time.Now().Add(-1 * time.Hour * 24 * 365)
