@@ -1,6 +1,7 @@
 package accointing
 
 import (
+	"fmt"
 	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
@@ -86,6 +87,9 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 					row.InBuyAmount = conversionAmount.Text('f', -1)
 					row.InBuyAsset = conversionSymbol
 				}
+				// add the value of gam tokens
+				gamValue := 100 //FIXME: pull this from API
+				row.Comments = fmt.Sprintf("%v %v on %v was $%v USD", message.AmountSent, message.DenominationSent.Base, row.Date, gamValue)
 			} else if _, ok := IsOsmosisJoin[message.Message.MessageType.MessageType]; ok {
 				denomSent := message.DenominationSent
 				valueSent := message.AmountSent
@@ -97,8 +101,10 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 					row.OutSellAmount = conversionAmount.Text('f', -1)
 					row.OutSellAsset = conversionSymbol
 				}
+				// add the value of gam tokens
+				gamValue := 100 //FIXME: pull this from API
+				row.Comments = fmt.Sprintf("%v %v on %v was $%v USD", message.AmountReceived, message.DenominationReceived.Base, row.Date, gamValue)
 			}
-			//FIXME: add the value of gam tokens
 			sf.Rows = append(sf.Rows, row)
 		}
 	}

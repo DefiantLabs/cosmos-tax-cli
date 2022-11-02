@@ -17,6 +17,7 @@ import (
 )
 
 // TODO: Write test to assert that osmosis rewards (aka taxable events) are tagged as deposits and classified as 'liquidity_pool'
+// TODO: Write tests for the two swap msgs not currently supported (after adding support)
 
 func TestOsmoLPParsing(t *testing.T) {
 	// setup parser
@@ -43,6 +44,7 @@ func TestOsmoLPParsing(t *testing.T) {
 	// all transactions should be orders classified as liquidity_pool
 	for _, row := range rows {
 		cols := row.GetRowForCsv()
+		// assert on gamms being present
 		assert.Equal(t, cols[0], "order", "transaction type should be an order")
 		assert.Equal(t, cols[8], "", "transaction should not have a classification")
 		assert.Contains(t, cols[10], "USD", "comment should say value of gam at that point in time")
