@@ -1,6 +1,7 @@
 package config
 
 import (
+	ibcTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/ibc/types"
 	lensClient "github.com/strangelove-ventures/lens/client"
 	"go.uber.org/zap"
 )
@@ -14,7 +15,14 @@ func GetLensClient(conf lens) *lensClient.ChainClient {
 	if err != nil {
 		Log.Fatal("Error connecting to cain.", zap.Error(err))
 	}
+	RegisterAdditionalTypes(cl)
 	return cl
+}
+
+func RegisterAdditionalTypes(cc *lensClient.ChainClient) {
+	//Register IBC types
+	ibcTypes.RegisterLegacyAminoCodec(cc.Codec.Amino)
+	ibcTypes.RegisterInterfaces(cc.Codec.InterfaceRegistry)
 }
 
 func GetLensConfig(conf lens, debug bool) *lensClient.ChainClientConfig {
