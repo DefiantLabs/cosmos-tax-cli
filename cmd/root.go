@@ -2,26 +2,27 @@ package cmd
 
 import (
 	"fmt"
-	"go.uber.org/zap"
 	"log"
 	"os"
 	"time"
 
-	"github.com/DefiantLabs/cosmos-tax-cli/config"
-	"github.com/DefiantLabs/cosmos-tax-cli/core"
+	"go.uber.org/zap"
+
+	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/core"
 	"github.com/go-co-op/gocron"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
 
-	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
+	dbTypes "github.com/DefiantLabs/cosmos-tax-cli-private/db"
 )
 
 var (
 	cfgFile string        //config file location to load
 	conf    config.Config //stores the unmarshaled config loaded from Viper, available to all commands in the cmd package
 	rootCmd = &cobra.Command{
-		Use: "cosmos-tax-cli",
+		Use: "cosmos-tax-cli-private",
 		//TODO: Get user-friendly descriptions approved
 		Short: "A CLI tool for indexing and querying on-chain data",
 		Long: `Cosmos Tax CLI is a CLI tool for indexing and querying Cosmos-based blockchains,
@@ -37,7 +38,7 @@ func Execute() error {
 func init() {
 	//initConfig on initialize of cobra guarantees config struct will be set before all subcommands are executed
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.cosmos-tax-cli/config.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.cosmos-tax-cli-private/config.yaml)")
 }
 
 func initConfig() {
@@ -50,7 +51,7 @@ func initConfig() {
 		if err != nil {
 			log.Fatalf("Failed to find user home dir. Err: %v", err)
 		}
-		defaultCfgLocation := fmt.Sprintf("%s/.cosmos-tax-cli", home)
+		defaultCfgLocation := fmt.Sprintf("%s/.cosmos-tax-cli-private", home)
 
 		viper.AddConfigPath(defaultCfgLocation)
 		viper.SetConfigType("toml")

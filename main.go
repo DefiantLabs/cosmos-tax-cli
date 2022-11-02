@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/DefiantLabs/cosmos-tax-cli/cmd"
 	"log"
+
+	"github.com/DefiantLabs/cosmos-tax-cli-private/cmd"
 )
 
 func main() {

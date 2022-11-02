@@ -1,13 +1,14 @@
 package test
 
 import (
-	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 	"math/big"
 	"strings"
 	"testing"
 
-	dbUtils "github.com/DefiantLabs/cosmos-tax-cli/db"
-	"github.com/DefiantLabs/cosmos-tax-cli/util"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
+
+	dbUtils "github.com/DefiantLabs/cosmos-tax-cli-private/db"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
 	"github.com/stretchr/testify/assert"
 )
 

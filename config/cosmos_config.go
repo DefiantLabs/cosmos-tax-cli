@@ -1,8 +1,9 @@
 package config
 
 import (
-	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 	"strings"
+
+	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )

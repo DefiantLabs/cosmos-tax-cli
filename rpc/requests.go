@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	denoms "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/denoms"
+	denoms "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/denoms"
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	txTypes "github.com/cosmos/cosmos-sdk/types/tx"

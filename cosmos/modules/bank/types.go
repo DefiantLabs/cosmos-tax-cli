@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
-	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
+	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
+	txModule "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
