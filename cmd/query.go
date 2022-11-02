@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	"go.uber.org/zap"
+	"log"
 	"os"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/csv"
@@ -41,6 +42,7 @@ var queryCmd = &cobra.Command{
 
 		csvRows, headers, err := csv.ParseForAddress(address, db, format, conf)
 		if err != nil {
+			log.Println(address)
 			config.Log.Fatal("Error calling parser for address", zap.Error(err))
 		}
 

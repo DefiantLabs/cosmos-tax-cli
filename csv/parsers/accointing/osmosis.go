@@ -6,6 +6,9 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
+	"github.com/preichenberger/go-coinbasepro/v2"
+	"github.com/shopspring/decimal"
+	"time"
 )
 
 var IsOsmosisJoin = map[string]bool{
@@ -66,8 +69,25 @@ func (sf *WrapperLpTxGroup) AddTxToGroup(tx db.TaxableTransaction) {
 	}
 }
 
+func getRate(cbClient *coinbasepro.Client, coin string, transactionTime time.Time) (float64, error) {
+	histRate, err := cbClient.GetHistoricRates(fmt.Sprintf("%v-USD", coin), coinbasepro.GetHistoricRatesParams{
+		Start:       transactionTime.Add(-1 * time.Minute),
+		End:         transactionTime,
+		Granularity: 60,
+	})
+	if err != nil {
+		return 0.0, fmt.Errorf("unable to get price for coin '%v' at time '%v'. Err: %v", coin, transactionTime, err)
+	}
+	if len(histRate) == 0 {
+		return 0.0, fmt.Errorf("unable to get price for coin '%v' at time '%v'", coin, transactionTime)
+	}
+
+	return histRate[0].Close, nil
+}
+
 func (sf *WrapperLpTxGroup) ParseGroup() error {
 	//TODO: Do specialized processing on LP messages
+	cbClient := coinbasepro.NewClient()
 	for _, txMessages := range sf.GroupedTxes {
 		for _, message := range txMessages {
 			row := Row{}
@@ -101,12 +121,22 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 			//Accointing has no way of using the GAMM token to determine LP cost basis etc...
 			if _, ok := IsOsmosisExit[message.Message.MessageType.MessageType]; ok {
 				// add the value of gam tokens
-				gamValue := 100 //FIXME: pull this from API
-				row.Comments = fmt.Sprintf("%v %v on %v was $%v USD", message.AmountSent, message.DenominationSent.Base, row.Date, gamValue)
+				price, err := getRate(cbClient, message.DenominationReceived.Symbol, message.Message.Tx.TimeStamp)
+				if err != nil {
+					row.Comments = fmt.Sprintf("could not lookup value of %v %v. It will be equivolent to %v %v at %v.", message.AmountReceived, message.DenominationReceived.Base, message.AmountReceived, message.DenominationReceived.Symbol, row.Date)
+				} else {
+					gamValue := message.AmountReceived.Mul(decimal.NewFromFloat(price))
+					row.Comments = fmt.Sprintf("%v %v on %v was $%v USD", message.AmountSent, message.DenominationSent.Base, row.Date, gamValue)
+				}
 			} else if _, ok := IsOsmosisJoin[message.Message.MessageType.MessageType]; ok {
 				// add the value of gam tokens
-				gamValue := 100 //FIXME: pull this from API
-				row.Comments = fmt.Sprintf("%v %v on %v was $%v USD", message.AmountReceived, message.DenominationReceived.Base, row.Date, gamValue)
+				price, err := getRate(cbClient, message.DenominationSent.Symbol, message.Message.Tx.TimeStamp)
+				if err != nil {
+					row.Comments = fmt.Sprintf("could not lookup value of %v %v. It will be equivolent to %v %v at %v.", message.AmountReceived, message.DenominationReceived.Base, message.AmountSent, message.DenominationSent.Symbol, row.Date)
+				} else {
+					gamValue := message.AmountSent.Mul(decimal.NewFromFloat(price))
+					row.Comments = fmt.Sprintf("%v %v on %v was $%v USD", message.AmountReceived, message.DenominationReceived.Base, row.Date, gamValue)
+				}
 			}
 			sf.Rows = append(sf.Rows, row)
 		}
