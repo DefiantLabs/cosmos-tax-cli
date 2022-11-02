@@ -13,14 +13,33 @@ import (
 )
 
 const (
-	MsgSwapExactAmountIn       = "/osmosis.gamm.v1beta1.MsgSwapExactAmountIn"  //FIXME: I don't think these are currently supported in the parser
-	MsgSwapExactAmountOut      = "/osmosis.gamm.v1beta1.MsgSwapExactAmountOut" //FIXME: I don't think these are currently supported in the parser
+	MsgSwapExactAmountIn       = "/osmosis.gamm.v1beta1.MsgSwapExactAmountIn"
+	MsgSwapExactAmountOut      = "/osmosis.gamm.v1beta1.MsgSwapExactAmountOut"
 	MsgJoinSwapExternAmountIn  = "/osmosis.gamm.v1beta1.MsgJoinSwapExternAmountIn"
 	MsgJoinSwapShareAmountOut  = "/osmosis.gamm.v1beta1.MsgJoinSwapShareAmountOut"
 	MsgJoinPool                = "/osmosis.gamm.v1beta1.MsgJoinPool"
 	MsgExitSwapShareAmountIn   = "/osmosis.gamm.v1beta1.MsgExitSwapShareAmountIn"
 	MsgExitSwapExternAmountOut = "/osmosis.gamm.v1beta1.MsgExitSwapExternAmountOut"
 	MsgExitPool                = "/osmosis.gamm.v1beta1.MsgExitPool"
+)
+
+var IsOsmosisLpMsg = map[string]bool{
+	MsgSwapExactAmountIn:       true,
+	MsgSwapExactAmountOut:      true,
+	MsgJoinSwapExternAmountIn:  true,
+	MsgJoinSwapShareAmountOut:  true,
+	MsgJoinPool:                true,
+	MsgExitSwapShareAmountIn:   true,
+	MsgExitSwapExternAmountOut: true,
+	MsgExitPool:                true,
+}
+
+type LPTransaction int
+
+const (
+	None LPTransaction = iota
+	Join
+	Exit
 )
 
 type WrapperMsgSwapExactAmountIn struct {

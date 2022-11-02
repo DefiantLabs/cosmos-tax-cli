@@ -17,7 +17,7 @@ import (
 )
 
 // TODO: Write test to assert that osmosis rewards (aka taxable events) are tagged as deposits and classified as 'liquidity_pool'
-// TODO: Write tests for the two swap msgs not currently supported (after adding support)
+// TODO: Write tests for the rest of the LP swap msgs
 
 func TestOsmoLPParsing(t *testing.T) {
 	// setup parser
@@ -53,12 +53,9 @@ func TestOsmoLPParsing(t *testing.T) {
 			t.Fail()
 		}
 	}
-
-	// TODO: validate the output from the process func
 }
 
 func getTestTransferTXs(t *testing.T, targetAddress db.Address, targetChain db.Chain) []db.TaxableTransaction {
-	// TODO: create test transaction
 	randoAddress := mkAddress(t, 2)
 
 	// create some blocks to put the transactions in
@@ -66,9 +63,9 @@ func getTestTransferTXs(t *testing.T, targetAddress db.Address, targetChain db.C
 	block2 := mkBlk(2, 2, targetChain)
 
 	// create the transfer msg type
+	// joins
 	//swapExactAmountIn := mkMsgType(1, gamm.MsgSwapExactAmountIn) // FIXME: We don't currently handle these in IsOsmosisJoin/IsOsmosisExit
 	//swapExactAmountOut := mkMsgType(2, gamm.MsgSwapExactAmountOut)
-	// joins
 	joinSwapExternAmountIn := mkMsgType(3, gamm.MsgJoinSwapExternAmountIn)
 	//joinSwapShareAmountOut := mkMsgType(4, gamm.MsgJoinSwapShareAmountOut) // FIXME: I need an example transaction for this....
 	joinPool := mkMsgType(5, gamm.MsgJoinPool)
