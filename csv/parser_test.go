@@ -8,13 +8,14 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers/accointing"
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 )
 
-func TestOsmoTransferParsing(t *testing.T) {
+func TestOsmoLPParsing(t *testing.T) {
 	// setup parser
 	parser := GetParser(accointing.ParserKey)
 	cfg := config.Config{}
@@ -25,7 +26,7 @@ func TestOsmoTransferParsing(t *testing.T) {
 	targetAddress := mkAddress(t, 1)
 	chain := mkChain(1, osmosis.ChainID, osmosis.Name)
 
-	// make transactions like those you would get from the DB
+	// make transactions for this user entering and leaving LPs
 	transferTxs := getTestTransferTXs(t, targetAddress, chain)
 
 	// attempt to parse
@@ -40,51 +41,106 @@ func TestOsmoTransferParsing(t *testing.T) {
 
 func getTestTransferTXs(t *testing.T, targetAddress db.Address, targetChain db.Chain) []db.TaxableTransaction {
 	// TODO: create test transaction
+	randoAddress := mkAddress(t, 2)
 
-	TXs := []db.TaxableTransaction{}
 	// create some blocks to put the transactions in
-	//block1 := mkBlk(1, 1, targetChain)
-	//block2 := mkBlk(2, 2, targetChain)
+	block1 := mkBlk(1, 1, targetChain)
+	block2 := mkBlk(2, 2, targetChain)
 
 	// create the transfer msg type
-	//mkMsgType(1, gamm.MsgSwapExactAmountIn)
+	//swapExactAmountIn := mkMsgType(1, gamm.MsgSwapExactAmountIn) // FIXME: We don't currently handle these in IsOsmosisJoin/IsOsmosisExit
+	//swapExactAmountOut := mkMsgType(2, gamm.MsgSwapExactAmountOut)
+	// joins
+	joinSwapExternAmountIn := mkMsgType(3, gamm.MsgJoinSwapExternAmountIn)
+	//joinSwapShareAmountOut := mkMsgType(4, gamm.MsgJoinSwapShareAmountOut) // FIXME: I need an example transaction for this....
+	joinPool := mkMsgType(5, gamm.MsgJoinPool)
+	// leaves
+	//exitSwapShareAmountIn := mkMsgType(6, gamm.MsgExitSwapShareAmountIn)     // FIXME: I need an example transaction for this....
+	//exitSwapExternAmountOut := mkMsgType(7, gamm.MsgExitSwapExternAmountOut) // FIXME: I need an example transaction for this....
+	exitPool := mkMsgType(8, gamm.MsgExitPool)
 
-	return TXs
+	// TxTimes
+	oneYearAgo := time.Now().Add(-1 * time.Hour * 24 * 365)
+	sixMonthAgo := time.Now().Add(-1 * time.Hour * 24 * 182)
+
+	//FIXME: add fees
+
+	// create TXs
+	joinPoolTX := mkTx(1, oneYearAgo, "somehash", 0, block1, randoAddress, nil)
+	leavePoolTX := mkTx(2, sixMonthAgo, "somehash", 0, block2, randoAddress, nil)
+
+	// create Msgs
+	joinSwapExternAmountInMsg := mkMsg(1, joinPoolTX, joinSwapExternAmountIn, 0)
+	//joinSwapShareAmountOutMsg := mkMsg(2, joinPoolTX, joinSwapShareAmountOut, 1)
+	joinPoolMsg := mkMsg(3, joinPoolTX, joinPool, 2)
+
+	//exitSwapShareAmountInMsg := mkMsg(4, leavePoolTX, exitSwapShareAmountIn, 0)
+	//exitSwapExternAmountOutMsg := mkMsg(5, leavePoolTX, exitSwapExternAmountOut, 1)
+	exitPoolMsg := mkMsg(6, leavePoolTX, exitPool, 2)
+
+	// create denoms
+	osmo, osmoDenomUnit := mkDenom(1, "uosmo", "Osmosis", "OSMO")
+	gamm560, gamm560DenomUnit := mkDenom(704, "gamm/pool/560", "UNKNOWN", "UNKNOWN")
+	terraClassicUSD, terraClassicUSDDenomUnit := mkDenom(2, "ibc/BE1BB42D4BE3C30D50B68D7C41DB4DFCE9678E8EF8C539F6E6A9345048894FCC", "TerraClassicUSD", "USTC")
+
+	// populate denom cache
+	db.CachedDenomUnits = []db.DenomUnit{osmoDenomUnit, gamm560DenomUnit, terraClassicUSDDenomUnit}
+
+	// create taxable transactions
+	joinSwapExternAmountInTaxableTX := mkTaxableTransaction(1, joinSwapExternAmountInMsg, decimal.NewFromInt(12200000), decimal.NewFromInt(1384385853426963652), osmo, gamm560, targetAddress, randoAddress)
+	//joinSwapShareAmountOutTX := mkTaxableTransaction(2, joinSwapShareAmountOutMsg, decimal.NewFromInt(12200000), decimal.NewFromInt(1384385853426963652), OSMO, gamm560, targetAddress, randoAddress)
+	joinPoolTaxableTX1 := mkTaxableTransaction(3, joinPoolMsg, decimal.NewFromInt(116419), decimal.NewFromFloat(51300417885616316441389), terraClassicUSD, gamm560, targetAddress, randoAddress)
+	joinPoolTaxableTX2 := mkTaxableTransaction(4, joinPoolMsg, decimal.NewFromInt(29999999), decimal.NewFromInt(0), osmo, gamm560, targetAddress, randoAddress)
+
+	exitPoolTaxableTX1 := mkTaxableTransaction(5, exitPoolMsg, decimal.NewFromInt(1098138740099371688), decimal.NewFromInt(31167087), gamm560, terraClassicUSD, targetAddress, targetAddress)
+	exitPoolTaxableTX2 := mkTaxableTransaction(6, exitPoolMsg, decimal.NewFromInt(0), decimal.NewFromInt(4839721), gamm560, osmo, targetAddress, targetAddress)
+
+	return []db.TaxableTransaction{joinSwapExternAmountInTaxableTX, joinPoolTaxableTX1, joinPoolTaxableTX2, exitPoolTaxableTX1, exitPoolTaxableTX2}
 }
 
-func mkTaxableTransaction(id, msgID uint, msg db.Message, amntSent, amntReceived decimal.Decimal, denomSentID *uint, denomSent db.Denom, denomReceivedID *uint, denomReceived db.Denom, senderAddrID *uint, senderAddr db.Address, ReceiverAddrID *uint, ReceiverAddr db.Address) db.TaxableTransaction {
+func mkTaxableTransaction(id uint, msg db.Message, amntSent, amntReceived decimal.Decimal, denomSent db.Denom, denomReceived db.Denom, senderAddr db.Address, ReceiverAddr db.Address) db.TaxableTransaction {
 	return db.TaxableTransaction{
 		ID:                     id,
-		MessageID:              msgID,
+		MessageID:              msg.ID,
 		Message:                msg,
 		AmountSent:             amntSent,
 		AmountReceived:         amntReceived,
-		DenominationSentID:     denomSentID,
+		DenominationSentID:     &denomSent.ID,
 		DenominationSent:       denomSent,
-		DenominationReceivedID: denomReceivedID,
+		DenominationReceivedID: &denomReceived.ID,
 		DenominationReceived:   denomReceived,
-		SenderAddressID:        senderAddrID,
+		SenderAddressID:        &senderAddr.ID,
 		SenderAddress:          senderAddr,
-		ReceiverAddressID:      ReceiverAddrID,
+		ReceiverAddressID:      &ReceiverAddr.ID,
 		ReceiverAddress:        ReceiverAddr,
 	}
 }
 
-func mkDenom(id uint, base, name, symbol string) db.Denom {
-	return db.Denom{
+func mkDenom(id uint, base, name, symbol string) (denom db.Denom, denomUnit db.DenomUnit) {
+	denom = db.Denom{
 		ID:     id,
 		Base:   base,
 		Name:   name,
 		Symbol: symbol,
 	}
+
+	denomUnit = db.DenomUnit{
+		ID:       id,
+		DenomID:  id,
+		Denom:    denom,
+		Exponent: 0,
+		Name:     denom.Base,
+	}
+
+	return
 }
 
-func mkMsg(id, txID uint, tx db.Tx, msgTypeID uint, msgType db.MessageType, msgIdx int) db.Message {
+func mkMsg(id uint, tx db.Tx, msgType db.MessageType, msgIdx int) db.Message {
 	return db.Message{
 		ID:            id,
-		TxID:          txID,
+		TxID:          tx.ID,
 		Tx:            tx,
-		MessageTypeID: msgTypeID,
+		MessageTypeID: msgType.ID,
 		MessageType:   msgType,
 		MessageIndex:  msgIdx,
 	}
@@ -97,13 +153,14 @@ func mkMsgType(id uint, msgType string) db.MessageType {
 	}
 }
 
-func mkTx(id uint, time time.Time, hash string, code uint32, blockID uint, block db.Block, signerAddrID int, signerAddr db.Address, fees []db.Fee) db.Tx {
+func mkTx(id uint, time time.Time, hash string, code uint32, block db.Block, signerAddr db.Address, fees []db.Fee) db.Tx {
+	signerAddrID := int(signerAddr.ID)
 	return db.Tx{
 		ID:              id,
 		TimeStamp:       time,
 		Hash:            hash,
 		Code:            code,
-		BlockID:         blockID,
+		BlockID:         block.ID,
 		Block:           block,
 		SignerAddressID: &signerAddrID,
 		SignerAddress:   signerAddr,
