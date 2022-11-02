@@ -21,7 +21,7 @@ func GetLensClient(conf lens) *lensClient.ChainClient {
 
 func RegisterAdditionalTypes(cc *lensClient.ChainClient) {
 	//Register IBC types
-	ibcTypes.RegisterLegacyAminoCodec(cc.Codec.Amino)
+	//ibcTypes.RegisterLegacyAminoCodec(cc.Codec.Amino)
 	ibcTypes.RegisterInterfaces(cc.Codec.InterfaceRegistry)
 }
 

@@ -4,11 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	"github.com/DefiantLabs/cosmos-tax-cli/core"
+	"github.com/DefiantLabs/cosmos-tax-cli/rpc"
+	"github.com/cosmos/cosmos-sdk/types"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/strangelove-ventures/lens/client"
 	lensClient "github.com/strangelove-ventures/lens/client"
@@ -73,6 +77,34 @@ func TestRPC(t *testing.T) {
 	}
 }
 
+func TestDecodeIBCTypes(t *testing.T) {
+	homepath := "/home/kyle/.lens"
+	cl := GetOsmosisTestClient(homepath)
+	resp, err := rpc.GetTxsByBlockHeight(cl, 2620000)
+	assert.Empty(t, err)
+	hasIbcType := false
+
+	for txIdx := range resp.Txs {
+		currTx := resp.Txs[txIdx]
+
+		//Get the Messages and Message Logs
+		for msgIdx := range currTx.Body.Messages {
+			currMsg := currTx.Body.Messages[msgIdx].GetCachedValue()
+			if currMsg != nil {
+				msg := currMsg.(types.Msg)
+				typeUrl := types.MsgTypeURL(msg)
+				if strings.Contains(typeUrl, "MsgTransfer") {
+					hasIbcType = true
+				}
+			} else {
+				t.Error("tx message could not be processed. CachedValue is not present")
+			}
+		}
+	}
+
+	assert.True(t, hasIbcType)
+}
+
 func GetTestClient() *lensClient.ChainClient {
 	//IMPORTANT: the actual keyring-test will be searched for at the path {homepath}/keys/{ChainID}/keyring-test.
 	//You can use lens default settings to generate that directory appropriately then move it to the desired path.
@@ -80,6 +112,18 @@ func GetTestClient() *lensClient.ChainClient {
 	//and you can move all of the necessary keys to whatever homepath you want to use. Or you can use --home flag.
 	homepath := "/home/kyle/.lens"
 	cl, _ := lensClient.NewChainClient(GetJunoConfig(homepath, true), homepath, nil, nil)
+	config.RegisterAdditionalTypes(cl)
+	return cl
+}
+
+func GetOsmosisTestClient(homepath string) *lensClient.ChainClient {
+	//IMPORTANT: the actual keyring-test will be searched for at the path {homepath}/keys/{ChainID}/keyring-test.
+	//You can use lens default settings to generate that directory appropriately then move it to the desired path.
+	//For example, 'lens keys restore default' will restore the key to the default keyring (e.g. /home/kyle/.lens/...)
+	//and you can move all of the necessary keys to whatever homepath you want to use. Or you can use --home flag.
+	//homepath := "/home/kyle/.lens"
+	cl, _ := lensClient.NewChainClient(GetOsmosisConfig(homepath, true), homepath, nil, nil)
+	config.RegisterAdditionalTypes(cl)
 	return cl
 }
 
@@ -93,6 +137,25 @@ func GetJunoConfig(keyHome string, debug bool) *lensClient.ChainClientConfig {
 		KeyringBackend: "test",
 		GasAdjustment:  1.2,
 		GasPrices:      "0ustake",
+		KeyDirectory:   keyHome,
+		Debug:          debug,
+		Timeout:        "10s",
+		OutputFormat:   "json",
+		SignModeStr:    "direct",
+		Modules:        client.ModuleBasics,
+	}
+}
+
+func GetOsmosisConfig(keyHome string, debug bool) *lensClient.ChainClientConfig {
+	return &lensClient.ChainClientConfig{
+		Key:            "default",
+		ChainID:        "osmosis-1",
+		RPCAddr:        "https://osmosis-mainnet-archive.allthatnode.com:26657",
+		GRPCAddr:       "https://osmosis-mainnet-archive.allthatnode.com:26657",
+		AccountPrefix:  "osmo",
+		KeyringBackend: "test",
+		GasAdjustment:  1.2,
+		GasPrices:      "0uosmo",
 		KeyDirectory:   keyHome,
 		Debug:          debug,
 		Timeout:        "10s",

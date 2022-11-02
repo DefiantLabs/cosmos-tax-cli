@@ -1,7 +1,9 @@
 package ibc
 
 import (
-	//ibcTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/ibclegacy/applications/transfer/types"
+	"fmt"
+
+	types "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/ibc/types"
 	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 	stdTypes "github.com/cosmos/cosmos-sdk/types"
 )
@@ -16,17 +18,16 @@ const (
 
 type WrapperMsgTransfer struct {
 	txModule.Message
-	//CosmosMsgTransfer *ibcTypes.MsgTransfer
-	SenderAddress   string
-	ReceiverAddress string
-	Amount          *stdTypes.Coin
+	CosmosMsgTransfer *types.MsgTransfer
+	SenderAddress     string
+	ReceiverAddress   string
+	Amount            *stdTypes.Coin
 }
 
-/*
 // HandleMsg: Handle type checking for MsgFundCommunityPool
 func (sf *WrapperMsgTransfer) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
-	sf.CosmosMsgTransfer = msg.(*ibcTypes.MsgTransfer)
+	sf.CosmosMsgTransfer = msg.(*types.MsgTransfer)
 
 	//Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
@@ -41,6 +42,3 @@ func (sf *WrapperMsgTransfer) HandleMsg(msgType string, msg stdTypes.Msg, log *t
 
 	return nil
 }
-
-
-*/

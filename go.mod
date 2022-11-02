@@ -5,7 +5,6 @@ go 1.18
 require (
 	github.com/BurntSushi/toml v1.1.0
 	github.com/cosmos/cosmos-sdk v0.45.4
-	github.com/cosmos/ibc-go/v3 v3.0.0
 	github.com/gin-gonic/gin v1.7.0
 	github.com/go-co-op/gocron v1.13.0
 	github.com/gogo/protobuf v1.3.3
@@ -22,6 +21,8 @@ require (
 	gorm.io/driver/postgres v1.3.1
 	gorm.io/gorm v1.23.6
 )
+
+require github.com/cosmos/ibc-go/v3 v3.0.0
 
 require (
 	filippo.io/edwards25519 v1.0.0-rc.1 // indirect
@@ -157,7 +158,6 @@ replace (
 	github.com/CosmWasm/wasmd => github.com/osmosis-labs/wasmd v0.22.0-osmo-v7.2
 	github.com/cosmos/cosmos-sdk => github.com/osmosis-labs/cosmos-sdk v0.45.1-0.20220502203419-5831ca02b81f
 	github.com/cosmos/iavl => github.com/osmosis-labs/iavl v0.17.3-osmo-v7
-	github.com/cosmos/ibc-go/v2 => github.com/osmosis-labs/ibc-go/v2 v2.0.2-osmo
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 	google.golang.org/grpc => google.golang.org/grpc v1.33.2
 )
