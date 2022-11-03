@@ -341,7 +341,7 @@ func (idxr *Indexer) processTxs(wg *sync.WaitGroup, blockTXsChan chan *indexerTx
 	defer wg.Done()
 
 	for txToProcess := range blockTXsChan {
-		txDBWrappers, err := core.ProcessRPCTXs(idxr.db, txToProcess.CosmosGetTxsEventResponse)
+		txDBWrappers, blockTime, err := core.ProcessRPCTXs(idxr.db, txToProcess.CosmosGetTxsEventResponse)
 		if err != nil {
 			config.Log.Error("ProcessRpcTxs: unhandled error", zap.Error(err))
 			failedBlockHandler(txToProcess.Height, core.UnprocessableTxError, err)
@@ -351,7 +351,7 @@ func (idxr *Indexer) processTxs(wg *sync.WaitGroup, blockTXsChan chan *indexerTx
 		//Note that this does not turn off certain reads or DB connections.
 		if idxr.cfg.Base.IndexingEnabled {
 			config.Log.Info(fmt.Sprintf("Indexing block %d, threaded.\n", txToProcess.Height))
-			err = dbTypes.IndexNewBlock(idxr.db, txToProcess.Height, txDBWrappers, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
+			err = dbTypes.IndexNewBlock(idxr.db, txToProcess.Height, blockTime, txDBWrappers, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
 			if err != nil {
 				if err != nil {
 					config.Log.Fatal(fmt.Sprintf("Error indexing block %v.", txToProcess.Height), zap.Error(err))

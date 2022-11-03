@@ -96,7 +96,7 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 			row := Row{}
 			row.TransactionType = Order
 			row.OperationID = message.Message.Tx.Hash
-			row.Date = message.Message.Tx.TimeStamp.Format(timeLayout)
+			row.Date = message.Message.Tx.Block.TimeStamp.Format(timeLayout)
 
 			denomRecieved := message.DenominationReceived
 			valueRecieved := message.AmountReceived
@@ -124,7 +124,7 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 			//Accointing has no way of using the GAMM token to determine LP cost basis etc...
 			if _, ok := IsOsmosisExit[message.Message.MessageType.MessageType]; ok {
 				// add the value of gam tokens
-				price, err := getRate(cbClient, message.DenominationReceived.Symbol, message.Message.Tx.TimeStamp)
+				price, err := getRate(cbClient, message.DenominationReceived.Symbol, message.Message.Tx.Block.TimeStamp)
 				if err != nil {
 					row.Comments = fmt.Sprintf("could not lookup value of %v %v. It will be equivolent to %v %v at %v.", message.AmountReceived, message.DenominationReceived.Base, message.AmountReceived, message.DenominationReceived.Symbol, row.Date)
 				} else {
@@ -133,7 +133,7 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 				}
 			} else if _, ok := IsOsmosisJoin[message.Message.MessageType.MessageType]; ok {
 				// add the value of gam tokens
-				price, err := getRate(cbClient, message.DenominationSent.Symbol, message.Message.Tx.TimeStamp)
+				price, err := getRate(cbClient, message.DenominationSent.Symbol, message.Message.Tx.Block.TimeStamp)
 				if err != nil {
 					row.Comments = fmt.Sprintf("could not lookup value of %v %v. It will be equivolent to %v %v at %v.", message.AmountReceived, message.DenominationReceived.Base, message.AmountSent, message.DenominationSent.Symbol, row.Date)
 				} else {

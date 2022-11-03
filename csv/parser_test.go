@@ -20,6 +20,68 @@ import (
 
 // TODO: Write test to assert that osmosis rewards (aka taxable events) are tagged as deposits and classified as 'liquidity_pool'
 
+func TestOsmoRewardParsing(t *testing.T) {
+	cfg := config.Config{}
+	cfg.Lens.ChainID = osmosis.ChainID
+	parser := GetParser(accointing.ParserKey)
+	parser.InitializeParsingGroups(cfg)
+
+	// setup user and chain
+	targetAddress := mkAddress(t, 1)
+	chain := mkChain(1, osmosis.ChainID, osmosis.Name)
+
+	// make transactions for this user entering and leaving LPs
+	taxableEvents := getTestTaxableEvents(t, targetAddress, chain)
+
+	// attempt to parse
+	err := parser.ProcessTaxableEvent(targetAddress.Address, taxableEvents)
+	assert.Nil(t, err, "should not get error from parsing these transactions")
+
+	// validate output
+	rows := parser.GetRows()
+	assert.Equalf(t, len(taxableEvents), len(rows), "you should have one row for each transfer transaction ")
+
+	// all transactions should be orders classified as liquidity_pool
+	for _, row := range rows {
+		cols := row.GetRowForCsv()
+		// assert on gamms being present
+		assert.Equal(t, cols[0], "deposit", "transaction type should be a deposit")
+		assert.Equal(t, cols[8], "liquidity_pool", "transaction should be classified as liquidity_pool")
+	}
+}
+
+func getTestTaxableEvents(t *testing.T, targetAddress db.Address, targetChain db.Chain) []db.TaxableEvent {
+	// BlockTimes
+	oneYearAgo := time.Now().Add(-1 * time.Hour * 24 * 365)
+	sixMonthAgo := time.Now().Add(-1 * time.Hour * 24 * 182)
+
+	// create some blocks to put the transactions in
+	block1 := mkBlk(1, 1, oneYearAgo, targetChain)
+	block2 := mkBlk(2, 2, sixMonthAgo, targetChain)
+
+	// create denom
+	coinDenom, _ := mkDenom(1, "coin", "Some Coin", "SC")
+
+	event1 := mkTaxableEvent(1, decimal.NewFromInt(10), coinDenom, targetAddress, block1)
+	event2 := mkTaxableEvent(2, decimal.NewFromInt(10), coinDenom, targetAddress, block2)
+
+	return []db.TaxableEvent{event1, event2}
+}
+
+func mkTaxableEvent(id uint, amount decimal.Decimal, denom db.Denom, address db.Address, block db.Block) db.TaxableEvent {
+	return db.TaxableEvent{
+		ID:             id,
+		Source:         db.OsmosisRewardDistribution,
+		Amount:         amount,
+		DenominationID: denom.ID,
+		Denomination:   denom,
+		AddressID:      address.ID,
+		EventAddress:   address,
+		BlockID:        block.ID,
+		Block:          block,
+	}
+}
+
 func TestOsmoLPParsing(t *testing.T) {
 	cfg := config.Config{}
 	cfg.Lens.ChainID = osmosis.ChainID
@@ -58,9 +120,13 @@ func TestOsmoLPParsing(t *testing.T) {
 func getTestTransferTXs(t *testing.T, targetAddress db.Address, targetChain db.Chain) []db.TaxableTransaction {
 	randoAddress := mkAddress(t, 2)
 
+	// BlockTimes
+	oneYearAgo := time.Now().Add(-1 * time.Hour * 24 * 365)
+	sixMonthAgo := time.Now().Add(-1 * time.Hour * 24 * 182)
+
 	// create some blocks to put the transactions in
-	block1 := mkBlk(1, 1, targetChain)
-	block2 := mkBlk(2, 2, targetChain)
+	block1 := mkBlk(1, 1, oneYearAgo, targetChain)
+	block2 := mkBlk(2, 2, sixMonthAgo, targetChain)
 
 	// create the transfer msg type
 	// joins
@@ -72,18 +138,14 @@ func getTestTransferTXs(t *testing.T, targetAddress db.Address, targetChain db.C
 	exitSwapExternAmountOut := mkMsgType(5, gamm.MsgExitSwapExternAmountOut)
 	exitPool := mkMsgType(6, gamm.MsgExitPool)
 
-	// TxTimes
-	oneYearAgo := time.Now().Add(-1 * time.Hour * 24 * 365)
-	sixMonthAgo := time.Now().Add(-1 * time.Hour * 24 * 182)
-
 	//FIXME: add fees
 
 	// create TXs
-	joinPoolTX1 := mkTx(1, oneYearAgo, "somehash1", 0, block1, randoAddress, nil)
-	joinPoolTX2 := mkTx(2, oneYearAgo, "somehash2", 0, block1, randoAddress, nil)
+	joinPoolTX1 := mkTx(1, "somehash1", 0, block1, randoAddress, nil)
+	joinPoolTX2 := mkTx(2, "somehash2", 0, block1, randoAddress, nil)
 
-	leavePoolTX1 := mkTx(3, sixMonthAgo, "somehash4", 0, block2, randoAddress, nil)
-	leavePoolTX2 := mkTx(4, sixMonthAgo, "somehash5", 0, block2, randoAddress, nil)
+	leavePoolTX1 := mkTx(3, "somehash4", 0, block2, randoAddress, nil)
+	leavePoolTX2 := mkTx(4, "somehash5", 0, block2, randoAddress, nil)
 
 	// create Msgs
 	joinSwapExternAmountInMsg := mkMsg(1, joinPoolTX1, joinSwapExternAmountIn, 0)
@@ -172,11 +234,10 @@ func mkMsgType(id uint, msgType string) db.MessageType {
 	}
 }
 
-func mkTx(id uint, time time.Time, hash string, code uint32, block db.Block, signerAddr db.Address, fees []db.Fee) db.Tx {
+func mkTx(id uint, hash string, code uint32, block db.Block, signerAddr db.Address, fees []db.Fee) db.Tx {
 	signerAddrID := int(signerAddr.ID)
 	return db.Tx{
 		ID:              id,
-		TimeStamp:       time,
 		Hash:            hash,
 		Code:            code,
 		BlockID:         block.ID,
@@ -187,10 +248,11 @@ func mkTx(id uint, time time.Time, hash string, code uint32, block db.Block, sig
 	}
 }
 
-func mkBlk(id uint, height int64, chain db.Chain) db.Block {
+func mkBlk(id uint, height int64, timestamp time.Time, chain db.Chain) db.Block {
 	return db.Block{
 		ID:           id,
 		Height:       height,
+		TimeStamp:    timestamp,
 		BlockchainID: chain.ID,
 		Chain:        chain,
 	}

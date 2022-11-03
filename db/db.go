@@ -3,13 +3,13 @@ package db
 import (
 	"errors"
 	"fmt"
-
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
+	"time"
 )
 
 func GetAddresses(addressList []string, db *gorm.DB) ([]Address, error) {
@@ -84,12 +84,12 @@ func UpsertFailedBlock(db *gorm.DB, blockHeight int64, chainID string, chainName
 	})
 }
 
-func IndexNewBlock(db *gorm.DB, blockHeight int64, txs []TxDBWrapper, chainID string, chainName string) error {
+func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []TxDBWrapper, chainID string, chainName string) error {
 	//consider optimizing the transaction, but how? Ordering matters due to foreign key constraints
 	//Order required: Block -> (For each Tx: Signer Address -> Tx -> (For each Message: Message -> Taxable Events))
 	//Also, foreign key relations are struct value based so create needs to be called first to get right foreign key ID
 	return db.Transaction(func(dbTransaction *gorm.DB) error {
-		block := Block{Height: blockHeight, Chain: Chain{ChainID: chainID, Name: chainName}}
+		block := Block{Height: blockHeight, TimeStamp: blockTime, Chain: Chain{ChainID: chainID, Name: chainName}}
 
 		if err := dbTransaction.Where(&block.Chain).FirstOrCreate(&block.Chain).Error; err != nil {
 			config.Log.Error("Error getting/creating chain DB object.", zap.Error(err))

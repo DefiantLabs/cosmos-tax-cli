@@ -1,13 +1,13 @@
 package db
 
 import (
-	"time"
-
 	"github.com/shopspring/decimal"
+	"time"
 )
 
 type Block struct {
 	ID           uint
+	TimeStamp    time.Time
 	Height       int64 `gorm:"uniqueIndex:chainheight"`
 	BlockchainID uint  `gorm:"uniqueIndex:chainheight"`
 	Chain        Chain `gorm:"foreignKey:BlockchainID"`
@@ -28,7 +28,6 @@ type Chain struct {
 
 type Tx struct {
 	ID              uint
-	TimeStamp       time.Time
 	Hash            string
 	Code            uint32
 	BlockID         uint
