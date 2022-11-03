@@ -260,7 +260,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 							denomSent, err = dbTypes.GetDenomForBase(v.DenominationSent)
 							if err != nil {
 								//attempt to add missing denoms to the database
-								config.Log.Error("Denom lookup", zap.Error(err), zap.String("denom sent", v.DenominationSent))
+								config.Log.Warn("Denom lookup failed. Will add as unknown", zap.Error(err), zap.String("denom sent", v.DenominationSent))
 
 								denomSent, err = dbTypes.AddUnknownDenom(db, v.DenominationSent)
 								if err != nil {
