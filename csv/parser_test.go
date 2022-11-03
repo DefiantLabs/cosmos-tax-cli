@@ -21,10 +21,9 @@ import (
 // TODO: Write test to assert that osmosis rewards (aka taxable events) are tagged as deposits and classified as 'liquidity_pool'
 
 func TestOsmoLPParsing(t *testing.T) {
-	// setup parser
-	parser := GetParser(accointing.ParserKey)
 	cfg := config.Config{}
 	cfg.Lens.ChainID = osmosis.ChainID
+	parser := GetParser(accointing.ParserKey)
 	parser.InitializeParsingGroups(cfg)
 
 	// setup user and chain
@@ -66,11 +65,11 @@ func getTestTransferTXs(t *testing.T, targetAddress db.Address, targetChain db.C
 	// create the transfer msg type
 	// joins
 	joinSwapExternAmountIn := mkMsgType(1, gamm.MsgJoinSwapExternAmountIn)
-	//joinSwapShareAmountOut := mkMsgType(2, gamm.MsgJoinSwapShareAmountOut) // FIXME: add this in
+	joinSwapShareAmountOut := mkMsgType(2, gamm.MsgJoinSwapShareAmountOut)
 	joinPool := mkMsgType(3, gamm.MsgJoinPool)
-	// leaves
-	//exitSwapShareAmountIn := mkMsgType(4, gamm.MsgExitSwapShareAmountIn)     // FIXME: add this in
-	//exitSwapExternAmountOut := mkMsgType(5, gamm.MsgExitSwapExternAmountOut) // FIXME: add this in
+	// exits
+	exitSwapShareAmountIn := mkMsgType(4, gamm.MsgExitSwapShareAmountIn)
+	exitSwapExternAmountOut := mkMsgType(5, gamm.MsgExitSwapExternAmountOut)
 	exitPool := mkMsgType(6, gamm.MsgExitPool)
 
 	// TxTimes
@@ -80,36 +79,42 @@ func getTestTransferTXs(t *testing.T, targetAddress db.Address, targetChain db.C
 	//FIXME: add fees
 
 	// create TXs
-	joinPoolTX := mkTx(1, oneYearAgo, "somehash", 0, block1, randoAddress, nil)
-	leavePoolTX := mkTx(2, sixMonthAgo, "somehash", 0, block2, randoAddress, nil)
+	joinPoolTX1 := mkTx(1, oneYearAgo, "somehash1", 0, block1, randoAddress, nil)
+	joinPoolTX2 := mkTx(2, oneYearAgo, "somehash2", 0, block1, randoAddress, nil)
+
+	leavePoolTX1 := mkTx(3, sixMonthAgo, "somehash4", 0, block2, randoAddress, nil)
+	leavePoolTX2 := mkTx(4, sixMonthAgo, "somehash5", 0, block2, randoAddress, nil)
 
 	// create Msgs
-	joinSwapExternAmountInMsg := mkMsg(1, joinPoolTX, joinSwapExternAmountIn, 0)
-	//joinSwapShareAmountOutMsg := mkMsg(2, joinPoolTX, joinSwapShareAmountOut, 1)
-	joinPoolMsg := mkMsg(3, joinPoolTX, joinPool, 2)
+	joinSwapExternAmountInMsg := mkMsg(1, joinPoolTX1, joinSwapExternAmountIn, 0)
+	joinSwapShareAmountOutMsg := mkMsg(2, joinPoolTX1, joinSwapShareAmountOut, 1)
+	joinPoolMsg := mkMsg(3, joinPoolTX2, joinPool, 0)
 
-	//exitSwapShareAmountInMsg := mkMsg(4, leavePoolTX, exitSwapShareAmountIn, 0)
-	//exitSwapExternAmountOutMsg := mkMsg(5, leavePoolTX, exitSwapExternAmountOut, 1)
-	exitPoolMsg := mkMsg(6, leavePoolTX, exitPool, 2)
+	exitSwapShareAmountInMsg := mkMsg(4, leavePoolTX1, exitSwapShareAmountIn, 0)
+	exitSwapExternAmountOutMsg := mkMsg(5, leavePoolTX1, exitSwapExternAmountOut, 1)
+	exitPoolMsg := mkMsg(6, leavePoolTX2, exitPool, 2)
 
 	// create denoms
-	osmo, osmoDenomUnit := mkDenom(1, "uosmo", "Osmosis", "OSMO")
-	terraClassicUSD, terraClassicUSDDenomUnit := mkDenom(2, "ibc/BE1BB42D4BE3C30D50B68D7C41DB4DFCE9678E8EF8C539F6E6A9345048894FCC", "TerraClassicUSD", "USTC")
-	gamm560, gamm560DenomUnit := mkDenom(704, "gamm/pool/560", "UNKNOWN", "UNKNOWN")
+	coin1, coin1DenomUnit := mkDenom(1, "coin1", "Some Coin", "SC1")
+	coin2, coin2DenomUnit := mkDenom(2, "coin2", "Another Coin", "AC2")
+	gamm1, gamm1DenomUnit := mkDenom(3, "gamm/pool/1", "UNKNOWN", "UNKNOWN")
 
 	// populate denom cache
-	db.CachedDenomUnits = []db.DenomUnit{osmoDenomUnit, gamm560DenomUnit, terraClassicUSDDenomUnit}
+	db.CachedDenomUnits = []db.DenomUnit{coin1DenomUnit, coin2DenomUnit, gamm1DenomUnit}
 
 	// create taxable transactions
-	joinSwapExternAmountInTaxableTX := mkTaxableTransaction(1, joinSwapExternAmountInMsg, decimal.NewFromInt(12200000), decimal.NewFromInt(1384385853426963652), osmo, gamm560, targetAddress, randoAddress)
-	//joinSwapShareAmountOutTX := mkTaxableTransaction(2, joinSwapShareAmountOutMsg, decimal.NewFromInt(12200000), decimal.NewFromInt(1384385853426963652), OSMO, gamm560, targetAddress, randoAddress)
-	joinPoolTaxableTX1 := mkTaxableTransaction(3, joinPoolMsg, decimal.NewFromInt(116419), decimal.NewFromFloat(25650208942808158220694), terraClassicUSD, gamm560, targetAddress, randoAddress)
-	joinPoolTaxableTX2 := mkTaxableTransaction(4, joinPoolMsg, decimal.NewFromInt(29999999), decimal.NewFromFloat(25650208942808158220695), osmo, gamm560, targetAddress, randoAddress)
+	// joins
+	taxableTX1 := mkTaxableTransaction(1, joinSwapExternAmountInMsg, decimal.NewFromInt(12000), decimal.NewFromInt(24000038), coin1, gamm1, targetAddress, targetAddress)
+	taxableTX2 := mkTaxableTransaction(2, joinSwapShareAmountOutMsg, decimal.NewFromInt(11999), decimal.NewFromInt(24000000), coin1, gamm1, targetAddress, targetAddress)
+	taxableTX3 := mkTaxableTransaction(3, joinPoolMsg, decimal.NewFromInt(6000), decimal.NewFromFloat(12000019), coin1, gamm1, targetAddress, targetAddress)
+	taxableTX4 := mkTaxableTransaction(4, joinPoolMsg, decimal.NewFromInt(3000), decimal.NewFromFloat(12000019), coin2, gamm1, targetAddress, targetAddress)
+	// exits
+	taxableTX5 := mkTaxableTransaction(5, exitSwapShareAmountInMsg, decimal.NewFromInt(24000038), decimal.NewFromInt(12438), gamm1, coin1, targetAddress, targetAddress)
+	taxableTX6 := mkTaxableTransaction(6, exitSwapExternAmountOutMsg, decimal.NewFromInt(23152955), decimal.NewFromInt(11999), gamm1, coin1, targetAddress, targetAddress)
+	taxableTX7 := mkTaxableTransaction(7, exitPoolMsg, decimal.NewFromInt(12000019), decimal.NewFromInt(6219), gamm1, coin1, targetAddress, targetAddress)
+	taxableTX8 := mkTaxableTransaction(8, exitPoolMsg, decimal.NewFromInt(12000019), decimal.NewFromInt(2853), gamm1, coin2, targetAddress, targetAddress)
 
-	exitPoolTaxableTX1 := mkTaxableTransaction(5, exitPoolMsg, decimal.NewFromInt(549069370049685844), decimal.NewFromInt(31167087), gamm560, terraClassicUSD, targetAddress, targetAddress)
-	exitPoolTaxableTX2 := mkTaxableTransaction(6, exitPoolMsg, decimal.NewFromInt(549069370049685844), decimal.NewFromInt(4839721), gamm560, osmo, targetAddress, targetAddress)
-
-	return []db.TaxableTransaction{joinSwapExternAmountInTaxableTX, joinPoolTaxableTX1, joinPoolTaxableTX2, exitPoolTaxableTX1, exitPoolTaxableTX2}
+	return []db.TaxableTransaction{taxableTX1, taxableTX2, taxableTX3, taxableTX4, taxableTX5, taxableTX6, taxableTX7, taxableTX8}
 }
 
 func mkTaxableTransaction(id uint, msg db.Message, amntSent, amntReceived decimal.Decimal, denomSent db.Denom, denomReceived db.Denom, senderAddr db.Address, ReceiverAddr db.Address) db.TaxableTransaction {
