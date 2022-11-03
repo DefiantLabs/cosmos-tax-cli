@@ -2,7 +2,7 @@ package accointing
 
 import (
 	"fmt"
-	
+
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/gamm"

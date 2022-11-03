@@ -4,9 +4,9 @@ package csv
 import (
 	"crypto/rand"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
-	"strings"
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/accointing"

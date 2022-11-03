@@ -8,7 +8,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers"
-	
+
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
