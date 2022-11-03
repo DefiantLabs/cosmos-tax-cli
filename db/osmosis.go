@@ -63,7 +63,7 @@ func IndexOsmoRewards(db *gorm.DB, chainID string, chainName string, rewards []*
 			denom, err := GetDenomForBase(coin.Denom)
 			if err != nil {
 				//attempt to add missing denoms to the database
-				config.Log.Error("Denom lookup", zap.Error(err), zap.String("denom received", coin.Denom))
+				config.Log.Error("Denom lookup failed. Will be inserted as UNKNOWN", zap.Error(err), zap.String("denom received", coin.Denom))
 				denom, err = AddUnknownDenom(db, coin.Denom)
 				if err != nil {
 					config.Log.Error("There was an error adding a missing denom", zap.Error(err), zap.String("denom received", coin.Denom))

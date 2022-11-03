@@ -122,7 +122,5 @@ func AddUnknownDenom(db *gorm.DB, denom string) (Denom, error) {
 	//recache the denoms (threadsafe due to mutex on read and write)
 	CacheDenoms(db)
 
-	denomToAdd, err = GetDenomForBase(denom)
-
-	return denomToAdd, err
+	return GetDenomForBase(denom)
 }
