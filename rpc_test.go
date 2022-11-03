@@ -7,10 +7,9 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/DefiantLabs/cosmos-tax-cli/config"
-	"github.com/DefiantLabs/cosmos-tax-cli/core"
-	"github.com/DefiantLabs/cosmos-tax-cli/rpc"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/core"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/rpc"
 	"github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/assert"
 

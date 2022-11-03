@@ -2,12 +2,13 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/DefiantLabs/cosmos-tax-cli/config"
-	"go.uber.org/zap"
 	"os"
 
-	"github.com/DefiantLabs/cosmos-tax-cli/csv"
-	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
+	"go.uber.org/zap"
+
+	"github.com/DefiantLabs/cosmos-tax-cli-private/csv"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers"
 	"github.com/spf13/cobra"
 )
 

@@ -1,4 +1,4 @@
-module github.com/DefiantLabs/cosmos-tax-cli
+module github.com/DefiantLabs/cosmos-tax-cli-private
 
 go 1.18
 

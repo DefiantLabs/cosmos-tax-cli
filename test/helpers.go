@@ -2,13 +2,14 @@ package test
 
 import (
 	"fmt"
-	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 	"math/big"
 
-	configUtils "github.com/DefiantLabs/cosmos-tax-cli/config"
-	"github.com/DefiantLabs/cosmos-tax-cli/core"
-	dbUtils "github.com/DefiantLabs/cosmos-tax-cli/db"
-	"github.com/DefiantLabs/cosmos-tax-cli/util"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
+
+	configUtils "github.com/DefiantLabs/cosmos-tax-cli-private/config"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/core"
+	dbUtils "github.com/DefiantLabs/cosmos-tax-cli-private/db"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
 	"gorm.io/gorm"
 )
 

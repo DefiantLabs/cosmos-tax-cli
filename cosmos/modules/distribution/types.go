@@ -2,12 +2,13 @@ package distribution
 
 import (
 	"fmt"
-	"github.com/DefiantLabs/cosmos-tax-cli/config"
+
+	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"go.uber.org/zap"
 
-	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
+	txModule "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
 
-	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
+	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
 
 	stdTypes "github.com/cosmos/cosmos-sdk/types"
 	distTypes "github.com/cosmos/cosmos-sdk/x/distribution/types"

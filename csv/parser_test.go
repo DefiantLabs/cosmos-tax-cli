@@ -4,14 +4,15 @@ package csv
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/DefiantLabs/cosmos-tax-cli/config"
-	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers/accointing"
-	"github.com/DefiantLabs/cosmos-tax-cli/db"
-	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
-	"github.com/shopspring/decimal"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/accointing"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
+	"github.com/shopspring/decimal"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestOsmoTransferParsing(t *testing.T) {

@@ -2,7 +2,8 @@ package core
 
 import (
 	"fmt"
-	"github.com/DefiantLabs/cosmos-tax-cli/config"
+
+	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"go.uber.org/zap"
 )
 

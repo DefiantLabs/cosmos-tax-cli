@@ -2,18 +2,19 @@ package accointing
 
 import (
 	"fmt"
-	"go.uber.org/zap"
 	"sort"
 	"time"
 
-	"github.com/DefiantLabs/cosmos-tax-cli/config"
-	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/bank"
-	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/distribution"
-	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/staking"
-	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
-	"github.com/DefiantLabs/cosmos-tax-cli/db"
-	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
-	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
+	"go.uber.org/zap"
+
+	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/bank"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/distribution"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/staking"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/gamm"
 )
 
 func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransaction) error {

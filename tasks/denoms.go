@@ -2,13 +2,14 @@ package tasks
 
 import (
 	"encoding/json"
-	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 	"net/http"
 	"time"
 
-	"github.com/DefiantLabs/cosmos-tax-cli/config"
-	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
-	"github.com/DefiantLabs/cosmos-tax-cli/rest"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
+
+	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
+	dbTypes "github.com/DefiantLabs/cosmos-tax-cli-private/db"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/rest"
 	"go.uber.org/zap"
 
 	"gorm.io/gorm"
