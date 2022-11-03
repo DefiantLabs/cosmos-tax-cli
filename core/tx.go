@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/hex"
 	"errors"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/ibc"
 	"math/big"
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
@@ -39,6 +40,7 @@ var messageTypeHandler = map[string]func() txTypes.CosmosMessage{
 	staking.MsgDelegate:                         func() txTypes.CosmosMessage { return &staking.WrapperMsgDelegate{} },
 	staking.MsgUndelegate:                       func() txTypes.CosmosMessage { return &staking.WrapperMsgUndelegate{} },
 	staking.MsgBeginRedelegate:                  func() txTypes.CosmosMessage { return &staking.WrapperMsgBeginRedelegate{} },
+	ibc.MsgTransfer:                             func() txTypes.CosmosMessage { return &ibc.WrapperMsgTransfer{} },
 }
 
 // Merge the chain specific message type handlers into the core message type handler map
