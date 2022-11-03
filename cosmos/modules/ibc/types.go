@@ -2,6 +2,7 @@ package ibc
 
 import (
 	"fmt"
+	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
 
 	types "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/ibc/types"
 	txModule "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
@@ -9,11 +10,7 @@ import (
 )
 
 const (
-	MsgTransfer        = "/ibc.applications.transfer.v1.MsgTransfer"
-	MsgAcknowledgement = "/ibc.core.channel.v1.MsgAcknowledgement"
-	MsgRecvPacket      = "/ibc.core.channel.v1.MsgRecvPacket"
-	MsgTimeout         = "/ibc.core.channel.v1.MsgTimeout"
-	MsgUpdateClient    = "/ibc.core.client.v1.MsgUpdateClient"
+	MsgTransfer = "/ibc.applications.transfer.v1.MsgTransfer"
 )
 
 type WrapperMsgTransfer struct {
@@ -41,4 +38,25 @@ func (sf *WrapperMsgTransfer) HandleMsg(msgType string, msg stdTypes.Msg, log *t
 	sf.Amount = &sf.CosmosMsgTransfer.Token
 
 	return nil
+}
+
+func (sf *WrapperMsgTransfer) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	if sf.Amount != nil {
+		return []parsingTypes.MessageRelevantInformation{{
+			SenderAddress:        sf.SenderAddress,
+			ReceiverAddress:      sf.ReceiverAddress,
+			AmountSent:           sf.Amount.Amount.BigInt(),
+			AmountReceived:       sf.Amount.Amount.BigInt(),
+			DenominationSent:     sf.Amount.Denom,
+			DenominationReceived: sf.Amount.Denom,
+		}}
+	}
+	return nil
+}
+
+func (sf *WrapperMsgTransfer) String() string {
+	if sf.Amount == nil {
+		return fmt.Sprintf("MsgTransfer: IBC transfer from %s to %s did not include an amount\n", sf.SenderAddress, sf.ReceiverAddress)
+	}
+	return fmt.Sprintf("MsgTransfer: IBC transfer of %s from %s to %s\n", sf.CosmosMsgTransfer.Token, sf.SenderAddress, sf.ReceiverAddress)
 }
