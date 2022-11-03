@@ -13,7 +13,7 @@ import (
 )
 
 // Register new parsers by adding them to this list
-var supportedParsers = []string{accointing.ParserKey}
+var supportedParsers = []string{accointing.ParserKey, koinly.ParserKey}
 
 func init() {
 	parsers.RegisterParsers(supportedParsers)
