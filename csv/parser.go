@@ -1,6 +1,7 @@
 package csv
 
 import (
+	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/koinly"
 	"go.uber.org/zap"
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
@@ -19,8 +20,12 @@ func init() {
 }
 
 func GetParser(parserKey string) parsers.Parser {
-	if parserKey == accointing.ParserKey {
+	switch parserKey {
+	case accointing.ParserKey:
 		parser := accointing.Parser{}
+		return &parser
+	case koinly.ParserKey:
+		parser := koinly.Parser{}
 		return &parser
 	}
 	return nil
@@ -49,7 +54,7 @@ func ParseForAddress(address string, pgSQL *gorm.DB, parserKey string, cfg confi
 		return nil, nil, err
 	}
 
-	err = parser.ProcessTaxableEvent(address, taxableEvents)
+	err = parser.ProcessTaxableEvent(taxableEvents)
 	if err != nil {
 		config.Log.Error("Error processing taxable events.", zap.Error(err))
 		return nil, nil, err
