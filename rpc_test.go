@@ -91,8 +91,8 @@ func TestDecodeIBCTypes(t *testing.T) {
 			currMsg := currTx.Body.Messages[msgIdx].GetCachedValue()
 			if currMsg != nil {
 				msg := currMsg.(types.Msg)
-				typeUrl := types.MsgTypeURL(msg)
-				if strings.Contains(typeUrl, "MsgTransfer") {
+				typeURL := types.MsgTypeURL(msg)
+				if strings.Contains(typeURL, "MsgTransfer") {
 					hasIbcType = true
 				}
 			} else {
