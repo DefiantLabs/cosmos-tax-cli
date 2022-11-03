@@ -1,6 +1,6 @@
 package parsers
 
-import "github.com/DefiantLabs/cosmos-tax-cli/db"
+import "github.com/DefiantLabs/cosmos-tax-cli-private/db"
 
 // Check in your parsers here
 var Parsers map[string]bool

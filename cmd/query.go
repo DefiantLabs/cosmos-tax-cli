@@ -2,14 +2,15 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/DefiantLabs/cosmos-tax-cli/config"
-	"go.uber.org/zap"
 	"log"
 	"os"
 
-	"github.com/DefiantLabs/cosmos-tax-cli/csv"
-	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/csv"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers"
+	
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 )
 
 var queryCmd = &cobra.Command{

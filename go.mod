@@ -1,4 +1,4 @@
-module github.com/DefiantLabs/cosmos-tax-cli
+module github.com/DefiantLabs/cosmos-tax-cli-private
 
 go 1.18
 
@@ -8,7 +8,10 @@ require (
 	github.com/gin-gonic/gin v1.7.0
 	github.com/go-co-op/gocron v1.13.0
 	github.com/imdario/mergo v0.3.12
+	github.com/osmosis-labs/osmosis/v9 v9.0.0
 	github.com/shopspring/decimal v1.3.1
+	github.com/spf13/cobra v1.5.0
+	github.com/spf13/viper v1.12.0
 	github.com/strangelove-ventures/lens v0.0.3-dl
 	github.com/stretchr/testify v1.7.1
 	github.com/tendermint/tendermint v0.34.19
@@ -103,7 +106,6 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mtibben/percent v0.2.1 // indirect
-	github.com/osmosis-labs/osmosis/v9 v9.0.0 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.1 // indirect
 	github.com/petermattis/goid v0.0.0-20220331194723-8ee3e6ded87a // indirect
@@ -123,10 +125,8 @@ require (
 	github.com/sasha-s/go-deadlock v0.3.1 // indirect
 	github.com/spf13/afero v1.8.2 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
-	github.com/spf13/cobra v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/spf13/viper v1.12.0 // indirect
 	github.com/subosito/gotenv v1.3.0 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20200815110645-5c35d600f0ca // indirect
 	github.com/tendermint/btcd v0.1.1 // indirect

@@ -3,10 +3,10 @@ package csv
 import (
 	"go.uber.org/zap"
 
-	"github.com/DefiantLabs/cosmos-tax-cli/config"
-	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
-	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers/accointing"
-	"github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/accointing"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
 
 	"gorm.io/gorm"
 )

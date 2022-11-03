@@ -2,10 +2,11 @@ package config
 
 import (
 	"errors"
-	"github.com/BurntSushi/toml"
-	"github.com/DefiantLabs/cosmos-tax-cli/util"
-	"github.com/imdario/mergo"
 	lg "log"
+
+	"github.com/BurntSushi/toml"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
+	"github.com/imdario/mergo"
 )
 
 type Config struct {

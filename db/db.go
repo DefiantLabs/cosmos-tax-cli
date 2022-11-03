@@ -3,7 +3,8 @@ package db
 import (
 	"errors"
 	"fmt"
-	"github.com/DefiantLabs/cosmos-tax-cli/config"
+
+	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

@@ -2,12 +2,15 @@ package accointing
 
 import (
 	"fmt"
-	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
-	"github.com/DefiantLabs/cosmos-tax-cli/db"
-	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
-	"github.com/DefiantLabs/cosmos-tax-cli/util"
+	
+	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/gamm"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
+
 	"github.com/preichenberger/go-coinbasepro/v2"
 	"github.com/shopspring/decimal"
+
 	"time"
 )
 

@@ -4,16 +4,18 @@ package csv
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/DefiantLabs/cosmos-tax-cli/config"
-	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers/accointing"
-	"github.com/DefiantLabs/cosmos-tax-cli/db"
-	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
-	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
-	"github.com/shopspring/decimal"
-	"github.com/stretchr/testify/assert"
-	"strings"
 	"testing"
 	"time"
+	"strings"
+
+	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/accointing"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/gamm"
+
+	"github.com/shopspring/decimal"
+	"github.com/stretchr/testify/assert"
 )
 
 // TODO: Write test to assert that osmosis rewards (aka taxable events) are tagged as deposits and classified as 'liquidity_pool'

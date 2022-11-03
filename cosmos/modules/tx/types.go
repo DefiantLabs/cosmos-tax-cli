@@ -1,7 +1,7 @@
 package tx
 
 import (
-	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
+	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
 
 	cosmTx "github.com/cosmos/cosmos-sdk/types/tx"
 

@@ -5,24 +5,24 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/DefiantLabs/cosmos-tax-cli/config"
-	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
-	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/bank"
-	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/distribution"
-	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/staking"
-	tx "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
-	txTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
-	"github.com/DefiantLabs/cosmos-tax-cli/db"
-	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
-	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
-	"github.com/DefiantLabs/cosmos-tax-cli/util"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
+	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/bank"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/distribution"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/staking"
+	tx "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
+	txTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/gamm"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
 	"fmt"
 	"time"
 
-	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
+	dbTypes "github.com/DefiantLabs/cosmos-tax-cli-private/db"
 
 	cryptoTypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types"
@@ -95,7 +95,7 @@ func toEvents(msgEvents types.StringEvents) (list []txTypes.LogMessageEvent) {
 	return list
 }
 
-// TODO: get rid of some of the unnecessary types like cosmos-tax-cli/TxResponse.
+// TODO: get rid of some of the unnecessary types like cosmos-tax-cli-private/TxResponse.
 // All those structs were legacy and for REST API support but we no longer really need it.
 // For now I'm keeping it until we have RPC compatibility fully working and tested.
 func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]dbTypes.TxDBWrapper, error) {

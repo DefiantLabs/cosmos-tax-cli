@@ -5,7 +5,7 @@ import (
 	"encoding/csv"
 	"log"
 
-	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers"
 )
 
 // Create the CSV and write it to byte buffer

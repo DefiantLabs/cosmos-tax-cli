@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/DefiantLabs/cosmos-tax-cli/db"
-	"github.com/DefiantLabs/cosmos-tax-cli/util"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
 )
 
 func (row Row) GetRowForCsv() []string {
