@@ -99,7 +99,7 @@ func (TaxableEvent) TableName() string {
 type TaxableTransaction struct {
 	ID                     uint
 	MessageID              uint
-	Message                Message
+	Message                Message         `gorm:"foreignKey:MessageID"`
 	AmountSent             decimal.Decimal `gorm:"type:decimal(78,0);"`
 	AmountReceived         decimal.Decimal `gorm:"type:decimal(78,0);"`
 	DenominationSentID     *uint
