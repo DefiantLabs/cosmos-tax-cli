@@ -1,11 +1,10 @@
-package main
+package rpc
 
 import (
 	"encoding/json"
 	"fmt"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/core"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/rpc"
 	"github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/assert"
 	"os"
@@ -19,6 +18,14 @@ import (
 
 	"github.com/go-co-op/gocron"
 )
+
+func getHomePath(t *testing.T) string {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		assert.Nil(t, err)
+	}
+	return fmt.Sprintf("%v/.lens", homeDir)
+}
 
 // setup does pre-run setup configurations.
 //   - Loads the application config from config.tml, cli args and parses/merges
@@ -65,21 +72,24 @@ func setupRPC() (*config.Config, *gocron.Scheduler, error) {
 
 func TestRPC(t *testing.T) {
 	block := 2
-	err := lensQueryBank(int64(block))
+	err := lensQueryBank(t, int64(block))
 	if err != nil {
-		t.Fatal("Failed to write CSV to disk")
+		assert.Nil(t, err, "should not error writing to CSV")
 	}
 
-	err = rpcQueryTx(int64(block))
+	err = rpcQueryTx(t, int64(block))
 	if err != nil {
-		t.Fatal("Error calling rpc_query_tx. Err: ", err)
+		assert.Nil(t, err, "should not error calling rpc")
 	}
 }
 
 func TestDecodeIBCTypes(t *testing.T) {
-	homepath := "/home/kyle/.lens"
-	cl := GetOsmosisTestClient(homepath)
-	resp, err := rpc.GetTxsByBlockHeight(cl, 2620000)
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		assert.Nil(t, err)
+	}
+	cl := GetOsmosisTestClient(fmt.Sprintf("%v/.lens", homeDir))
+	resp, err := GetTxsByBlockHeight(cl, 2620000)
 	assert.Empty(t, err)
 	hasIbcType := false
 
@@ -104,13 +114,14 @@ func TestDecodeIBCTypes(t *testing.T) {
 	assert.True(t, hasIbcType)
 }
 
-func GetTestClient() *lensClient.ChainClient {
+func GetTestClient(t *testing.T) *lensClient.ChainClient {
+	homepath := getHomePath(t)
 	//IMPORTANT: the actual keyring-test will be searched for at the path {homepath}/keys/{ChainID}/keyring-test.
 	//You can use lens default settings to generate that directory appropriately then move it to the desired path.
 	//For example, 'lens keys restore default' will restore the key to the default keyring (e.g. /home/kyle/.lens/...)
 	//and you can move all of the necessary keys to whatever homepath you want to use. Or you can use --home flag.
-	homepath := "/home/kyle/.lens"
-	cl, _ := lensClient.NewChainClient(GetJunoConfig(homepath, true), homepath, nil, nil)
+	cl, err := lensClient.NewChainClient(GetJunoConfig(homepath, true), homepath, nil, nil)
+	assert.Nil(t, err)
 	config.RegisterAdditionalTypes(cl)
 	return cl
 }
@@ -120,7 +131,6 @@ func GetOsmosisTestClient(homepath string) *lensClient.ChainClient {
 	//You can use lens default settings to generate that directory appropriately then move it to the desired path.
 	//For example, 'lens keys restore default' will restore the key to the default keyring (e.g. /home/kyle/.lens/...)
 	//and you can move all of the necessary keys to whatever homepath you want to use. Or you can use --home flag.
-	//homepath := "/home/kyle/.lens"
 	cl, _ := lensClient.NewChainClient(GetOsmosisConfig(homepath, true), homepath, nil, nil)
 	config.RegisterAdditionalTypes(cl)
 	return cl
@@ -164,8 +174,8 @@ func GetOsmosisConfig(keyHome string, debug bool) *lensClient.ChainClientConfig 
 	}
 }
 
-func lensQueryBank(height int64) error {
-	cl := GetTestClient()
+func lensQueryBank(t *testing.T, height int64) error {
+	cl := GetTestClient(t)
 	keyNameOrAddress := cl.Config.Key
 
 	address, err := cl.AccountFromKeyOrAddress(keyNameOrAddress)
@@ -180,8 +190,8 @@ func lensQueryBank(height int64) error {
 	return err
 }
 
-func rpcQueryTx(height int64) error {
-	cl := GetTestClient()
+func rpcQueryTx(t *testing.T, height int64) error {
+	cl := GetTestClient(t)
 	//requestEndpoint := fmt.Sprintf(rest.GetEndpoint("txs_by_block_height_endpoint"), height)
 	options := lensQuery.QueryOptions{Height: height}
 	query := lensQuery.Query{Client: cl, Options: &options}
