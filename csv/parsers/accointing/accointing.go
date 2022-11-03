@@ -173,32 +173,37 @@ func ParseEvent(address string, event db.TaxableEvent) (rows []Row) {
 // Use TX Parsing Groups to parse txes as a group
 func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.CsvRow, err error) {
 	for _, event := range events {
-		//Is this a MsgSend
-		if bank.IsMsgSend[event.Message.MessageType.MessageType] {
+		switch event.Message.MessageType.MessageType {
+		case bank.MsgSendV0:
 			rows = append(rows, ParseMsgSend(address, event))
-		} else if bank.IsMsgMultiSend[event.Message.MessageType.MessageType] {
+		case bank.MsgSend:
+			rows = append(rows, ParseMsgSend(address, event))
+		case bank.MsgMultiSendV0:
 			rows = append(rows, ParseMsgMultiSend(address, event))
-		} else if distribution.MsgFundCommunityPool == event.Message.MessageType.MessageType {
+		case bank.MsgMultiSend:
+			rows = append(rows, ParseMsgMultiSend(address, event))
+		case distribution.MsgFundCommunityPool:
 			rows = append(rows, ParseMsgFundCommunityPool(address, event))
-		} else if distribution.IsMsgWithdrawValidatorCommission[event.Message.MessageType.MessageType] {
+		case distribution.MsgWithdrawValidatorCommission:
 			rows = append(rows, ParseMsgWithdrawValidatorCommission(address, event))
-		} else if distribution.IsMsgWithdrawDelegatorReward[event.Message.MessageType.MessageType] {
+		case distribution.MsgWithdrawRewards: // FIXME: it is unclear if this is a delegator or validator reward...
+			rows = append(rows, ParseMsgWithdrawValidatorCommission(address, event))
+		case distribution.MsgWithdrawDelegatorReward:
 			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
-		} else if staking.MsgDelegate == event.Message.MessageType.MessageType {
+		case staking.MsgDelegate:
 			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
-		} else if staking.MsgUndelegate == event.Message.MessageType.MessageType {
+		case staking.MsgUndelegate:
 			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
-		} else if staking.MsgBeginRedelegate == event.Message.MessageType.MessageType {
+		case staking.MsgBeginRedelegate:
 			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
-		} else if gamm.MsgSwapExactAmountIn == event.Message.MessageType.MessageType {
+		case gamm.MsgSwapExactAmountIn:
 			rows = append(rows, ParseMsgSwapExactAmountIn(event))
-		} else if gamm.MsgSwapExactAmountOut == event.Message.MessageType.MessageType {
+		case gamm.MsgSwapExactAmountOut:
 			rows = append(rows, ParseMsgSwapExactAmountOut(event))
-		} else {
+		default:
 			return nil, fmt.Errorf("no parser for message type '%v'", event.Message.MessageType.MessageType)
 		}
 	}
-
 	return rows, nil
 }
 
