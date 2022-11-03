@@ -1,7 +1,7 @@
 package config
 
 import (
-	ibcTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/ibc/types"
+	ibcTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/ibc/types"
 	lensClient "github.com/strangelove-ventures/lens/client"
 	"go.uber.org/zap"
 )

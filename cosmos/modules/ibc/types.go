@@ -3,8 +3,8 @@ package ibc
 import (
 	"fmt"
 
-	types "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/ibc/types"
-	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
+	types "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/ibc/types"
+	txModule "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
 	stdTypes "github.com/cosmos/cosmos-sdk/types"
 )
 
