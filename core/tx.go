@@ -100,9 +100,10 @@ func toEvents(msgEvents types.StringEvents) (list []txTypes.LogMessageEvent) {
 // TODO: get rid of some of the unnecessary types like cosmos-tax-cli-private/TxResponse.
 // All those structs were legacy and for REST API support but we no longer really need it.
 // For now I'm keeping it until we have RPC compatibility fully working and tested.
-func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]dbTypes.TxDBWrapper, error) {
+func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]dbTypes.TxDBWrapper, time.Time, error) {
 	var currTxDbWrappers = make([]dbTypes.TxDBWrapper, len(txEventResp.Txs))
-
+	var blockTime time.Time
+	var blockTimeFound bool
 	for txIdx := range txEventResp.Txs {
 		//Indexer types only used by the indexer app (similar to the cosmos types)
 		var indexerMergedTx txTypes.MergedTx
@@ -128,7 +129,7 @@ func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]db
 					currLogMsgs = append(currLogMsgs, currTxLog)
 				}
 			} else {
-				return nil, errors.New("tx message could not be processed. CachedValue is not present")
+				return nil, blockTime, errors.New("tx message could not be processed. CachedValue is not present")
 			}
 		}
 
@@ -149,9 +150,13 @@ func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]db
 		indexerMergedTx.Tx = indexerTx
 		indexerMergedTx.Tx.AuthInfo = *currTx.AuthInfo
 
-		processedTx, err := ProcessTx(db, indexerMergedTx)
+		processedTx, txTime, err := ProcessTx(db, indexerMergedTx)
 		if err != nil {
-			return currTxDbWrappers, err
+			return currTxDbWrappers, blockTime, err
+		}
+
+		if !blockTimeFound {
+			blockTime = txTime
 		}
 
 		processedTx.SignerAddress = dbTypes.Address{Address: currTx.FeePayer().String()}
@@ -163,7 +168,7 @@ func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]db
 		currTxDbWrappers[txIdx] = processedTx
 	}
 
-	return currTxDbWrappers, nil
+	return currTxDbWrappers, blockTime, nil
 }
 
 var allSwaps = []gamm.ArbitrageTx{}
@@ -194,10 +199,11 @@ func AnalyzeSwaps() {
 	fmt.Printf("Profit (OSMO): %.10f, days: %f\n", profit, latestTime.Sub(earliestTime).Hours()/24)
 }
 
-func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper, err error) {
-	timeStamp, err := time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
+func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper, txTime time.Time, err error) {
+	txTime, err = time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
 	if err != nil {
 		config.Log.Error("Error parsing tx timestamp.", zap.Error(err))
+		return
 	}
 
 	code := tx.TxResponse.Code
@@ -254,12 +260,12 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 							denomSent, err = dbTypes.GetDenomForBase(v.DenominationSent)
 							if err != nil {
 								//attempt to add missing denoms to the database
-								config.Log.Error("Denom lookup", zap.Error(err), zap.String("denom sent", v.DenominationSent))
+								config.Log.Warn("Denom lookup failed. Will add as unknown", zap.Error(err), zap.String("denom sent", v.DenominationSent))
 
 								denomSent, err = dbTypes.AddUnknownDenom(db, v.DenominationSent)
 								if err != nil {
 									config.Log.Error("There was an error adding a missing denom", zap.Error(err), zap.String("denom received", v.DenominationSent))
-									return txDBWapper, err
+									return txDBWapper, txTime, err
 								}
 							}
 
@@ -276,7 +282,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 								denomReceived, err = dbTypes.AddUnknownDenom(db, v.DenominationReceived)
 								if err != nil {
 									config.Log.Error("There was an error adding a missing denom", zap.Error(err), zap.String("denom received", v.DenominationReceived))
-									return txDBWapper, err
+									return txDBWapper, txTime, err
 								}
 							}
 							taxableTxs[i].TaxableTx.DenominationReceived = denomReceived
@@ -292,7 +298,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 			}
 
 			if msgSwapExactIn, ok := cosmosMessage.(*gamm.WrapperMsgSwapExactAmountIn); ok {
-				newSwap := gamm.ArbitrageTx{TokenIn: msgSwapExactIn.TokenIn, TokenOut: msgSwapExactIn.TokenOut, BlockTime: timeStamp}
+				newSwap := gamm.ArbitrageTx{TokenIn: msgSwapExactIn.TokenIn, TokenOut: msgSwapExactIn.TokenOut, BlockTime: txTime}
 				allSwaps = append(allSwaps, newSwap)
 			}
 			messages = append(messages, currMessageDBWrapper)
@@ -301,13 +307,13 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 
 	fees, err := ProcessFees(tx.Tx.AuthInfo)
 	if err != nil {
-		return txDBWapper, err
+		return txDBWapper, txTime, err
 	}
 
-	txDBWapper.Tx = dbTypes.Tx{TimeStamp: timeStamp, Hash: tx.TxResponse.TxHash, Fees: fees, Code: code}
+	txDBWapper.Tx = dbTypes.Tx{Hash: tx.TxResponse.TxHash, Fees: fees, Code: code}
 	txDBWapper.Messages = messages
 
-	return txDBWapper, nil
+	return txDBWapper, txTime, nil
 }
 
 // ProcessFees returns a comma delimited list of fee amount/denoms

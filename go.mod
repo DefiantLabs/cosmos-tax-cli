@@ -113,6 +113,7 @@ require (
 	github.com/petermattis/goid v0.0.0-20220331194723-8ee3e6ded87a // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/preichenberger/go-coinbasepro/v2 v2.1.0 // indirect
 	github.com/prometheus/client_golang v1.12.2 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.34.0 // indirect

@@ -1,13 +1,13 @@
 package db
 
 import (
-	"time"
-
 	"github.com/shopspring/decimal"
+	"time"
 )
 
 type Block struct {
 	ID           uint
+	TimeStamp    time.Time
 	Height       int64 `gorm:"uniqueIndex:chainheight"`
 	BlockchainID uint  `gorm:"uniqueIndex:chainheight"`
 	Chain        Chain `gorm:"foreignKey:BlockchainID"`
@@ -28,7 +28,6 @@ type Chain struct {
 
 type Tx struct {
 	ID              uint
-	TimeStamp       time.Time
 	Hash            string
 	Code            uint32
 	BlockID         uint
@@ -100,7 +99,7 @@ func (TaxableEvent) TableName() string {
 type TaxableTransaction struct {
 	ID                     uint
 	MessageID              uint
-	Message                Message
+	Message                Message         `gorm:"foreignKey:MessageID"`
 	AmountSent             decimal.Decimal `gorm:"type:decimal(78,0);"`
 	AmountReceived         decimal.Decimal `gorm:"type:decimal(78,0);"`
 	DenominationSentID     *uint

@@ -1,10 +1,17 @@
 package accointing
 
 import (
+	"fmt"
+
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
+
+	"github.com/preichenberger/go-coinbasepro/v2"
+	"github.com/shopspring/decimal"
+
+	"time"
 )
 
 var IsOsmosisJoin = map[string]bool{
@@ -65,44 +72,76 @@ func (sf *WrapperLpTxGroup) AddTxToGroup(tx db.TaxableTransaction) {
 	}
 }
 
+func getRate(cbClient *coinbasepro.Client, coin string, transactionTime time.Time) (float64, error) {
+	histRate, err := cbClient.GetHistoricRates(fmt.Sprintf("%v-USD", coin), coinbasepro.GetHistoricRatesParams{
+		Start:       transactionTime.Add(-1 * time.Minute),
+		End:         transactionTime,
+		Granularity: 60,
+	})
+	if err != nil {
+		return 0.0, fmt.Errorf("unable to get price for coin '%v' at time '%v'. Err: %v", coin, transactionTime, err)
+	}
+	if len(histRate) == 0 {
+		return 0.0, fmt.Errorf("unable to get price for coin '%v' at time '%v'", coin, transactionTime)
+	}
+
+	return histRate[0].Close, nil
+}
+
 func (sf *WrapperLpTxGroup) ParseGroup() error {
 	//TODO: Do specialized processing on LP messages
+	cbClient := coinbasepro.NewClient()
 	for _, txMessages := range sf.GroupedTxes {
 		for _, message := range txMessages {
 			row := Row{}
+			row.TransactionType = Order
 			row.OperationID = message.Message.Tx.Hash
-			row.Date = message.Message.Tx.TimeStamp.Format(timeLayout)
+			row.Date = message.Message.Tx.Block.TimeStamp.Format(timeLayout)
+
+			denomRecieved := message.DenominationReceived
+			valueRecieved := message.AmountReceived
+			conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(valueRecieved), denomRecieved)
+			if err != nil {
+				row.InBuyAmount = util.NumericToString(valueRecieved)
+				row.InBuyAsset = denomRecieved.Base
+			} else {
+				row.InBuyAmount = conversionAmount.Text('f', -1)
+				row.InBuyAsset = conversionSymbol
+			}
+
+			denomSent := message.DenominationSent
+			valueSent := message.AmountSent
+			conversionAmount, conversionSymbol, err = db.ConvertUnits(util.FromNumeric(valueSent), denomSent)
+			if err != nil {
+				row.OutSellAmount = util.NumericToString(valueSent)
+				row.OutSellAsset = denomSent.Base
+			} else {
+				row.OutSellAmount = conversionAmount.Text('f', -1)
+				row.OutSellAsset = conversionSymbol
+			}
+
 			//We deliberately exclude the GAMM tokens from OutSell/InBuy for Exits/Joins respectively
 			//Accointing has no way of using the GAMM token to determine LP cost basis etc...
 			if _, ok := IsOsmosisExit[message.Message.MessageType.MessageType]; ok {
-				denomRecieved := message.DenominationReceived
-				valueRecieved := message.AmountReceived
-				conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(valueRecieved), denomRecieved)
+				// add the value of gam tokens
+				price, err := getRate(cbClient, message.DenominationReceived.Symbol, message.Message.Tx.Block.TimeStamp)
 				if err != nil {
-					row.InBuyAmount = util.NumericToString(valueRecieved)
-					row.InBuyAsset = denomRecieved.Base
+					row.Comments = fmt.Sprintf("could not lookup value of %v %v. It will be equivolent to %v %v at %v.", message.AmountReceived, message.DenominationReceived.Base, message.AmountReceived, message.DenominationReceived.Symbol, row.Date)
 				} else {
-					row.InBuyAmount = conversionAmount.Text('f', -1)
-					row.InBuyAsset = conversionSymbol
+					gamValue := message.AmountReceived.Mul(decimal.NewFromFloat(price))
+					row.Comments = fmt.Sprintf("%v %v on %v was $%v USD", message.AmountSent, message.DenominationSent.Base, row.Date, gamValue)
 				}
-
-				row.TransactionType = Deposit
-				row.Classification = LiquidityPool
-				sf.Rows = append(sf.Rows, row)
 			} else if _, ok := IsOsmosisJoin[message.Message.MessageType.MessageType]; ok {
-				denomSent := message.DenominationSent
-				valueSent := message.AmountSent
-				conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(valueSent), denomSent)
+				// add the value of gam tokens
+				price, err := getRate(cbClient, message.DenominationSent.Symbol, message.Message.Tx.Block.TimeStamp)
 				if err != nil {
-					row.OutSellAmount = util.NumericToString(valueSent)
-					row.OutSellAsset = denomSent.Base
+					row.Comments = fmt.Sprintf("could not lookup value of %v %v. It will be equivolent to %v %v at %v.", message.AmountReceived, message.DenominationReceived.Base, message.AmountSent, message.DenominationSent.Symbol, row.Date)
 				} else {
-					row.OutSellAmount = conversionAmount.Text('f', -1)
-					row.OutSellAsset = conversionSymbol
+					gamValue := message.AmountSent.Mul(decimal.NewFromFloat(price))
+					row.Comments = fmt.Sprintf("%v %v on %v was $%v USD", message.AmountReceived, message.DenominationReceived.Base, row.Date, gamValue)
 				}
-				row.TransactionType = Withdraw
-				sf.Rows = append(sf.Rows, row)
 			}
+			sf.Rows = append(sf.Rows, row)
 		}
 	}
 	return nil
