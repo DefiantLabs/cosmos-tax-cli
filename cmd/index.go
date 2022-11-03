@@ -274,8 +274,10 @@ func (idxr *Indexer) indexOsmosisReward(rpcClient osmosis.URIClient, epoch int64
 	}
 
 	if len(rewards) > 0 {
+		config.Log.Info(fmt.Sprintf("Found %v rewards at epoch %v, sending to DB", len(rewards), epoch))
 		err = dbTypes.IndexOsmoRewards(idxr.db, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName, rewards)
 		if err != nil {
+			config.Log.Error("Error storing rewards in DB.", zap.Error(err))
 			return core.OsmosisNodeRewardIndexError, err
 		}
 	}

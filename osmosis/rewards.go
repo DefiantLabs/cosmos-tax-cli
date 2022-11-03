@@ -3,7 +3,6 @@ package osmosis
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -99,8 +98,8 @@ func (client *URIClient) getRewards(height int64) ([]*Rewards, error) {
 	//which means they show up in the BeginBlockEvents section
 	for _, event := range bresults.BeginBlockEvents {
 		if event.Type == "distribution" {
-			receiverAddr := ""
-			receiverAmount := ""
+			var receiverAddr string
+			var receiverAmount string
 
 			for _, attr := range event.Attributes {
 				if string(attr.Key) == "receiver" {
@@ -109,24 +108,18 @@ func (client *URIClient) getRewards(height int64) ([]*Rewards, error) {
 				if string(attr.Key) == "amount" {
 					receiverAmount = string(attr.Value)
 				}
-
-				if strings.Contains(receiverAmount, ",") {
-					fmt.Printf("Fuck VSCode")
-				}
 			}
 
 			if receiverAddr != "" && receiverAmount != "" {
-				coins, parseErr := sdk.ParseCoinsNormalized(receiverAmount)
-				if parseErr == nil {
-					if prevRewards, ok := rewards[receiverAddr]; ok {
-						fmt.Printf("Receiver has more than one entry for Osmosis rewards at block height %d\n", prevRewards.EpochBlockHeight)
-						coinsCombined := addCoins(prevRewards.Coins, coins)
-						rewards[receiverAddr].Coins = coinsCombined
-					} else {
-						rewards[receiverAddr] = &Rewards{Address: receiverAddr, Coins: coins, EpochBlockHeight: height}
-					}
+				coins, err := sdk.ParseCoinsNormalized(receiverAmount)
+				if err != nil {
+					return nil, err
+				}
+				if prevRewards, ok := rewards[receiverAddr]; ok {
+					coinsCombined := addCoins(prevRewards.Coins, coins)
+					rewards[receiverAddr].Coins = coinsCombined
 				} else {
-					return nil, parseErr
+					rewards[receiverAddr] = &Rewards{Address: receiverAddr, Coins: coins, EpochBlockHeight: height}
 				}
 			}
 		}

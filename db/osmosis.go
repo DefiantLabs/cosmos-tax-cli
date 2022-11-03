@@ -3,8 +3,10 @@ package db
 import (
 	"fmt"
 
+	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -60,19 +62,27 @@ func IndexOsmoRewards(db *gorm.DB, chainID string, chainName string, rewards []*
 		for _, coin := range curr.Coins {
 			denom, err := GetDenomForBase(coin.Denom)
 			if err != nil {
-				return err
+				//attempt to add missing denoms to the database
+				config.Log.Error("Denom lookup", zap.Error(err), zap.String("denom received", coin.Denom))
+				denom, err = AddUnknownDenom(db, coin.Denom)
+				if err != nil {
+					config.Log.Error("There was an error adding a missing denom", zap.Error(err), zap.String("denom received", coin.Denom))
+					return err
+				}
 			}
 
 			evt := TaxableEvent{
 				Source:       OsmosisRewardDistribution,
 				Amount:       util.ToNumeric(coin.Amount.BigInt()),
 				Denomination: denom,
+				// FIXME: will this block have the correct time if it hasn't been indexed yet?
 				Block:        Block{Height: curr.EpochBlockHeight, Chain: Chain{ChainID: chainID, Name: chainName}},
 				EventAddress: Address{Address: curr.Address},
 			}
 			dbEvents = append(dbEvents, evt)
 		}
 	}
+	config.Log.Debug("Rewards ready to insert in DB")
 
 	return createTaxableEvents(db, dbEvents)
 }
