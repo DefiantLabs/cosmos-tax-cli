@@ -1,6 +1,7 @@
 package db
 
 import (
+	"crypto/md5"
 	"fmt"
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
@@ -74,6 +75,7 @@ func IndexOsmoRewards(db *gorm.DB, chainID string, chainName string, rewards []*
 			evt := TaxableEvent{
 				Source:       OsmosisRewardDistribution,
 				Amount:       util.ToNumeric(coin.Amount.BigInt()),
+				EventHash:    fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprint(curr.Address, curr.EpochBlockHeight, coin)))),
 				Denomination: denom,
 				// FIXME: will this block have the correct time if it hasn't been indexed yet?
 				Block:        Block{Height: curr.EpochBlockHeight, Chain: Chain{ChainID: chainID, Name: chainName}},
