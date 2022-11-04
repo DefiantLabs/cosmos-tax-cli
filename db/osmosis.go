@@ -82,9 +82,9 @@ func IndexOsmoRewards(db *gorm.DB, chainID string, chainName string, rewards []*
 			dbEvents = append(dbEvents, evt)
 		}
 	}
-	config.Log.Debug("Rewards ready to insert in DB")
 	// insert rewards into DB in batches of batchSize
 	batchSize := 500
+	config.Log.Debug(fmt.Sprintf("Rewards ready to insert in DB. Will insert in batches of %v", batchSize))
 	for i := 0; i < len(dbEvents); i += batchSize {
 		batchEnd := i + batchSize
 		if batchEnd > len(dbEvents) {
