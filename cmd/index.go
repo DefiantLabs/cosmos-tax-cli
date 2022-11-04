@@ -126,8 +126,10 @@ func index(cmd *cobra.Command, args []string) {
 	var wg sync.WaitGroup // This group is to ensure we are done processing transactions (as well as osmo rewards) before returning
 
 	//Start a thread to process transactions after the RPC querier retrieves them.
-	wg.Add(1)
-	go idxr.processTxs(&wg, blockTXsChan, core.HandleFailedBlock) // TODO: are we sure more workers here wouldn't make this faster?
+	if !idxr.cfg.Base.OsmosisRewardsOnly {
+		wg.Add(1)
+		go idxr.processTxs(&wg, blockTXsChan, core.HandleFailedBlock) // TODO: are we sure more workers here wouldn't make this faster?
+	}
 
 	//Osmosis specific indexing requirements. Osmosis distributes rewards to LP holders on a daily basis.
 	if config.IsOsmosis(idxr.cfg) {
@@ -267,6 +269,7 @@ func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler 
 }
 
 func (idxr *Indexer) indexOsmosisReward(rpcClient osmosis.URIClient, epoch int64) (core.BlockProcessingFailure, error) {
+	config.Log.Debug(fmt.Sprintf("Getting rewards for epoch %v", epoch))
 	rewards, err := rpcClient.GetEpochRewards(epoch)
 	if err != nil {
 		config.Log.Error(fmt.Sprintf("Error getting rewards for epoch %d\n", epoch), zap.Error(err))
@@ -274,8 +277,10 @@ func (idxr *Indexer) indexOsmosisReward(rpcClient osmosis.URIClient, epoch int64
 	}
 
 	if len(rewards) > 0 {
+		config.Log.Info(fmt.Sprintf("Found %v rewards at epoch %v, sending to DB", len(rewards), epoch))
 		err = dbTypes.IndexOsmoRewards(idxr.db, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName, rewards)
 		if err != nil {
+			config.Log.Error("Error storing rewards in DB.", zap.Error(err))
 			return core.OsmosisNodeRewardIndexError, err
 		}
 	}

@@ -3,8 +3,10 @@ package db
 import (
 	"fmt"
 
+	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -60,19 +62,40 @@ func IndexOsmoRewards(db *gorm.DB, chainID string, chainName string, rewards []*
 		for _, coin := range curr.Coins {
 			denom, err := GetDenomForBase(coin.Denom)
 			if err != nil {
-				return err
+				//attempt to add missing denoms to the database
+				config.Log.Error("Denom lookup failed. Will be inserted as UNKNOWN", zap.Error(err), zap.String("denom received", coin.Denom))
+				denom, err = AddUnknownDenom(db, coin.Denom)
+				if err != nil {
+					config.Log.Error("There was an error adding a missing denom", zap.Error(err), zap.String("denom received", coin.Denom))
+					return err
+				}
 			}
 
 			evt := TaxableEvent{
 				Source:       OsmosisRewardDistribution,
 				Amount:       util.ToNumeric(coin.Amount.BigInt()),
 				Denomination: denom,
+				// FIXME: will this block have the correct time if it hasn't been indexed yet?
 				Block:        Block{Height: curr.EpochBlockHeight, Chain: Chain{ChainID: chainID, Name: chainName}},
 				EventAddress: Address{Address: curr.Address},
 			}
 			dbEvents = append(dbEvents, evt)
 		}
 	}
+	// insert rewards into DB in batches of batchSize
+	batchSize := 500
+	config.Log.Debug(fmt.Sprintf("Rewards ready to insert in DB. Will insert in batches of %v", batchSize))
+	for i := 0; i < len(dbEvents); i += batchSize {
+		batchEnd := i + batchSize
+		if batchEnd > len(dbEvents) {
+			batchEnd = len(dbEvents) - 1
+		}
+		err := createTaxableEvents(db, dbEvents[i:batchEnd])
+		if err != nil {
+			config.Log.Error("Error storing DB events.", zap.Error(err))
+			return err
+		}
+	}
 
-	return createTaxableEvents(db, dbEvents)
+	return nil
 }

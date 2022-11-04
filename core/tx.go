@@ -13,7 +13,6 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/staking"
 	tx "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
 	txTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
@@ -260,7 +259,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 							denomSent, err = dbTypes.GetDenomForBase(v.DenominationSent)
 							if err != nil {
 								//attempt to add missing denoms to the database
-								config.Log.Warn("Denom lookup failed. Will add as unknown", zap.Error(err), zap.String("denom sent", v.DenominationSent))
+								config.Log.Warn("Denom lookup failed. Will be inserted as UNKNOWN", zap.Error(err), zap.String("denom sent", v.DenominationSent))
 
 								denomSent, err = dbTypes.AddUnknownDenom(db, v.DenominationSent)
 								if err != nil {
@@ -275,10 +274,9 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 						var denomReceived dbTypes.Denom
 						if v.DenominationReceived != "" {
 							denomReceived, err = dbTypes.GetDenomForBase(v.DenominationReceived)
-
 							if err != nil {
 								//attempt to add missing denoms to the database
-								config.Log.Error("Denom lookup", zap.Error(err), zap.String("denom received", v.DenominationReceived))
+								config.Log.Error("Denom lookup failed. Will be inserted as UNKNOWN", zap.Error(err), zap.String("denom received", v.DenominationReceived))
 								denomReceived, err = dbTypes.AddUnknownDenom(db, v.DenominationReceived)
 								if err != nil {
 									config.Log.Error("There was an error adding a missing denom", zap.Error(err), zap.String("denom received", v.DenominationReceived))
@@ -305,7 +303,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 		}
 	}
 
-	fees, err := ProcessFees(tx.Tx.AuthInfo)
+	fees, err := ProcessFees(db, tx.Tx.AuthInfo)
 	if err != nil {
 		return txDBWapper, txTime, err
 	}
@@ -317,7 +315,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 }
 
 // ProcessFees returns a comma delimited list of fee amount/denoms
-func ProcessFees(authInfo cosmosTx.AuthInfo) ([]dbTypes.Fee, error) {
+func ProcessFees(db *gorm.DB, authInfo cosmosTx.AuthInfo) ([]dbTypes.Fee, error) {
 	//TODO handle granter? Almost nobody uses it.
 	feeCoins := authInfo.Fee.Amount
 	payer := authInfo.Fee.GetPayer()
@@ -329,9 +327,15 @@ func ProcessFees(authInfo cosmosTx.AuthInfo) ([]dbTypes.Fee, error) {
 		//There are chains like Osmosis that do not require TX fees for certain TXs
 		if zeroFee.Cmp(coin.Amount.BigInt()) != 0 {
 			amount := util.ToNumeric(coin.Amount.BigInt())
-			denom, denomErr := db.GetDenomForBase(coin.Denom)
-			if denomErr != nil {
-				return nil, denomErr
+			denom, err := dbTypes.GetDenomForBase(coin.Denom)
+			if err != nil {
+				//attempt to add missing denoms to the database
+				config.Log.Error("Denom lookup failed. Will be inserted as UNKNOWN", zap.Error(err), zap.String("denom received", coin.Denom))
+				denom, err = dbTypes.AddUnknownDenom(db, coin.Denom)
+				if err != nil {
+					config.Log.Error("There was an error adding a missing denom", zap.Error(err), zap.String("denom received", coin.Denom))
+					return nil, err
+				}
 			}
 			payerAddr := dbTypes.Address{}
 
