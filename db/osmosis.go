@@ -83,6 +83,19 @@ func IndexOsmoRewards(db *gorm.DB, chainID string, chainName string, rewards []*
 		}
 	}
 	config.Log.Debug("Rewards ready to insert in DB")
+	// insert rewards into DB in batches of batchSize
+	batchSize := 500
+	for i := 0; i < len(dbEvents); i += batchSize {
+		batchEnd := i + batchSize
+		if batchEnd > len(dbEvents) {
+			batchEnd = len(dbEvents) - 1
+		}
+		err := createTaxableEvents(db, dbEvents[i:batchEnd])
+		if err != nil {
+			config.Log.Error("Error storing DB events.", zap.Error(err))
+			return err
+		}
+	}
 
-	return createTaxableEvents(db, dbEvents)
+	return nil
 }
