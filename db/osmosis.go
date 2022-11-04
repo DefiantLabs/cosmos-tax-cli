@@ -3,6 +3,7 @@ package db
 import (
 	"crypto/md5"
 	"fmt"
+	"sort"
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
@@ -18,6 +19,12 @@ func GetHighestTaxableEventBlock(db *gorm.DB, chainID string) (Block, error) {
 		Joins("JOIN chains ON blocks.blockchain_id = chains.id AND chains.chain_id = ?", chainID).Order("height desc").First(&block)
 
 	return block, result.Error
+}
+
+func eventExists(db *gorm.DB, event TaxableEvent) bool {
+	var count int64
+	db.Model(&TaxableEvent{}).Where("event_hash = ?", event.EventHash).Count(&count)
+	return count > 0
 }
 
 func createTaxableEvents(db *gorm.DB, events []TaxableEvent) error {
@@ -84,6 +91,12 @@ func IndexOsmoRewards(db *gorm.DB, chainID string, chainName string, rewards []*
 			dbEvents = append(dbEvents, evt)
 		}
 	}
+
+	// sort by hash
+	sort.SliceStable(dbEvents, func(i, j int) bool {
+		return dbEvents[i].EventHash < dbEvents[j].EventHash
+	})
+
 	// insert rewards into DB in batches of batchSize
 	batchSize := 500
 	config.Log.Debug(fmt.Sprintf("Rewards ready to insert in DB. Will insert in batches of %v", batchSize))
@@ -92,6 +105,11 @@ func IndexOsmoRewards(db *gorm.DB, chainID string, chainName string, rewards []*
 		if batchEnd > len(dbEvents) {
 			batchEnd = len(dbEvents) - 1
 		}
+		// if this batch has already been inserted, we can skip it
+		if eventExists(db, dbEvents[i]) {
+			continue
+		}
+
 		err := createTaxableEvents(db, dbEvents[i:batchEnd])
 		if err != nil {
 			config.Log.Error("Error storing DB events.", zap.Error(err))
