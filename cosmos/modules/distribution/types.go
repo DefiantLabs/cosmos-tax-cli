@@ -2,6 +2,7 @@ package distribution
 
 import (
 	"fmt"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"go.uber.org/zap"
@@ -53,7 +54,7 @@ func (sf *WrapperMsgFundCommunityPool) HandleMsg(msgType string, msg stdTypes.Ms
 	//Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		return util.ReturnInvalidLog(msgType, log)
 	}
 
 	//Funds sent and sender address are pulled from the parsed Cosmos Msg
@@ -71,7 +72,7 @@ func (sf *WrapperMsgWithdrawValidatorCommission) HandleMsg(msgType string, msg s
 	//Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		return util.ReturnInvalidLog(msgType, log)
 	}
 
 	//The attribute in the log message that shows you the delegator withdrawal address and amount received
@@ -107,8 +108,7 @@ func (sf *WrapperMsgWithdrawDelegatorReward) HandleMsg(msgType string, msg stdTy
 	//Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
-		config.Log.Error("Msg log invalid")
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		return util.ReturnInvalidLog(msgType, log)
 	}
 
 	//The attribute in the log message that shows you the delegator withdrawal address and amount received

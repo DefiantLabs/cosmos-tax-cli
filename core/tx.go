@@ -345,6 +345,7 @@ func ProcessFees(db *gorm.DB, authInfo cosmosTx.AuthInfo) ([]dbTypes.Fee, error)
 				hexPub := hex.EncodeToString(pubKey.Bytes())
 				bechAddr, err := ParseSignerAddress(hexPub, "")
 				if err != nil {
+					config.Log.Error("Error parsing signer address for tx.")
 					fmt.Printf("Err %s\n", err.Error())
 				} else {
 					payerAddr.Address = bechAddr

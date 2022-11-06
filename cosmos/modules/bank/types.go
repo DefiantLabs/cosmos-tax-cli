@@ -2,6 +2,7 @@ package bank
 
 import (
 	"fmt"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
 	"strings"
 
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
@@ -28,7 +29,7 @@ func (sf *WrapperMsgSend) HandleMsg(msgType string, msg sdk.Msg, log *txModule.L
 	//Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		return util.ReturnInvalidLog(msgType, log)
 	}
 
 	//The attribute in the log message that shows you the delegator withdrawal address and amount received

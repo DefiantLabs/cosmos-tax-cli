@@ -1,6 +1,8 @@
 package util
 
 import (
+	"fmt"
+	txModule "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
 	"math/big"
 	"regexp"
 
@@ -55,4 +57,9 @@ func WalkFindStrings(data interface{}, regex *regexp.Regexp) []string {
 // StrNotSet will return true if the string value provided is empty
 func StrNotSet(value string) bool {
 	return len(value) == 0
+}
+
+func ReturnInvalidLog(msgType string, log *txModule.LogMessage) error {
+	fmt.Println("Error: Log is invalid.")
+	return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 }

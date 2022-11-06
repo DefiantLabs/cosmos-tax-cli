@@ -3,6 +3,7 @@ package ibc
 import (
 	"fmt"
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
 
 	types "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/ibc/types"
 	txModule "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
@@ -29,7 +30,7 @@ func (sf *WrapperMsgTransfer) HandleMsg(msgType string, msg stdTypes.Msg, log *t
 	//Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		return util.ReturnInvalidLog(msgType, log)
 	}
 
 	//Funds sent and sender address are pulled from the parsed Cosmos Msg
