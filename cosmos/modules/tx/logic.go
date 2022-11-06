@@ -1,5 +1,11 @@
 package tx
 
+import (
+	"fmt"
+	"strings"
+	"unicode"
+)
+
 func GetMessageLogForIndex(logs []LogMessage, index int) *LogMessage {
 	for _, log := range logs {
 		if log.MessageIndex == index {
@@ -57,15 +63,29 @@ func GetLastValueForAttribute(key string, evt *LogMessageEvent) string {
 
 func IsMessageActionEquals(messageType string, msg *LogMessage) bool {
 	logEvent := GetEventWithType("message", msg)
+	logFormattedMsgType := getLogFmtMsgType(messageType)
 	if logEvent == nil {
 		return false
 	}
 
 	for _, attr := range logEvent.Attributes {
 		if attr.Key == "action" {
-			return attr.Value == messageType
+			return attr.Value == logFormattedMsgType
 		}
 	}
 
 	return false
+}
+
+func getLogFmtMsgType(msg string) (output string) {
+	msgSuffix := strings.Split(msg, ".Msg")[1]
+	for i, char := range msgSuffix {
+		if unicode.IsUpper(char) {
+			if i != 0 {
+				output = fmt.Sprintf("%v_", output)
+			}
+		}
+		output = fmt.Sprintf("%v%v", output, string(unicode.ToLower(char)))
+	}
+	return
 }
