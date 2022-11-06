@@ -2,12 +2,10 @@ package distribution
 
 import (
 	"fmt"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
-
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
-	"go.uber.org/zap"
-
 	txModule "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
+	"go.uber.org/zap"
 
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
 
@@ -76,7 +74,7 @@ func (sf *WrapperMsgWithdrawValidatorCommission) HandleMsg(msgType string, msg s
 	}
 
 	//The attribute in the log message that shows you the delegator withdrawal address and amount received
-	delegatorReceivedCoinsEvt := txModule.GetEventWithType(bankTypes.EventTypeCoinReceived, log)
+	delegatorReceivedCoinsEvt := txModule.GetEventWithType(distTypes.EventTypeWithdrawCommission, log)
 	if delegatorReceivedCoinsEvt == nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
@@ -112,7 +110,7 @@ func (sf *WrapperMsgWithdrawDelegatorReward) HandleMsg(msgType string, msg stdTy
 	}
 
 	//The attribute in the log message that shows you the delegator withdrawal address and amount received
-	delegatorReceivedCoinsEvt := txModule.GetEventWithType(bankTypes.EventTypeCoinReceived, log)
+	delegatorReceivedCoinsEvt := txModule.GetEventWithType(distTypes.EventTypeWithdrawRewards, log)
 	if delegatorReceivedCoinsEvt == nil {
 		config.Log.Error("Failed to get delegatorReceivedCoinsEvt from msg")
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}

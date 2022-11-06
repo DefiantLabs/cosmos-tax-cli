@@ -229,7 +229,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 				if err != txTypes.ErrUnknownMessage {
 					//What should we do here? This is an actual error during parsing
 					config.Log.Error("msg parse error.", zap.Error(err))
-					config.Log.Error("Issue parsing a cosmos msg that we DO have a parser for! PLEASE INVESTIGATE")
+					config.Log.Fatal("Issue parsing a cosmos msg that we DO have a parser for! PLEASE INVESTIGATE")
 				}
 
 				//println("------------------Cosmos message parsing failed. MESSAGE FORMAT FOLLOWS:---------------- \n\n")
