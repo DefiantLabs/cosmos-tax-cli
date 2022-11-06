@@ -222,7 +222,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 			messageLog := txTypes.GetMessageLogForIndex(tx.TxResponse.Log, messageIndex)
 			cosmosMessage, msgType, err := ParseCosmosMessage(message, messageLog)
 			if err != nil {
-				config.Log.Warn(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed for msg of type '%v'.", tx.TxResponse.Height, msgType), zap.Error(err))
+				config.Log.Warn(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed for msg of type '%v'. We do not currently have a message handler for this message type", tx.TxResponse.Height, msgType))
 				currMessageType.MessageType = msgType
 				currMessage.MessageType = currMessageType
 				currMessageDBWrapper.Message = currMessage
