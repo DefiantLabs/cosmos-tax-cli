@@ -1,7 +1,6 @@
 package db
 
 import (
-	"errors"
 	"fmt"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"go.uber.org/zap"
@@ -115,7 +114,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 					//creates foreign key relation.
 					fee.PayerAddressID = fee.PayerAddress.ID
 				} else if fee.PayerAddress.Address == "" {
-					return errors.New("fee cannot have empty payer address")
+					return fmt.Errorf("fee for tx hash %v cannot have empty payer address", transaction.Tx.Hash)
 				}
 
 				if fee.Denomination.Base == "" || fee.Denomination.Symbol == "" {

@@ -358,9 +358,14 @@ func (idxr *Indexer) processTxs(wg *sync.WaitGroup, blockTXsChan chan *indexerTx
 			config.Log.Info(fmt.Sprintf("Indexing block %d, threaded.\n", txToProcess.Height))
 			err = dbTypes.IndexNewBlock(idxr.db, txToProcess.Height, blockTime, txDBWrappers, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
 			if err != nil {
+				config.Log.Error(fmt.Sprintf("Error indexing block %v.", txToProcess.Height), zap.Error(err))
+				// store block as failed
+				err = dbTypes.UpsertFailedBlock(idxr.db, txToProcess.Height, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
 				if err != nil {
-					config.Log.Fatal(fmt.Sprintf("Error indexing block %v.", txToProcess.Height), zap.Error(err))
+					config.Log.Fatal(fmt.Sprintf("Error upserting failed block %v.", txToProcess.Height), zap.Error(err))
 				}
+				// continue to next block
+				continue
 			}
 		}
 
