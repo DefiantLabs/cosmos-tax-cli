@@ -33,7 +33,7 @@ func (sf *WrapperMsgSend) HandleMsg(msgType string, msg sdk.Msg, log *txModule.L
 	}
 
 	//The attribute in the log message that shows you the delegator withdrawal address and amount received
-	receivedCoinsEvt := txModule.GetEventWithType(bankTypes.EventTypeCoinReceived, log)
+	receivedCoinsEvt := txModule.GetEventWithType(bankTypes.EventTypeTransfer, log)
 	if receivedCoinsEvt == nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
