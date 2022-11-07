@@ -221,17 +221,18 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 			messageLog := txTypes.GetMessageLogForIndex(tx.TxResponse.Log, messageIndex)
 			cosmosMessage, msgType, err := ParseCosmosMessage(message, messageLog)
 			if err != nil {
-				config.Log.Warn(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed for msg of type '%v'.", tx.TxResponse.Height, msgType), zap.Error(err))
 				currMessageType.MessageType = msgType
 				currMessage.MessageType = currMessageType
 				currMessageDBWrapper.Message = currMessage
 				if err != txTypes.ErrUnknownMessage {
 					//What should we do here? This is an actual error during parsing
-					config.Log.Error("msg parse error.", zap.Error(err))
+					config.Log.Error(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed for msg of type '%v'.", tx.TxResponse.Height, msgType), zap.Error(err))
+					config.Log.Error(fmt.Sprint(messageLog))
 					config.Log.Error(tx.TxResponse.TxHash)
 					config.Log.Fatal("Issue parsing a cosmos msg that we DO have a parser for! PLEASE INVESTIGATE")
-				}
 
+				}
+				config.Log.Warn(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed for msg of type '%v'. We do not currently have a message handler for this message type", tx.TxResponse.Height, msgType))
 				//println("------------------Cosmos message parsing failed. MESSAGE FORMAT FOLLOWS:---------------- \n\n")
 				//spew.Dump(message)
 				//println("\n------------------END MESSAGE----------------------\n")
