@@ -63,6 +63,7 @@ type WrapperMsgJoinPool struct {
 	Address            string
 	TokenOut           sdk.Coin
 	TokensIn           []sdk.Coin //joins can be done with multiple tokens in
+	Claim              *sdk.Coin  //option claim
 }
 
 type WrapperMsgExitSwapShareAmountIn struct {
@@ -402,9 +403,23 @@ func (sf *WrapperMsgJoinPool) HandleMsg(msgType string, msg sdk.Msg, log *txModu
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
-	//This gets the amount of GAMM tokens received
-	gammTokenOutStr := txModule.GetLastValueForAttribute("amount", transferEvt)
+	//This gets the amount of GAMM tokens received and claim (if needed)
+	var gammTokenOutStr string
+	if strings.Contains(fmt.Sprint(log), "claim") {
+		//This gets the amount of the claim
+		claimStr := txModule.GetLastValueForAttribute("amount", transferEvt)
+		claimTokenOut, err := sdk.ParseCoinNormalized(claimStr)
+		if err != nil {
+			return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		}
+		sf.Claim = &claimTokenOut
+
+		gammTokenOutStr = txModule.GetNthValueForAttribute("amount", 2, transferEvt)
+	} else {
+		gammTokenOutStr = txModule.GetLastValueForAttribute("amount", transferEvt)
+	}
 	if !strings.Contains(gammTokenOutStr, "gamm") {
+		fmt.Println(gammTokenOutStr)
 		fmt.Println("Gamm token out string must contain gamm")
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
@@ -691,6 +706,15 @@ func (sf *WrapperMsgJoinPool) ParseRelevantData() []parsingTypes.MessageRelevant
 				ReceiverAddress:      sf.Address,
 			}
 		}
+	}
+
+	// handle claim if there is one
+	if sf.Claim != nil {
+		relevantData = append(relevantData, parsingTypes.MessageRelevantInformation{
+			ReceiverAddress:      sf.Address,
+			AmountReceived:       sf.Claim.Amount.BigInt(),
+			DenominationReceived: sf.Claim.Denom,
+		})
 	}
 
 	return relevantData
