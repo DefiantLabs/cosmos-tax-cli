@@ -41,6 +41,7 @@ type WrapperMsgWithdrawDelegatorReward struct {
 	CosmosMsgWithdrawDelegatorReward *distTypes.MsgWithdrawDelegatorReward
 	CoinReceived                     stdTypes.Coin
 	MultiCoinsReceived               stdTypes.Coins
+	RecipientAddress                 string
 }
 
 // HandleMsg: Handle type checking for MsgFundCommunityPool
@@ -114,7 +115,7 @@ func (sf *WrapperMsgWithdrawDelegatorReward) HandleMsg(msgType string, msg stdTy
 		return nil
 	}
 
-	delegatorAddress := txModule.GetValueForAttribute(bankTypes.AttributeKeyRecipient, delegatorReceivedCoinsEvt)
+	sf.RecipientAddress = txModule.GetValueForAttribute(bankTypes.AttributeKeyRecipient, delegatorReceivedCoinsEvt)
 	coinsReceived := txModule.GetValueForAttribute("amount", delegatorReceivedCoinsEvt)
 
 	//This may be able to be optimized by doing one or the other
@@ -127,10 +128,6 @@ func (sf *WrapperMsgWithdrawDelegatorReward) HandleMsg(msgType string, msg stdTy
 		}
 	} else {
 		sf.CoinReceived = coin
-	}
-	if sf.CosmosMsgWithdrawDelegatorReward.DelegatorAddress != delegatorAddress {
-		return fmt.Errorf("transaction delegator address %s does not match log event '%s' delegator address %s",
-			sf.CosmosMsgWithdrawDelegatorReward.DelegatorAddress, bankTypes.EventTypeCoinReceived, delegatorAddress)
 	}
 
 	return err
@@ -181,7 +178,7 @@ func (sf *WrapperMsgWithdrawDelegatorReward) ParseRelevantData() []parsingTypes.
 				AmountReceived:       v.Amount.BigInt(),
 				DenominationReceived: v.Denom,
 				SenderAddress:        "",
-				ReceiverAddress:      sf.CosmosMsgWithdrawDelegatorReward.DelegatorAddress,
+				ReceiverAddress:      sf.RecipientAddress,
 			}
 		}
 		return relevantData
@@ -191,7 +188,7 @@ func (sf *WrapperMsgWithdrawDelegatorReward) ParseRelevantData() []parsingTypes.
 		AmountReceived:       sf.CoinReceived.Amount.BigInt(),
 		DenominationReceived: sf.CoinReceived.Denom,
 		SenderAddress:        "",
-		ReceiverAddress:      sf.CosmosMsgWithdrawDelegatorReward.DelegatorAddress,
+		ReceiverAddress:      sf.RecipientAddress,
 	}
 	return relevantData
 }
