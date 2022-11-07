@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/ibc"
 	"math/big"
+	"strings"
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
@@ -226,7 +227,8 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 				currMessageType.MessageType = msgType
 				currMessage.MessageType = currMessageType
 				currMessageDBWrapper.Message = currMessage
-				if msgType == distribution.MsgWithdrawDelegatorReward {
+				if msgType == distribution.MsgWithdrawDelegatorReward || strings.Contains(fmt.Sprint(*messageLog), "claim") {
+					config.Log.Error(fmt.Sprint(*messageLog))
 					config.Log.Error("This withdraw delegator rewards msg had issues.... PLEASE INVESTIGATE")
 				} else if err != txTypes.ErrUnknownMessage {
 					//What should we do here? This is an actual error during parsing
