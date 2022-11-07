@@ -3,14 +3,11 @@ package core
 import (
 	"encoding/hex"
 	"errors"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/ibc"
-	"math/big"
-	"strings"
-
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/bank"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/distribution"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/ibc"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/staking"
 	tx "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
 	txTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
@@ -19,6 +16,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"math/big"
 
 	"fmt"
 	"time"
@@ -227,12 +225,10 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 				currMessageType.MessageType = msgType
 				currMessage.MessageType = currMessageType
 				currMessageDBWrapper.Message = currMessage
-				if msgType == distribution.MsgWithdrawDelegatorReward || strings.Contains(fmt.Sprint(*messageLog), "claim") {
-					config.Log.Error(fmt.Sprint(*messageLog))
-					config.Log.Error("This withdraw delegator rewards msg had issues.... PLEASE INVESTIGATE")
-				} else if err != txTypes.ErrUnknownMessage {
+				if err != txTypes.ErrUnknownMessage {
 					//What should we do here? This is an actual error during parsing
 					config.Log.Error("msg parse error.", zap.Error(err))
+					config.Log.Error(tx.TxResponse.TxHash)
 					config.Log.Fatal("Issue parsing a cosmos msg that we DO have a parser for! PLEASE INVESTIGATE")
 				}
 

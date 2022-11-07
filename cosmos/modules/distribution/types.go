@@ -110,7 +110,8 @@ func (sf *WrapperMsgWithdrawDelegatorReward) HandleMsg(msgType string, msg stdTy
 	//The attribute in the log message that shows you the delegator withdrawal address and amount received
 	delegatorReceivedCoinsEvt := txModule.GetEventWithType(bankTypes.EventTypeTransfer, log)
 	if delegatorReceivedCoinsEvt == nil {
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		// A withdrawal without a transfer means no amounts were actually moved.
+		return nil
 	}
 
 	delegatorAddress := txModule.GetValueForAttribute(bankTypes.AttributeKeyRecipient, delegatorReceivedCoinsEvt)
@@ -119,12 +120,11 @@ func (sf *WrapperMsgWithdrawDelegatorReward) HandleMsg(msgType string, msg stdTy
 	//This may be able to be optimized by doing one or the other
 	coin, err := stdTypes.ParseCoinNormalized(coinsReceived)
 	if err != nil {
-		coins, err := stdTypes.ParseCoinsNormalized(coinsReceived)
+		sf.MultiCoinsReceived, err = stdTypes.ParseCoinsNormalized(coinsReceived)
 		if err != nil {
 			config.Log.Error("Error parsing coins normalized", zap.Error(err))
 			return err
 		}
-		sf.MultiCoinsReceived = coins
 	} else {
 		sf.CoinReceived = coin
 	}
