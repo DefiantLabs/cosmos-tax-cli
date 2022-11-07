@@ -75,7 +75,7 @@ func (sf *WrapperMsgUndelegate) HandleMsg(msgType string, msg stdTypes.Msg, log 
 	sf.CosmosMsgUndelegate = msg.(*stakeTypes.MsgUndelegate)
 
 	//Confirm that the action listed in the message log matches the Message type
-	validLog := txModule.IsMessageActionEquals("begin_unbonding", log)
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
