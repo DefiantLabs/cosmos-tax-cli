@@ -3,6 +3,7 @@ package gamm
 import (
 	"fmt"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
+	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"math/big"
 	"strings"
 	"time"
@@ -84,8 +85,8 @@ type WrapperMsgExitPool struct {
 	txModule.Message
 	OsmosisMsgExitPool *gammTypes.MsgExitPool
 	Address            string
-	TokensOut          []sdk.Coin //exits can received multiple tokens out
-	TokenIn            sdk.Coin
+	TokensOutOfPool    []sdk.Coin //exits can received multiple tokens out
+	TokenIntoPool      sdk.Coin
 }
 
 func (sf *WrapperMsgSwapExactAmountIn) String() string {
@@ -185,13 +186,13 @@ func (sf *WrapperMsgExitSwapExternAmountOut) String() string {
 func (sf *WrapperMsgExitPool) String() string {
 	var tokensOut []string
 	var tokenIn string
-	if !(len(sf.TokensOut) == 0) {
-		for _, v := range sf.TokensOut {
+	if !(len(sf.TokensOutOfPool) == 0) {
+		for _, v := range sf.TokensOutOfPool {
 			tokensOut = append(tokensOut, v.String())
 		}
 	}
-	if !sf.TokenIn.IsNil() {
-		tokenIn = sf.TokenIn.String()
+	if !sf.TokenIntoPool.IsNil() {
+		tokenIn = sf.TokenIntoPool.String()
 	}
 	return fmt.Sprintf("MsgExitPool: %s exited pool with %s and received %s\n",
 		sf.Address, tokenIn, strings.Join(tokensOut, ", "))
@@ -387,19 +388,22 @@ func (sf *WrapperMsgJoinPool) HandleMsg(msgType string, msg sdk.Msg, log *txModu
 		return util.ReturnInvalidLog(msgType, log)
 	}
 
-	// //The attribute in the log message that shows you the received GAMM tokens from the pool
-	coinbaseEvt := txModule.GetEventWithType("coinbase", log)
-	if coinbaseEvt == nil {
+	//The attribute in the log message that shows you the received GAMM tokens from the pool
+	transferEvt := txModule.GetEventWithType(bankTypes.EventTypeTransfer, log)
+	if transferEvt == nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
-	// // This gets the amount of GAMM tokens received
-	gammTokenInStr := txModule.GetValueForAttribute("amount", coinbaseEvt)
-	gammTokenIn, err := sdk.ParseCoinNormalized(gammTokenInStr)
+	//This gets the amount of GAMM tokens received
+	gammTokenOutStr := txModule.GetLastValueForAttribute("amount", transferEvt)
+	if !strings.Contains(gammTokenOutStr, "gamm") {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	gammTokenOut, err := sdk.ParseCoinNormalized(gammTokenOutStr)
 	if err != nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
-	sf.TokenOut = gammTokenIn
+	sf.TokenOut = gammTokenOut
 
 	//Address of whoever initiated the join
 	poolJoinedEvent := txModule.GetEventWithType(gammTypes.TypeEvtPoolJoined, log)
@@ -539,18 +543,21 @@ func (sf *WrapperMsgExitPool) HandleMsg(msgType string, msg sdk.Msg, log *txModu
 	}
 
 	//The attribute in the log message that shows you the sent GAMM tokens during the exit
-	burnEvt := txModule.GetEventWithType("burn", log)
-	if burnEvt == nil {
+	transverEvt := txModule.GetEventWithType(bankTypes.EventTypeTransfer, log)
+	if transverEvt == nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
 	// This gets the amount of GAMM tokens sent
-	gammTokenOutStr := txModule.GetValueForAttribute("amount", burnEvt)
+	gammTokenOutStr := txModule.GetLastValueForAttribute("amount", transverEvt)
+	if !strings.Contains(gammTokenOutStr, "gamm") {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
 	gammTokenOut, err := sdk.ParseCoinNormalized(gammTokenOutStr)
 	if err != nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
-	sf.TokenIn = gammTokenOut
+	sf.TokenIntoPool = gammTokenOut
 
 	//Address of whoever initiated the exit
 	poolExitedEvent := txModule.GetEventWithType(gammTypes.TypeEvtPoolExited, log)
@@ -570,8 +577,8 @@ func (sf *WrapperMsgExitPool) HandleMsg(msgType string, msg sdk.Msg, log *txModu
 	if tokensOutString == "" {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
-	sf.TokensOut, err = sdk.ParseCoinsNormalized(tokensOutString)
 
+	sf.TokensOutOfPool, err = sdk.ParseCoinsNormalized(tokensOutString)
 	if err != nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
@@ -698,16 +705,16 @@ func (sf *WrapperMsgExitSwapExternAmountOut) ParseRelevantData() []parsingTypes.
 
 func (sf *WrapperMsgExitPool) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
 	//need to make a relevant data block for all Tokens received from the pool since ExitPool can receive 1 or both tokens used in the pool
-	var relevantData = make([]parsingTypes.MessageRelevantInformation, len(sf.TokensOut))
+	var relevantData = make([]parsingTypes.MessageRelevantInformation, len(sf.TokensOutOfPool))
 
 	// figure out how many gams per token
-	nthGamms, remainderGamms := calcNthGams(sf.TokenIn.Amount.BigInt(), len(sf.TokensOut))
-	for i, v := range sf.TokensOut {
+	nthGamms, remainderGamms := calcNthGams(sf.TokenIntoPool.Amount.BigInt(), len(sf.TokensOutOfPool))
+	for i, v := range sf.TokensOutOfPool {
 		//only add received tokens to the first entry so we dont duplicate received GAMM tokens
-		if i != len(sf.TokensOut)-1 {
+		if i != len(sf.TokensOutOfPool)-1 {
 			relevantData[i] = parsingTypes.MessageRelevantInformation{
 				AmountSent:           nthGamms,
-				DenominationSent:     sf.TokenIn.Denom,
+				DenominationSent:     sf.TokenIntoPool.Denom,
 				AmountReceived:       v.Amount.BigInt(),
 				DenominationReceived: v.Denom,
 				SenderAddress:        sf.Address,
@@ -716,7 +723,7 @@ func (sf *WrapperMsgExitPool) ParseRelevantData() []parsingTypes.MessageRelevant
 		} else {
 			relevantData[i] = parsingTypes.MessageRelevantInformation{
 				AmountSent:           remainderGamms,
-				DenominationSent:     sf.TokenIn.Denom,
+				DenominationSent:     sf.TokenIntoPool.Denom,
 				AmountReceived:       v.Amount.BigInt(),
 				DenominationReceived: v.Denom,
 				SenderAddress:        sf.Address,

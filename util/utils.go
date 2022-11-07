@@ -61,5 +61,6 @@ func StrNotSet(value string) bool {
 
 func ReturnInvalidLog(msgType string, log *txModule.LogMessage) error {
 	fmt.Println("Error: Log is invalid.")
+	fmt.Println(log)
 	return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 }

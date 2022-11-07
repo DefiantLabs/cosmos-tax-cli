@@ -38,7 +38,7 @@ func (sf *WrapperMsgSend) HandleMsg(msgType string, msg sdk.Msg, log *txModule.L
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
-	receiverAddress := txModule.GetValueForAttribute(bankTypes.AttributeKeyReceiver, receivedCoinsEvt)
+	receiverAddress := txModule.GetValueForAttribute(bankTypes.AttributeKeyRecipient, receivedCoinsEvt)
 	//coins_received := txModule.GetValueForAttribute("amount", receivedCoinsEvt)
 
 	if sf.CosmosMsgSend.ToAddress != receiverAddress {

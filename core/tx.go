@@ -226,7 +226,9 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 				currMessageType.MessageType = msgType
 				currMessage.MessageType = currMessageType
 				currMessageDBWrapper.Message = currMessage
-				if err != txTypes.ErrUnknownMessage {
+				if msgType == distribution.MsgWithdrawDelegatorReward {
+					config.Log.Error("This withdraw delegator rewards msg had issues.... PLEASE INVESTIGATE")
+				} else if err != txTypes.ErrUnknownMessage {
 					//What should we do here? This is an actual error during parsing
 					config.Log.Error("msg parse error.", zap.Error(err))
 					config.Log.Fatal("Issue parsing a cosmos msg that we DO have a parser for! PLEASE INVESTIGATE")

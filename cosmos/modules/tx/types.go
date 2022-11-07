@@ -1,7 +1,10 @@
 package tx
 
 import (
+	"fmt"
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
+	"strings"
+	"unicode"
 
 	cosmTx "github.com/cosmos/cosmos-sdk/types/tx"
 
@@ -145,7 +148,18 @@ type Message struct {
 }
 
 func (sf *Message) GetType() string {
-	return sf.Type
+	var output string
+	msgSuffix := strings.Split(sf.Type, ".Msg")[1]
+	for i, char := range msgSuffix {
+		if unicode.IsUpper(char) {
+			if i != 0 {
+				output = fmt.Sprintf("%v_", output)
+			}
+		}
+		output = fmt.Sprintf("%v%v", output, string(unicode.ToLower(char)))
+	}
+
+	return output
 }
 
 // CosmosMessage represents a Cosmos blockchain Message (part of a transaction).
