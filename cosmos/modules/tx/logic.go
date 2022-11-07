@@ -1,5 +1,11 @@
 package tx
 
+import (
+	"fmt"
+	"strings"
+	"unicode"
+)
+
 func GetMessageLogForIndex(logs []LogMessage, index int) *LogMessage {
 	for _, log := range logs {
 		if log.MessageIndex == index {
@@ -74,17 +80,45 @@ func GetLastValueForAttribute(key string, evt *LogMessageEvent) string {
 	return ""
 }
 
-func IsMessageActionEquals(messageType string, msg *LogMessage) bool {
+func IsMessageActionEquals(msgType string, msg *LogMessage) bool {
 	logEvent := GetEventWithType("message", msg)
+	altMsgType := getAltMsgType(msgType)
 	if logEvent == nil {
 		return false
 	}
 
 	for _, attr := range logEvent.Attributes {
 		if attr.Key == "action" {
-			return attr.Value == messageType
+			if attr.Value == msgType || attr.Value == altMsgType {
+				return true
+			}
 		}
 	}
 
 	return false
+}
+
+var altMsgMap = map[string]string{
+	"/cosmos.staking.v1beta1.MsgUndelegate": "begin_unbonding",
+}
+
+func getAltMsgType(msgType string) string {
+	if altMsg, ok := altMsgMap[msgType]; ok {
+		return altMsg
+	}
+
+	var output string
+	msgParts := strings.Split(msgType, ".Msg")
+	if len(msgParts) == 2 {
+		msgSuffix := msgParts[1]
+		for i, char := range msgSuffix {
+			if unicode.IsUpper(char) {
+				if i != 0 {
+					output = fmt.Sprintf("%v_", output)
+				}
+			}
+			output = fmt.Sprintf("%v%v", output, string(unicode.ToLower(char)))
+		}
+	}
+	return output
 }
