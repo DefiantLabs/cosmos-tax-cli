@@ -40,6 +40,25 @@ func GetValueForAttribute(key string, evt *LogMessageEvent) string {
 	return ""
 }
 
+// Get the Nth value for the given key (starting at 1)
+func GetNthValueForAttribute(key string, n int, evt *LogMessageEvent) string {
+	if evt == nil || evt.Attributes == nil {
+		return ""
+	}
+	var count int
+	for i := 0; i < len(evt.Attributes); i++ {
+		attr := evt.Attributes[i]
+		if attr.Key == key {
+			count++
+			if count == n {
+				return attr.Value
+			}
+		}
+	}
+
+	return ""
+}
+
 func GetLastValueForAttribute(key string, evt *LogMessageEvent) string {
 	if evt == nil || evt.Attributes == nil {
 		return ""

@@ -4,16 +4,14 @@ import (
 	"fmt"
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
-	"go.uber.org/zap"
-
-	txModule "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
-
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
-
+	txModule "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
 	stdTypes "github.com/cosmos/cosmos-sdk/types"
+	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	distTypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 
-	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	"go.uber.org/zap"
 )
 
 const (
@@ -41,7 +39,7 @@ type WrapperMsgWithdrawValidatorCommission struct {
 type WrapperMsgWithdrawDelegatorReward struct {
 	txModule.Message
 	CosmosMsgWithdrawDelegatorReward *distTypes.MsgWithdrawDelegatorReward
-	CoinsReceived                    stdTypes.Coin
+	CoinReceived                     stdTypes.Coin
 	MultiCoinsReceived               stdTypes.Coins
 }
 
@@ -53,7 +51,7 @@ func (sf *WrapperMsgFundCommunityPool) HandleMsg(msgType string, msg stdTypes.Ms
 	//Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		return util.ReturnInvalidLog(msgType, log)
 	}
 
 	//Funds sent and sender address are pulled from the parsed Cosmos Msg
@@ -63,7 +61,7 @@ func (sf *WrapperMsgFundCommunityPool) HandleMsg(msgType string, msg stdTypes.Ms
 	return nil
 }
 
-// HandleMsg: Handle type checking for MsgWithdrawDelegatorReward
+// HandleMsg: Handle type checking for WrapperMsgWithdrawValidatorCommission
 func (sf *WrapperMsgWithdrawValidatorCommission) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
 	sf.CosmosMsgWithdrawValidatorCommission = msg.(*distTypes.MsgWithdrawValidatorCommission)
@@ -71,11 +69,11 @@ func (sf *WrapperMsgWithdrawValidatorCommission) HandleMsg(msgType string, msg s
 	//Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		return util.ReturnInvalidLog(msgType, log)
 	}
 
 	//The attribute in the log message that shows you the delegator withdrawal address and amount received
-	delegatorReceivedCoinsEvt := txModule.GetEventWithType(bankTypes.EventTypeCoinReceived, log)
+	delegatorReceivedCoinsEvt := txModule.GetEventWithType(distTypes.EventTypeWithdrawCommission, log)
 	if delegatorReceivedCoinsEvt == nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
@@ -85,13 +83,12 @@ func (sf *WrapperMsgWithdrawValidatorCommission) HandleMsg(msgType string, msg s
 
 	coin, err := stdTypes.ParseCoinNormalized(coinsReceived)
 	if err != nil {
-		coins, err := stdTypes.ParseCoinsNormalized(coinsReceived)
+		sf.MultiCoinsReceived, err = stdTypes.ParseCoinsNormalized(coinsReceived)
 		if err != nil {
 			fmt.Println("Error parsing coins normalized")
 			fmt.Println(err)
 			return err
 		}
-		sf.MultiCoinsReceived = coins
 	} else {
 		sf.CoinsReceived = coin
 	}
@@ -107,31 +104,29 @@ func (sf *WrapperMsgWithdrawDelegatorReward) HandleMsg(msgType string, msg stdTy
 	//Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
-		config.Log.Error("Msg log invalid")
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		return util.ReturnInvalidLog(msgType, log)
 	}
 
 	//The attribute in the log message that shows you the delegator withdrawal address and amount received
-	delegatorReceivedCoinsEvt := txModule.GetEventWithType(bankTypes.EventTypeCoinReceived, log)
+	delegatorReceivedCoinsEvt := txModule.GetEventWithType(bankTypes.EventTypeTransfer, log)
 	if delegatorReceivedCoinsEvt == nil {
-		config.Log.Error("Failed to get delegatorReceivedCoinsEvt from msg")
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		// A withdrawal without a transfer means no amounts were actually moved.
+		return nil
 	}
 
-	delegatorAddress := txModule.GetValueForAttribute(bankTypes.AttributeKeyReceiver, delegatorReceivedCoinsEvt)
+	delegatorAddress := txModule.GetValueForAttribute(bankTypes.AttributeKeyRecipient, delegatorReceivedCoinsEvt)
 	coinsReceived := txModule.GetValueForAttribute("amount", delegatorReceivedCoinsEvt)
 
 	//This may be able to be optimized by doing one or the other
 	coin, err := stdTypes.ParseCoinNormalized(coinsReceived)
 	if err != nil {
-		coins, err := stdTypes.ParseCoinsNormalized(coinsReceived)
+		sf.MultiCoinsReceived, err = stdTypes.ParseCoinsNormalized(coinsReceived)
 		if err != nil {
 			config.Log.Error("Error parsing coins normalized", zap.Error(err))
 			return err
 		}
-		sf.MultiCoinsReceived = coins
 	} else {
-		sf.CoinsReceived = coin
+		sf.CoinReceived = coin
 	}
 	if sf.CosmosMsgWithdrawDelegatorReward.DelegatorAddress != delegatorAddress {
 		return fmt.Errorf("transaction delegator address %s does not match log event '%s' delegator address %s",
@@ -179,7 +174,7 @@ func (sf *WrapperMsgWithdrawValidatorCommission) ParseRelevantData() []parsingTy
 }
 
 func (sf *WrapperMsgWithdrawDelegatorReward) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
-	if sf.CoinsReceived.IsNil() {
+	if sf.CoinReceived.IsNil() {
 		relevantData := make([]parsingTypes.MessageRelevantInformation, len(sf.MultiCoinsReceived))
 		for i, v := range sf.MultiCoinsReceived {
 			relevantData[i] = parsingTypes.MessageRelevantInformation{
@@ -193,8 +188,8 @@ func (sf *WrapperMsgWithdrawDelegatorReward) ParseRelevantData() []parsingTypes.
 	}
 	relevantData := make([]parsingTypes.MessageRelevantInformation, 1)
 	relevantData[0] = parsingTypes.MessageRelevantInformation{
-		AmountReceived:       sf.CoinsReceived.Amount.BigInt(),
-		DenominationReceived: sf.CoinsReceived.Denom,
+		AmountReceived:       sf.CoinReceived.Amount.BigInt(),
+		DenominationReceived: sf.CoinReceived.Denom,
 		SenderAddress:        "",
 		ReceiverAddress:      sf.CosmosMsgWithdrawDelegatorReward.DelegatorAddress,
 	}
@@ -203,8 +198,8 @@ func (sf *WrapperMsgWithdrawDelegatorReward) ParseRelevantData() []parsingTypes.
 
 func (sf *WrapperMsgWithdrawDelegatorReward) String() string {
 	var coinsReceivedString string
-	if !sf.CoinsReceived.IsNil() {
-		coinsReceivedString = sf.CoinsReceived.String()
+	if !sf.CoinReceived.IsNil() {
+		coinsReceivedString = sf.CoinReceived.String()
 	} else {
 		coinsReceivedString = sf.MultiCoinsReceived.String()
 	}

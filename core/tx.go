@@ -3,13 +3,11 @@ package core
 import (
 	"encoding/hex"
 	"errors"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/ibc"
-	"math/big"
-
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/bank"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/distribution"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/ibc"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/staking"
 	tx "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
 	txTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
@@ -18,6 +16,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"math/big"
 
 	"fmt"
 	"time"
@@ -222,16 +221,17 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 			messageLog := txTypes.GetMessageLogForIndex(tx.TxResponse.Log, messageIndex)
 			cosmosMessage, msgType, err := ParseCosmosMessage(message, messageLog)
 			if err != nil {
-				config.Log.Warn(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed for msg of type '%v'.", tx.TxResponse.Height, msgType), zap.Error(err))
 				currMessageType.MessageType = msgType
 				currMessage.MessageType = currMessageType
 				currMessageDBWrapper.Message = currMessage
 				if err != txTypes.ErrUnknownMessage {
 					//What should we do here? This is an actual error during parsing
-					config.Log.Error("msg parse error.", zap.Error(err))
-					config.Log.Error("Issue parsing a cosmos msg that we DO have a parser for! PLEASE INVESTIGATE")
+					config.Log.Error(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed for msg of type '%v'.", tx.TxResponse.Height, msgType), zap.Error(err))
+					config.Log.Error(fmt.Sprint(messageLog))
+					config.Log.Error(tx.TxResponse.TxHash)
+					config.Log.Fatal("Issue parsing a cosmos msg that we DO have a parser for! PLEASE INVESTIGATE")
 				}
-
+				config.Log.Warn(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed for msg of type '%v'. We do not currently have a message handler for this message type", tx.TxResponse.Height, msgType))
 				//println("------------------Cosmos message parsing failed. MESSAGE FORMAT FOLLOWS:---------------- \n\n")
 				//spew.Dump(message)
 				//println("\n------------------END MESSAGE----------------------\n")
@@ -345,6 +345,7 @@ func ProcessFees(db *gorm.DB, authInfo cosmosTx.AuthInfo) ([]dbTypes.Fee, error)
 				hexPub := hex.EncodeToString(pubKey.Bytes())
 				bechAddr, err := ParseSignerAddress(hexPub, "")
 				if err != nil {
+					config.Log.Error("Error parsing signer address for tx.")
 					fmt.Printf("Err %s\n", err.Error())
 				} else {
 					payerAddr.Address = bechAddr

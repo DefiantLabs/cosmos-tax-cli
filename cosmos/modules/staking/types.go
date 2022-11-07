@@ -2,6 +2,7 @@ package staking
 
 import (
 	"fmt"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
 	"strings"
 
 	txModule "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
@@ -47,7 +48,7 @@ func (sf *WrapperMsgDelegate) HandleMsg(msgType string, msg stdTypes.Msg, log *t
 	//Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		return util.ReturnInvalidLog(msgType, log)
 	}
 
 	//The attribute in the log message that shows you the delegator rewards auto-received
@@ -74,9 +75,9 @@ func (sf *WrapperMsgUndelegate) HandleMsg(msgType string, msg stdTypes.Msg, log 
 	sf.CosmosMsgUndelegate = msg.(*stakeTypes.MsgUndelegate)
 
 	//Confirm that the action listed in the message log matches the Message type
-	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	validLog := txModule.IsMessageActionEquals("begin_unbonding", log)
 	if !validLog {
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		return util.ReturnInvalidLog(msgType, log)
 	}
 
 	//The attribute in the log message that shows you the delegator rewards auto-received
@@ -122,7 +123,7 @@ func (sf *WrapperMsgBeginRedelegate) HandleMsg(msgType string, msg stdTypes.Msg,
 	//Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		return util.ReturnInvalidLog(msgType, log)
 	}
 
 	//The attribute in the log message that shows you the delegator rewards auto-received
