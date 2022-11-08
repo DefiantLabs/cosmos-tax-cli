@@ -46,8 +46,7 @@ var messageTypeHandler = map[string]func() txTypes.CosmosMessage{
 // in the core message type handler (useful if a chain has changed the core behavior of a base type and needs to be parsed differently).
 func ChainSpecificMessageTypeHandlerBootstrap(chainID string) {
 	var chainSpecificMessageTpeHandler map[string]func() txTypes.CosmosMessage
-	switch chainID {
-	case osmosis.ChainID:
+	if chainID == osmosis.ChainID {
 		chainSpecificMessageTpeHandler = osmosis.MessageTypeHandler
 	}
 	for key, value := range chainSpecificMessageTpeHandler {
@@ -178,11 +177,11 @@ func AnalyzeSwaps() {
 	fmt.Printf("%d total uosmo arbitrage swaps\n", len(allSwaps))
 
 	for _, swap := range allSwaps {
-		if swap.TokenIn.Denom == swap.TokenOut.Denom && swap.TokenIn.Denom == "uosmo" {
+		if swap.TokenOut.Denom == "uosmo" && swap.TokenIn.Denom == "uosmo" {
 			amount := swap.TokenOut.Amount.Sub(swap.TokenIn.Amount)
 			if amount.GT(types.ZeroInt()) {
 				txProfit := amount.ToDec().Quo(types.NewDec(1000000)).MustFloat64()
-				profit = profit + txProfit
+				profit += txProfit
 			}
 
 			if swap.BlockTime.Before(earliestTime) {

@@ -52,7 +52,7 @@ func setupConfig(t *testing.T) {
 
 	cfg := config.MergeConfigs(fileConfig, argConfig)
 
-	//0 is an invalid starting block, set it to 1
+	// 0 is an invalid starting block, set it to 1
 	if cfg.Base.StartBlock == 0 {
 		cfg.Base.StartBlock = 1
 	}
@@ -104,8 +104,7 @@ func TestDecodeIBCTypes(t *testing.T) {
 		for msgIdx := range currTx.Body.Messages {
 			currMsg := currTx.Body.Messages[msgIdx].GetCachedValue()
 			if currMsg != nil {
-				msg := currMsg.(types.Msg)
-				typeURL := types.MsgTypeURL(msg)
+				typeURL := types.MsgTypeURL(currMsg.(types.Msg))
 				if strings.Contains(typeURL, "MsgTransfer") {
 					hasIbcType = true
 				}

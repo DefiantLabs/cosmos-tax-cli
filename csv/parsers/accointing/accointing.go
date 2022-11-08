@@ -72,8 +72,7 @@ func (p *Parser) ProcessTaxableEvent(address string, taxableEvents []db.TaxableE
 }
 
 func (p *Parser) InitializeParsingGroups(config config.Config) {
-	switch config.Lens.ChainID {
-	case osmosis.ChainID:
+	if config.Lens.ChainID == osmosis.ChainID {
 		p.ParsingGroups = append(p.ParsingGroups, GetOsmosisTxParsingGroups()...)
 	}
 }

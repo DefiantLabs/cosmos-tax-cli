@@ -174,7 +174,7 @@ func (sf *WrapperMsgDelegate) ParseRelevantData() []parsingTypes.MessageRelevant
 		data.DenominationReceived = sf.AutoWithdrawalReward.Denom
 		data.ReceiverAddress = sf.DelegatorAddress
 		relevantData = append(relevantData, data)
-	} else if len(sf.AutoWithdrawalRewards) >= 0 {
+	} else if len(sf.AutoWithdrawalRewards) > 0 {
 		for _, coin := range sf.AutoWithdrawalRewards {
 			data := parsingTypes.MessageRelevantInformation{}
 			data.AmountReceived = coin.Amount.BigInt()

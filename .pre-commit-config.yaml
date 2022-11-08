@@ -13,6 +13,10 @@ repos:
     rev: v1.0.2
     hooks:
       - id: go-vet
+  - repo: https://github.com/FelixSeptem/pre-commit-golang
+    rev: master
+    hooks:
+      - id: go-critic
   - repo: https://github.com/tekwizely/pre-commit-golang
     rev: v1.0.0-rc.1
     hooks:
@@ -28,16 +32,13 @@ repos:
       # Go Vet
       -   id: go-vet-mod
       -   id: go-vet-repo-mod
-      # Go Test
-      #-   id: go-test-mod
-      #-   id: go-test-repo-mod
       # Revive
-      # -   id: go-revive
-      # -   id: go-revive-mod
-      # -   id: go-revive-repo-mod
+      -   id: go-revive
+      -   id: go-revive-mod
+      -   id: go-revive-repo-mod
       # GoSec
       # -   id: go-sec-mod
       # -   id: go-sec-repo-mod
-      # Style Checkers
-      # -   id: go-lint
-      # -   id: go-critic
+      # Go Test
+      # -   id: go-test-mod
+      # -   id: go-test-repo-mod

@@ -33,8 +33,7 @@ type DenomUnit struct {
 }
 
 func DoChainSpecificUpsertDenoms(db *gorm.DB, chain string) {
-	switch chain {
-	case osmosis.ChainID:
+	if chain == osmosis.ChainID {
 		UpsertOsmosisDenoms(db)
 	}
 	// may want to move this elsewhere, or eliminate entirely

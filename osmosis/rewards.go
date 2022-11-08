@@ -134,10 +134,9 @@ func (client *URIClient) getRewards(height int64) ([]*Rewards, error) {
 }
 
 func addCoins(coinList1 []sdk.Coin, coinList2 []sdk.Coin) []sdk.Coin {
-	fullList := append(coinList1, coinList2...)
 	denomAmountMap := map[string]sdk.Int{} // key = coin denom, value = coin amount
 
-	for _, coin := range fullList {
+	for _, coin := range append(coinList1, coinList2...) {
 		if prevAmount, ok := denomAmountMap[coin.Denom]; ok {
 			denomAmountMap[coin.Denom] = prevAmount.Add(coin.Amount)
 		} else {

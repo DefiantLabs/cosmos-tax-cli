@@ -73,7 +73,7 @@ func TestLookupTxForAddresses(t *testing.T) {
 	addressRegex := "juno(valoper)?1[a-z0-9]{38}"
 	addressPrefix := "juno"
 	gorm, _ := dbSetup(addressRegex, addressPrefix)
-	//"juno1txpxafd7q96nkj5jxnt7qnqy4l0rrjyuv6dgte"
+	// "juno1txpxafd7q96nkj5jxnt7qnqy4l0rrjyuv6dgte"
 	// juno1mt72y3jny20456k247tc5gf2dnat76l4ynvqwl
 	taxableEvts, err := db.GetTaxableTransactions("juno1txpxafd7q96nkj5jxnt7qnqy4l0rrjyuv6dgte", gorm)
 	if err != nil || len(taxableEvts) == 0 {

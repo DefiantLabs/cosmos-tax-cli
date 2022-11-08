@@ -32,7 +32,7 @@ type Tx struct {
 	Code            uint32
 	BlockID         uint
 	Block           Block
-	SignerAddressID *int //*int allows foreign key to be null
+	SignerAddressID *int // *int allows foreign key to be null
 	SignerAddress   Address
 	Fees            []Fee
 }
@@ -77,7 +77,7 @@ const (
 type TaxableEvent struct {
 	ID             uint
 	Source         uint            // This will indicate what type of event occurred on chain. Currently, only used for Osmosis rewards.
-	Amount         decimal.Decimal `gorm:"type:decimal(78,0);"` //2^256 or 78 digits, cosmos Int can be up to this length
+	Amount         decimal.Decimal `gorm:"type:decimal(78,0);"` // 2^256 or 78 digits, cosmos Int can be up to this length
 	DenominationID uint
 	Denomination   Denom   `gorm:"foreignKey:DenominationID"`
 	AddressID      uint    `gorm:"index:idx_addr"`
