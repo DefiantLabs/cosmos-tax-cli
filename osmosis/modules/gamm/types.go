@@ -2,15 +2,16 @@ package gamm
 
 import (
 	"fmt"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
-	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"math/big"
 	"strings"
 	"time"
 
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
 	txModule "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	gammTypes "github.com/osmosis-labs/osmosis/v9/x/gamm/types"
 )
 

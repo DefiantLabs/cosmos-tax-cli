@@ -6,13 +6,12 @@ import (
 	"log"
 	"os"
 
-	"go.uber.org/zap"
-
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv"
 	dbTypes "github.com/DefiantLabs/cosmos-tax-cli-private/db"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 

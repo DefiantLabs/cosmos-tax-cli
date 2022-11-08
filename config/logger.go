@@ -1,9 +1,10 @@
 package config
 
 import (
+	lg "log"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	lg "log"
 )
 
 var Log *zap.Logger // Global logger

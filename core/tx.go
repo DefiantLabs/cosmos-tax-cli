@@ -3,6 +3,11 @@ package core
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"math/big"
+	"strings"
+	"time"
+
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/bank"
@@ -11,22 +16,16 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/staking"
 	tx "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
 	txTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
+	dbTypes "github.com/DefiantLabs/cosmos-tax-cli-private/db"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
-	"go.uber.org/zap"
-	"gorm.io/gorm"
-	"math/big"
-	"strings"
-
-	"fmt"
-	"time"
-
-	dbTypes "github.com/DefiantLabs/cosmos-tax-cli-private/db"
 
 	cryptoTypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types"
 	cosmosTx "github.com/cosmos/cosmos-sdk/types/tx"
+	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 // Unmarshal JSON to a particular type.

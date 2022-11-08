@@ -3,21 +3,21 @@ package rpc
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/core"
-	"github.com/cosmos/cosmos-sdk/types"
-	"github.com/stretchr/testify/assert"
 	"log"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/core"
+
+	"github.com/cosmos/cosmos-sdk/types"
+	"github.com/go-co-op/gocron"
 	"github.com/strangelove-ventures/lens/client"
 	lensClient "github.com/strangelove-ventures/lens/client"
 	lensQuery "github.com/strangelove-ventures/lens/client/query"
-
-	"github.com/go-co-op/gocron"
+	"github.com/stretchr/testify/assert"
 )
 
 func getHomePath(t *testing.T) string {
