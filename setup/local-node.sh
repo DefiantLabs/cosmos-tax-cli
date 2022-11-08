@@ -9,9 +9,9 @@
 # Validator address: "junovaloper128taw6wkhfq29u83lmh5qyfv8nff6h0wtrgrta"
 #
 # MNEMONICS BUILT INTO THIS IMAGE ARE AS FOLLOWS:
-# The validator mnemonic is 
+# The validator mnemonic is
 # wave assume sun shoe wash once unfair master actual vessel diesel actor spend swear elder once fetch spider aim shift brown artefact jump wild
-# The kyle test key mnemonic is 
+# The kyle test key mnemonic is
 # cup lend senior velvet sleep rely stock roast area color violin such urban endless strategy such more future crane cruel tone daring fly style
 # Juno development team's built in test key mnemonic is
 # clip hire initial neck maid actor venue client foam budget lock catalog sweet steak waste crater broccoli pipe steak sister coyote moment obvious choose
@@ -28,7 +28,7 @@ junod keys add validator --recover
 # Launch the node in the background
 docker-compose up -d
 # Give the node time to startup in case this is first run
-sleep 10 
+sleep 10
 
 # send some money from the genesis key to our new key (juno1m2hg5t7n8f6kzh8kmh98phenk8a4xp5wyuz34y=the kyle key from above)
 junod tx bank send default juno1m2hg5t7n8f6kzh8kmh98phenk8a4xp5wyuz34y 80085ustake --chain-id testing
