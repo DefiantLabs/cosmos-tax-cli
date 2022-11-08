@@ -19,11 +19,11 @@ import (
 )
 
 var (
-	cfgFile string        //config file location to load
-	conf    config.Config //stores the unmarshaled config loaded from Viper, available to all commands in the cmd package
+	cfgFile string        // config file location to load
+	conf    config.Config // stores the unmarshaled config loaded from Viper, available to all commands in the cmd package
 	rootCmd = &cobra.Command{
 		Use: "cosmos-tax-cli-private",
-		//TODO: Get user-friendly descriptions approved
+		// TODO: Get user-friendly descriptions approved
 		Short: "A CLI tool for indexing and querying on-chain data",
 		Long: `Cosmos Tax CLI is a CLI tool for indexing and querying Cosmos-based blockchains,
 		with a heavy focus on taxable events.`,
@@ -36,7 +36,7 @@ func Execute() error {
 }
 
 func init() {
-	//initConfig on initialize of cobra guarantees config struct will be set before all subcommands are executed
+	// initConfig on initialize of cobra guarantees config struct will be set before all subcommands are executed
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.cosmos-tax-cli-private/config.yaml)")
 }
@@ -58,7 +58,7 @@ func initConfig() {
 		viper.SetConfigName("config")
 	}
 
-	//Load defaults into a file at $HOME?
+	// Load defaults into a file at $HOME?
 	err := viper.ReadInConfig()
 	if err != nil {
 		log.Fatalf("Failed to read config file. Err: %v", err)
@@ -70,7 +70,7 @@ func initConfig() {
 		log.Fatalf("Failed to unmarshal config. Err: %v", err)
 	}
 
-	//TODO: Consider creating a set of defaults
+	// TODO: Consider creating a set of defaults
 
 	// Validate config
 	err = conf.Validate()
@@ -87,12 +87,12 @@ func initConfig() {
 //   - Connects to the database and returns the db object
 //   - Returns various values used throughout the application
 func setup(cfg config.Config) (*config.Config, *gorm.DB, *gocron.Scheduler, error) {
-	//Logger
+	// Logger
 	logLevel := cfg.Log.Level
 	logPath := cfg.Log.Path
 	config.DoConfigureLogger(logPath, logLevel)
 
-	//0 is an invalid starting block, set it to 1
+	// 0 is an invalid starting block, set it to 1
 	if cfg.Base.StartBlock == 0 {
 		cfg.Base.StartBlock = 1
 	}
@@ -108,20 +108,20 @@ func setup(cfg config.Config) (*config.Config, *gorm.DB, *gocron.Scheduler, erro
 	sqldb.SetMaxOpenConns(100)
 	sqldb.SetConnMaxLifetime(time.Hour)
 
-	//TODO: make mapping for all chains, globally initialized
-	core.SetupAddressRegex(cfg.Base.AddressRegex)   //e.g. "juno(valoper)?1[a-z0-9]{38}"
-	core.SetupAddressPrefix(cfg.Base.AddressPrefix) //e.g. juno
+	// TODO: make mapping for all chains, globally initialized
+	core.SetupAddressRegex(cfg.Base.AddressRegex)   // e.g. "juno(valoper)?1[a-z0-9]{38}"
+	core.SetupAddressPrefix(cfg.Base.AddressPrefix) // e.g. juno
 
 	scheduler := gocron.NewScheduler(time.UTC)
 
-	//run database migrations at every runtime
+	// run database migrations at every runtime
 	err = dbTypes.MigrateModels(db)
 	if err != nil {
 		config.Log.Error("Error running DB migrations", zap.Error(err))
 		return nil, nil, nil, err
 	}
 
-	//We should stop relying on the denom cache now that we are running this as a CLI tool only
+	// We should stop relying on the denom cache now that we are running this as a CLI tool only
 	dbTypes.CacheDenoms(db)
 
 	return &cfg, db, scheduler, nil

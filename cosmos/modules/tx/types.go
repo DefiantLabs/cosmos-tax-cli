@@ -2,7 +2,6 @@ package tx
 
 import (
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
-
 	cosmTx "github.com/cosmos/cosmos-sdk/types/tx"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -102,7 +101,7 @@ type Body struct {
 
 type AuthInfo struct {
 	TxFee         Fee          `json:"fee"`
-	TxSignerInfos []SignerInfo `json:"signer_infos"` //this is used in REST but not RPC parsers
+	TxSignerInfos []SignerInfo `json:"signer_infos"` // this is used in REST but not RPC parsers
 }
 
 type Fee struct {

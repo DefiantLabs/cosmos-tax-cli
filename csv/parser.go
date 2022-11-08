@@ -35,7 +35,7 @@ func ParseForAddress(address string, pgSQL *gorm.DB, parserKey string, cfg confi
 	parser := GetParser(parserKey)
 	parser.InitializeParsingGroups(cfg)
 
-	//TODO: need to pass in chain and date range
+	// TODO: need to pass in chain and date range
 	taxableTxs, err := db.GetTaxableTransactions(address, pgSQL)
 	if err != nil {
 		config.Log.Error("Error getting taxable transaction.", zap.Error(err))
@@ -60,7 +60,7 @@ func ParseForAddress(address string, pgSQL *gorm.DB, parserKey string, cfg confi
 		return nil, nil, err
 	}
 
-	//Get rows once right at the end
+	// Get rows once right at the end
 	rows := parser.GetRows()
 
 	return rows, parser.GetHeaders(), nil

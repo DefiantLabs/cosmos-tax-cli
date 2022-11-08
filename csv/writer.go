@@ -17,7 +17,7 @@ func ToCsv(rows []parsers.CsvRow, headers []string) bytes.Buffer {
 		log.Fatalln("error writing header to csv:", err)
 	}
 
-	//write the accointing rows to the csv
+	// write the accointing rows to the csv
 	for _, row := range rows {
 		csvForRow := row.GetRowForCsv()
 		if err := w.Write(csvForRow); err != nil {

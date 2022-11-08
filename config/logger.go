@@ -6,7 +6,7 @@ import (
 	lg "log"
 )
 
-var Log *zap.Logger //Global logger
+var Log *zap.Logger // Global logger
 
 func DoConfigureLogger(logPath string, logLevel string) {
 	// only log to path if set
@@ -15,7 +15,7 @@ func DoConfigureLogger(logPath string, logLevel string) {
 		outputPaths = append(outputPaths, logPath)
 	}
 
-	//Logger
+	// Logger
 	cfg := zap.Config{
 		OutputPaths: outputPaths,
 		EncoderConfig: zapcore.EncoderConfig{

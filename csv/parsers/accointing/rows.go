@@ -45,7 +45,7 @@ func (row *Row) ParseBasic(address string, event db.TaxableTransaction) error {
 	row.Date = event.Message.Tx.Block.TimeStamp.Format(timeLayout)
 	row.OperationID = event.Message.Tx.Hash
 
-	//deposit
+	// deposit
 	if event.ReceiverAddress.Address == address {
 		conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountReceived), event.DenominationReceived)
 		if err != nil {
@@ -54,7 +54,7 @@ func (row *Row) ParseBasic(address string, event db.TaxableTransaction) error {
 		row.InBuyAmount = conversionAmount.Text('f', -1)
 		row.InBuyAsset = conversionSymbol
 		row.TransactionType = Deposit
-	} else if event.SenderAddress.Address == address { //withdrawal
+	} else if event.SenderAddress.Address == address { // withdrawal
 		conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountSent), event.DenominationSent)
 		if err != nil {
 			return fmt.Errorf("cannot parse denom units for TX %s (classification: withdrawal)", row.OperationID)
