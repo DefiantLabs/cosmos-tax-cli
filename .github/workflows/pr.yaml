@@ -25,6 +25,7 @@ jobs:
       - run: go version
       - name: Run Revive Action by pulling pre-built image
         uses: docker://morphy/revive-action:v2
+      - run: echo "PATH=$PATH:/home/runner/go/bin" >> $GITHUB_ENV
       - uses: pre-commit/action@v3.0.0
 
 
