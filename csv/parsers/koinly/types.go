@@ -23,8 +23,8 @@ type Row struct {
 	ReceivedCurrency string
 	FeeAmount        string
 	FeeCurrency      string
-	NetWorthAmount   string //not going to use this for now?
-	NetWorthCurrency string //not going to use this for now?
+	NetWorthAmount   string // not going to use this for now?
+	NetWorthCurrency string // not going to use this for now?
 	Label            Label
 	Description      string
 	TxHash           string
@@ -48,7 +48,7 @@ const (
 	Reward
 	Income
 	LoanInterest
-	//RealizedGain this is duplicated in their docs
+	// RealizedGain this is duplicated in their docs
 	Unstake
 
 	// Trades

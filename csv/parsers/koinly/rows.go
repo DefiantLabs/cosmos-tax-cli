@@ -25,7 +25,7 @@ func (row Row) GetRowForCsv() []string {
 
 // EventParseBasic handles the deposit os osmos rewards
 func (row *Row) EventParseBasic(event db.TaxableEvent) error {
-	//row.OperationID = ??? TODO - maybe use the block hash or something. This isn't a TX so there is no TX hash. Have to test Accointing response to using block hash.
+	// row.OperationID = ??? TODO - maybe use the block hash or something. This isn't a TX so there is no TX hash. Have to test Accointing response to using block hash.
 	row.Date = event.Block.TimeStamp.Format(TimeLayout)
 
 	conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.Amount), event.Denomination)
@@ -45,7 +45,7 @@ func (row *Row) ParseBasic(address string, event db.TaxableTransaction) error {
 	row.Date = event.Message.Tx.Block.TimeStamp.Format(TimeLayout)
 	row.TxHash = event.Message.Tx.Hash
 
-	//deposit
+	// deposit
 	if event.ReceiverAddress.Address == address {
 		conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountReceived), event.DenominationReceived)
 		if err != nil {
@@ -54,7 +54,7 @@ func (row *Row) ParseBasic(address string, event db.TaxableTransaction) error {
 		row.ReceivedAmount = conversionAmount.Text('f', -1)
 		row.ReceivedCurrency = conversionSymbol
 		row.Label = Income
-	} else if event.SenderAddress.Address == address { //withdrawal
+	} else if event.SenderAddress.Address == address { // withdrawal
 		conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountSent), event.DenominationSent)
 		if err != nil {
 			return fmt.Errorf("cannot parse denom units for TX %s (classification: withdrawal)", row.TxHash)

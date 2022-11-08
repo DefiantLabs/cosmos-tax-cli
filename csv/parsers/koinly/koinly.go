@@ -24,12 +24,12 @@ func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransac
 	// Pull messages out of txMap that must be grouped together
 	parsers.SeparateParsingGroups(txMap, p.ParsingGroups)
 
-	//Parse all the potentially taxable events (one transaction group at a time)
+	// Parse all the potentially taxable events (one transaction group at a time)
 	for _, txGroup := range txMap {
-		//All messages have been removed into a parsing group
+		// All messages have been removed into a parsing group
 		if len(txGroup) != 0 {
-			//For the current transaction group, generate the rows for the CSV.
-			//Usually (but not always) a transaction will only have a single row in the CSV.
+			// For the current transaction group, generate the rows for the CSV.
+			// Usually (but not always) a transaction will only have a single row in the CSV.
 			txRows, err := ParseTx(address, txGroup)
 			if err != nil {
 				return err
@@ -40,7 +40,7 @@ func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransac
 		}
 	}
 
-	//Parse all the TXs found in the Parsing Groups
+	// Parse all the TXs found in the Parsing Groups
 	for _, txParsingGroup := range p.ParsingGroups {
 		err := txParsingGroup.ParseGroup()
 		if err != nil {
@@ -48,9 +48,9 @@ func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransac
 		}
 	}
 
-	//Handle fees on all taxableTxs at once, we don't do this in the regular parser or in the parsing groups
-	//This requires HandleFees to process the fees into unique mappings of tx -> fees (since we gather Taxable Messages in the taxableTxs)
-	//If we move it into the ParseTx function or into the ParseGroup function, we may be able to reduce the logic in the HandleFees func
+	// Handle fees on all taxableTxs at once, we don't do this in the regular parser or in the parsing groups
+	// This requires HandleFees to process the fees into unique mappings of tx -> fees (since we gather Taxable Messages in the taxableTxs)
+	// If we move it into the ParseTx function or into the ParseGroup function, we may be able to reduce the logic in the HandleFees func
 	feeRows, err := HandleFees(address, taxableTxs)
 	if err != nil {
 		return err
@@ -62,9 +62,9 @@ func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransac
 }
 
 func (p *Parser) ProcessTaxableEvent(taxableEvents []db.TaxableEvent) error {
-	//Parse all the potentially taxable events
+	// Parse all the potentially taxable events
 	for _, event := range taxableEvents {
-		//generate the rows for the CSV.
+		// generate the rows for the CSV.
 		p.Rows = append(p.Rows, ParseEvent(event)...)
 	}
 
@@ -72,14 +72,13 @@ func (p *Parser) ProcessTaxableEvent(taxableEvents []db.TaxableEvent) error {
 }
 
 func (p *Parser) InitializeParsingGroups(config config.Config) {
-	switch config.Lens.ChainID {
-	case osmosis.ChainID:
+	if config.Lens.ChainID == osmosis.ChainID {
 		p.ParsingGroups = append(p.ParsingGroups, GetOsmosisTxParsingGroups()...)
 	}
 }
 
 func (p *Parser) GetRows() []parsers.CsvRow {
-	//Combine all normal rows and parser group rows into 1
+	// Combine all normal rows and parser group rows into 1
 	accointingRows := p.Rows // contains TX rows and fees as well as taxable events
 	for _, v := range p.ParsingGroups {
 		for _, row := range v.GetRowsForParsingGroup() {
@@ -87,7 +86,7 @@ func (p *Parser) GetRows() []parsers.CsvRow {
 		}
 	}
 
-	//Sort by date
+	// Sort by date
 	sort.Slice(accointingRows, func(i int, j int) bool {
 		leftDate, err := time.Parse(TimeLayout, accointingRows[i].Date)
 		if err != nil {
@@ -102,7 +101,7 @@ func (p *Parser) GetRows() []parsers.CsvRow {
 		return leftDate.Before(rightDate)
 	})
 
-	//Copy AccointingRows into csvRows for return val
+	// Copy AccointingRows into csvRows for return val
 	csvRows := make([]parsers.CsvRow, len(accointingRows))
 	for i, v := range accointingRows {
 		csvRows[i] = v
@@ -121,13 +120,13 @@ func (p Parser) GetHeaders() []string {
 // then we spread the fees out one per row. Otherwise we add a line for the fees,
 // where each fee has a separate line.
 func HandleFees(address string, events []db.TaxableTransaction) (rows []Row, err error) {
-	//No events -- This address didn't pay any fees
+	// No events -- This address didn't pay any fees
 	if len(events) == 0 {
 		return rows, nil
 	}
 
-	//We need to gather all unique fees, but we are receiving Messages not Txes
-	//Make a map from TX hash to fees array to keep unique
+	// We need to gather all unique fees, but we are receiving Messages not Txes
+	// Make a map from TX hash to fees array to keep unique
 	txToFeesMap := make(map[uint][]db.Fee)
 	txIdsToTx := make(map[uint]db.Tx)
 	for _, event := range events {
@@ -158,13 +157,13 @@ func ParseEvent(event db.TaxableEvent) (rows []Row) {
 	if event.Source == db.OsmosisRewardDistribution {
 		row, err := ParseOsmosisReward(event)
 		if err != nil {
-			//TODO: handle error parsing row. Should be impossible to reach this condition, ideally (once all bugs worked out)
+			// TODO: handle error parsing row. Should be impossible to reach this condition, ideally (once all bugs worked out)
 			config.Log.Fatal("error parsing row. Should be impossible to reach this condition, ideally (once all bugs worked out)", zap.Error(err))
 		}
 		rows = append(rows, row)
 	}
 
-	//rows = HandleFees(address, events, rows) TODO we have no fee handler for taxable EVENTS right now
+	// rows = HandleFees(address, events, rows) TODO we have no fee handler for taxable EVENTS right now
 	return rows
 }
 

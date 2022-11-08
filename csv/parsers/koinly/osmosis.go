@@ -40,7 +40,7 @@ func init() {
 }
 
 type WrapperLpTxGroup struct {
-	GroupedTxes map[uint][]db.TaxableTransaction //TX db ID to its messages
+	GroupedTxes map[uint][]db.TaxableTransaction // TX db ID to its messages
 	Rows        []parsers.CsvRow
 }
 
@@ -62,7 +62,7 @@ func (sf *WrapperLpTxGroup) GetGroupedTxes() map[uint][]db.TaxableTransaction {
 }
 
 func (sf *WrapperLpTxGroup) AddTxToGroup(tx db.TaxableTransaction) {
-	//Add tx to group using the TX ID as key and appending to array
+	// Add tx to group using the TX ID as key and appending to array
 	if _, ok := sf.GroupedTxes[tx.Message.Tx.ID]; ok {
 		sf.GroupedTxes[tx.Message.Tx.ID] = append(sf.GroupedTxes[tx.Message.Tx.ID], tx)
 	} else {
@@ -89,7 +89,7 @@ func getRate(cbClient *coinbasepro.Client, coin string, transactionTime time.Tim
 }
 
 func (sf *WrapperLpTxGroup) ParseGroup() error {
-	//TODO: Do specialized processing on LP messages
+	// TODO: Do specialized processing on LP messages
 	cbClient := coinbasepro.NewClient()
 	for _, txMessages := range sf.GroupedTxes {
 		for _, message := range txMessages {
@@ -119,8 +119,8 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 				row.SentCurrency = conversionSymbol
 			}
 
-			//We deliberately exclude the GAMM tokens from OutSell/InBuy for Exits/Joins respectively
-			//Accointing has no way of using the GAMM token to determine LP cost basis etc...
+			// We deliberately exclude the GAMM tokens from OutSell/InBuy for Exits/Joins respectively
+			// Accointing has no way of using the GAMM token to determine LP cost basis etc...
 			if _, ok := IsOsmosisExit[message.Message.MessageType.MessageType]; ok {
 				row.Label = LiquidityOut
 				// add the value of gam tokens
@@ -151,9 +151,9 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 func GetOsmosisTxParsingGroups() []parsers.ParsingGroup {
 	var messageGroups []parsers.ParsingGroup
 
-	//This appending of parsing groups establishes a precedence
-	//There is a break statement in the loop doing grouping
-	//Which means parsers further up the array will be preferred
+	// This appending of parsing groups establishes a precedence
+	// There is a break statement in the loop doing grouping
+	// Which means parsers further up the array will be preferred
 	LpTxGroup := WrapperLpTxGroup{}
 	LpTxGroup.GroupedTxes = make(map[uint][]db.TaxableTransaction)
 	messageGroups = append(messageGroups, &LpTxGroup)

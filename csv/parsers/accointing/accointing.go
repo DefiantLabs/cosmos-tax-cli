@@ -62,9 +62,9 @@ func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransac
 }
 
 func (p *Parser) ProcessTaxableEvent(taxableEvents []db.TaxableEvent) error {
-	//Parse all the potentially taxable events
+	// Parse all the potentially taxable events
 	for _, event := range taxableEvents {
-		//generate the rows for the CSV.
+		// generate the rows for the CSV.
 		p.Rows = append(p.Rows, ParseEvent(event)...)
 	}
 
