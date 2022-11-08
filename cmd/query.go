@@ -48,7 +48,7 @@ var queryCmd = &cobra.Command{
 		}
 
 		buffer := csv.ToCsv(csvRows, headers)
-		err = os.WriteFile(output, buffer.Bytes(), 0644)
+		err = os.WriteFile(output, buffer.Bytes(), 0600)
 		if err != nil {
 			config.Log.Fatal("Error writing out CSV", zap.Error(err))
 		}

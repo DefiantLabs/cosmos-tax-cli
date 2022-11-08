@@ -225,10 +225,11 @@ func UpsertDenoms(db *gorm.DB, denoms []DenomDBWrapper) error {
 				}
 
 				for _, denomAlias := range denomUnit.Aliases {
-					denomAlias.DenomUnit = denomUnit.DenomUnit
+					thisDenomAlias := denomAlias // This is redundant but required for the picky gosec linter
+					thisDenomAlias.DenomUnit = denomUnit.DenomUnit
 					if err := dbTransaction.Clauses(clause.OnConflict{
 						DoNothing: true,
-					}).Create(&denomAlias).Error; err != nil {
+					}).Create(&thisDenomAlias).Error; err != nil {
 						return err
 					}
 				}
