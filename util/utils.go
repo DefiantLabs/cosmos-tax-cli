@@ -49,7 +49,7 @@ func WalkFindStrings(data interface{}, regex *regexp.Regexp) []string {
 		return regex.FindAllString(x, -1)
 
 	default:
-		//unsupported type, returns empty Slice
+		// unsupported type, returns empty Slice
 		return ret
 	}
 }

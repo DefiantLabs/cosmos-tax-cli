@@ -19,8 +19,8 @@ import (
 )
 
 var (
-	cfgFile string        //config file location to load
-	conf    config.Config //stores the unmarshaled config loaded from Viper, available to all commands in the cmd package
+	cfgFile string        // config file location to load
+	conf    config.Config // stores the unmarshaled config loaded from Viper, available to all commands in the cmd package
 	rootCmd = &cobra.Command{
 		Use: "cosmos-tax-cli-private",
 		//TODO: Get user-friendly descriptions approved
@@ -36,7 +36,7 @@ func Execute() error {
 }
 
 func init() {
-	//initConfig on initialize of cobra guarantees config struct will be set before all subcommands are executed
+	// initConfig on initialize of cobra guarantees config struct will be set before all subcommands are executed
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.cosmos-tax-cli-private/config.yaml)")
 }
@@ -109,12 +109,12 @@ func setup(cfg config.Config) (*config.Config, *gorm.DB, *gocron.Scheduler, erro
 	sqldb.SetConnMaxLifetime(time.Hour)
 
 	//TODO: make mapping for all chains, globally initialized
-	core.SetupAddressRegex(cfg.Base.AddressRegex)   //e.g. "juno(valoper)?1[a-z0-9]{38}"
-	core.SetupAddressPrefix(cfg.Base.AddressPrefix) //e.g. juno
+	core.SetupAddressRegex(cfg.Base.AddressRegex)   // e.g. "juno(valoper)?1[a-z0-9]{38}"
+	core.SetupAddressPrefix(cfg.Base.AddressPrefix) // e.g. juno
 
 	scheduler := gocron.NewScheduler(time.UTC)
 
-	//run database migrations at every runtime
+	// run database migrations at every runtime
 	err = dbTypes.MigrateModels(db)
 	if err != nil {
 		config.Log.Error("Error running DB migrations", zap.Error(err))

@@ -62,8 +62,8 @@ type WrapperMsgJoinPool struct {
 	OsmosisMsgJoinPool *gammTypes.MsgJoinPool
 	Address            string
 	TokenOut           sdk.Coin
-	TokensIn           []sdk.Coin //joins can be done with multiple tokens in
-	Claim              *sdk.Coin  //option claim
+	TokensIn           []sdk.Coin // joins can be done with multiple tokens in
+	Claim              *sdk.Coin  // option claim
 }
 
 type WrapperMsgExitSwapShareAmountIn struct {
@@ -86,7 +86,7 @@ type WrapperMsgExitPool struct {
 	txModule.Message
 	OsmosisMsgExitPool *gammTypes.MsgExitPool
 	Address            string
-	TokensOutOfPool    []sdk.Coin //exits can received multiple tokens out
+	TokensOutOfPool    []sdk.Coin // exits can received multiple tokens out
 	TokenIntoPool      sdk.Coin
 }
 
@@ -315,7 +315,7 @@ func (sf *WrapperMsgJoinSwapExternAmountIn) HandleMsg(msgType string, msg sdk.Ms
 	}
 	sf.TokenOut = gammTokenIn
 
-	//we can pull the token in directly from the Osmosis Message
+	// we can pull the token in directly from the Osmosis Message
 	sf.TokenIn = sf.OsmosisMsgJoinSwapExternAmountIn.TokenIn
 
 	//Address of whoever initiated the join
@@ -679,7 +679,7 @@ func (sf *WrapperMsgJoinSwapShareAmountOut) ParseRelevantData() []parsingTypes.M
 }
 
 func (sf *WrapperMsgJoinPool) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
-	//need to make a relevant data block for all Tokens sent to the pool since JoinPool can use 1 or both tokens used in the pool
+	// need to make a relevant data block for all Tokens sent to the pool since JoinPool can use 1 or both tokens used in the pool
 	var relevantData = make([]parsingTypes.MessageRelevantInformation, len(sf.TokensIn))
 
 	// figure out how many gams per token
@@ -747,13 +747,13 @@ func (sf *WrapperMsgExitSwapExternAmountOut) ParseRelevantData() []parsingTypes.
 }
 
 func (sf *WrapperMsgExitPool) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
-	//need to make a relevant data block for all Tokens received from the pool since ExitPool can receive 1 or both tokens used in the pool
+	// need to make a relevant data block for all Tokens received from the pool since ExitPool can receive 1 or both tokens used in the pool
 	var relevantData = make([]parsingTypes.MessageRelevantInformation, len(sf.TokensOutOfPool))
 
 	// figure out how many gams per token
 	nthGamms, remainderGamms := calcNthGams(sf.TokenIntoPool.Amount.BigInt(), len(sf.TokensOutOfPool))
 	for i, v := range sf.TokensOutOfPool {
-		//only add received tokens to the first entry so we dont duplicate received GAMM tokens
+		// only add received tokens to the first entry so we dont duplicate received GAMM tokens
 		if i != len(sf.TokensOutOfPool)-1 {
 			relevantData[i] = parsingTypes.MessageRelevantInformation{
 				AmountSent:           nthGamms,

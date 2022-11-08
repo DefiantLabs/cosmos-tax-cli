@@ -76,8 +76,8 @@ func GetHighestDenomUnit(denomUnit DenomUnit, denomUnits []DenomUnit) (DenomUnit
 func ConvertUnits(amount *big.Int, denom Denom) (*big.Float, string, error) {
 	//Try denom unit first
 	//We were originally just using GetDenomUnitForDenom, but since CachedDenoms is an array, it would sometimes
-	//return the non-Base denom unit (exponent != 0), which would break the power conversion process below i.e.
-	//it would sometimes do highestDenomUnit.Exponent = 6, denomUnit.Exponent = 6 -> pow = 0
+	// return the non-Base denom unit (exponent != 0), which would break the power conversion process below i.e.
+	// it would sometimes do highestDenomUnit.Exponent = 6, denomUnit.Exponent = 6 -> pow = 0
 	denomUnit, err := GetBaseDenomUnitForDenom(denom)
 	if err != nil {
 		fmt.Println("Error getting denom unit for denom", denom)
@@ -119,7 +119,7 @@ func AddUnknownDenom(db *gorm.DB, denom string) (Denom, error) {
 		return denomToAdd, err
 	}
 
-	//recache the denoms (threadsafe due to mutex on read and write)
+	// recache the denoms (threadsafe due to mutex on read and write)
 	CacheDenoms(db)
 
 	return GetDenomForBase(denom)

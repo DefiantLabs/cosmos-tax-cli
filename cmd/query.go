@@ -56,9 +56,9 @@ var queryCmd = &cobra.Command{
 }
 
 var (
-	address string //flag storage for the address to query on
-	output  string //flag storage for the output file location
-	format  string //flag storage for the output format
+	address string // flag storage for the address to query on
+	output  string // flag storage for the output file location
+	format  string // flag storage for the output format
 )
 
 func init() {

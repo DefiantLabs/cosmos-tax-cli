@@ -85,7 +85,7 @@ func dbSetup(addressRegex string, addressPrefix string) (*gorm.DB, error) {
 	core.SetupAddressRegex(addressRegex)
 	core.SetupAddressPrefix(addressPrefix)
 
-	//run database migrations at every runtime
+	// run database migrations at every runtime
 	err = dbUtils.MigrateModels(db)
 	if err != nil {
 		fmt.Println("Error running database migrations: ", err)

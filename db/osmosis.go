@@ -42,7 +42,7 @@ func createTaxableEvents(db *gorm.DB, events []TaxableEvent) error {
 			}
 
 			if event.EventAddress.Address != "" {
-				//viewing gorm logs shows this gets translated into a single ON CONFLICT DO NOTHING RETURNING "id"
+				// viewing gorm logs shows this gets translated into a single ON CONFLICT DO NOTHING RETURNING "id"
 				if err := dbTransaction.Where(&event.EventAddress).FirstOrCreate(&event.EventAddress).Error; err != nil {
 					fmt.Printf("Error %s creating address for TaxableEvent.\n", err)
 					return err
@@ -70,7 +70,7 @@ func IndexOsmoRewards(db *gorm.DB, chainID string, chainName string, rewards []*
 		for _, coin := range curr.Coins {
 			denom, err := GetDenomForBase(coin.Denom)
 			if err != nil {
-				//attempt to add missing denoms to the database
+				// attempt to add missing denoms to the database
 				config.Log.Error("Denom lookup failed. Will be inserted as UNKNOWN", zap.Error(err), zap.String("denom received", coin.Denom))
 				denom, err = AddUnknownDenom(db, coin.Denom)
 				if err != nil {

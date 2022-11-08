@@ -11,7 +11,7 @@ import (
 
 type Config struct {
 	Database           database
-	API                api //deprecated in favor of lens.Rpc (at least in this app)
+	API                api // deprecated in favor of lens.Rpc (at least in this app)
 	ConfigFileLocation string
 	Base               base
 	Log                log

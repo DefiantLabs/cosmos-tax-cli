@@ -22,8 +22,8 @@ type FailedBlock struct {
 
 type Chain struct {
 	ID      uint   `gorm:"primaryKey"`
-	ChainID string `gorm:"uniqueIndex"` //e.g. osmosis-1
-	Name    string //e.g. Osmosis
+	ChainID string `gorm:"uniqueIndex"` // e.g. osmosis-1
+	Name    string // e.g. Osmosis
 }
 
 type Tx struct {
@@ -47,7 +47,7 @@ type Fee struct {
 	PayerAddress   Address `gorm:"foreignKey:PayerAddressID"`
 }
 
-//dbTypes.Address{Address: currTx.FeePayer().String()}
+// dbTypes.Address{Address: currTx.FeePayer().String()}
 
 type Address struct {
 	ID      uint

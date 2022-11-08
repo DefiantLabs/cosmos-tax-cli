@@ -58,7 +58,7 @@ func ChainSpecificMessageTypeHandlerBootstrap(chainID string) {
 // ParseCosmosMessageJSON - Parse a SINGLE Cosmos Message into the appropriate type.
 func ParseCosmosMessage(message types.Msg, log *txTypes.LogMessage) (txTypes.CosmosMessage, string, error) {
 	//Figure out what type of Message this is based on the '@type' field that is included
-	//in every Cosmos Message (can be seen in raw JSON for any cosmos transaction).
+	// in every Cosmos Message (can be seen in raw JSON for any cosmos transaction).
 	var msg txTypes.CosmosMessage
 	cosmosMessage := txTypes.Message{}
 	cosmosMessage.Type = types.MsgTypeURL(message)
@@ -161,7 +161,7 @@ func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]db
 
 		//TODO: Pass in key type (may be able to split from Type PublicKey)
 		//TODO: Signers is an array, need a many to many for the signers in the model
-		//signerAddress, err := ParseSignerAddress(currTx.AuthInfo.SignerInfos[0].PublicKey, "")
+		// signerAddress, err := ParseSignerAddress(currTx.AuthInfo.SignerInfos[0].PublicKey, "")
 
 		currTxDbWrappers[txIdx] = processedTx
 	}
@@ -232,9 +232,9 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 					config.Log.Fatal("Issue parsing a cosmos msg that we DO have a parser for! PLEASE INVESTIGATE")
 				}
 				config.Log.Warn(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed for msg of type '%v'. We do not currently have a message handler for this message type", tx.TxResponse.Height, msgType))
-				//println("------------------Cosmos message parsing failed. MESSAGE FORMAT FOLLOWS:---------------- \n\n")
-				//spew.Dump(message)
-				//println("\n------------------END MESSAGE----------------------\n")
+				// println("------------------Cosmos message parsing failed. MESSAGE FORMAT FOLLOWS:---------------- \n\n")
+				// spew.Dump(message)
+				// println("\n------------------END MESSAGE----------------------\n")
 			} else {
 				config.Log.Debug(fmt.Sprintf("[Block: %v] Cosmos message of known type: %s", tx.TxResponse.Height, cosmosMessage))
 				currMessageType.MessageType = cosmosMessage.GetType()
@@ -258,7 +258,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 						if v.DenominationSent != "" {
 							denomSent, err = dbTypes.GetDenomForBase(v.DenominationSent)
 							if err != nil {
-								//attempt to add missing denoms to the database
+								// attempt to add missing denoms to the database
 								config.Log.Warn("Denom lookup failed. Will be inserted as UNKNOWN", zap.Error(err), zap.String("denom sent", v.DenominationSent))
 
 								denomSent, err = dbTypes.AddUnknownDenom(db, v.DenominationSent)
@@ -275,7 +275,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 						if v.DenominationReceived != "" {
 							denomReceived, err = dbTypes.GetDenomForBase(v.DenominationReceived)
 							if err != nil {
-								//attempt to add missing denoms to the database
+								// attempt to add missing denoms to the database
 								config.Log.Error("Denom lookup failed. Will be inserted as UNKNOWN", zap.Error(err), zap.String("denom received", v.DenominationReceived))
 								denomReceived, err = dbTypes.AddUnknownDenom(db, v.DenominationReceived)
 								if err != nil {
@@ -329,7 +329,7 @@ func ProcessFees(db *gorm.DB, authInfo cosmosTx.AuthInfo) ([]dbTypes.Fee, error)
 			amount := util.ToNumeric(coin.Amount.BigInt())
 			denom, err := dbTypes.GetDenomForBase(coin.Denom)
 			if err != nil {
-				//attempt to add missing denoms to the database
+				// attempt to add missing denoms to the database
 				config.Log.Error("Denom lookup failed. Will be inserted as UNKNOWN", zap.Error(err), zap.String("denom received", coin.Denom))
 				denom, err = dbTypes.AddUnknownDenom(db, coin.Denom)
 				if err != nil {

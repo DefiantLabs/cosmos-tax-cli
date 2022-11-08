@@ -28,10 +28,10 @@ func getHomePath(t *testing.T) string {
 	return fmt.Sprintf("%v/.lens", homeDir)
 }
 
-//nolint:unused
+// nolint:unused
 var testConfig *config.Config
 
-//nolint:unused
+// nolint:unused
 func setupConfig(t *testing.T) {
 	argConfig, err := config.ParseArgs(os.Stderr, os.Args[1:])
 	if err != nil {
@@ -64,7 +64,7 @@ func setupConfig(t *testing.T) {
 //   - Connects to the database and returns the db object
 //   - Returns various values used throughout the application
 //
-//nolint:unused
+// nolint:unused
 func setupRPC(t *testing.T) *gocron.Scheduler {
 	if testConfig == nil {
 		setupConfig(t)
@@ -123,7 +123,7 @@ func GetJunoTestClient(t *testing.T) *lensClient.ChainClient {
 	//IMPORTANT: the actual keyring-test will be searched for at the path {homepath}/keys/{ChainID}/keyring-test.
 	//You can use lens default settings to generate that directory appropriately then move it to the desired path.
 	//For example, 'lens keys restore default' will restore the key to the default keyring (e.g. /home/kyle/.lens/...)
-	//and you can move all of the necessary keys to whatever homepath you want to use. Or you can use --home flag.
+	// and you can move all of the necessary keys to whatever homepath you want to use. Or you can use --home flag.
 	cl, err := lensClient.NewChainClient(GetJunoConfig(homepath, true), homepath, nil, nil)
 	assert.Nil(t, err)
 	config.RegisterAdditionalTypes(cl)
@@ -135,7 +135,7 @@ func GetOsmosisTestClient(t *testing.T) *lensClient.ChainClient {
 	//IMPORTANT: the actual keyring-test will be searched for at the path {homepath}/keys/{ChainID}/keyring-test.
 	//You can use lens default settings to generate that directory appropriately then move it to the desired path.
 	//For example, 'lens keys restore default' will restore the key to the default keyring (e.g. /home/kyle/.lens/...)
-	//and you can move all of the necessary keys to whatever homepath you want to use. Or you can use --home flag.
+	// and you can move all of the necessary keys to whatever homepath you want to use. Or you can use --home flag.
 	cl, err := lensClient.NewChainClient(GetOsmosisConfig(homepath, true), homepath, nil, nil)
 	assert.Nil(t, err)
 	config.RegisterAdditionalTypes(cl)
@@ -199,7 +199,7 @@ func lensQueryBank(t *testing.T, height int64) error {
 
 func rpcQueryTx(t *testing.T, height int64) error {
 	cl := GetOsmosisTestClient(t)
-	//requestEndpoint := fmt.Sprintf(rest.GetEndpoint("txs_by_block_height_endpoint"), height)
+	// requestEndpoint := fmt.Sprintf(rest.GetEndpoint("txs_by_block_height_endpoint"), height)
 	options := lensQuery.QueryOptions{Height: height}
 	query := lensQuery.Query{Client: cl, Options: &options}
 	resp, err := query.TxByHeight(cl.Codec)

@@ -27,7 +27,7 @@ func GetParserKeys() []string {
 
 // MakeTXMap will make a map of transaction ID to list of taxable transactions
 func MakeTXMap(taxableTXs []db.TaxableTransaction) map[uint][]db.TaxableTransaction {
-	//process taxableTx into Rows
+	// process taxableTx into Rows
 	txMap := map[uint][]db.TaxableTransaction{} //Map transaction ID to List of taxable transactions
 
 	//Build a map, so we know which TX go with which messages

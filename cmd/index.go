@@ -93,13 +93,13 @@ func index(cmd *cobra.Command, args []string) {
 	}
 	defer dbConn.Close()
 
-	//blockChan are just the block heights; limit max jobs in the queue, otherwise this queue would contain one
-	//item (block height) for every block on the entire blockchain we're indexing. Furthermore, once the queue
-	//is close to empty, we will spin up a new thread to fill it up with new jobs.
+	// blockChan are just the block heights; limit max jobs in the queue, otherwise this queue would contain one
+	// item (block height) for every block on the entire blockchain we're indexing. Furthermore, once the queue
+	// is close to empty, we will spin up a new thread to fill it up with new jobs.
 	blockChan := make(chan int64, 10000)
 
 	//This channel represents query job results for the RPC queries to Cosmos Nodes. Every time an RPC query
-	//completes, the query result will be sent to this channel (for later processing by a different thread).
+	// completes, the query result will be sent to this channel (for later processing by a different thread).
 	//Realistically, I expect that RPC queries will be slower than our relational DB on the local network.
 	//If RPC queries are faster than DB inserts this buffer will fill up.
 	//We will periodically check the buffer size to monitor performance so we can optimize later.
@@ -108,7 +108,7 @@ func index(cmd *cobra.Command, args []string) {
 
 	var txChanWaitGroup sync.WaitGroup // This group is to ensure we are done getting transactions before we close the TX channel
 	//Spin up a (configurable) number of threads to query RPC endpoints for Transactions.
-	//this is assumed to be the slowest process that allows concurrency and thus has the most dedicated go routines.
+	// this is assumed to be the slowest process that allows concurrency and thus has the most dedicated go routines.
 	for i := 0; i < rpcQueryThreads; i++ {
 		txChanWaitGroup.Add(1)
 		go func() {
@@ -211,7 +211,7 @@ func OsmosisGetRewardsStartIndexHeight(db *gorm.DB, chainID string) int64 {
 
 func GetIndexerStartingHeight(configStartHeight int64, cl *client.ChainClient, db *gorm.DB) int64 {
 	//Start the indexer at the configured value if one has been set. This starting height will be used
-	//instead of searching the database to find the last indexed block.
+	// instead of searching the database to find the last indexed block.
 	if configStartHeight != -1 {
 		return configStartHeight
 	}
@@ -307,7 +307,7 @@ func (idxr *Indexer) queryRPC(blockChan chan int64, blockTXsChan chan *indexerTx
 }
 
 func processBlock(cl *client.ChainClient, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error), blockTXsChan chan *indexerTx.GetTxsEventResponseWrapper, blockToProcess int64) error {
-	//fmt.Printf("Querying RPC transactions for block %d\n", blockToProcess)
+	// fmt.Printf("Querying RPC transactions for block %d\n", blockToProcess)
 	newBlock := dbTypes.Block{Height: blockToProcess}
 
 	//TODO: There is currently no pagination implemented!
@@ -327,7 +327,7 @@ func processBlock(cl *client.ChainClient, failedBlockHandler func(height int64, 
 			//Two queries for the same block got a diff # of TXs. Though it is not guaranteed,
 			//DeliverTx events typically make it into a block so this warrants manual investigation.
 			//In this case, we couldn't look up TXs on the node but the Node's block has DeliverTx events,
-			//so we should log this and manually review the block on e.g. mintscan or another tool.
+			// so we should log this and manually review the block on e.g. mintscan or another tool.
 			failedBlockHandler(newBlock.Height, core.NodeMissingBlockTxs, errors.New("node has DeliverTx results for block, but querying txs by height failed"))
 		}
 	}

@@ -101,7 +101,7 @@ type Body struct {
 
 type AuthInfo struct {
 	TxFee         Fee          `json:"fee"`
-	TxSignerInfos []SignerInfo `json:"signer_infos"` //this is used in REST but not RPC parsers
+	TxSignerInfos []SignerInfo `json:"signer_infos"` // this is used in REST but not RPC parsers
 }
 
 type Fee struct {

@@ -64,7 +64,7 @@ func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransac
 func (p *Parser) ProcessTaxableEvent(address string, taxableEvents []db.TaxableEvent) error {
 	//Parse all the potentially taxable events
 	for _, event := range taxableEvents {
-		//generate the rows for the CSV.
+		// generate the rows for the CSV.
 		p.Rows = append(p.Rows, ParseEvent(address, event)...)
 	}
 
@@ -164,7 +164,7 @@ func ParseEvent(address string, event db.TaxableEvent) (rows []Row) {
 		rows = append(rows, row)
 	}
 
-	//rows = HandleFees(address, events, rows) TODO we have no fee handler for taxable EVENTS right now
+	// rows = HandleFees(address, events, rows) TODO we have no fee handler for taxable EVENTS right now
 	return rows
 }
 

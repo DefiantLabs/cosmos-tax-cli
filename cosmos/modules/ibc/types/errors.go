@@ -8,7 +8,7 @@ import (
 var (
 
 	//Due to the conflicting types in osmosis cosmos ibc-go (v2) and ibc-go v3, if you call sdkerrors.Register (as would normally be done)
-	//it will PANIC. Since we just want to be allowed to unmarshal, it doesn't matter for purposes of our client.
+	// it will PANIC. Since we just want to be allowed to unmarshal, it doesn't matter for purposes of our client.
 	//In other words... we are forcing a duplicate type registration that would normally cause a panic. See sdkerrors.Register code.
 	ErrInvalidDenomForTransfer = sdkerrors.New(ModuleName, 3, "invalid denomination for cross-chain transfer")
 
