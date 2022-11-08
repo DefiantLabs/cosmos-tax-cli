@@ -9,11 +9,6 @@ repos:
       - id: check-merge-conflict
       - id: check-added-large-files
       - id: detect-private-key
-  # TekWizely does not support repo-level go-critic
-  - repo: https://github.com/FelixSeptem/pre-commit-golang
-    rev: master
-    hooks:
-      - id: go-critic
   - repo: https://github.com/tekwizely/pre-commit-golang
     rev: v1.0.0-rc.1
     hooks:
@@ -31,6 +26,8 @@ repos:
       -   id: go-sec-repo-mod
       # Style
       -   id: go-imports-repo
+      -   id: golangci-lint-repo-mod
+          args: [-E,whitespace,-E,gocritic]
       # Go Test
       # -   id: go-test-mod
       # -   id: go-test-repo-mod
