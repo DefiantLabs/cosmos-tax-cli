@@ -21,21 +21,20 @@ repos:
         # Go Mod Tidy
         -   id: go-mod-tidy
         -   id: go-mod-tidy-repo
+        # Go Vet
+        -   id: go-vet
+        -   id: go-vet-mod
+        -   id: go-vet-repo-mod
         # Go Test
         #-   id: go-test-mod
         #-   id: go-test-repo-mod
-          # Revive
-          # -   id: go-revive
-          # -   id: go-revive-mod
-          # -   id: go-revive-repo-mod
-          # Go Vet
-          # -   id: go-vet
-          # -   id: go-vet-mod
-          # -   id: go-vet-repo-mod
-          # GoSec
-          # -   id: go-sec-mod
-    # -   id: go-sec-repo-mod
-
-    # Style Checkers
-    # -   id: go-lint
-    # -   id: go-critic
+        # Revive
+        # -   id: go-revive
+        # -   id: go-revive-mod
+        # -   id: go-revive-repo-mod
+        # GoSec
+        # -   id: go-sec-mod
+        # -   id: go-sec-repo-mod
+        # Style Checkers
+        # -   id: go-lint
+        # -   id: go-critic
