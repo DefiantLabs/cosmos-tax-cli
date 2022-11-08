@@ -17,6 +17,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"math/big"
+	"strings"
 
 	"fmt"
 	"time"
@@ -285,8 +286,8 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 							taxableTxs[i].TaxableTx.DenominationReceived = denomReceived
 						}
 
-						taxableTxs[i].SenderAddress = dbTypes.Address{Address: v.SenderAddress}
-						taxableTxs[i].ReceiverAddress = dbTypes.Address{Address: v.ReceiverAddress}
+						taxableTxs[i].SenderAddress = dbTypes.Address{Address: strings.ToLower(v.SenderAddress)}
+						taxableTxs[i].ReceiverAddress = dbTypes.Address{Address: strings.ToLower(v.ReceiverAddress)}
 					}
 					currMessageDBWrapper.TaxableTxs = taxableTxs
 				} else {

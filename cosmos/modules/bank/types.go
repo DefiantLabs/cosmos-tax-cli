@@ -41,7 +41,7 @@ func (sf *WrapperMsgSend) HandleMsg(msgType string, msg sdk.Msg, log *txModule.L
 	receiverAddress := txModule.GetValueForAttribute(bankTypes.AttributeKeyRecipient, receivedCoinsEvt)
 	// coins_received := txModule.GetValueForAttribute("amount", receivedCoinsEvt)
 
-	if sf.CosmosMsgSend.ToAddress != receiverAddress {
+	if !strings.EqualFold(sf.CosmosMsgSend.ToAddress, receiverAddress) {
 		return fmt.Errorf("transaction receiver address %s does not match log event '%s' receiver address %s",
 			sf.CosmosMsgSend.ToAddress, bankTypes.EventTypeCoinReceived, receiverAddress)
 	}
