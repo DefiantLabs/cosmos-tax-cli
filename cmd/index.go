@@ -49,7 +49,7 @@ type Indexer struct {
 func setupIndexer() *Indexer {
 	var idxr Indexer
 	var err error
-	//TODO: split out setup methods and only call necessary ones
+	// TODO: split out setup methods and only call necessary ones
 	idxr.cfg, idxr.db, idxr.scheduler, err = setup(conf)
 	if err != nil {
 		log.Fatalf("Error during application setup. Err: %v", err)
@@ -57,23 +57,23 @@ func setupIndexer() *Indexer {
 
 	core.ChainSpecificMessageTypeHandlerBootstrap(idxr.cfg.Lens.ChainID)
 
-	//TODO may need to run this task in setup() so that we have a cold start functionality before the indexer starts
+	// TODO may need to run this task in setup() so that we have a cold start functionality before the indexer starts
 	_, err = idxr.scheduler.Every(6).Hours().Do(tasks.DenomUpsertTask, idxr.cfg.Lens.RPC, idxr.db)
 	if err != nil {
 		config.Log.Error("Error scheduling denmon upsert task. Err: ", zap.Error(err))
 	}
 	idxr.scheduler.StartAsync()
 
-	//Some chains do not have the denom metadata URL available on chain, so we do chain specific downloads instead.
+	// Some chains do not have the denom metadata URL available on chain, so we do chain specific downloads instead.
 	tasks.DoChainSpecificUpsertDenoms(idxr.db, idxr.cfg.Lens.ChainID)
 
 	idxr.cl = config.GetLensClient(idxr.cfg.Lens)
 	config.SetChainConfig(idxr.cfg.Base.AddressPrefix)
 
-	//Depending on the app configuration, wait for the chain to catch up
+	// Depending on the app configuration, wait for the chain to catch up
 	chainCatchingUp, err := rpc.IsCatchingUp(idxr.cl)
 	for (idxr.cfg.Base.WaitForChain || idxr.cfg.Base.ExitWhenCaughtUp) && chainCatchingUp && err == nil {
-		//Wait between status checks, don't spam the node with requests
+		// Wait between status checks, don't spam the node with requests
 		time.Sleep(time.Second * time.Duration(idxr.cfg.Base.WaitForChainDelay))
 		chainCatchingUp, err = rpc.IsCatchingUp(idxr.cl)
 	}
@@ -98,16 +98,16 @@ func index(cmd *cobra.Command, args []string) {
 	// is close to empty, we will spin up a new thread to fill it up with new jobs.
 	blockChan := make(chan int64, 10000)
 
-	//This channel represents query job results for the RPC queries to Cosmos Nodes. Every time an RPC query
+	// This channel represents query job results for the RPC queries to Cosmos Nodes. Every time an RPC query
 	// completes, the query result will be sent to this channel (for later processing by a different thread).
-	//Realistically, I expect that RPC queries will be slower than our relational DB on the local network.
-	//If RPC queries are faster than DB inserts this buffer will fill up.
-	//We will periodically check the buffer size to monitor performance so we can optimize later.
-	rpcQueryThreads := 4 //TODO: set this from the cfg
+	// Realistically, I expect that RPC queries will be slower than our relational DB on the local network.
+	// If RPC queries are faster than DB inserts this buffer will fill up.
+	// We will periodically check the buffer size to monitor performance so we can optimize later.
+	rpcQueryThreads := 4 // TODO: set this from the cfg
 	blockTXsChan := make(chan *indexerTx.GetTxsEventResponseWrapper, 4*rpcQueryThreads)
 
 	var txChanWaitGroup sync.WaitGroup // This group is to ensure we are done getting transactions before we close the TX channel
-	//Spin up a (configurable) number of threads to query RPC endpoints for Transactions.
+	// Spin up a (configurable) number of threads to query RPC endpoints for Transactions.
 	// this is assumed to be the slowest process that allows concurrency and thus has the most dedicated go routines.
 	for i := 0; i < rpcQueryThreads; i++ {
 		txChanWaitGroup.Add(1)
@@ -125,43 +125,43 @@ func index(cmd *cobra.Command, args []string) {
 
 	var wg sync.WaitGroup // This group is to ensure we are done processing transactions (as well as osmo rewards) before returning
 
-	//Start a thread to process transactions after the RPC querier retrieves them.
+	// Start a thread to process transactions after the RPC querier retrieves them.
 	if !idxr.cfg.Base.OsmosisRewardsOnly {
 		wg.Add(1)
 		go idxr.processTxs(&wg, blockTXsChan, core.HandleFailedBlock) // TODO: are we sure more workers here wouldn't make this faster?
 	}
 
-	//Osmosis specific indexing requirements. Osmosis distributes rewards to LP holders on a daily basis.
+	// Osmosis specific indexing requirements. Osmosis distributes rewards to LP holders on a daily basis.
 	if config.IsOsmosis(idxr.cfg) {
 		wg.Add(1)
 		go idxr.indexOsmosisRewards(&wg, core.HandleFailedBlock)
 	}
 
-	//Add jobs to the queue to be processed
+	// Add jobs to the queue to be processed
 	if !idxr.cfg.Base.OsmosisRewardsOnly {
 		idxr.enqueueBlocksToProcess(blockChan)
 		// close the block chan once all blocks have been written to it
 		close(blockChan)
 	}
 
-	//If we error out in the main loop, this will block. Meaning we may not know of an error for 6 hours until last scheduled task stops
+	// If we error out in the main loop, this will block. Meaning we may not know of an error for 6 hours until last scheduled task stops
 	idxr.scheduler.Stop()
 	wg.Wait()
 }
 
 // enqueueBlocksToProcess will pass the blocks that need to be processed to the blockchannel
 func (idxr *Indexer) enqueueBlocksToProcess(blockChan chan int64) {
-	//Start at the last indexed block height (or the block height in the config, if set)
+	// Start at the last indexed block height (or the block height in the config, if set)
 	currBlock := GetIndexerStartingHeight(idxr.cfg.Base.StartBlock, idxr.cl, idxr.db)
 
-	//Don't index past this block no matter what
+	// Don't index past this block no matter what
 	lastBlock := idxr.cfg.Base.EndBlock
 	var latestBlock int64 = math.MaxInt64
 
-	//Add jobs to the queue to be processed
+	// Add jobs to the queue to be processed
 	for {
-		//The program is configured to stop running after a set block height.
-		//Generally this will only be done while debugging or if a particular block was incorrectly processed.
+		// The program is configured to stop running after a set block height.
+		// Generally this will only be done while debugging or if a particular block was incorrectly processed.
 		if lastBlock != -1 && currBlock >= lastBlock {
 			config.Log.Info("Hit the last block we're allowed to index, exiting.")
 			return
@@ -170,28 +170,28 @@ func (idxr *Indexer) enqueueBlocksToProcess(blockChan chan int64) {
 			return
 		}
 
-		//The job queue is running out of jobs to process, see if the blockchain has produced any new blocks we haven't indexed yet.
+		// The job queue is running out of jobs to process, see if the blockchain has produced any new blocks we haven't indexed yet.
 		if len(blockChan) <= cap(blockChan)/4 {
-			//This is the latest block height available on the Node.
+			// This is the latest block height available on the Node.
 			var err error
 			latestBlock, err = rpc.GetLatestBlockHeight(idxr.cl)
 			if err != nil {
 				config.Log.Fatal("Error getting blockchain latest height. Err: %v", zap.Error(err))
 			}
 
-			//Throttling in case of hitting public APIs
-			//TODO: track tx/s downloaded from each RPC endpoint and implement throttling limits per endpoint.
+			// Throttling in case of hitting public APIs
+			// TODO: track tx/s downloaded from each RPC endpoint and implement throttling limits per endpoint.
 			if idxr.cfg.Base.Throttling != 0 {
 				time.Sleep(time.Second * time.Duration(idxr.cfg.Base.Throttling))
 			}
 
-			//Already at the latest block, wait for the next block to be available.
+			// Already at the latest block, wait for the next block to be available.
 			for currBlock <= latestBlock && (currBlock <= lastBlock || lastBlock == -1) && len(blockChan) != cap(blockChan) {
 				if idxr.cfg.Base.Throttling != 0 {
 					time.Sleep(time.Second * time.Duration(idxr.cfg.Base.Throttling))
 				}
 
-				//Add the new block to the queue
+				// Add the new block to the queue
 				blockChan <- currBlock
 				currBlock++
 			}
@@ -210,7 +210,7 @@ func OsmosisGetRewardsStartIndexHeight(db *gorm.DB, chainID string) int64 {
 }
 
 func GetIndexerStartingHeight(configStartHeight int64, cl *client.ChainClient, db *gorm.DB) int64 {
-	//Start the indexer at the configured value if one has been set. This starting height will be used
+	// Start the indexer at the configured value if one has been set. This starting height will be used
 	// instead of searching the database to find the last indexed block.
 	if configStartHeight != -1 {
 		return configStartHeight
@@ -310,8 +310,8 @@ func processBlock(cl *client.ChainClient, failedBlockHandler func(height int64, 
 	// fmt.Printf("Querying RPC transactions for block %d\n", blockToProcess)
 	newBlock := dbTypes.Block{Height: blockToProcess}
 
-	//TODO: There is currently no pagination implemented!
-	//TODO: Do something smarter than giving up when we encounter an error.
+	// TODO: There is currently no pagination implemented!
+	// TODO: Do something smarter than giving up when we encounter an error.
 	txsEventResp, err := rpc.GetTxsByBlockHeight(cl, newBlock.Height)
 	if err != nil {
 		config.Log.Error("Error getting transactions by block height. Will reattempt", zap.Error(err))
@@ -319,14 +319,14 @@ func processBlock(cl *client.ChainClient, failedBlockHandler func(height int64, 
 	}
 
 	if len(txsEventResp.Txs) == 0 {
-		//The node might have pruned history resulting in a failed lookup. Recheck to see if the block was supposed to have TX results.
+		// The node might have pruned history resulting in a failed lookup. Recheck to see if the block was supposed to have TX results.
 		blockResults, err := rpc.GetBlockByHeight(cl, newBlock.Height)
 		if err != nil || blockResults == nil {
 			failedBlockHandler(newBlock.Height, core.BlockQueryError, err)
 		} else if len(blockResults.TxsResults) > 0 {
-			//Two queries for the same block got a diff # of TXs. Though it is not guaranteed,
-			//DeliverTx events typically make it into a block so this warrants manual investigation.
-			//In this case, we couldn't look up TXs on the node but the Node's block has DeliverTx events,
+			// Two queries for the same block got a diff # of TXs. Though it is not guaranteed,
+			// DeliverTx events typically make it into a block so this warrants manual investigation.
+			// In this case, we couldn't look up TXs on the node but the Node's block has DeliverTx events,
 			// so we should log this and manually review the block on e.g. mintscan or another tool.
 			failedBlockHandler(newBlock.Height, core.NodeMissingBlockTxs, errors.New("node has DeliverTx results for block, but querying txs by height failed"))
 		}
@@ -352,8 +352,8 @@ func (idxr *Indexer) processTxs(wg *sync.WaitGroup, blockTXsChan chan *indexerTx
 			failedBlockHandler(txToProcess.Height, core.UnprocessableTxError, err)
 		}
 
-		//While debugging we'll sometimes want to turn off INSERTS to the DB
-		//Note that this does not turn off certain reads or DB connections.
+		// While debugging we'll sometimes want to turn off INSERTS to the DB
+		// Note that this does not turn off certain reads or DB connections.
 		if idxr.cfg.Base.IndexingEnabled {
 			config.Log.Info(fmt.Sprintf("Indexing block %d, threaded.\n", txToProcess.Height))
 			err = dbTypes.IndexNewBlock(idxr.db, txToProcess.Height, blockTime, txDBWrappers, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
@@ -364,7 +364,7 @@ func (idxr *Indexer) processTxs(wg *sync.WaitGroup, blockTXsChan chan *indexerTx
 			}
 		}
 
-		//Just measuring how many blocks/second we can process
+		// Just measuring how many blocks/second we can process
 		if idxr.cfg.Base.BlockTimer > 0 {
 			blocksProcessed++
 			if blocksProcessed%int(idxr.cfg.Base.BlockTimer) == 0 {

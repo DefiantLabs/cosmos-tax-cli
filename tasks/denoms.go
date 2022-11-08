@@ -38,8 +38,8 @@ func DoChainSpecificUpsertDenoms(db *gorm.DB, chain string) {
 		UpsertOsmosisDenoms(db)
 	}
 	// may want to move this elsewhere, or eliminate entirely
-	//I would prefer we just grab the denoms when needed always
-	//Current problem: we use the denom cache in various blocks later on
+	// I would prefer we just grab the denoms when needed always
+	// Current problem: we use the denom cache in various blocks later on
 	dbTypes.CacheDenoms(db)
 }
 

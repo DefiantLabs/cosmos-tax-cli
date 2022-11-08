@@ -69,8 +69,8 @@ func setupRPC(t *testing.T) *gocron.Scheduler {
 	if testConfig == nil {
 		setupConfig(t)
 	}
-	//TODO: create config values for the prefixes here
-	//Could potentially check Node info at startup and pass in ourselves?
+	// TODO: create config values for the prefixes here
+	// Could potentially check Node info at startup and pass in ourselves?
 	core.SetupAddressRegex(testConfig.Base.AddressRegex)
 	core.SetupAddressPrefix(testConfig.Base.AddressPrefix)
 
@@ -100,7 +100,7 @@ func TestDecodeIBCTypes(t *testing.T) {
 	for txIdx := range resp.Txs {
 		currTx := resp.Txs[txIdx]
 
-		//Get the Messages and Message Logs
+		// Get the Messages and Message Logs
 		for msgIdx := range currTx.Body.Messages {
 			currMsg := currTx.Body.Messages[msgIdx].GetCachedValue()
 			if currMsg != nil {
@@ -120,9 +120,9 @@ func TestDecodeIBCTypes(t *testing.T) {
 
 func GetJunoTestClient(t *testing.T) *lensClient.ChainClient {
 	homepath := getHomePath(t)
-	//IMPORTANT: the actual keyring-test will be searched for at the path {homepath}/keys/{ChainID}/keyring-test.
-	//You can use lens default settings to generate that directory appropriately then move it to the desired path.
-	//For example, 'lens keys restore default' will restore the key to the default keyring (e.g. /home/kyle/.lens/...)
+	// IMPORTANT: the actual keyring-test will be searched for at the path {homepath}/keys/{ChainID}/keyring-test.
+	// You can use lens default settings to generate that directory appropriately then move it to the desired path.
+	// For example, 'lens keys restore default' will restore the key to the default keyring (e.g. /home/kyle/.lens/...)
 	// and you can move all of the necessary keys to whatever homepath you want to use. Or you can use --home flag.
 	cl, err := lensClient.NewChainClient(GetJunoConfig(homepath, true), homepath, nil, nil)
 	assert.Nil(t, err)
@@ -132,9 +132,9 @@ func GetJunoTestClient(t *testing.T) *lensClient.ChainClient {
 
 func GetOsmosisTestClient(t *testing.T) *lensClient.ChainClient {
 	homepath := getHomePath(t)
-	//IMPORTANT: the actual keyring-test will be searched for at the path {homepath}/keys/{ChainID}/keyring-test.
-	//You can use lens default settings to generate that directory appropriately then move it to the desired path.
-	//For example, 'lens keys restore default' will restore the key to the default keyring (e.g. /home/kyle/.lens/...)
+	// IMPORTANT: the actual keyring-test will be searched for at the path {homepath}/keys/{ChainID}/keyring-test.
+	// You can use lens default settings to generate that directory appropriately then move it to the desired path.
+	// For example, 'lens keys restore default' will restore the key to the default keyring (e.g. /home/kyle/.lens/...)
 	// and you can move all of the necessary keys to whatever homepath you want to use. Or you can use --home flag.
 	cl, err := lensClient.NewChainClient(GetOsmosisConfig(homepath, true), homepath, nil, nil)
 	assert.Nil(t, err)

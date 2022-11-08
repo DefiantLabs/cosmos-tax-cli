@@ -76,7 +76,7 @@ const (
 // Events can happen on chain and generate tendermint ABCI events that do not show up in transactions.
 type TaxableEvent struct {
 	ID             uint
-	Source         uint            //This will indicate what type of event occurred on chain. Currently, only used for Osmosis rewards.
+	Source         uint            // This will indicate what type of event occurred on chain. Currently, only used for Osmosis rewards.
 	Amount         decimal.Decimal `gorm:"type:decimal(78,0);"` //2^256 or 78 digits, cosmos Int can be up to this length
 	DenominationID uint
 	Denomination   Denom   `gorm:"foreignKey:DenominationID"`
@@ -114,7 +114,7 @@ type TaxableTransaction struct {
 }
 
 func (TaxableTransaction) TableName() string {
-	return "taxable_tx" //Legacy
+	return "taxable_tx" // Legacy
 }
 
 type Denom struct {

@@ -13,7 +13,7 @@ import (
 )
 
 func GetAddresses(addressList []string, db *gorm.DB) ([]Address, error) {
-	//Look up all DB Addresses that match the search
+	// Look up all DB Addresses that match the search
 	var addresses []Address
 	result := db.Where("address IN ?", addressList).Find(&addresses)
 	fmt.Printf("Found %d addresses in the db\n", result.RowsAffected)
@@ -86,8 +86,8 @@ func UpsertFailedBlock(db *gorm.DB, blockHeight int64, chainID string, chainName
 
 func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []TxDBWrapper, chainID string, chainName string) error {
 	// consider optimizing the transaction, but how? Ordering matters due to foreign key constraints
-	//Order required: Block -> (For each Tx: Signer Address -> Tx -> (For each Message: Message -> Taxable Events))
-	//Also, foreign key relations are struct value based so create needs to be called first to get right foreign key ID
+	// Order required: Block -> (For each Tx: Signer Address -> Tx -> (For each Message: Message -> Taxable Events))
+	// Also, foreign key relations are struct value based so create needs to be called first to get right foreign key ID
 	return db.Transaction(func(dbTransaction *gorm.DB) error {
 		block := Block{Height: blockHeight, TimeStamp: blockTime, Chain: Chain{ChainID: chainID, Name: chainName}}
 
@@ -139,8 +139,8 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 				transaction.Tx.SignerAddress = transaction.SignerAddress
 			} else {
 				// store null foreign key relation in signer address id
-				//This should never happen and indicates an error somewhere in parsing
-				//Consider removing?
+				// This should never happen and indicates an error somewhere in parsing
+				// Consider removing?
 				transaction.Tx.SignerAddressID = nil
 			}
 

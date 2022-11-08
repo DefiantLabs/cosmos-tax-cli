@@ -54,7 +54,7 @@ func (client *URIClient) getRewardEpochs(startHeight int64, endHeight int64) ([]
 	osmosisRewardsQuery := "distribution.receiver EXISTS"
 	rewardBlocks := []int64{}
 
-	//We search for the EXACT block height because I could not make the BlockSearch
+	// We search for the EXACT block height because I could not make the BlockSearch
 	// pagination work. This is a slow process, but for our indexer it doesn't matter.
 	for i := startHeight; i <= endHeight; i++ {
 		query := fmt.Sprintf("block.height = %d AND %s", i, osmosisRewardsQuery)
@@ -83,8 +83,8 @@ func (client *URIClient) getRewardEpochs(startHeight int64, endHeight int64) ([]
 func (client *URIClient) getRewards(height int64) ([]*Rewards, error) {
 	rewards := map[string]*Rewards{}
 
-	//Nodes are very slow at responding to queries for reward distribution blocks.
-	//I believe you must set the Node's timeout_broadcast_tx_commit higher than 10s
+	// Nodes are very slow at responding to queries for reward distribution blocks.
+	// I believe you must set the Node's timeout_broadcast_tx_commit higher than 10s
 	// or these queries will time out
 	brctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 	defer cancel()
@@ -94,7 +94,7 @@ func (client *URIClient) getRewards(height int64) ([]*Rewards, error) {
 		return nil, err
 	}
 
-	//Osmosis emits reward distribution events during the BeginBlocker,
+	// Osmosis emits reward distribution events during the BeginBlocker,
 	// which means they show up in the BeginBlockEvents section
 	for _, event := range bresults.BeginBlockEvents {
 		if event.Type == "distribution" {

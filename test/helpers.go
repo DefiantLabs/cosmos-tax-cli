@@ -80,8 +80,8 @@ func dbSetup(addressRegex string, addressPrefix string) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	//TODO: create config values for the prefixes here
-	//Could potentially check Node info at startup and pass in ourselves?
+	// TODO: create config values for the prefixes here
+	// Could potentially check Node info at startup and pass in ourselves?
 	core.SetupAddressRegex(addressRegex)
 	core.SetupAddressPrefix(addressPrefix)
 
@@ -92,6 +92,6 @@ func dbSetup(addressRegex string, addressPrefix string) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	dbUtils.CacheDenoms(db) //Have to cache denoms to get translations from e.g. ujuno to Juno
+	dbUtils.CacheDenoms(db) // Have to cache denoms to get translations from e.g. ujuno to Juno
 	return db, nil
 }

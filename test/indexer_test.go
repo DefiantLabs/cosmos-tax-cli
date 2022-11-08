@@ -9,7 +9,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
 )
 
-//Example DB query to get TXs for address:
+// Example DB query to get TXs for address:
 /*
 select * from taxable_tx tx
 INNER JOIN addresses as addr ON addr.id = tx.sender_address_id OR addr.id = tx.receiver_address_id

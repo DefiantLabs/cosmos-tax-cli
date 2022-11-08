@@ -136,7 +136,7 @@ func getTestTransferTXs(t *testing.T, targetAddress db.Address, targetChain db.C
 	exitSwapExternAmountOut := mkMsgType(5, gamm.MsgExitSwapExternAmountOut)
 	exitPool := mkMsgType(6, gamm.MsgExitPool)
 
-	//FIXME: add fees
+	// FIXME: add fees
 
 	// create TXs
 	joinPoolTX1 := mkTx(1, "somehash1", 0, block1, randoAddress, nil)

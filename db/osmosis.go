@@ -28,7 +28,7 @@ func eventExists(db *gorm.DB, event TaxableEvent) bool {
 }
 
 func createTaxableEvents(db *gorm.DB, events []TaxableEvent) error {
-	//Ordering matters due to foreign key constraints. Call Create() first to get right foreign key ID
+	// Ordering matters due to foreign key constraints. Call Create() first to get right foreign key ID
 	return db.Transaction(func(dbTransaction *gorm.DB) error {
 		for _, event := range events {
 			if chainErr := dbTransaction.Where(&event.Block.Chain).FirstOrCreate(&event.Block.Chain).Error; chainErr != nil {

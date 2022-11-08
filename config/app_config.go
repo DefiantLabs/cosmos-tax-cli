@@ -44,7 +44,7 @@ func (conf *Config) Validate() error {
 	if util.StrNotSet(conf.Base.AddressPrefix) {
 		return errors.New("base addressPrefix must be set")
 	}
-	if conf.Base.StartBlock == 0 { //TODO: Verify that 0 is not a valid starting block..
+	if conf.Base.StartBlock == 0 { // TODO: Verify that 0 is not a valid starting block..
 		return errors.New("base startblock must be set")
 	}
 	if conf.Base.EndBlock == 0 {

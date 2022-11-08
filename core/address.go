@@ -30,7 +30,7 @@ func SetupAddressPrefix(addressPrefixString string) {
 
 func ExtractTransactionAddresses(tx tx.MergedTx) []string {
 	messagesAddresses := util.WalkFindStrings(tx.Tx.Body.Messages, addressRegex)
-	//Consider walking logs - needs benchmarking compared to whole string search on raw log
+	// Consider walking logs - needs benchmarking compared to whole string search on raw log
 	logAddresses := addressRegex.FindAllString(tx.TxResponse.RawLog, -1)
 	addresses := append(messagesAddresses, logAddresses...)
 	addressMap := make(map[string]string)

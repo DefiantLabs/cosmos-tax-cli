@@ -85,7 +85,7 @@ func checkResponseErrorCode(requestEndpoint string, resp *http.Response) error {
 }
 
 func GetDenomsMetadatas(host string) (denoms.GetDenomsMetadatasResponse, error) {
-	//TODO paginate
+	// TODO paginate
 	var result denoms.GetDenomsMetadatasResponse
 
 	requestEndpoint := apiEndpoints["denoms_metadata"]

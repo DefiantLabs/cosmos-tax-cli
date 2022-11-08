@@ -18,7 +18,7 @@ var queryCmd = &cobra.Command{
 	Short: "Queries the currently indexed data.",
 	Long: `Queries the indexed data according to a configuration. Mainly address based. Apply
 	your address to the command and a CSV export with your data for your address will be generated.`,
-	//If we want to pass errors up to the
+	// If we want to pass errors up to the
 	Run: func(cmd *cobra.Command, args []string) {
 		found := false
 		parsers := parsers.GetParserKeys()
@@ -35,7 +35,7 @@ var queryCmd = &cobra.Command{
 			config.Log.Fatal(fmt.Sprintf("Invalid format %s, valid formats are %s", format, parsers))
 		}
 
-		//TODO: split out setup methods and only call necessary ones
+		// TODO: split out setup methods and only call necessary ones
 		_, db, _, err := setup(conf)
 		if err != nil {
 			config.Log.Fatal("Error setting up query", zap.Error(err))
@@ -62,7 +62,7 @@ var (
 )
 
 func init() {
-	//Setup Logger
+	// Setup Logger
 	logLevel := conf.Log.Level
 	logPath := conf.Log.Path
 	config.DoConfigureLogger(logPath, logLevel)

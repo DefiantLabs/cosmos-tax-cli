@@ -26,13 +26,13 @@ func (sf *WrapperMsgSend) HandleMsg(msgType string, msg sdk.Msg, log *txModule.L
 	sf.Type = msgType
 	sf.CosmosMsgSend = msg.(*bankTypes.MsgSend)
 
-	//Confirm that the action listed in the message log matches the Message type
+	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
 
-	//The attribute in the log message that shows you the delegator withdrawal address and amount received
+	// The attribute in the log message that shows you the delegator withdrawal address and amount received
 	receivedCoinsEvt := txModule.GetEventWithType(bankTypes.EventTypeTransfer, log)
 	if receivedCoinsEvt == nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
@@ -53,9 +53,9 @@ func (sf *WrapperMsgMultiSend) HandleMsg(msgType string, msg sdk.Msg, log *txMod
 	sf.Type = msgType
 	sf.CosmosMsgMultiSend = msg.(*bankTypes.MsgMultiSend)
 
-	//Make sure the standard ordering of Inputs -> Outputs applies (where send Input[i] == received Output[i])
-	//This is assuming Inputs[i] corresponds to Outputs[i]
-	//Is this safe to assume? From testing it looks like it
+	// Make sure the standard ordering of Inputs -> Outputs applies (where send Input[i] == received Output[i])
+	// This is assuming Inputs[i] corresponds to Outputs[i]
+	// Is this safe to assume? From testing it looks like it
 	for i, input := range sf.CosmosMsgMultiSend.Inputs {
 		correspondingOutput := sf.CosmosMsgMultiSend.Outputs[i]
 
@@ -92,11 +92,11 @@ func (sf *WrapperMsgSend) ParseRelevantData() []parsingTypes.MessageRelevantInfo
 		var currRelevantData parsingTypes.MessageRelevantInformation
 		currRelevantData.SenderAddress = sf.CosmosMsgSend.FromAddress
 		currRelevantData.ReceiverAddress = sf.CosmosMsgSend.ToAddress
-		//Amount always seems to be an integer, float may be an extra uneeded step
+		// Amount always seems to be an integer, float may be an extra uneeded step
 		currRelevantData.AmountSent = v.Amount.BigInt()
 		currRelevantData.DenominationSent = v.Denom
 
-		//This is required since we do CSV parsing on the receiver here too
+		// This is required since we do CSV parsing on the receiver here too
 		currRelevantData.AmountReceived = v.Amount.BigInt()
 		currRelevantData.DenominationReceived = v.Denom
 
