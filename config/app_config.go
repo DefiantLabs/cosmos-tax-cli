@@ -112,6 +112,7 @@ type base struct {
 	StartBlock         int64
 	EndBlock           int64
 	Throttling         int64
+	RPCWorkers         int64
 	BlockTimer         int64
 	WaitForChain       bool
 	WaitForChainDelay  int64

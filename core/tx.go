@@ -3,6 +3,11 @@ package core
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"math/big"
+	"strings"
+	"time"
+
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/bank"
@@ -11,21 +16,16 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/staking"
 	tx "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
 	txTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
+	dbTypes "github.com/DefiantLabs/cosmos-tax-cli-private/db"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
-	"go.uber.org/zap"
-	"gorm.io/gorm"
-	"math/big"
-
-	"fmt"
-	"time"
-
-	dbTypes "github.com/DefiantLabs/cosmos-tax-cli-private/db"
 
 	cryptoTypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types"
 	cosmosTx "github.com/cosmos/cosmos-sdk/types/tx"
+	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 // Unmarshal JSON to a particular type.
@@ -285,8 +285,8 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 							taxableTxs[i].TaxableTx.DenominationReceived = denomReceived
 						}
 
-						taxableTxs[i].SenderAddress = dbTypes.Address{Address: v.SenderAddress}
-						taxableTxs[i].ReceiverAddress = dbTypes.Address{Address: v.ReceiverAddress}
+						taxableTxs[i].SenderAddress = dbTypes.Address{Address: strings.ToLower(v.SenderAddress)}
+						taxableTxs[i].ReceiverAddress = dbTypes.Address{Address: strings.ToLower(v.ReceiverAddress)}
 					}
 					currMessageDBWrapper.TaxableTxs = taxableTxs
 				} else {

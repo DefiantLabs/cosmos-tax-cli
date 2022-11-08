@@ -2,11 +2,11 @@ package bank
 
 import (
 	"fmt"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
 	"strings"
 
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
 	txModule "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
@@ -41,7 +41,7 @@ func (sf *WrapperMsgSend) HandleMsg(msgType string, msg sdk.Msg, log *txModule.L
 	receiverAddress := txModule.GetValueForAttribute(bankTypes.AttributeKeyRecipient, receivedCoinsEvt)
 	// coins_received := txModule.GetValueForAttribute("amount", receivedCoinsEvt)
 
-	if sf.CosmosMsgSend.ToAddress != receiverAddress {
+	if !strings.EqualFold(sf.CosmosMsgSend.ToAddress, receiverAddress) {
 		return fmt.Errorf("transaction receiver address %s does not match log event '%s' receiver address %s",
 			sf.CosmosMsgSend.ToAddress, bankTypes.EventTypeCoinReceived, receiverAddress)
 	}

@@ -4,19 +4,20 @@
 package types
 
 import (
-	context "context"
-	fmt "fmt"
-	types "github.com/cosmos/cosmos-sdk/types"
+	"context"
+	"fmt"
+	"io"
+	"math"
+	math_bits "math/bits"
+
+	"github.com/cosmos/cosmos-sdk/types"
 	types1 "github.com/cosmos/ibc-go/v3/modules/core/02-client/types"
 	_ "github.com/gogo/protobuf/gogoproto"
 	grpc1 "github.com/gogo/protobuf/grpc"
-	proto "github.com/gogo/protobuf/proto"
-	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
-	io "io"
-	math "math"
-	math_bits "math/bits"
+	"github.com/gogo/protobuf/proto"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

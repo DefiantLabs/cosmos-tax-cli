@@ -2,9 +2,10 @@ package util
 
 import (
 	"fmt"
-	txModule "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
 	"math/big"
 	"regexp"
+
+	txModule "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
 
 	"github.com/shopspring/decimal"
 )

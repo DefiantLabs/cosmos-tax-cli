@@ -15,17 +15,19 @@ env:
 
 jobs:
 
-  lint:
+  pre-commit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3.3.1
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: actions/checkout@v3
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3
-        with:
-          args: -v --timeout 5m -E gofmt -E whitespace -E revive -E gosec
+      - run: go version
+      - run: go install golang.org/x/tools/cmd/goimports@latest
+      - run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -  -b $(go env GOPATH)/bin v1.49.0
+      - run: echo "PATH=$PATH:/home/runner/go/bin" >> $GITHUB_ENV
+      - uses: pre-commit/action@v3.0.0
+
 
   test:
     runs-on: ubuntu-latest

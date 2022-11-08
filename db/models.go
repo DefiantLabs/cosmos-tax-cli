@@ -1,8 +1,9 @@
 package db
 
 import (
-	"github.com/shopspring/decimal"
 	"time"
+
+	"github.com/shopspring/decimal"
 )
 
 type Block struct {

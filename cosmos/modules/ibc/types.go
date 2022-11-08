@@ -2,11 +2,12 @@ package ibc
 
 import (
 	"fmt"
-	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
 
+	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
 	types "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/ibc/types"
 	txModule "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
+
 	stdTypes "github.com/cosmos/cosmos-sdk/types"
 )
 
