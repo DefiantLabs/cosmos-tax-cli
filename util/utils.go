@@ -25,7 +25,7 @@ func NumericToString(num decimal.Decimal) string {
 func WalkFindStrings(data interface{}, regex *regexp.Regexp) []string {
 	var ret []string
 
-	//These are enough to walk the messages blocks, but we may want to build out the type switch more
+	// These are enough to walk the messages blocks, but we may want to build out the type switch more
 	switch x := data.(type) {
 	case []interface{}:
 		for _, i := range x {
@@ -49,7 +49,7 @@ func WalkFindStrings(data interface{}, regex *regexp.Regexp) []string {
 		return regex.FindAllString(x, -1)
 
 	default:
-		//unsupported type, returns empty Slice
+		// unsupported type, returns empty Slice
 		return ret
 	}
 }

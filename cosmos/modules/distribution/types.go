@@ -49,13 +49,13 @@ func (sf *WrapperMsgFundCommunityPool) HandleMsg(msgType string, msg stdTypes.Ms
 	sf.Type = msgType
 	sf.CosmosMsgFundCommunityPool = msg.(*distTypes.MsgFundCommunityPool)
 
-	//Confirm that the action listed in the message log matches the Message type
+	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
 
-	//Funds sent and sender address are pulled from the parsed Cosmos Msg
+	// Funds sent and sender address are pulled from the parsed Cosmos Msg
 	sf.Depositor = sf.CosmosMsgFundCommunityPool.Depositor
 	sf.Funds = sf.CosmosMsgFundCommunityPool.Amount
 
@@ -67,13 +67,13 @@ func (sf *WrapperMsgWithdrawValidatorCommission) HandleMsg(msgType string, msg s
 	sf.Type = msgType
 	sf.CosmosMsgWithdrawValidatorCommission = msg.(*distTypes.MsgWithdrawValidatorCommission)
 
-	//Confirm that the action listed in the message log matches the Message type
+	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
 
-	//The attribute in the log message that shows you the delegator withdrawal address and amount received
+	// The attribute in the log message that shows you the delegator withdrawal address and amount received
 	delegatorReceivedCoinsEvt := txModule.GetEventWithType(distTypes.EventTypeWithdrawCommission, log)
 	if delegatorReceivedCoinsEvt == nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
@@ -102,13 +102,13 @@ func (sf *WrapperMsgWithdrawDelegatorReward) HandleMsg(msgType string, msg stdTy
 	sf.Type = msgType
 	sf.CosmosMsgWithdrawDelegatorReward = msg.(*distTypes.MsgWithdrawDelegatorReward)
 
-	//Confirm that the action listed in the message log matches the Message type
+	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
 
-	//The attribute in the log message that shows you the delegator withdrawal address and amount received
+	// The attribute in the log message that shows you the delegator withdrawal address and amount received
 	delegatorReceivedCoinsEvt := txModule.GetEventWithType(bankTypes.EventTypeTransfer, log)
 	if delegatorReceivedCoinsEvt == nil {
 		// A withdrawal without a transfer means no amounts were actually moved.
@@ -118,7 +118,7 @@ func (sf *WrapperMsgWithdrawDelegatorReward) HandleMsg(msgType string, msg stdTy
 	sf.RecipientAddress = txModule.GetValueForAttribute(bankTypes.AttributeKeyRecipient, delegatorReceivedCoinsEvt)
 	coinsReceived := txModule.GetValueForAttribute("amount", delegatorReceivedCoinsEvt)
 
-	//This may be able to be optimized by doing one or the other
+	// This may be able to be optimized by doing one or the other
 	coin, err := stdTypes.ParseCoinNormalized(coinsReceived)
 	if err != nil {
 		sf.MultiCoinsReceived, err = stdTypes.ParseCoinsNormalized(coinsReceived)

@@ -1,7 +1,7 @@
 package db
 
 import (
-	"crypto/md5"
+	"crypto/sha256"
 	"fmt"
 	"sort"
 
@@ -28,7 +28,7 @@ func eventExists(db *gorm.DB, event TaxableEvent) bool {
 }
 
 func createTaxableEvents(db *gorm.DB, events []TaxableEvent) error {
-	//Ordering matters due to foreign key constraints. Call Create() first to get right foreign key ID
+	// Ordering matters due to foreign key constraints. Call Create() first to get right foreign key ID
 	return db.Transaction(func(dbTransaction *gorm.DB) error {
 		for _, event := range events {
 			if chainErr := dbTransaction.Where(&event.Block.Chain).FirstOrCreate(&event.Block.Chain).Error; chainErr != nil {
@@ -42,7 +42,7 @@ func createTaxableEvents(db *gorm.DB, events []TaxableEvent) error {
 			}
 
 			if event.EventAddress.Address != "" {
-				//viewing gorm logs shows this gets translated into a single ON CONFLICT DO NOTHING RETURNING "id"
+				// viewing gorm logs shows this gets translated into a single ON CONFLICT DO NOTHING RETURNING "id"
 				if err := dbTransaction.Where(&event.EventAddress).FirstOrCreate(&event.EventAddress).Error; err != nil {
 					fmt.Printf("Error %s creating address for TaxableEvent.\n", err)
 					return err
@@ -53,7 +53,8 @@ func createTaxableEvents(db *gorm.DB, events []TaxableEvent) error {
 				return fmt.Errorf("denom not cached for base %s and symbol %s", event.Denomination.Base, event.Denomination.Symbol)
 			}
 
-			if err := dbTransaction.Create(&event).Error; err != nil {
+			thisEvent := event // This is redundant but required for the picky gosec linter
+			if err := dbTransaction.Create(&thisEvent).Error; err != nil {
 				fmt.Printf("Error %s creating tx.\n", err)
 				return err
 			}
@@ -70,7 +71,7 @@ func IndexOsmoRewards(db *gorm.DB, chainID string, chainName string, rewards []*
 		for _, coin := range curr.Coins {
 			denom, err := GetDenomForBase(coin.Denom)
 			if err != nil {
-				//attempt to add missing denoms to the database
+				// attempt to add missing denoms to the database
 				config.Log.Error("Denom lookup failed. Will be inserted as UNKNOWN", zap.Error(err), zap.String("denom received", coin.Denom))
 				denom, err = AddUnknownDenom(db, coin.Denom)
 				if err != nil {
@@ -79,10 +80,13 @@ func IndexOsmoRewards(db *gorm.DB, chainID string, chainName string, rewards []*
 				}
 			}
 
+			hash := sha256.New()
+			hash.Write([]byte(fmt.Sprint(curr.Address, curr.EpochBlockHeight, coin)))
+
 			evt := TaxableEvent{
 				Source:       OsmosisRewardDistribution,
 				Amount:       util.ToNumeric(coin.Amount.BigInt()),
-				EventHash:    fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprint(curr.Address, curr.EpochBlockHeight, coin)))),
+				EventHash:    fmt.Sprintf("%x", hash.Sum(nil)),
 				Denomination: denom,
 				// FIXME: will this block have the correct time if it hasn't been indexed yet?
 				Block:        Block{Height: curr.EpochBlockHeight, Chain: Chain{ChainID: chainID, Name: chainName}},

@@ -13,7 +13,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	cosmostypes "github.com/cosmos/cosmos-sdk/types"
-	legacybech32 "github.com/cosmos/cosmos-sdk/types/bech32/legacybech32" //nolint:staticcheck
+	legacybech32 "github.com/cosmos/cosmos-sdk/types/bech32/legacybech32" // nolint:staticcheck
 )
 
 // consider not using globals
@@ -30,11 +30,10 @@ func SetupAddressPrefix(addressPrefixString string) {
 
 func ExtractTransactionAddresses(tx tx.MergedTx) []string {
 	messagesAddresses := util.WalkFindStrings(tx.Tx.Body.Messages, addressRegex)
-	//Consider walking logs - needs benchmarking compared to whole string search on raw log
+	// Consider walking logs - needs benchmarking compared to whole string search on raw log
 	logAddresses := addressRegex.FindAllString(tx.TxResponse.RawLog, -1)
-	addresses := append(messagesAddresses, logAddresses...)
 	addressMap := make(map[string]string)
-	for _, v := range addresses {
+	for _, v := range append(messagesAddresses, logAddresses...) {
 		addressMap[v] = ""
 	}
 	uniqueAddresses := make([]string, len(addressMap))
@@ -61,7 +60,7 @@ func ParseSignerAddress(pubkeyString string, keytype string) (retstring string, 
 		return "", err
 	}
 
-	//this panics if conversion fails
+	// this panics if conversion fails
 	bech32address := cosmostypes.MustBech32ifyAddressBytes(addressPrefix, pubkey.Address().Bytes())
 	return bech32address, nil
 }
@@ -87,17 +86,17 @@ func getPubKeyFromRawString(pkstr string, keytype string) (cryptotypes.PubKey, e
 		}
 	}
 
-	pk, err := legacybech32.UnmarshalPubKey(legacybech32.AccPK, pkstr) //nolint:staticcheck
+	pk, err := legacybech32.UnmarshalPubKey(legacybech32.AccPK, pkstr) // nolint:staticcheck
 	if err == nil {
 		return pk, nil
 	}
 
-	pk, err = legacybech32.UnmarshalPubKey(legacybech32.ValPK, pkstr) //nolint:staticcheck
+	pk, err = legacybech32.UnmarshalPubKey(legacybech32.ValPK, pkstr) // nolint:staticcheck
 	if err == nil {
 		return pk, nil
 	}
 
-	pk, err = legacybech32.UnmarshalPubKey(legacybech32.ConsPK, pkstr) //nolint:staticcheck
+	pk, err = legacybech32.UnmarshalPubKey(legacybech32.ConsPK, pkstr) // nolint:staticcheck
 	if err == nil {
 		return pk, nil
 	}

@@ -14,7 +14,7 @@ var CachedDenomUnits []DenomUnit
 var denomCacheMutex sync.Mutex
 
 func CacheDenoms(db *gorm.DB) {
-	//TODO need to load aliases as well
+	// TODO need to load aliases as well
 	var denomUnits []DenomUnit
 	db.Preload("Denom").Find(&denomUnits)
 	denomCacheMutex.Lock()
@@ -74,10 +74,10 @@ func GetHighestDenomUnit(denomUnit DenomUnit, denomUnits []DenomUnit) (DenomUnit
 
 // TODO unit test this function
 func ConvertUnits(amount *big.Int, denom Denom) (*big.Float, string, error) {
-	//Try denom unit first
-	//We were originally just using GetDenomUnitForDenom, but since CachedDenoms is an array, it would sometimes
-	//return the non-Base denom unit (exponent != 0), which would break the power conversion process below i.e.
-	//it would sometimes do highestDenomUnit.Exponent = 6, denomUnit.Exponent = 6 -> pow = 0
+	// Try denom unit first
+	// We were originally just using GetDenomUnitForDenom, but since CachedDenoms is an array, it would sometimes
+	// return the non-Base denom unit (exponent != 0), which would break the power conversion process below i.e.
+	// it would sometimes do highestDenomUnit.Exponent = 6, denomUnit.Exponent = 6 -> pow = 0
 	denomUnit, err := GetBaseDenomUnitForDenom(denom)
 	if err != nil {
 		fmt.Println("Error getting denom unit for denom", denom)
@@ -92,7 +92,7 @@ func ConvertUnits(amount *big.Int, denom Denom) (*big.Float, string, error) {
 
 	symbol := denomUnit.Denom.Symbol
 
-	//We were converting the units to big.Int, which would cause a Token to appear 0 if the conversion resulted in an amount < 1
+	// We were converting the units to big.Int, which would cause a Token to appear 0 if the conversion resulted in an amount < 1
 	power := math.Pow(10, float64(highestDenomUnit.Exponent-denomUnit.Exponent))
 	convertedAmount := new(big.Float).SetInt(amount)
 	dividedAmount := new(big.Float).Quo(convertedAmount, new(big.Float).SetFloat64(power))
@@ -119,7 +119,7 @@ func AddUnknownDenom(db *gorm.DB, denom string) (Denom, error) {
 		return denomToAdd, err
 	}
 
-	//recache the denoms (threadsafe due to mutex on read and write)
+	// recache the denoms (threadsafe due to mutex on read and write)
 	CacheDenoms(db)
 
 	return GetDenomForBase(denom)

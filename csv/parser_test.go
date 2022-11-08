@@ -1,4 +1,4 @@
-//nolint:unused
+// nolint:unused
 package csv
 
 import (
@@ -136,7 +136,7 @@ func getTestTransferTXs(t *testing.T, targetAddress db.Address, targetChain db.C
 	exitSwapExternAmountOut := mkMsgType(5, gamm.MsgExitSwapExternAmountOut)
 	exitPool := mkMsgType(6, gamm.MsgExitPool)
 
-	//FIXME: add fees
+	// FIXME: add fees
 
 	// create TXs
 	joinPoolTX1 := mkTx(1, "somehash1", 0, block1, randoAddress, nil)
@@ -177,7 +177,7 @@ func getTestTransferTXs(t *testing.T, targetAddress db.Address, targetChain db.C
 	return []db.TaxableTransaction{taxableTX1, taxableTX2, taxableTX3, taxableTX4, taxableTX5, taxableTX6, taxableTX7, taxableTX8}
 }
 
-func mkTaxableTransaction(id uint, msg db.Message, amntSent, amntReceived decimal.Decimal, denomSent db.Denom, denomReceived db.Denom, senderAddr db.Address, ReceiverAddr db.Address) db.TaxableTransaction {
+func mkTaxableTransaction(id uint, msg db.Message, amntSent, amntReceived decimal.Decimal, denomSent db.Denom, denomReceived db.Denom, senderAddr db.Address, receiverAddr db.Address) db.TaxableTransaction {
 	return db.TaxableTransaction{
 		ID:                     id,
 		MessageID:              msg.ID,
@@ -190,8 +190,8 @@ func mkTaxableTransaction(id uint, msg db.Message, amntSent, amntReceived decima
 		DenominationReceived:   denomReceived,
 		SenderAddressID:        &senderAddr.ID,
 		SenderAddress:          senderAddr,
-		ReceiverAddressID:      &ReceiverAddr.ID,
-		ReceiverAddress:        ReceiverAddr,
+		ReceiverAddressID:      &receiverAddr.ID,
+		ReceiverAddress:        receiverAddr,
 	}
 }
 

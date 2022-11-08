@@ -13,9 +13,9 @@ import (
 )
 
 func TestGetRewardsForAddress(t *testing.T) {
-	//Working SQL query shown below. SQL query included so that test results can be verified through the DB.
-	//The SQL query shown selects the top earnings from the DB, but can easily be adjusted to only search a certain block height.
-	//To do so you'd simply add another INNER JOIN following the syntax below, and search for a given block height.
+	// Working SQL query shown below. SQL query included so that test results can be verified through the DB.
+	// The SQL query shown selects the top earnings from the DB, but can easily be adjusted to only search a certain block height.
+	// To do so you'd simply add another INNER JOIN following the syntax below, and search for a given block height.
 
 	/*
 		SELECT a.id, a.amount, a.address_id, c.address, d.height, sd.denom
@@ -58,7 +58,7 @@ func TestGetRewardsForAddress(t *testing.T) {
 		}
 	}
 
-	//We know the above address earned this much
+	// We know the above address earned this much
 	assert.Equal(t, foundBlockEvent, true)
 }
 

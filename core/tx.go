@@ -46,8 +46,7 @@ var messageTypeHandler = map[string]func() txTypes.CosmosMessage{
 // in the core message type handler (useful if a chain has changed the core behavior of a base type and needs to be parsed differently).
 func ChainSpecificMessageTypeHandlerBootstrap(chainID string) {
 	var chainSpecificMessageTpeHandler map[string]func() txTypes.CosmosMessage
-	switch chainID {
-	case osmosis.ChainID:
+	if chainID == osmosis.ChainID {
 		chainSpecificMessageTpeHandler = osmosis.MessageTypeHandler
 	}
 	for key, value := range chainSpecificMessageTpeHandler {
@@ -57,21 +56,21 @@ func ChainSpecificMessageTypeHandlerBootstrap(chainID string) {
 
 // ParseCosmosMessageJSON - Parse a SINGLE Cosmos Message into the appropriate type.
 func ParseCosmosMessage(message types.Msg, log *txTypes.LogMessage) (txTypes.CosmosMessage, string, error) {
-	//Figure out what type of Message this is based on the '@type' field that is included
-	//in every Cosmos Message (can be seen in raw JSON for any cosmos transaction).
+	// Figure out what type of Message this is based on the '@type' field that is included
+	// in every Cosmos Message (can be seen in raw JSON for any cosmos transaction).
 	var msg txTypes.CosmosMessage
 	cosmosMessage := txTypes.Message{}
 	cosmosMessage.Type = types.MsgTypeURL(message)
 
-	//So far we only parsed the '@type' field. Now we get a struct for that specific type.
+	// So far we only parsed the '@type' field. Now we get a struct for that specific type.
 	if msgHandlerFunc, ok := messageTypeHandler[cosmosMessage.Type]; ok {
 		msg = msgHandlerFunc()
 	} else {
 		return nil, cosmosMessage.Type, txTypes.ErrUnknownMessage
 	}
 
-	//Unmarshal the rest of the JSON now that we know the specific type.
-	//Note that depending on the type, it may or may not care about logs.
+	// Unmarshal the rest of the JSON now that we know the specific type.
+	// Note that depending on the type, it may or may not care about logs.
 	err := msg.HandleMsg(cosmosMessage.Type, message, log)
 	return msg, cosmosMessage.Type, err
 }
@@ -103,7 +102,7 @@ func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]db
 	var blockTime time.Time
 	var blockTimeFound bool
 	for txIdx := range txEventResp.Txs {
-		//Indexer types only used by the indexer app (similar to the cosmos types)
+		// Indexer types only used by the indexer app (similar to the cosmos types)
 		var indexerMergedTx txTypes.MergedTx
 		var indexerTx txTypes.IndexerTx
 		var txBody txTypes.Body
@@ -112,7 +111,7 @@ func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]db
 		currTx := txEventResp.Txs[txIdx]
 		currTxResp := txEventResp.TxResponses[txIdx]
 
-		//Get the Messages and Message Logs
+		// Get the Messages and Message Logs
 		for msgIdx := range currTx.Body.Messages {
 			currMsg := currTx.Body.Messages[msgIdx].GetCachedValue() // FIXME: understand why we use this....
 			if currMsg != nil {
@@ -159,9 +158,9 @@ func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]db
 
 		processedTx.SignerAddress = dbTypes.Address{Address: currTx.FeePayer().String()}
 
-		//TODO: Pass in key type (may be able to split from Type PublicKey)
-		//TODO: Signers is an array, need a many to many for the signers in the model
-		//signerAddress, err := ParseSignerAddress(currTx.AuthInfo.SignerInfos[0].PublicKey, "")
+		// TODO: Pass in key type (may be able to split from Type PublicKey)
+		// TODO: Signers is an array, need a many to many for the signers in the model
+		// signerAddress, err := ParseSignerAddress(currTx.AuthInfo.SignerInfos[0].PublicKey, "")
 
 		currTxDbWrappers[txIdx] = processedTx
 	}
@@ -178,11 +177,11 @@ func AnalyzeSwaps() {
 	fmt.Printf("%d total uosmo arbitrage swaps\n", len(allSwaps))
 
 	for _, swap := range allSwaps {
-		if swap.TokenIn.Denom == swap.TokenOut.Denom && swap.TokenIn.Denom == "uosmo" {
+		if swap.TokenOut.Denom == "uosmo" && swap.TokenIn.Denom == "uosmo" {
 			amount := swap.TokenOut.Amount.Sub(swap.TokenIn.Amount)
 			if amount.GT(types.ZeroInt()) {
 				txProfit := amount.ToDec().Quo(types.NewDec(1000000)).MustFloat64()
-				profit = profit + txProfit
+				profit += txProfit
 			}
 
 			if swap.BlockTime.Before(earliestTime) {
@@ -210,13 +209,13 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 
 	// non-zero code means the Tx was unsuccessful. We will still need to account for fees in both cases though.
 	if code == 0 {
-		//TODO: Pull this out into its own function for easier reading
+		// TODO: Pull this out into its own function for easier reading
 		for messageIndex, message := range tx.Tx.Body.Messages {
 			var currMessage dbTypes.Message
 			var currMessageType dbTypes.MessageType
 			currMessage.MessageIndex = messageIndex
 
-			//Get the message log that corresponds to the current message
+			// Get the message log that corresponds to the current message
 			var currMessageDBWrapper dbTypes.MessageDBWrapper
 			messageLog := txTypes.GetMessageLogForIndex(tx.TxResponse.Log, messageIndex)
 			cosmosMessage, msgType, err := ParseCosmosMessage(message, messageLog)
@@ -225,23 +224,23 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 				currMessage.MessageType = currMessageType
 				currMessageDBWrapper.Message = currMessage
 				if err != txTypes.ErrUnknownMessage {
-					//What should we do here? This is an actual error during parsing
+					// What should we do here? This is an actual error during parsing
 					config.Log.Error(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed for msg of type '%v'.", tx.TxResponse.Height, msgType), zap.Error(err))
 					config.Log.Error(fmt.Sprint(messageLog))
 					config.Log.Error(tx.TxResponse.TxHash)
 					config.Log.Fatal("Issue parsing a cosmos msg that we DO have a parser for! PLEASE INVESTIGATE")
 				}
 				config.Log.Warn(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed for msg of type '%v'. We do not currently have a message handler for this message type", tx.TxResponse.Height, msgType))
-				//println("------------------Cosmos message parsing failed. MESSAGE FORMAT FOLLOWS:---------------- \n\n")
-				//spew.Dump(message)
-				//println("\n------------------END MESSAGE----------------------\n")
+				// println("------------------Cosmos message parsing failed. MESSAGE FORMAT FOLLOWS:---------------- \n\n")
+				// spew.Dump(message)
+				// println("\n------------------END MESSAGE----------------------\n")
 			} else {
 				config.Log.Debug(fmt.Sprintf("[Block: %v] Cosmos message of known type: %s", tx.TxResponse.Height, cosmosMessage))
 				currMessageType.MessageType = cosmosMessage.GetType()
 				currMessage.MessageType = currMessageType
 				currMessageDBWrapper.Message = currMessage
 
-				//TODO: ParseRelevantData may need the logs to get the relevant information, unless we forever do that on the ParseCosmosMessageJSON side
+				// TODO: ParseRelevantData may need the logs to get the relevant information, unless we forever do that on the ParseCosmosMessageJSON side
 				var relevantData []parsingTypes.MessageRelevantInformation = cosmosMessage.ParseRelevantData()
 
 				if len(relevantData) > 0 {
@@ -258,7 +257,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 						if v.DenominationSent != "" {
 							denomSent, err = dbTypes.GetDenomForBase(v.DenominationSent)
 							if err != nil {
-								//attempt to add missing denoms to the database
+								// attempt to add missing denoms to the database
 								config.Log.Warn("Denom lookup failed. Will be inserted as UNKNOWN", zap.Error(err), zap.String("denom sent", v.DenominationSent))
 
 								denomSent, err = dbTypes.AddUnknownDenom(db, v.DenominationSent)
@@ -275,7 +274,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 						if v.DenominationReceived != "" {
 							denomReceived, err = dbTypes.GetDenomForBase(v.DenominationReceived)
 							if err != nil {
-								//attempt to add missing denoms to the database
+								// attempt to add missing denoms to the database
 								config.Log.Error("Denom lookup failed. Will be inserted as UNKNOWN", zap.Error(err), zap.String("denom received", v.DenominationReceived))
 								denomReceived, err = dbTypes.AddUnknownDenom(db, v.DenominationReceived)
 								if err != nil {
@@ -316,7 +315,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 
 // ProcessFees returns a comma delimited list of fee amount/denoms
 func ProcessFees(db *gorm.DB, authInfo cosmosTx.AuthInfo) ([]dbTypes.Fee, error) {
-	//TODO handle granter? Almost nobody uses it.
+	// TODO handle granter? Almost nobody uses it.
 	feeCoins := authInfo.Fee.Amount
 	payer := authInfo.Fee.GetPayer()
 	fees := []dbTypes.Fee{}
@@ -324,12 +323,12 @@ func ProcessFees(db *gorm.DB, authInfo cosmosTx.AuthInfo) ([]dbTypes.Fee, error)
 	for _, coin := range feeCoins {
 		zeroFee := big.NewInt(0)
 
-		//There are chains like Osmosis that do not require TX fees for certain TXs
+		// There are chains like Osmosis that do not require TX fees for certain TXs
 		if zeroFee.Cmp(coin.Amount.BigInt()) != 0 {
 			amount := util.ToNumeric(coin.Amount.BigInt())
 			denom, err := dbTypes.GetDenomForBase(coin.Denom)
 			if err != nil {
-				//attempt to add missing denoms to the database
+				// attempt to add missing denoms to the database
 				config.Log.Error("Denom lookup failed. Will be inserted as UNKNOWN", zap.Error(err), zap.String("denom received", coin.Denom))
 				denom, err = dbTypes.AddUnknownDenom(db, coin.Denom)
 				if err != nil {

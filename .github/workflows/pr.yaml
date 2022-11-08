@@ -25,7 +25,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
-          args: -v --timeout 5m -E gofmt -E whitespace -E revive
+          args: -v --timeout 5m -E gofmt -E whitespace -E revive -E gosec
 
   test:
     runs-on: ubuntu-latest

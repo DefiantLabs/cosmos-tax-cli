@@ -27,13 +27,13 @@ func (sf *WrapperMsgTransfer) HandleMsg(msgType string, msg stdTypes.Msg, log *t
 	sf.Type = msgType
 	sf.CosmosMsgTransfer = msg.(*types.MsgTransfer)
 
-	//Confirm that the action listed in the message log matches the Message type
+	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
 
-	//Funds sent and sender address are pulled from the parsed Cosmos Msg
+	// Funds sent and sender address are pulled from the parsed Cosmos Msg
 	sf.SenderAddress = sf.CosmosMsgTransfer.Sender
 	sf.ReceiverAddress = sf.CosmosMsgTransfer.Receiver
 	sf.Amount = &sf.CosmosMsgTransfer.Token

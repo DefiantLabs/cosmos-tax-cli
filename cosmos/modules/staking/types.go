@@ -46,13 +46,13 @@ func (sf *WrapperMsgDelegate) HandleMsg(msgType string, msg stdTypes.Msg, log *t
 	sf.Type = msgType
 	sf.CosmosMsgDelegate = msg.(*stakeTypes.MsgDelegate)
 
-	//Confirm that the action listed in the message log matches the Message type
+	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
 
-	//The attribute in the log message that shows you the delegator rewards auto-received
+	// The attribute in the log message that shows you the delegator rewards auto-received
 	delegatorReceivedCoinsEvt := txModule.GetEventWithType(bankTypes.EventTypeTransfer, log)
 	if delegatorReceivedCoinsEvt == nil {
 		sf.AutoWithdrawalReward = nil
@@ -80,13 +80,13 @@ func (sf *WrapperMsgUndelegate) HandleMsg(msgType string, msg stdTypes.Msg, log 
 	sf.Type = msgType
 	sf.CosmosMsgUndelegate = msg.(*stakeTypes.MsgUndelegate)
 
-	//Confirm that the action listed in the message log matches the Message type
+	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
 
-	//The attribute in the log message that shows you the delegator rewards auto-received
+	// The attribute in the log message that shows you the delegator rewards auto-received
 	sf.DelegatorAddress = sf.CosmosMsgUndelegate.DelegatorAddress
 	delegatorReceivedCoinsEvt := txModule.GetEventWithType(bankTypes.EventTypeCoinReceived, log)
 	if delegatorReceivedCoinsEvt == nil {
@@ -96,7 +96,7 @@ func (sf *WrapperMsgUndelegate) HandleMsg(msgType string, msg stdTypes.Msg, log 
 		var receivers []string
 		var amounts []string
 
-		//Pair off amounts and receivers in order
+		// Pair off amounts and receivers in order
 		for _, v := range delegatorReceivedCoinsEvt.Attributes {
 			if v.Key == "receiver" {
 				receivers = append(receivers, v.Value)
@@ -105,7 +105,7 @@ func (sf *WrapperMsgUndelegate) HandleMsg(msgType string, msg stdTypes.Msg, log 
 			}
 		}
 
-		//Find delegator address in receivers if its there, find its paired amount and set as the withdrawn rewards
+		// Find delegator address in receivers if its there, find its paired amount and set as the withdrawn rewards
 		for i, v := range receivers {
 			if v == sf.DelegatorAddress {
 				coin, err := stdTypes.ParseCoinNormalized(amounts[i])
@@ -125,13 +125,13 @@ func (sf *WrapperMsgBeginRedelegate) HandleMsg(msgType string, msg stdTypes.Msg,
 	sf.Type = msgType
 	sf.CosmosMsgBeginRedelegate = msg.(*stakeTypes.MsgBeginRedelegate)
 
-	//Confirm that the action listed in the message log matches the Message type
+	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
 
-	//The attribute in the log message that shows you the delegator rewards auto-received
+	// The attribute in the log message that shows you the delegator rewards auto-received
 	delegatorReceivedCoinsEvt := txModule.GetEventWithType(bankTypes.EventTypeCoinReceived, log)
 	sf.DelegatorAddress = sf.CosmosMsgBeginRedelegate.DelegatorAddress
 	if delegatorReceivedCoinsEvt == nil {
@@ -140,7 +140,7 @@ func (sf *WrapperMsgBeginRedelegate) HandleMsg(msgType string, msg stdTypes.Msg,
 		var receivers []string
 		var amounts []string
 
-		//Pair off amounts and receivers in order
+		// Pair off amounts and receivers in order
 		for _, v := range delegatorReceivedCoinsEvt.Attributes {
 			if v.Key == "receiver" {
 				receivers = append(receivers, v.Value)
@@ -149,8 +149,8 @@ func (sf *WrapperMsgBeginRedelegate) HandleMsg(msgType string, msg stdTypes.Msg,
 			}
 		}
 
-		//Find delegator address in receivers if its there, find its paired amount and set as the withdrawn rewards
-		//We use a cosmos.Coins array type for redelegations as redelegating could force withdrawal from both validators
+		// Find delegator address in receivers if its there, find its paired amount and set as the withdrawn rewards
+		// We use a cosmos.Coins array type for redelegations as redelegating could force withdrawal from both validators
 		for i, v := range receivers {
 			if v == sf.DelegatorAddress {
 				coin, err := stdTypes.ParseCoinNormalized(amounts[i])
@@ -174,7 +174,7 @@ func (sf *WrapperMsgDelegate) ParseRelevantData() []parsingTypes.MessageRelevant
 		data.DenominationReceived = sf.AutoWithdrawalReward.Denom
 		data.ReceiverAddress = sf.DelegatorAddress
 		relevantData = append(relevantData, data)
-	} else if len(sf.AutoWithdrawalRewards) >= 0 {
+	} else if len(sf.AutoWithdrawalRewards) > 0 {
 		for _, coin := range sf.AutoWithdrawalRewards {
 			data := parsingTypes.MessageRelevantInformation{}
 			data.AmountReceived = coin.Amount.BigInt()

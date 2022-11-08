@@ -74,7 +74,7 @@ func (c *URIClient) DoHTTPGet(ctx context.Context, method string, params map[str
 	}
 
 	req.URL.RawQuery = values.Encode()
-	//fmt.Printf("Query string: %s\n", values.Encode())
+	// fmt.Printf("Query string: %s\n", values.Encode())
 
 	// req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	if c.AuthHeader != "" {

@@ -49,13 +49,13 @@ func (client *URIClient) GetEpochRewards(height int64) ([]*Rewards, error) {
 // queries the node via RPC and figures out what blocks contain the reward distribution info.
 // The events are emitted under the key "distribution.receiver" so that is what we search for.
 //
-//nolint:unused
+// nolint:unused
 func (client *URIClient) getRewardEpochs(startHeight int64, endHeight int64) ([]int64, error) {
 	osmosisRewardsQuery := "distribution.receiver EXISTS"
 	rewardBlocks := []int64{}
 
-	//We search for the EXACT block height because I could not make the BlockSearch
-	//pagination work. This is a slow process, but for our indexer it doesn't matter.
+	// We search for the EXACT block height because I could not make the BlockSearch
+	// pagination work. This is a slow process, but for our indexer it doesn't matter.
 	for i := startHeight; i <= endHeight; i++ {
 		query := fmt.Sprintf("block.height = %d AND %s", i, osmosisRewardsQuery)
 		page := 1
@@ -83,9 +83,9 @@ func (client *URIClient) getRewardEpochs(startHeight int64, endHeight int64) ([]
 func (client *URIClient) getRewards(height int64) ([]*Rewards, error) {
 	rewards := map[string]*Rewards{}
 
-	//Nodes are very slow at responding to queries for reward distribution blocks.
-	//I believe you must set the Node's timeout_broadcast_tx_commit higher than 10s
-	//or these queries will time out
+	// Nodes are very slow at responding to queries for reward distribution blocks.
+	// I believe you must set the Node's timeout_broadcast_tx_commit higher than 10s
+	// or these queries will time out
 	brctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 	defer cancel()
 
@@ -94,8 +94,8 @@ func (client *URIClient) getRewards(height int64) ([]*Rewards, error) {
 		return nil, err
 	}
 
-	//Osmosis emits reward distribution events during the BeginBlocker,
-	//which means they show up in the BeginBlockEvents section
+	// Osmosis emits reward distribution events during the BeginBlocker,
+	// which means they show up in the BeginBlockEvents section
 	for _, event := range bresults.BeginBlockEvents {
 		if event.Type == "distribution" {
 			var receiverAddr string
@@ -134,10 +134,9 @@ func (client *URIClient) getRewards(height int64) ([]*Rewards, error) {
 }
 
 func addCoins(coinList1 []sdk.Coin, coinList2 []sdk.Coin) []sdk.Coin {
-	fullList := append(coinList1, coinList2...)
-	denomAmountMap := map[string]sdk.Int{} //key = coin denom, value = coin amount
+	denomAmountMap := map[string]sdk.Int{} // key = coin denom, value = coin amount
 
-	for _, coin := range fullList {
+	for _, coin := range append(coinList1, coinList2...) {
 		if prevAmount, ok := denomAmountMap[coin.Denom]; ok {
 			denomAmountMap[coin.Denom] = prevAmount.Add(coin.Amount)
 		} else {

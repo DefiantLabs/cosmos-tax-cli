@@ -72,7 +72,7 @@ func main() {
 
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		//Probably want to lock CORs down later, will need to know the hostname of the UI server
+		// Probably want to lock CORs down later, will need to know the hostname of the UI server
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
@@ -90,8 +90,8 @@ func CORSMiddleware() gin.HandlerFunc {
 type TaxableEventsCSVRequest struct {
 	Chain     string  `json:"chain"`
 	Address   string  `json:"address"`
-	StartDate *string `json:"startDate"` //can be null
-	EndDate   *string `json:"endDate"`   //can be null
+	StartDate *string `json:"startDate"` // can be null
+	EndDate   *string `json:"endDate"`   // can be null
 	Format    string  `json:"format"`
 }
 
@@ -100,11 +100,11 @@ func GetTaxableEventsCSV(c *gin.Context) {
 	err := c.BindJSON(&requestBody)
 	if err != nil {
 		// the error returned here has already been pushed to the context... I think.
-		c.AbortWithError(500, errors.New("Error processing request body")) //nolint:staticcheck,errcheck
+		c.AbortWithError(500, errors.New("Error processing request body")) // nolint:staticcheck,errcheck
 		return
 	}
 
-	//We expect ISO 8601 dates in UTC
+	// We expect ISO 8601 dates in UTC
 	var startDate string
 	if requestBody.StartDate != nil {
 		startDate = *requestBody.StartDate
@@ -129,7 +129,7 @@ func GetTaxableEventsCSV(c *gin.Context) {
 	accountRows, headers, err := csv.ParseForAddress(requestBody.Address, DB, requestBody.Format, *GlobalCfg)
 	if err != nil {
 		// the error returned here has already been pushed to the context... I think.
-		c.AbortWithError(500, errors.New("Error getting rows for address")) //nolint:staticcheck,errcheck
+		c.AbortWithError(500, errors.New("Error getting rows for address")) // nolint:staticcheck,errcheck
 		return
 	}
 

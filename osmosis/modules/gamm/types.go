@@ -62,8 +62,8 @@ type WrapperMsgJoinPool struct {
 	OsmosisMsgJoinPool *gammTypes.MsgJoinPool
 	Address            string
 	TokenOut           sdk.Coin
-	TokensIn           []sdk.Coin //joins can be done with multiple tokens in
-	Claim              *sdk.Coin  //option claim
+	TokensIn           []sdk.Coin // joins can be done with multiple tokens in
+	Claim              *sdk.Coin  // option claim
 }
 
 type WrapperMsgExitSwapShareAmountIn struct {
@@ -86,7 +86,7 @@ type WrapperMsgExitPool struct {
 	txModule.Message
 	OsmosisMsgExitPool *gammTypes.MsgExitPool
 	Address            string
-	TokensOutOfPool    []sdk.Coin //exits can received multiple tokens out
+	TokensOutOfPool    []sdk.Coin // exits can received multiple tokens out
 	TokenIntoPool      sdk.Coin
 }
 
@@ -203,20 +203,20 @@ func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, lo
 	sf.Type = msgType
 	sf.OsmosisMsgSwapExactAmountIn = msg.(*gammTypes.MsgSwapExactAmountIn)
 
-	//Confirm that the action listed in the message log matches the Message type
+	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
 
-	//The attribute in the log message that shows you the tokens swapped
+	// The attribute in the log message that shows you the tokens swapped
 	tokensSwappedEvt := txModule.GetEventWithType(gammTypes.TypeEvtTokenSwapped, log)
 	if tokensSwappedEvt == nil {
 		fmt.Println("Error getting event type.")
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
-	//Address of whoever initiated the swap. Will be both sender/receiver.
+	// Address of whoever initiated the swap. Will be both sender/receiver.
 	senderReceiver := txModule.GetValueForAttribute("sender", tokensSwappedEvt)
 	if senderReceiver == "" {
 		fmt.Println("Error getting sender.")
@@ -224,7 +224,7 @@ func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, lo
 	}
 	sf.Address = senderReceiver
 
-	//This gets the first token swapped in (if there are multiple pools we do not care about intermediates)
+	// This gets the first token swapped in (if there are multiple pools we do not care about intermediates)
 	tokenInStr := txModule.GetValueForAttribute(gammTypes.AttributeKeyTokensIn, tokensSwappedEvt)
 	tokenIn, err := sdk.ParseCoinNormalized(tokenInStr)
 	if err != nil {
@@ -233,7 +233,7 @@ func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, lo
 	}
 	sf.TokenIn = tokenIn
 
-	//This gets the last token swapped out (if there are multiple pools we do not care about intermediates)
+	// This gets the last token swapped out (if there are multiple pools we do not care about intermediates)
 	tokenOutStr := txModule.GetLastValueForAttribute(gammTypes.AttributeKeyTokensOut, tokensSwappedEvt)
 	tokenOut, err := sdk.ParseCoinNormalized(tokenOutStr)
 	if err != nil {
@@ -249,26 +249,26 @@ func (sf *WrapperMsgSwapExactAmountOut) HandleMsg(msgType string, msg sdk.Msg, l
 	sf.Type = msgType
 	sf.OsmosisMsgSwapExactAmountOut = msg.(*gammTypes.MsgSwapExactAmountOut)
 
-	//Confirm that the action listed in the message log matches the Message type
+	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
 
-	//The attribute in the log message that shows you the tokens swapped
+	// The attribute in the log message that shows you the tokens swapped
 	tokensSwappedEvt := txModule.GetEventWithType(gammTypes.TypeEvtTokenSwapped, log)
 	if tokensSwappedEvt == nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
-	//Address of whoever initiated the swap. Will be both sender/receiver.
+	// Address of whoever initiated the swap. Will be both sender/receiver.
 	senderReceiver := txModule.GetValueForAttribute("sender", tokensSwappedEvt)
 	if senderReceiver == "" {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 	sf.Address = senderReceiver
 
-	//This gets the first token swapped in (if there are multiple pools we do not care about intermediates)
+	// This gets the first token swapped in (if there are multiple pools we do not care about intermediates)
 	tokenInStr := txModule.GetValueForAttribute(gammTypes.AttributeKeyTokensIn, tokensSwappedEvt)
 	tokenIn, err := sdk.ParseCoinNormalized(tokenInStr)
 	if err != nil {
@@ -276,7 +276,7 @@ func (sf *WrapperMsgSwapExactAmountOut) HandleMsg(msgType string, msg sdk.Msg, l
 	}
 	sf.TokenIn = tokenIn
 
-	//This gets the last token swapped out (if there are multiple pools we do not care about intermediates)
+	// This gets the last token swapped out (if there are multiple pools we do not care about intermediates)
 	tokenOutStr := txModule.GetLastValueForAttribute(gammTypes.AttributeKeyTokensOut, tokensSwappedEvt)
 	tokenOut, err := sdk.ParseCoinNormalized(tokenOutStr)
 	if err != nil {
@@ -291,13 +291,13 @@ func (sf *WrapperMsgJoinSwapExternAmountIn) HandleMsg(msgType string, msg sdk.Ms
 	sf.Type = msgType
 	sf.OsmosisMsgJoinSwapExternAmountIn = msg.(*gammTypes.MsgJoinSwapExternAmountIn)
 
-	//Confirm that the action listed in the message log matches the Message type
+	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
 
-	//The attribute in the log message that shows you the received GAMM tokens from the pool
+	// The attribute in the log message that shows you the received GAMM tokens from the pool
 	coinbaseEvt := txModule.GetEventWithType("coinbase", log)
 	if coinbaseEvt == nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
@@ -315,16 +315,16 @@ func (sf *WrapperMsgJoinSwapExternAmountIn) HandleMsg(msgType string, msg sdk.Ms
 	}
 	sf.TokenOut = gammTokenIn
 
-	//we can pull the token in directly from the Osmosis Message
+	// we can pull the token in directly from the Osmosis Message
 	sf.TokenIn = sf.OsmosisMsgJoinSwapExternAmountIn.TokenIn
 
-	//Address of whoever initiated the join
+	// Address of whoever initiated the join
 	poolJoinedEvent := txModule.GetEventWithType(gammTypes.TypeEvtPoolJoined, log)
 	if poolJoinedEvent == nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
-	//Address of whoever initiated the join.
+	// Address of whoever initiated the join.
 	senderAddress := txModule.GetValueForAttribute("sender", poolJoinedEvent)
 	if senderAddress == "" {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
@@ -338,13 +338,13 @@ func (sf *WrapperMsgJoinSwapShareAmountOut) HandleMsg(msgType string, msg sdk.Ms
 	sf.Type = msgType
 	sf.OsmosisMsgJoinSwapShareAmountOut = msg.(*gammTypes.MsgJoinSwapShareAmountOut)
 
-	//Confirm that the action listed in the message log matches the Message type
+	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
 
-	//The attribute in the log message that shows you the received GAMM tokens from the pool
+	// The attribute in the log message that shows you the received GAMM tokens from the pool
 	coinbaseEvt := txModule.GetEventWithType("coinbase", log)
 	if coinbaseEvt == nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
@@ -362,13 +362,13 @@ func (sf *WrapperMsgJoinSwapShareAmountOut) HandleMsg(msgType string, msg sdk.Ms
 	}
 	sf.TokenOut = gammTokenIn
 
-	//Address of whoever initiated the join
+	// Address of whoever initiated the join
 	poolJoinedEvent := txModule.GetEventWithType(gammTypes.TypeEvtPoolJoined, log)
 	if poolJoinedEvent == nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
-	//Address of whoever initiated the join.
+	// Address of whoever initiated the join.
 	senderAddress := txModule.GetValueForAttribute("sender", poolJoinedEvent)
 	if senderAddress == "" {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
@@ -391,22 +391,22 @@ func (sf *WrapperMsgJoinPool) HandleMsg(msgType string, msg sdk.Msg, log *txModu
 	sf.Type = msgType
 	sf.OsmosisMsgJoinPool = msg.(*gammTypes.MsgJoinPool)
 
-	//Confirm that the action listed in the message log matches the Message type
+	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
 
-	//The attribute in the log message that shows you the received GAMM tokens from the pool
+	// The attribute in the log message that shows you the received GAMM tokens from the pool
 	transferEvt := txModule.GetEventWithType(bankTypes.EventTypeTransfer, log)
 	if transferEvt == nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
-	//This gets the amount of GAMM tokens received and claim (if needed)
+	// This gets the amount of GAMM tokens received and claim (if needed)
 	var gammTokenOutStr string
 	if strings.Contains(fmt.Sprint(log), "claim") {
-		//This gets the amount of the claim
+		// This gets the amount of the claim
 		claimStr := txModule.GetLastValueForAttribute("amount", transferEvt)
 		claimTokenOut, err := sdk.ParseCoinNormalized(claimStr)
 		if err != nil {
@@ -430,20 +430,20 @@ func (sf *WrapperMsgJoinPool) HandleMsg(msgType string, msg sdk.Msg, log *txModu
 	}
 	sf.TokenOut = gammTokenOut
 
-	//Address of whoever initiated the join
+	// Address of whoever initiated the join
 	poolJoinedEvent := txModule.GetEventWithType(gammTypes.TypeEvtPoolJoined, log)
 	if poolJoinedEvent == nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
-	//Address of whoever initiated the join.
+	// Address of whoever initiated the join.
 	senderAddress := txModule.GetValueForAttribute("sender", poolJoinedEvent)
 	if senderAddress == "" {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 	sf.Address = senderAddress
 
-	//String value for the tokens in, which can be multiple
+	// String value for the tokens in, which can be multiple
 	tokensInString := txModule.GetValueForAttribute(gammTypes.AttributeKeyTokensIn, poolJoinedEvent)
 	if tokensInString == "" {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
@@ -461,13 +461,13 @@ func (sf *WrapperMsgExitSwapShareAmountIn) HandleMsg(msgType string, msg sdk.Msg
 	sf.Type = msgType
 	sf.OsmosisMsgExitSwapShareAmountIn = msg.(*gammTypes.MsgExitSwapShareAmountIn)
 
-	//Confirm that the action listed in the message log matches the Message type
+	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
 
-	//The attribute in the log message that shows you the burned GAMM tokens sent to the pool
+	// The attribute in the log message that shows you the burned GAMM tokens sent to the pool
 	burnEvt := txModule.GetEventWithType("burn", log)
 	if burnEvt == nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
@@ -485,13 +485,13 @@ func (sf *WrapperMsgExitSwapShareAmountIn) HandleMsg(msgType string, msg sdk.Msg
 	}
 	sf.TokenIn = gammTokenIn
 
-	//Address of whoever initiated the exit
+	// Address of whoever initiated the exit
 	poolExitedEvent := txModule.GetEventWithType(gammTypes.TypeEvtPoolExited, log)
 	if poolExitedEvent == nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
-	//Address of whoever initiated the exit.
+	// Address of whoever initiated the exit.
 	senderAddress := txModule.GetValueForAttribute("sender", poolExitedEvent)
 	if senderAddress == "" {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
@@ -515,13 +515,13 @@ func (sf *WrapperMsgExitSwapExternAmountOut) HandleMsg(msgType string, msg sdk.M
 	sf.Type = msgType
 	sf.OsmosisMsgExitSwapExternAmountOut = msg.(*gammTypes.MsgExitSwapExternAmountOut)
 
-	//Confirm that the action listed in the message log matches the Message type
+	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
 
-	//The attribute in the log message that shows you the burned GAMM tokens sent to the pool
+	// The attribute in the log message that shows you the burned GAMM tokens sent to the pool
 	burnEvt := txModule.GetEventWithType("burn", log)
 	if burnEvt == nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
@@ -539,13 +539,13 @@ func (sf *WrapperMsgExitSwapExternAmountOut) HandleMsg(msgType string, msg sdk.M
 	}
 	sf.TokenIn = gammTokenIn
 
-	//Address of whoever initiated the exit
+	// Address of whoever initiated the exit
 	poolExitedEvent := txModule.GetEventWithType(gammTypes.TypeEvtPoolExited, log)
 	if poolExitedEvent == nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
-	//Address of whoever initiated the exit.
+	// Address of whoever initiated the exit.
 	senderAddress := txModule.GetValueForAttribute("sender", poolExitedEvent)
 	if senderAddress == "" {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
@@ -569,13 +569,13 @@ func (sf *WrapperMsgExitPool) HandleMsg(msgType string, msg sdk.Msg, log *txModu
 	sf.Type = msgType
 	sf.OsmosisMsgExitPool = msg.(*gammTypes.MsgExitPool)
 
-	//Confirm that the action listed in the message log matches the Message type
+	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
 
-	//The attribute in the log message that shows you the sent GAMM tokens during the exit
+	// The attribute in the log message that shows you the sent GAMM tokens during the exit
 	transverEvt := txModule.GetEventWithType(bankTypes.EventTypeTransfer, log)
 	if transverEvt == nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
@@ -593,20 +593,20 @@ func (sf *WrapperMsgExitPool) HandleMsg(msgType string, msg sdk.Msg, log *txModu
 	}
 	sf.TokenIntoPool = gammTokenOut
 
-	//Address of whoever initiated the exit
+	// Address of whoever initiated the exit
 	poolExitedEvent := txModule.GetEventWithType(gammTypes.TypeEvtPoolExited, log)
 	if poolExitedEvent == nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
-	//Address of whoever initiated the exit.
+	// Address of whoever initiated the exit.
 	senderAddress := txModule.GetValueForAttribute("sender", poolExitedEvent)
 	if senderAddress == "" {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 	sf.Address = senderAddress
 
-	//String value for the tokens in, which can be multiple
+	// String value for the tokens in, which can be multiple
 	tokensOutString := txModule.GetValueForAttribute(gammTypes.AttributeKeyTokensOut, poolExitedEvent)
 	if tokensOutString == "" {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
@@ -679,7 +679,7 @@ func (sf *WrapperMsgJoinSwapShareAmountOut) ParseRelevantData() []parsingTypes.M
 }
 
 func (sf *WrapperMsgJoinPool) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
-	//need to make a relevant data block for all Tokens sent to the pool since JoinPool can use 1 or both tokens used in the pool
+	// need to make a relevant data block for all Tokens sent to the pool since JoinPool can use 1 or both tokens used in the pool
 	var relevantData = make([]parsingTypes.MessageRelevantInformation, len(sf.TokensIn))
 
 	// figure out how many gams per token
@@ -747,13 +747,13 @@ func (sf *WrapperMsgExitSwapExternAmountOut) ParseRelevantData() []parsingTypes.
 }
 
 func (sf *WrapperMsgExitPool) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
-	//need to make a relevant data block for all Tokens received from the pool since ExitPool can receive 1 or both tokens used in the pool
+	// need to make a relevant data block for all Tokens received from the pool since ExitPool can receive 1 or both tokens used in the pool
 	var relevantData = make([]parsingTypes.MessageRelevantInformation, len(sf.TokensOutOfPool))
 
 	// figure out how many gams per token
 	nthGamms, remainderGamms := calcNthGams(sf.TokenIntoPool.Amount.BigInt(), len(sf.TokensOutOfPool))
 	for i, v := range sf.TokensOutOfPool {
-		//only add received tokens to the first entry so we dont duplicate received GAMM tokens
+		// only add received tokens to the first entry so we dont duplicate received GAMM tokens
 		if i != len(sf.TokensOutOfPool)-1 {
 			relevantData[i] = parsingTypes.MessageRelevantInformation{
 				AmountSent:           nthGamms,
