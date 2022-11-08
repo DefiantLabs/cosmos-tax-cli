@@ -2,11 +2,11 @@ package bank
 
 import (
 	"fmt"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
 	"strings"
 
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
 	txModule "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"

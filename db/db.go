@@ -3,13 +3,15 @@ package db
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
+
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
-	"time"
 )
 
 func GetAddresses(addressList []string, db *gorm.DB) ([]Address, error) {
