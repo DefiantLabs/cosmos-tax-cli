@@ -103,7 +103,12 @@ func index(cmd *cobra.Command, args []string) {
 	// Realistically, I expect that RPC queries will be slower than our relational DB on the local network.
 	// If RPC queries are faster than DB inserts this buffer will fill up.
 	// We will periodically check the buffer size to monitor performance so we can optimize later.
-	rpcQueryThreads := 4 // TODO: set this from the cfg
+	rpcQueryThreads := int(idxr.cfg.Base.RPCWorkers)
+	if rpcQueryThreads == 0 {
+		rpcQueryThreads = 4
+	} else if rpcQueryThreads > 64 {
+		rpcQueryThreads = 64
+	}
 	blockTXsChan := make(chan *indexerTx.GetTxsEventResponseWrapper, 4*rpcQueryThreads)
 
 	var txChanWaitGroup sync.WaitGroup // This group is to ensure we are done getting transactions before we close the TX channel
