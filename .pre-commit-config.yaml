@@ -12,22 +12,16 @@ repos:
   - repo: https://github.com/tekwizely/pre-commit-golang
     rev: v1.0.0-rc.1
     hooks:
-      # Formatters
-      -   id: go-fmt-repo
       # Go Build
       -   id: go-build-repo-mod
       # Go Mod Tidy
       -   id: go-mod-tidy-repo
       # Go Vet
       -   id: go-vet-repo-mod
-      # Revive
-      -   id: go-revive-repo-mod
-      # GoSec
-      -   id: go-sec-repo-mod
       # Style
       -   id: go-imports-repo
       -   id: golangci-lint-repo-mod
-          args: [-E,whitespace,-E,gocritic]
+          args: [-E,whitespace,-E,gocritic,-E,revive,-E,gosec,-E,gofmt]
       # Go Test
       # -   id: go-test-mod
       # -   id: go-test-repo-mod
