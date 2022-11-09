@@ -154,11 +154,18 @@ func (sf *WrapperMsgBeginRedelegate) HandleMsg(msgType string, msg stdTypes.Msg,
 		for i, v := range receivers {
 			if v == sf.DelegatorAddress {
 				coin, err := stdTypes.ParseCoinNormalized(amounts[i])
-				if err == nil {
-					sf.AutoWithdrawalRewards = append(sf.AutoWithdrawalRewards, coin)
-				} else {
-					return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+				if err != nil {
+					var coins stdTypes.Coins
+					coins, err = stdTypes.ParseCoinsNormalized(amounts[i])
+					if err != nil {
+						fmt.Println("Error parsing coins normalized")
+						fmt.Println(err)
+						return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+					}
+					sf.AutoWithdrawalRewards = append(sf.AutoWithdrawalRewards, coins...)
+					continue
 				}
+				sf.AutoWithdrawalRewards = append(sf.AutoWithdrawalRewards, coin)
 			}
 		}
 	}
