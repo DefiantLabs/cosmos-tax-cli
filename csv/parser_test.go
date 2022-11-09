@@ -4,13 +4,13 @@ package csv
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/koinly"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/accointing"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/koinly"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/gamm"

@@ -2,6 +2,7 @@ package koinly
 
 import (
 	"fmt"
+
 	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
 )
