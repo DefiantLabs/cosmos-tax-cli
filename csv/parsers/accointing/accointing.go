@@ -10,6 +10,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/bank"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/distribution"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/ibc"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/staking"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
@@ -199,6 +200,8 @@ func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.Csv
 			rows = append(rows, ParseMsgSwapExactAmountIn(event))
 		case gamm.MsgSwapExactAmountOut:
 			rows = append(rows, ParseMsgSwapExactAmountOut(event))
+		case ibc.MsgTransfer:
+			rows = append(rows, ParseMsgTransfer(address, event))
 		default:
 			return nil, fmt.Errorf("no parser for message type '%v'", event.Message.MessageType.MessageType)
 		}
@@ -274,6 +277,15 @@ func ParseMsgSwapExactAmountOut(event db.TaxableTransaction) Row {
 	err := row.ParseSwap(event)
 	if err != nil {
 		config.Log.Fatal("Error with ParseMsgSwapExactAmountOut.", zap.Error(err))
+	}
+	return *row
+}
+
+func ParseMsgTransfer(address string, event db.TaxableTransaction) Row {
+	row := &Row{}
+	err := row.ParseBasic(address, event)
+	if err != nil {
+		config.Log.Fatal("Error with ParseMsgTransfer.", zap.Error(err))
 	}
 	return *row
 }
