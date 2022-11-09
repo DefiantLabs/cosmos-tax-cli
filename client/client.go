@@ -21,6 +21,7 @@ var GlobalCfg *config.Config
 func setup() (*gorm.DB, *config.Config, error) {
 	argConfig, err := config.ParseArgs(os.Stderr, os.Args[1:])
 	if err != nil {
+		log.Panicf("Error parsing args. Err: %v", err)
 		return nil, nil, err
 	}
 
@@ -33,12 +34,15 @@ func setup() (*gorm.DB, *config.Config, error) {
 
 	fileConfig, err := config.GetConfig(location)
 	if err != nil {
-		config.Log.Error("Error opening configuration file.", zap.Error(err))
+		log.Panicf("Error opening configuration file. Err: %v", err)
 		return nil, nil, err
 	}
 
 	cfg := config.MergeConfigs(fileConfig, argConfig)
 	logLevel := cfg.Log.Level
+	logPath := cfg.Log.Path
+	config.DoConfigureLogger(logPath, logLevel)
+
 	db, err := dbTypes.PostgresDbConnect(cfg.Database.Host, cfg.Database.Port, cfg.Database.Database, cfg.Database.User, cfg.Database.Password, logLevel)
 	if err != nil {
 		config.Log.Error("Could not establish connection to the database", zap.Error(err))

@@ -111,7 +111,7 @@ type base struct {
 	AddressPrefix      string
 	StartBlock         int64
 	EndBlock           int64
-	Throttling         int64
+	Throttling         float64
 	RPCWorkers         int64
 	BlockTimer         int64
 	WaitForChain       bool
@@ -126,9 +126,10 @@ type log struct {
 	Path  string
 }
 
-func GetConfig(configFileLocation string) (conf Config, err error) {
-	_, err = toml.DecodeFile(configFileLocation, &conf)
-	return
+func GetConfig(configFileLocation string) (Config, error) {
+	var conf Config
+	_, err := toml.DecodeFile(configFileLocation, &conf)
+	return conf, err
 }
 
 func MergeConfigs(def Config, overide Config) Config {
