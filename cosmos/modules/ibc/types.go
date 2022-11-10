@@ -12,7 +12,11 @@ import (
 )
 
 const (
-	MsgTransfer = "/ibc.applications.transfer.v1.MsgTransfer"
+	MsgTransfer        = "/ibc.applications.transfer.v1.MsgTransfer"
+	MsgUpdateClient    = "/ibc.core.client.v1.MsgUpdateClient"     // An explicitly ignored msg for tx parsing purposes
+	MsgAcknowledgement = "/ibc.core.channel.v1.MsgAcknowledgement" // An explicitly ignored msg for tx parsing purposes
+	MsgRecvPacket      = "/ibc.core.channel.v1.MsgRecvPacket"      // An explicitly ignored msg for tx parsing purposes
+	MsgTimeout         = "/ibc.core.channel.v1.MsgTimeout"         // An explicitly ignored msg for tx parsing purposes
 )
 
 type WrapperMsgTransfer struct {
