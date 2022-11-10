@@ -53,19 +53,42 @@ func (sf *WrapperMsgMultiSend) HandleMsg(msgType string, msg sdk.Msg, log *txMod
 	sf.Type = msgType
 	sf.CosmosMsgMultiSend = msg.(*bankTypes.MsgMultiSend)
 
-	// Make sure the standard ordering of Inputs -> Outputs applies (where send Input[i] == received Output[i])
-	// This is assuming Inputs[i] corresponds to Outputs[i]
-	// Is this safe to assume? From testing it looks like it
-	for i, input := range sf.CosmosMsgMultiSend.Inputs {
-		correspondingOutput := sf.CosmosMsgMultiSend.Outputs[i]
+	fmt.Printf("%+v", sf.CosmosMsgMultiSend)
 
-		for ii, coinSent := range input.Coins {
-			correspondingCoin := correspondingOutput.Coins[ii]
+	// Make sure the that the total amount sent matches the total amount recieved for each coin
 
-			if !correspondingCoin.IsEqual(coinSent) {
-				return fmt.Errorf("Error processing MultiSend, inputs and outputs mismatch, send %s != received %s in standard ordering", coinSent, correspondingCoin)
+	// sum up input coins
+	sentMap := make(map[string]sdk.Int)
+	for _, input := range sf.CosmosMsgMultiSend.Inputs {
+		for _, coin := range input.Coins {
+			if currentTotal, ok := sentMap[coin.Denom]; ok {
+				sentMap[coin.Denom] = currentTotal.Add(coin.Amount)
+			} else {
+				sentMap[coin.Denom] = coin.Amount
 			}
-			sf.SenderReceiverAmounts = append(sf.SenderReceiverAmounts, SenderReceiverAmount{Sender: input.Address, Receiver: correspondingOutput.Address, Amount: coinSent})
+		}
+	}
+
+	// sum up output coins
+	recievedMap := make(map[string]sdk.Int)
+	for _, output := range sf.CosmosMsgMultiSend.Outputs {
+		for _, coin := range output.Coins {
+			if currentTotal, ok := recievedMap[coin.Denom]; ok {
+				recievedMap[coin.Denom] = currentTotal.Add(coin.Amount)
+			} else {
+				recievedMap[coin.Denom] = coin.Amount
+			}
+		}
+	}
+
+	// compare
+	for coin, amountSent := range sentMap {
+		if amountReceived, coinWasReceived := recievedMap[coin]; coinWasReceived {
+			if !amountReceived.Equal(amountSent) {
+				return fmt.Errorf("error processing MultiSend, inputs and outputs mismatch for denom %v, send %s != received %s", coin, amountSent, amountReceived)
+			}
+		} else {
+			return fmt.Errorf("error processing MultiSend, sent denom %v does not appear in recieved coins", coin)
 		}
 	}
 
