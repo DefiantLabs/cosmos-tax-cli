@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+
 	"math/big"
 	"strings"
 	"time"
@@ -12,14 +13,16 @@ import (
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/bank"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/distribution"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/gov"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/ibc"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/slashing"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/staking"
 	tx "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
 	txTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
 	dbTypes "github.com/DefiantLabs/cosmos-tax-cli-private/db"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/gamm"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/gov"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/incentives"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/lockup"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
 
@@ -45,13 +48,28 @@ var messageTypeHandler = map[string]func() txTypes.CosmosMessage{
 }
 
 var messageTypeIgnorer = map[string]interface{}{
-	lockup.MsgBeginUnlocking: nil,
-	lockup.MsgLockTokens:     nil,
-	gov.MsgVote:              nil,
-	ibc.MsgUpdateClient:      nil,
-	ibc.MsgAcknowledgement:   nil,
-	ibc.MsgRecvPacket:        nil,
-	ibc.MsgTimeout:           nil,
+	distribution.MsgSetWithdrawAddress: nil,
+	gov.MsgVote:                        nil,
+	ibc.MsgUpdateClient:                nil,
+	ibc.MsgAcknowledgement:             nil,
+	ibc.MsgRecvPacket:                  nil,
+	ibc.MsgTimeout:                     nil,
+	ibc.MsgCreateClient:                nil,
+	ibc.MsgConnectionOpenTry:           nil,
+	ibc.MsgConnectionOpenConfirm:       nil,
+	ibc.MsgChannelOpenTry:              nil,
+	ibc.MsgChannelOpenConfirm:          nil,
+	ibc.MsgConnectionOpenInit:          nil,
+	ibc.MsgConnectionOpenAck:           nil,
+	ibc.MsgChannelOpenInit:             nil,
+	ibc.MsgChannelOpenAck:              nil,
+	incentives.MsgCreateGauge:          nil,
+	incentives.MsgAddToGauge:           nil,
+	lockup.MsgBeginUnlocking:           nil,
+	lockup.MsgLockTokens:               nil,
+	slashing.MsgUnjail:                 nil,
+	staking.MsgCreateValidator:         nil,
+	staking.MsgEditValidator:           nil,
 }
 
 // Merge the chain specific message type handlers into the core message type handler map

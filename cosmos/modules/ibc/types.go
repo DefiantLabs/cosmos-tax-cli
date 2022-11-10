@@ -12,11 +12,22 @@ import (
 )
 
 const (
-	MsgTransfer        = "/ibc.applications.transfer.v1.MsgTransfer"
-	MsgUpdateClient    = "/ibc.core.client.v1.MsgUpdateClient"     // An explicitly ignored msg for tx parsing purposes
-	MsgAcknowledgement = "/ibc.core.channel.v1.MsgAcknowledgement" // An explicitly ignored msg for tx parsing purposes
-	MsgRecvPacket      = "/ibc.core.channel.v1.MsgRecvPacket"      // An explicitly ignored msg for tx parsing purposes
-	MsgTimeout         = "/ibc.core.channel.v1.MsgTimeout"         // An explicitly ignored msg for tx parsing purposes
+	MsgTransfer = "/ibc.applications.transfer.v1.MsgTransfer"
+
+	// Explicitly ignored messages for tx parsing purposes
+	MsgUpdateClient          = "/ibc.core.client.v1.MsgUpdateClient"
+	MsgAcknowledgement       = "/ibc.core.channel.v1.MsgAcknowledgement"
+	MsgRecvPacket            = "/ibc.core.channel.v1.MsgRecvPacket"
+	MsgTimeout               = "/ibc.core.channel.v1.MsgTimeout"
+	MsgCreateClient          = "/ibc.core.client.v1.MsgCreateClient"
+	MsgConnectionOpenTry     = "/ibc.core.connection.v1.MsgConnectionOpenTry"
+	MsgConnectionOpenConfirm = "/ibc.core.connection.v1.MsgConnectionOpenConfirm"
+	MsgChannelOpenTry        = "/ibc.core.channel.v1.MsgChannelOpenTry"
+	MsgChannelOpenConfirm    = "/ibc.core.channel.v1.MsgChannelOpenConfirm"
+	MsgConnectionOpenInit    = "/ibc.core.connection.v1.MsgConnectionOpenInit"
+	MsgConnectionOpenAck     = "/ibc.core.connection.v1.MsgConnectionOpenAck"
+	MsgChannelOpenInit       = "/ibc.core.channel.v1.MsgChannelOpenInit"
+	MsgChannelOpenAck        = "/ibc.core.channel.v1.MsgChannelOpenAck"
 )
 
 type WrapperMsgTransfer struct {

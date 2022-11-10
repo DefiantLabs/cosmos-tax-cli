@@ -18,7 +18,8 @@ const (
 	MsgFundCommunityPool           = "/cosmos.distribution.v1beta1.MsgFundCommunityPool"
 	MsgWithdrawValidatorCommission = "/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission"
 	MsgWithdrawDelegatorReward     = "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward"
-	MsgWithdrawRewards             = "withdraw-rewards" // FIXME: this is used in 2 places and only 1 will work....
+	MsgWithdrawRewards             = "withdraw-rewards"                                   // FIXME: this is used in 2 places and only 1 will work....
+	MsgSetWithdrawAddress          = "/cosmos.distribution.v1beta1.MsgSetWithdrawAddress" // An explicitly ignored msg for tx parsing purposes
 )
 
 type WrapperMsgFundCommunityPool struct {
