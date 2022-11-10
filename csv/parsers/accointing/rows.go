@@ -1,9 +1,7 @@
 package accointing
 
 import (
-	"errors"
 	"fmt"
-	"strconv"
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
@@ -25,28 +23,22 @@ func (row Row) GetRowForCsv() []string {
 	}
 }
 
-// ParseBasic: Handles the fields that are shared between most types.
-func (row *Row) EventParseBasic(address string, event db.TaxableEvent) error {
-	// row.Date = FormatDatetime(event.Message.Tx.TimeStamp) TODO, FML, I forgot to add a DB field for this. Ideally it should come from the block time.
+func (row *Row) EventParseBasic(event db.TaxableEvent) error {
 	// row.OperationID = ??? TODO - maybe use the block hash or something. This isn't a TX so there is no TX hash. Have to test Accointing response to using block hash.
 
-	// deposit
-	if event.EventAddress.Address == address {
-		conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.Amount), event.Denomination)
-		if err == nil {
-			row.InBuyAmount = conversionAmount.Text('f', -1)
-			row.InBuyAsset = conversionSymbol
-		} else {
-			row.InBuyAmount = util.NumericToString(event.Amount)
-			row.InBuyAsset = event.Denomination.Base
-		}
-		row.TransactionType = Deposit
-		row.Date = event.Block.TimeStamp.Format(timeLayout)
-		row.Classification = LiquidityPool
-		return nil
+	conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.Amount), event.Denomination)
+	if err == nil {
+		row.InBuyAmount = conversionAmount.Text('f', -1)
+		row.InBuyAsset = conversionSymbol
+	} else {
+		row.InBuyAmount = util.NumericToString(event.Amount)
+		row.InBuyAsset = event.Denomination.Base
 	}
+	row.TransactionType = Deposit
+	row.Date = event.Block.TimeStamp.Format(timeLayout)
+	row.Classification = LiquidityPool
 
-	return errors.New("unknown TaxableEvent with ID " + strconv.FormatUint(uint64(event.ID), 10))
+	return nil
 }
 
 // ParseBasic: Handles the fields that are shared between most types.

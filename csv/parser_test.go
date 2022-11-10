@@ -10,6 +10,7 @@ import (
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/accointing"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/koinly"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/gamm"
@@ -18,7 +19,118 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestOsmoRewardParsing(t *testing.T) {
+var zeroTime time.Time
+
+func TestKoinlyOsmoLPParsing(t *testing.T) {
+	cfg := config.Config{}
+	cfg.Lens.ChainID = osmosis.ChainID
+	parser := GetParser(koinly.ParserKey)
+	parser.InitializeParsingGroups(cfg)
+
+	// setup user and chain
+	targetAddress := mkAddress(t, 1)
+	chain := mkChain(1, osmosis.ChainID, osmosis.Name)
+
+	// make transactions for this user entering and leaving LPs
+	transferTxs := getTestTransferTXs(t, targetAddress, chain)
+
+	// attempt to parse
+	err := parser.ProcessTaxableTx(targetAddress.Address, transferTxs)
+	assert.Nil(t, err, "should not get error from parsing these transactions")
+
+	// validate output
+	rows := parser.GetRows()
+	assert.Equalf(t, len(transferTxs), len(rows), "you should have one row for each transfer transaction ")
+
+	// all transactions should be orders classified as liquidity_pool
+	for i, row := range rows {
+		cols := row.GetRowForCsv()
+		// first column should parse as a time and not be zero-time
+		time, err := time.Parse(koinly.TimeLayout, cols[0])
+		assert.Nil(t, err, "time should parse properly")
+		assert.NotEqual(t, time, zeroTime)
+
+		// make sure transactions are properly labeled
+		if i < 4 {
+			assert.Equal(t, cols[9], koinly.LiquidityIn.String())
+		} else {
+			assert.Equal(t, cols[9], koinly.LiquidityOut.String())
+		}
+		// TODO: add more tests
+	}
+}
+
+func TestKoinlyOsmoRewardParsing(t *testing.T) {
+	cfg := config.Config{}
+	cfg.Lens.ChainID = osmosis.ChainID
+	parser := GetParser(koinly.ParserKey)
+	parser.InitializeParsingGroups(cfg)
+
+	// setup user and chain
+	targetAddress := mkAddress(t, 1)
+	chain := mkChain(1, osmosis.ChainID, osmosis.Name)
+
+	// make transactions for this user entering and leaving LPs
+	taxableEvents := getTestTaxableEvents(t, targetAddress, chain)
+
+	// attempt to parse
+	err := parser.ProcessTaxableEvent(taxableEvents)
+	assert.Nil(t, err, "should not get error from parsing these transactions")
+
+	// validate output
+	rows := parser.GetRows()
+	assert.Equalf(t, len(taxableEvents), len(rows), "you should have one row for each transfer transaction ")
+
+	// all transactions should be orders classified as liquidity_pool
+	for _, row := range rows {
+		cols := row.GetRowForCsv()
+		// first column should parse as a time
+		_, err := time.Parse(koinly.TimeLayout, cols[0])
+		assert.Nil(t, err, "time should parse properly")
+
+		// make sure transactions are properly labeled
+		assert.Equal(t, cols[9], "reward")
+
+		// TODO: add more tests
+	}
+}
+
+func TestAccointingOsmoLPParsing(t *testing.T) {
+	cfg := config.Config{}
+	cfg.Lens.ChainID = osmosis.ChainID
+	parser := GetParser(accointing.ParserKey)
+	parser.InitializeParsingGroups(cfg)
+
+	// setup user and chain
+	targetAddress := mkAddress(t, 1)
+	chain := mkChain(1, osmosis.ChainID, osmosis.Name)
+
+	// make transactions for this user entering and leaving LPs
+	transferTxs := getTestTransferTXs(t, targetAddress, chain)
+
+	// attempt to parse
+	err := parser.ProcessTaxableTx(targetAddress.Address, transferTxs)
+	assert.Nil(t, err, "should not get error from parsing these transactions")
+
+	// validate output
+	rows := parser.GetRows()
+	assert.Equalf(t, len(transferTxs), len(rows), "you should have one row for each transfer transaction ")
+
+	// all transactions should be orders classified as liquidity_pool
+	for _, row := range rows {
+		cols := row.GetRowForCsv()
+		// assert on gamms being present
+		assert.Equal(t, cols[0], "order", "transaction type should be an order")
+		assert.Equal(t, cols[8], "", "transaction should not have a classification")
+		// should either contain gamm value or a message about how to find it
+		if !strings.Contains(cols[10], "USD") && !strings.Contains(cols[10], "") {
+			t.Log("comment should say value of gamm")
+			t.Fail()
+		}
+	}
+}
+
+func TestAccointingOsmoRewardParsing(t *testing.T) {
 	cfg := config.Config{}
 	cfg.Lens.ChainID = osmosis.ChainID
 	parser := GetParser(accointing.ParserKey)
@@ -32,7 +144,7 @@ func TestOsmoRewardParsing(t *testing.T) {
 	taxableEvents := getTestTaxableEvents(t, targetAddress, chain)
 
 	// attempt to parse
-	err := parser.ProcessTaxableEvent(targetAddress.Address, taxableEvents)
+	err := parser.ProcessTaxableEvent(taxableEvents)
 	assert.Nil(t, err, "should not get error from parsing these transactions")
 
 	// validate output
@@ -77,41 +189,6 @@ func mkTaxableEvent(id uint, amount decimal.Decimal, denom db.Denom, address db.
 		EventAddress:   address,
 		BlockID:        block.ID,
 		Block:          block,
-	}
-}
-
-func TestOsmoLPParsing(t *testing.T) {
-	cfg := config.Config{}
-	cfg.Lens.ChainID = osmosis.ChainID
-	parser := GetParser(accointing.ParserKey)
-	parser.InitializeParsingGroups(cfg)
-
-	// setup user and chain
-	targetAddress := mkAddress(t, 1)
-	chain := mkChain(1, osmosis.ChainID, osmosis.Name)
-
-	// make transactions for this user entering and leaving LPs
-	transferTxs := getTestTransferTXs(t, targetAddress, chain)
-
-	// attempt to parse
-	err := parser.ProcessTaxableTx(targetAddress.Address, transferTxs)
-	assert.Nil(t, err, "should not get error from parsing these transactions")
-
-	// validate output
-	rows := parser.GetRows()
-	assert.Equalf(t, len(transferTxs), len(rows), "you should have one row for each transfer transaction ")
-
-	// all transactions should be orders classified as liquidity_pool
-	for _, row := range rows {
-		cols := row.GetRowForCsv()
-		// assert on gamms being present
-		assert.Equal(t, cols[0], "order", "transaction type should be an order")
-		assert.Equal(t, cols[8], "", "transaction should not have a classification")
-		// should either contain gamm value or a message about how to find it
-		if !strings.Contains(cols[10], "USD") && !strings.Contains(cols[10], "") {
-			t.Log("comment should say value of gamm")
-			t.Fail()
-		}
 	}
 }
 

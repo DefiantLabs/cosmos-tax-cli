@@ -1,4 +1,4 @@
-package accointing
+package koinly
 
 import (
 	"fmt"
@@ -89,12 +89,12 @@ func (p *Parser) GetRows() []parsers.CsvRow {
 
 	// Sort by date
 	sort.Slice(accointingRows, func(i int, j int) bool {
-		leftDate, err := time.Parse(timeLayout, accointingRows[i].Date)
+		leftDate, err := time.Parse(TimeLayout, accointingRows[i].Date)
 		if err != nil {
 			config.Log.Error("Error sorting left date.", zap.Error(err))
 			return false
 		}
-		rightDate, err := time.Parse(timeLayout, accointingRows[j].Date)
+		rightDate, err := time.Parse(TimeLayout, accointingRows[j].Date)
 		if err != nil {
 			config.Log.Error("Error sorting right date.", zap.Error(err))
 			return false
@@ -112,8 +112,8 @@ func (p *Parser) GetRows() []parsers.CsvRow {
 }
 
 func (p Parser) GetHeaders() []string {
-	return []string{"transactionType", "date", "inBuyAmount", "inBuyAsset", "outSellAmount", "outSellAsset",
-		"feeAmount (optional)", "feeAsset (optional)", "classification (optional)", "operationId (optional)", "comments (optional)"}
+	return []string{"Date", "Sent Amount", "Sent Currency", "Received Amount", "Received Currency", "Fee Amount", "Fee Currency",
+		"Net Worth Amount", "Net Worth Currency", "Label", "Description", "TxHash"}
 }
 
 // HandleFees:
@@ -217,7 +217,7 @@ func ParseMsgWithdrawValidatorCommission(address string, event db.TaxableTransac
 	if err != nil {
 		config.Log.Fatal("Error with ParseMsgWithdrawValidatorCommission.", zap.Error(err))
 	}
-	row.Classification = Staked
+	row.Label = Unstake
 	return *row
 }
 
@@ -229,7 +229,7 @@ func ParseMsgWithdrawDelegatorReward(address string, event db.TaxableTransaction
 	if err != nil {
 		config.Log.Fatal("Error with ParseMsgWithdrawDelegatorReward.", zap.Error(err))
 	}
-	row.Classification = Staked
+	row.Label = Unstake
 	return *row
 }
 
