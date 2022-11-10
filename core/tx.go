@@ -21,6 +21,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
 
+	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
 	cryptoTypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types"
 	cosmosTx "github.com/cosmos/cosmos-sdk/types/tx"
@@ -339,12 +340,19 @@ func ProcessFees(db *gorm.DB, authInfo cosmosTx.AuthInfo) ([]dbTypes.Fee, error)
 			payerAddr := dbTypes.Address{}
 
 			if payer == "" {
+				var pubKey cryptoTypes.PubKey
 				cpk := authInfo.SignerInfos[0].PublicKey.GetCachedValue()
-				pubKey := cpk.(cryptoTypes.PubKey)
+
+				// if this is a multisig msg, handle it specially
+				if strings.Contains(authInfo.SignerInfos[0].ModeInfo.GetMulti().String(), "mode:SIGN_MODE_LEGACY_AMINO_JSON") {
+					pubKey = cpk.(*multisig.LegacyAminoPubKey).GetPubKeys()[0]
+				} else {
+					pubKey = cpk.(cryptoTypes.PubKey)
+				}
 				hexPub := hex.EncodeToString(pubKey.Bytes())
 				bechAddr, err := ParseSignerAddress(hexPub, "")
 				if err != nil {
-					config.Log.Error("Error parsing signer address for tx.")
+					config.Log.Error(fmt.Sprintf("Error parsing signer address '%v' for tx.", hexPub))
 					fmt.Printf("Err %s\n", err.Error())
 				} else {
 					payerAddr.Address = bechAddr
