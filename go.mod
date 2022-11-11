@@ -13,7 +13,7 @@ require (
 	github.com/shopspring/decimal v1.3.1
 	github.com/spf13/cobra v1.5.0
 	github.com/spf13/viper v1.12.0
-	github.com/strangelove-ventures/lens v0.0.3-dl
+	github.com/strangelove-ventures/lens v0.0.4-dl
 	github.com/stretchr/testify v1.7.1
 	github.com/tendermint/tendermint v0.34.19
 	go.uber.org/zap v1.21.0
@@ -166,4 +166,4 @@ replace (
 )
 
 //github.com/strangelove-ventures/lens => /home/kyle/projects/DefiantLabs/lens
-replace github.com/strangelove-ventures/lens => github.com/DefiantLabs/lens v0.0.3-dl
+replace github.com/strangelove-ventures/lens => github.com/DefiantLabs/lens v0.0.4-dl
