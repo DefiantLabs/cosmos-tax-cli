@@ -10,15 +10,20 @@ import (
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/authz"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/bank"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/distribution"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/gov"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/ibc"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/slashing"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/staking"
 	tx "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
 	txTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
 	dbTypes "github.com/DefiantLabs/cosmos-tax-cli-private/db"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/gamm"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/incentives"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/lockup"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
@@ -40,6 +45,35 @@ var messageTypeHandler = map[string]func() txTypes.CosmosMessage{
 	staking.MsgUndelegate:                       func() txTypes.CosmosMessage { return &staking.WrapperMsgUndelegate{} },
 	staking.MsgBeginRedelegate:                  func() txTypes.CosmosMessage { return &staking.WrapperMsgBeginRedelegate{} },
 	ibc.MsgTransfer:                             func() txTypes.CosmosMessage { return &ibc.WrapperMsgTransfer{} },
+}
+
+var messageTypeIgnorer = map[string]interface{}{
+	authz.MsgExec:                      nil,
+	authz.MsgGrant:                     nil,
+	authz.MsgRevoke:                    nil,
+	distribution.MsgSetWithdrawAddress: nil,
+	gov.MsgVote:                        nil,
+	ibc.MsgUpdateClient:                nil,
+	ibc.MsgAcknowledgement:             nil,
+	ibc.MsgRecvPacket:                  nil,
+	ibc.MsgTimeout:                     nil,
+	ibc.MsgCreateClient:                nil,
+	ibc.MsgConnectionOpenTry:           nil,
+	ibc.MsgConnectionOpenConfirm:       nil,
+	ibc.MsgChannelOpenTry:              nil,
+	ibc.MsgChannelOpenConfirm:          nil,
+	ibc.MsgConnectionOpenInit:          nil,
+	ibc.MsgConnectionOpenAck:           nil,
+	ibc.MsgChannelOpenInit:             nil,
+	ibc.MsgChannelOpenAck:              nil,
+	incentives.MsgCreateGauge:          nil,
+	incentives.MsgAddToGauge:           nil,
+	lockup.MsgBeginUnlocking:           nil,
+	lockup.MsgLockTokens:               nil,
+	slashing.MsgUnjail:                 nil,
+	slashing.MsgUpdateParams:           nil,
+	staking.MsgCreateValidator:         nil,
+	staking.MsgEditValidator:           nil,
 }
 
 // Merge the chain specific message type handlers into the core message type handler map
@@ -232,7 +266,10 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 					config.Log.Error(tx.TxResponse.TxHash)
 					config.Log.Fatal("Issue parsing a cosmos msg that we DO have a parser for! PLEASE INVESTIGATE")
 				}
-				config.Log.Warn(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed for msg of type '%v'. We do not currently have a message handler for this message type", tx.TxResponse.Height, msgType))
+				// if this msg isn't include in our list of those we are explicitly ignoring, do something about it.
+				if _, ok := messageTypeIgnorer[msgType]; !ok {
+					config.Log.Warn(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed for msg of type '%v'. We do not currently have a message handler for this message type", tx.TxResponse.Height, msgType))
+				}
 				// println("------------------Cosmos message parsing failed. MESSAGE FORMAT FOLLOWS:---------------- \n\n")
 				// spew.Dump(message)
 				// println("\n------------------END MESSAGE----------------------\n")

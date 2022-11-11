@@ -13,6 +13,23 @@ import (
 
 const (
 	MsgTransfer = "/ibc.applications.transfer.v1.MsgTransfer"
+
+	// Explicitly ignored messages for tx parsing purposes
+	MsgAcknowledgement    = "/ibc.core.channel.v1.MsgAcknowledgement"
+	MsgChannelOpenTry     = "/ibc.core.channel.v1.MsgChannelOpenTry"
+	MsgChannelOpenConfirm = "/ibc.core.channel.v1.MsgChannelOpenConfirm"
+	MsgChannelOpenInit    = "/ibc.core.channel.v1.MsgChannelOpenInit"
+	MsgChannelOpenAck     = "/ibc.core.channel.v1.MsgChannelOpenAck"
+	MsgRecvPacket         = "/ibc.core.channel.v1.MsgRecvPacket"
+	MsgTimeout            = "/ibc.core.channel.v1.MsgTimeout"
+
+	MsgConnectionOpenTry     = "/ibc.core.connection.v1.MsgConnectionOpenTry"
+	MsgConnectionOpenConfirm = "/ibc.core.connection.v1.MsgConnectionOpenConfirm"
+	MsgConnectionOpenInit    = "/ibc.core.connection.v1.MsgConnectionOpenInit"
+	MsgConnectionOpenAck     = "/ibc.core.connection.v1.MsgConnectionOpenAck"
+
+	MsgCreateClient = "/ibc.core.client.v1.MsgCreateClient"
+	MsgUpdateClient = "/ibc.core.client.v1.MsgUpdateClient"
 )
 
 type WrapperMsgTransfer struct {
