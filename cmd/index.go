@@ -158,7 +158,6 @@ func index(cmd *cobra.Command, args []string) {
 func (idxr *Indexer) enqueueBlocksToProcess(blockChan chan int64) {
 	// Start at the last indexed block height (or the block height in the config, if set)
 	currBlock := GetIndexerStartingHeight(idxr.cfg.Base.StartBlock, idxr.cl, idxr.db)
-
 	// Don't index past this block no matter what
 	lastBlock := idxr.cfg.Base.EndBlock
 	var latestBlock int64 = math.MaxInt64
@@ -168,10 +167,10 @@ func (idxr *Indexer) enqueueBlocksToProcess(blockChan chan int64) {
 		// The program is configured to stop running after a set block height.
 		// Generally this will only be done while debugging or if a particular block was incorrectly processed.
 		if lastBlock != -1 && currBlock >= lastBlock {
-			config.Log.Info("Hit the last block we're allowed to index, exiting.")
+			config.Log.Info("Hit the last block we're allowed to index, exiting enqueue func.")
 			return
 		} else if idxr.cfg.Base.ExitWhenCaughtUp && currBlock >= latestBlock {
-			config.Log.Info("Hit the last block we're allowed to index, exiting.")
+			config.Log.Info("Hit the last block we're allowed to index, exiting enqueue func.")
 			return
 		}
 

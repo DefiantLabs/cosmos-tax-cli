@@ -9,6 +9,7 @@ import (
 	denoms "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/denoms"
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 
+	"github.com/cosmos/cosmos-sdk/types/query"
 	txTypes "github.com/cosmos/cosmos-sdk/types/tx"
 	lensClient "github.com/strangelove-ventures/lens/client"
 	lensQuery "github.com/strangelove-ventures/lens/client/query"
@@ -39,11 +40,26 @@ func GetBlockByHeight(cl *lensClient.ChainClient, height int64) (*coretypes.Resu
 
 // GetTxsByBlockHeight makes a request to the Cosmos RPC API and returns all the transactions for a specific block
 func GetTxsByBlockHeight(cl *lensClient.ChainClient, height int64) (*txTypes.GetTxsEventResponse, error) {
-	options := lensQuery.QueryOptions{Height: height}
+	pg := query.PageRequest{Limit: 100}
+	options := lensQuery.QueryOptions{Height: height, Pagination: &pg}
 	query := lensQuery.Query{Client: cl, Options: &options}
 	resp, err := query.TxByHeight(cl.Codec)
 	if err != nil {
 		return nil, err
+	}
+
+	// handle pagination if needed
+	if resp != nil && resp.Pagination != nil {
+		// if there are more total objects than we have so far, keep going
+		for resp.Pagination.Total > uint64(len(resp.Txs)) {
+			query.Options.Pagination.Offset = uint64(len(resp.Txs))
+			chunkResp, err := query.TxByHeight(cl.Codec)
+			if err != nil {
+				return nil, err
+			}
+			resp.Txs = append(resp.Txs, chunkResp.Txs...)
+			resp.TxResponses = append(resp.TxResponses, chunkResp.TxResponses...)
+		}
 	}
 
 	return resp, nil
