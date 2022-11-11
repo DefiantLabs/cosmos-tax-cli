@@ -71,6 +71,7 @@ var messageTypeIgnorer = map[string]interface{}{
 	lockup.MsgBeginUnlocking:           nil,
 	lockup.MsgLockTokens:               nil,
 	slashing.MsgUnjail:                 nil,
+	slashing.MsgUpdateParams:           nil,
 	staking.MsgCreateValidator:         nil,
 	staking.MsgEditValidator:           nil,
 }
