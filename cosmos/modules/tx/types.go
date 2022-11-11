@@ -42,9 +42,9 @@ type GetTxByBlockHeightResponse struct {
 }
 
 type IndexerTx struct {
-	Body       Body `json:"body"`
-	AuthInfo   cosmTx.AuthInfo
-	Signatures []string `json:"signatures"`
+	Body     Body `json:"body"`
+	AuthInfo cosmTx.AuthInfo
+	Signers  []sdk.AccAddress // TODO: We may be able to use this in place of signer info under auth info... not 100% sure
 }
 
 type Response struct {
