@@ -4,13 +4,13 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-
 	"math/big"
 	"strings"
 	"time"
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/authz"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/bank"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/distribution"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/gov"
@@ -48,6 +48,9 @@ var messageTypeHandler = map[string]func() txTypes.CosmosMessage{
 }
 
 var messageTypeIgnorer = map[string]interface{}{
+	authz.MsgExec:                      nil,
+	authz.MsgGrant:                     nil,
+	authz.MsgRevoke:                    nil,
 	distribution.MsgSetWithdrawAddress: nil,
 	gov.MsgVote:                        nil,
 	ibc.MsgUpdateClient:                nil,
