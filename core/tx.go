@@ -144,6 +144,7 @@ func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]db
 		}
 
 		indexerTx.AuthInfo = *currTx.AuthInfo
+		indexerTx.Signers = currTx.GetSigners()
 		indexerMergedTx.TxResponse = indexerTxResp
 		indexerMergedTx.Tx = indexerTx
 		indexerMergedTx.Tx.AuthInfo = *currTx.AuthInfo
@@ -303,7 +304,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 		}
 	}
 
-	fees, err := ProcessFees(db, tx.Tx.AuthInfo)
+	fees, err := ProcessFees(db, tx.Tx.AuthInfo, tx.Tx.Signers)
 	if err != nil {
 		return txDBWapper, txTime, err
 	}
@@ -315,7 +316,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 }
 
 // ProcessFees returns a comma delimited list of fee amount/denoms
-func ProcessFees(db *gorm.DB, authInfo cosmosTx.AuthInfo) ([]dbTypes.Fee, error) {
+func ProcessFees(db *gorm.DB, authInfo cosmosTx.AuthInfo, signers []types.AccAddress) ([]dbTypes.Fee, error) {
 	// TODO handle granter? Almost nobody uses it.
 	feeCoins := authInfo.Fee.Amount
 	payer := authInfo.Fee.GetPayer()
@@ -338,27 +339,29 @@ func ProcessFees(db *gorm.DB, authInfo cosmosTx.AuthInfo) ([]dbTypes.Fee, error)
 				}
 			}
 			payerAddr := dbTypes.Address{}
-
-			if payer == "" {
-				var pubKey cryptoTypes.PubKey
-				cpk := authInfo.SignerInfos[0].PublicKey.GetCachedValue()
-
-				// if this is a multisig msg, handle it specially
-				if strings.Contains(authInfo.SignerInfos[0].ModeInfo.GetMulti().String(), "mode:SIGN_MODE_LEGACY_AMINO_JSON") {
-					pubKey = cpk.(*multisig.LegacyAminoPubKey).GetPubKeys()[0]
-				} else {
-					pubKey = cpk.(cryptoTypes.PubKey)
-				}
-				hexPub := hex.EncodeToString(pubKey.Bytes())
-				bechAddr, err := ParseSignerAddress(hexPub, "")
-				if err != nil {
-					config.Log.Error(fmt.Sprintf("Error parsing signer address '%v' for tx.", hexPub))
-					fmt.Printf("Err %s\n", err.Error())
-				} else {
-					payerAddr.Address = bechAddr
-				}
-			} else {
+			if payer != "" {
 				payerAddr.Address = payer
+			} else {
+				if authInfo.SignerInfos[0].PublicKey == nil && len(signers) > 0 {
+					payerAddr.Address = signers[0].String()
+				} else {
+					var pubKey cryptoTypes.PubKey
+					cpk := authInfo.SignerInfos[0].PublicKey.GetCachedValue()
+
+					// if this is a multisig msg, handle it specially
+					if strings.Contains(authInfo.SignerInfos[0].ModeInfo.GetMulti().String(), "mode:SIGN_MODE_LEGACY_AMINO_JSON") {
+						pubKey = cpk.(*multisig.LegacyAminoPubKey).GetPubKeys()[0]
+					} else {
+						pubKey = cpk.(cryptoTypes.PubKey)
+					}
+					hexPub := hex.EncodeToString(pubKey.Bytes())
+					bechAddr, err := ParseSignerAddress(hexPub, "")
+					if err != nil {
+						config.Log.Error(fmt.Sprintf("Error parsing signer address '%v' for tx.", hexPub), zap.Error(err))
+					} else {
+						payerAddr.Address = bechAddr
+					}
+				}
 			}
 
 			fees = append(fees, dbTypes.Fee{Amount: amount, Denomination: denom, PayerAddress: payerAddr})
