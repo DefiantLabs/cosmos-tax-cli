@@ -126,7 +126,7 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 				// add the value of gam tokens
 				price, err := getRate(cbClient, message.DenominationReceived.Symbol, message.Message.Tx.Block.TimeStamp)
 				if err != nil {
-					row.Description = fmt.Sprintf("could not lookup value of %v %v. It will be equivolent to %v %v at %v.", message.AmountReceived, message.DenominationReceived.Base, message.AmountReceived, message.DenominationReceived.Symbol, row.Date)
+					row.Description = fmt.Sprintf("could not lookup value of %v %v. It will be equivalent to %v %v at %v.", message.AmountReceived, message.DenominationReceived.Base, message.AmountReceived, message.DenominationReceived.Symbol, row.Date)
 				} else {
 					gamValue := message.AmountReceived.Mul(decimal.NewFromFloat(price))
 					row.Description = fmt.Sprintf("%v %v on %v was $%v USD", message.AmountSent, message.DenominationSent.Base, row.Date, gamValue)
@@ -136,7 +136,7 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 				// add the value of gam tokens
 				price, err := getRate(cbClient, message.DenominationSent.Symbol, message.Message.Tx.Block.TimeStamp)
 				if err != nil {
-					row.Description = fmt.Sprintf("could not lookup value of %v %v. It will be equivolent to %v %v at %v.", message.AmountReceived, message.DenominationReceived.Base, message.AmountSent, message.DenominationSent.Symbol, row.Date)
+					row.Description = fmt.Sprintf("could not lookup value of %v %v. It will be equivalent to %v %v at %v.", message.AmountReceived, message.DenominationReceived.Base, message.AmountSent, message.DenominationSent.Symbol, row.Date)
 				} else {
 					gamValue := message.AmountSent.Mul(decimal.NewFromFloat(price))
 					row.Description = fmt.Sprintf("%v %v on %v was $%v USD", message.AmountReceived, message.DenominationReceived.Base, row.Date, gamValue)

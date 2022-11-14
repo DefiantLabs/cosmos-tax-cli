@@ -105,10 +105,39 @@ func (p *Parser) GetRows() []parsers.CsvRow {
 	// Copy AccointingRows into csvRows for return val
 	csvRows := make([]parsers.CsvRow, len(accointingRows))
 	for i, v := range accointingRows {
+		// Scale amounts as needed for koinly's limit of 10^15
+		var shiftRequired bool
+		if len(v.ReceivedAmount) >= 15 {
+			updatedAmount, updatedDenom := adjustUnits(v.ReceivedAmount, v.ReceivedCurrency)
+			v.ReceivedAmount = updatedAmount
+			v.ReceivedCurrency = updatedDenom
+			shiftRequired = true
+		}
+		if len(v.SentAmount) >= 15 {
+			updatedAmount, updatedDenom := adjustUnits(v.SentAmount, v.SentCurrency)
+			v.SentAmount = updatedAmount
+			v.SentCurrency = updatedDenom
+			shiftRequired = true
+		}
+		if shiftRequired {
+			v.Description = fmt.Sprintf("%v [some amounts have been shifted to account for Koinly limitations]", v.Description)
+		}
+
 		csvRows[i] = v
 	}
 
 	return csvRows
+}
+
+func adjustUnits(amount, unit string) (updatedAmount string, updatedUnit string) {
+	shift := 3
+	for len(amount)-shift > 15 {
+		shift += 3
+	}
+	idx := len(amount) - shift
+	updatedAmount = amount[:idx] + "." + amount[idx:]
+	updatedUnit = fmt.Sprintf("10^%d %v", shift, unit)
+	return
 }
 
 func (p Parser) GetHeaders() []string {
