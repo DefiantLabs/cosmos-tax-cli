@@ -2,16 +2,17 @@ package koinly
 
 import (
 	"fmt"
+	"strconv"
+	"time"
 
+	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
 
 	"github.com/preichenberger/go-coinbasepro/v2"
-	"github.com/shopspring/decimal"
-
-	"time"
+	"go.uber.org/zap"
 )
 
 var IsOsmosisJoin = map[string]bool{
@@ -126,20 +127,28 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 				// add the value of gam tokens
 				price, err := getRate(cbClient, message.DenominationReceived.Symbol, message.Message.Tx.Block.TimeStamp)
 				if err != nil {
-					row.Description = fmt.Sprintf("could not lookup value of %v %v. It will be equivalent to %v %v at %v.", message.AmountReceived, message.DenominationReceived.Base, message.AmountReceived, message.DenominationReceived.Symbol, row.Date)
+					row.Description = fmt.Sprintf("could not lookup value of %v %v. It will be equivalent to %v %v at %v.", row.SentAmount, row.SentCurrency, row.ReceivedAmount, row.ReceivedCurrency, row.Date)
 				} else {
-					gamValue := message.AmountReceived.Mul(decimal.NewFromFloat(price))
-					row.Description = fmt.Sprintf("%v %v on %v was $%v USD", message.AmountSent, message.DenominationSent.Base, row.Date, gamValue)
+					receivedAmount, err := strconv.ParseFloat(row.ReceivedAmount, 64)
+					if err != nil {
+						config.Log.Fatal(fmt.Sprintf("Could not parse amount %v", row.ReceivedAmount), zap.Error(err))
+					}
+					gamValue := receivedAmount * price
+					row.Description = fmt.Sprintf("%v %v on %v was $%v USD", row.SentAmount, row.SentCurrency, row.Date, gamValue)
 				}
 			} else if _, ok := IsOsmosisJoin[message.Message.MessageType.MessageType]; ok {
 				row.Label = LiquidityIn
 				// add the value of gam tokens
 				price, err := getRate(cbClient, message.DenominationSent.Symbol, message.Message.Tx.Block.TimeStamp)
 				if err != nil {
-					row.Description = fmt.Sprintf("could not lookup value of %v %v. It will be equivalent to %v %v at %v.", message.AmountReceived, message.DenominationReceived.Base, message.AmountSent, message.DenominationSent.Symbol, row.Date)
+					row.Description = fmt.Sprintf("could not lookup value of %v %v. It will be equivalent to %v %v at %v.", row.ReceivedAmount, row.ReceivedCurrency, row.SentAmount, row.SentCurrency, row.Date)
 				} else {
-					gamValue := message.AmountSent.Mul(decimal.NewFromFloat(price))
-					row.Description = fmt.Sprintf("%v %v on %v was $%v USD", message.AmountReceived, message.DenominationReceived.Base, row.Date, gamValue)
+					sentAmount, err := strconv.ParseFloat(row.SentAmount, 64)
+					if err != nil {
+						config.Log.Fatal(fmt.Sprintf("Could not parse amount %v", row.SentAmount), zap.Error(err))
+					}
+					gamValue := sentAmount * price
+					row.Description = fmt.Sprintf("%v %v on %v was $%v USD", row.ReceivedAmount, row.ReceivedCurrency, row.Date, gamValue)
 				}
 			}
 			sf.Rows = append(sf.Rows, row)
