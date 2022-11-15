@@ -2,6 +2,7 @@ package koinly
 
 import (
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 	"time"
@@ -118,21 +119,30 @@ func (p *Parser) GetRows() []parsers.CsvRow {
 	csvRows := make([]parsers.CsvRow, len(koinlyRows))
 	for i, v := range koinlyRows {
 		// Scale amounts as needed for koinly's limit of 10^15
-		var shiftRequired bool
-		if len(v.ReceivedAmount) >= 15 {
+		var shiftedCoins []string
+		if _, isShifted := coinReplacementMap[v.ReceivedCurrency]; isShifted {
+			shiftedCoins = append(shiftedCoins, v.ReceivedCurrency)
 			updatedAmount, updatedDenom := adjustUnitsAndDenoms(v.ReceivedAmount, v.ReceivedCurrency)
 			v.ReceivedAmount = updatedAmount
 			v.ReceivedCurrency = updatedDenom
-			shiftRequired = true
 		}
-		if len(v.SentAmount) >= 15 {
+		if _, isShifted := coinReplacementMap[v.SentCurrency]; isShifted {
+			shiftedCoins = append(shiftedCoins, v.SentCurrency)
 			updatedAmount, updatedDenom := adjustUnitsAndDenoms(v.SentAmount, v.SentCurrency)
 			v.SentAmount = updatedAmount
 			v.SentCurrency = updatedDenom
-			shiftRequired = true
 		}
-		if shiftRequired {
-			v.Description = fmt.Sprintf("%v [some amounts have been shifted to account for Koinly limitations]", v.Description)
+		switch len(shiftedCoins) {
+		case 1:
+			coin := shiftedCoins[0]
+			v.Description = fmt.Sprintf("%v [1 %v = %.0f %v]", v.Description,
+				coinReplacementMap[coin], math.Pow(10, float64(coinScalingMap[coin])), coin)
+		case 2:
+			coin1 := shiftedCoins[0]
+			coin2 := shiftedCoins[1]
+			v.Description = fmt.Sprintf("%v [1 %v = %.0f %v and 1 %v = %.0f %v]", v.Description,
+				coinReplacementMap[coin1], math.Pow(10, float64(coinScalingMap[coin1])), coin1,
+				coinReplacementMap[coin2], math.Pow(10, float64(coinScalingMap[coin2])), coin2)
 		}
 
 		csvRows[i] = v
