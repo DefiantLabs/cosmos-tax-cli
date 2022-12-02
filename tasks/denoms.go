@@ -2,16 +2,16 @@ package tasks
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
-	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
-
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	dbTypes "github.com/DefiantLabs/cosmos-tax-cli-private/db"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/rest"
-	"go.uber.org/zap"
 
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -44,7 +44,6 @@ func DoChainSpecificUpsertDenoms(db *gorm.DB, chain string) {
 
 func UpsertOsmosisDenoms(db *gorm.DB) {
 	url := "https://raw.githubusercontent.com/osmosis-labs/assetlists/main/osmosis-1/osmosis-1.assetlist.json"
-	frontierURL := "https://raw.githubusercontent.com/osmosis-labs/assetlists/main/osmosis-1/osmosis-frontier.assetlist.json"
 
 	denomAssets, err := getOsmosisAssetsList(url)
 	if err != nil {
@@ -54,17 +53,6 @@ func UpsertOsmosisDenoms(db *gorm.DB) {
 		err = dbTypes.UpsertDenoms(db, denoms)
 		if err != nil {
 			config.Log.Fatal("Upsert Osmosis Denom Metadata", zap.Error(err))
-		}
-	}
-
-	frontierDenomAssets, err := getOsmosisAssetsList(frontierURL)
-	if err != nil {
-		config.Log.Fatal("Download Osmosis Frontier Denom Metadata", zap.Error(err))
-	} else {
-		denoms := toDenoms(frontierDenomAssets)
-		err = dbTypes.UpsertDenoms(db, denoms)
-		if err != nil {
-			config.Log.Fatal("Upsert Osmosis Frontier Denom Metadata", zap.Error(err))
 		}
 	}
 }
@@ -106,6 +94,10 @@ func getJSON(url string, target interface{}) error {
 		return err
 	}
 	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		return fmt.Errorf("got status code: %v from url: %v", r.Status, url)
+	}
 
 	return json.NewDecoder(r.Body).Decode(target)
 }
