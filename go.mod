@@ -13,7 +13,7 @@ require (
 	github.com/shopspring/decimal v1.3.1
 	github.com/spf13/cobra v1.5.0
 	github.com/spf13/viper v1.12.0
-	github.com/strangelove-ventures/lens v0.0.4-dl
+	github.com/strangelove-ventures/lens v0.0.5-dl
 	github.com/stretchr/testify v1.7.1
 	github.com/tendermint/tendermint v0.34.19
 	go.uber.org/zap v1.21.0
@@ -32,6 +32,8 @@ require (
 	github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4 // indirect
 	github.com/99designs/keyring v1.2.1 // indirect
 	github.com/ChainSafe/go-schnorrkel v1.0.0 // indirect
+	github.com/CosmWasm/wasmd v0.24.0 // indirect
+	github.com/CosmWasm/wasmvm v1.0.0 // indirect
 	github.com/Workiva/go-datastructures v1.0.53 // indirect
 	github.com/armon/go-metrics v0.3.11 // indirect
 	github.com/avast/retry-go v3.0.0+incompatible // indirect
@@ -71,6 +73,7 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/btree v1.0.1 // indirect
+	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/orderedcode v0.0.1 // indirect
 	github.com/gorilla/handlers v1.5.1 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
@@ -158,12 +161,23 @@ require (
 
 replace (
 	github.com/ChainSafe/go-schnorrkel => github.com/ChainSafe/go-schnorrkel v0.0.0-20200405005733-88cbf1b4c40d
-	github.com/CosmWasm/wasmd => github.com/osmosis-labs/wasmd v0.22.0-osmo-v7.2
-	github.com/cosmos/cosmos-sdk => github.com/osmosis-labs/cosmos-sdk v0.45.1-0.20220502203419-5831ca02b81f
+	// branch: v0.27.0.rc3-osmo, current tag: v0.27.0.rc3-osmo
+	github.com/CosmWasm/wasmd => github.com/osmosis-labs/wasmd v0.27.0-rc2.0.20220517191021-59051aa18d58
+	// github.com/CosmWasm/wasmd => github.com/osmosis-labs/wasmd v0.22.0-osmo-v7.2
+	// github.com/cosmos/cosmos-sdk => github.com/osmosis-labs/cosmos-sdk v0.45.1-0.20220502203419-5831ca02b81f
+	// github.com/cosmos/iavl => github.com/osmosis-labs/iavl v0.17.3-osmo-v7
+	// github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
+	// google.golang.org/grpc => google.golang.org/grpc v1.33.2
+
+	github.com/cosmos/cosmos-sdk => github.com/osmosis-labs/cosmos-sdk v0.45.1-0.20220611234148-f59c62f19567
+
+	// replace github.com/99designs/keyring => github.com/cosmos/keyring v1.1.7-0.20210622111912-ef00f8ac3d76
 	github.com/cosmos/iavl => github.com/osmosis-labs/iavl v0.17.3-osmo-v7
+
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
+
 	google.golang.org/grpc => google.golang.org/grpc v1.33.2
 )
 
 //github.com/strangelove-ventures/lens => /home/kyle/projects/DefiantLabs/lens
-replace github.com/strangelove-ventures/lens => github.com/DefiantLabs/lens v0.0.4-dl
+replace github.com/strangelove-ventures/lens => github.com/DefiantLabs/lens v0.0.5-dl
