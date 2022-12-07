@@ -1,13 +1,6 @@
-delete from tx_addresses;
-delete from events;
-delete from messages;
-delete from txes;
-delete from addresses;
-delete from blocks;
-delete from fees;
-
 -- Below will delete the table and the rows...
-
+drop table if exists message_types cascade;
+drop table if exists failed_blocks cascade;
 drop table if exists taxable_tx cascade;
 drop table if exists chains cascade;
 drop table if exists denom_unit_aliases cascade;

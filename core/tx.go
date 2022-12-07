@@ -2,7 +2,6 @@ package core
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -161,7 +160,12 @@ func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]db
 					currLogMsgs = append(currLogMsgs, currTxLog)
 				}
 			} else {
-				return nil, blockTime, errors.New("tx message could not be processed. CachedValue is not present")
+				return nil, blockTime, fmt.Errorf("tx message could not be processed. CachedValue is not present. TX Hash: %s, Msg type: %s, Msg index: %d, Code: %d",
+					currTxResp.TxHash,
+					currTx.Body.Messages[msgIdx].TypeUrl,
+					msgIdx,
+					currTxResp.Code,
+				)
 			}
 		}
 
