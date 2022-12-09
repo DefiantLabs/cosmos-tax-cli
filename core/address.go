@@ -1,10 +1,12 @@
 package core
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"regexp"
+	"strings"
 
 	tx "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
@@ -19,6 +21,41 @@ import (
 // consider not using globals
 var addressRegex *regexp.Regexp
 var addressPrefix string
+
+// TODO query this list from the DB
+var baseChainPrefixes = []string{
+	"juno",
+	"cosmos",
+	"osmo",
+}
+
+func GetAddressPrefix(address string) string {
+	for _, chain := range baseChainPrefixes {
+		if strings.HasPrefix(address, chain) {
+			regex := fmt.Sprintf("(?P<prefix>%s(valoper)?)1[a-z0-9]{38}", chain)
+			r := regexp.MustCompile(regex)
+			matches := r.FindStringSubmatch(address)
+			//the match array will be in the order: full match, then prefix
+
+			if len(matches) >= 2 {
+				return matches[1]
+			}
+		}
+	}
+
+	return ""
+}
+
+func IsAddressEqual(addr1 string, prefix1 string, addr2 string, prefix2 string) bool {
+	bAddr1, err1 := cosmostypes.GetFromBech32(addr1, prefix1)
+	bAddr2, err2 := cosmostypes.GetFromBech32(addr2, prefix2)
+
+	if err1 != nil || err2 != nil {
+		return false
+	}
+
+	return bytes.Equal(bAddr1, bAddr2)
+}
 
 func SetupAddressRegex(addressRegexPattern string) {
 	addressRegex, _ = regexp.Compile(addressRegexPattern)

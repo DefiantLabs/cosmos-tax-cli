@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/ibc"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/accointing"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/koinly"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
@@ -32,7 +33,7 @@ func TestKoinlyOsmoLPParsing(t *testing.T) {
 	chain := mkChain(1, osmosis.ChainID, osmosis.Name)
 
 	// make transactions for this user entering and leaving LPs
-	transferTxs := getTestTransferTXs(t, targetAddress, chain)
+	transferTxs := getTestSwapTXs(t, targetAddress, chain)
 
 	// attempt to parse
 	err := parser.ProcessTaxableTx(targetAddress.Address, transferTxs)
@@ -95,6 +96,93 @@ func TestKoinlyOsmoRewardParsing(t *testing.T) {
 	}
 }
 
+func TestAccointingIbcMsgTransferSelf(t *testing.T) {
+	cfg := config.Config{}
+	cfg.Lens.ChainID = osmosis.ChainID
+	parser := GetParser(accointing.ParserKey)
+	parser.InitializeParsingGroups(cfg)
+
+	me := "osmo18zljeu4lg4jppkz75en82qr3zymfcnchwvsqgu"
+	alsoMe := "juno18zljeu4lg4jppkz75en82qr3zymfcnchs9qtej"
+
+	// setup user and chain
+	sourceAddress := db.Address{
+		ID:      0,
+		Address: me,
+	}
+	destAddress := db.Address{
+		ID:      1,
+		Address: alsoMe,
+	}
+
+	sourceChain := mkChain(1, osmosis.ChainID, osmosis.Name)
+	targetChain := mkChain(2, "juno-1", "juno")
+
+	// make transactions for this user entering and leaving LPs
+	transferTxs := getTestIbcTransferTXs(t, sourceAddress, destAddress, sourceChain, targetChain)
+
+	// attempt to parse
+	err := parser.ProcessTaxableTx(sourceAddress.Address, transferTxs)
+	assert.Nil(t, err, "should not get error from parsing these transactions")
+
+	// validate output
+	rows := parser.GetRows()
+	assert.Equalf(t, len(transferTxs), len(rows), "you should have one row for each transfer transaction ")
+	assert.Equal(t, transferTxs[0].Message.MessageType.MessageType, ibc.MsgTransfer, "message type should be an IBC transfer")
+
+	// all transactions should be orders classified as MsgTransfer
+	for _, row := range rows {
+		cols := row.GetRowForCsv()
+		// transfer message should be a 'withdraw' from the sender's perspective
+		assert.Equal(t, "withdraw", cols[0], "transaction type should be a withdrawal")
+		assert.Equal(t, "ignored", cols[8], "transaction should not have a classification")
+	}
+}
+
+// Test behavior of an IBC message transfer to someone else's address (e.g. NOT a self transfer)
+func TestAccointingIbcMsgTransferExternal(t *testing.T) {
+	cfg := config.Config{}
+	cfg.Lens.ChainID = osmosis.ChainID
+	parser := GetParser(accointing.ParserKey)
+	parser.InitializeParsingGroups(cfg)
+
+	me := "osmo14mmus5h7m6vkp0pteks8wawaj4wf3sx7fy3s2r"
+	someoneElse := "juno18zljeu4lg4jppkz75en82qr3zymfcnchs9qtej"
+
+	// setup user and chain
+	sourceAddress := db.Address{
+		ID:      0,
+		Address: me,
+	}
+	destAddress := db.Address{
+		ID:      1,
+		Address: someoneElse,
+	}
+
+	sourceChain := mkChain(1, osmosis.ChainID, osmosis.Name)
+	targetChain := mkChain(2, "juno-1", "juno")
+
+	// make transactions for this user entering and leaving LPs
+	transferTxs := getTestIbcTransferTXs(t, sourceAddress, destAddress, sourceChain, targetChain)
+
+	// attempt to parse
+	err := parser.ProcessTaxableTx(sourceAddress.Address, transferTxs)
+	assert.Nil(t, err, "should not get error from parsing these transactions")
+
+	// validate output
+	rows := parser.GetRows()
+	assert.Equalf(t, len(transferTxs), len(rows), "you should have one row for each transfer transaction ")
+	assert.Equal(t, transferTxs[0].Message.MessageType.MessageType, ibc.MsgTransfer, "message type should be an IBC transfer")
+
+	// all transactions should be orders classified as MsgTransfer
+	for _, row := range rows {
+		cols := row.GetRowForCsv()
+		// transfer message should be a 'withdraw' from the sender's perspective
+		assert.Equal(t, cols[0], "withdraw", "transaction type should be a withdrawal")
+		assert.Equal(t, cols[8], "", "transaction should not have a classification")
+	}
+}
+
 func TestAccointingOsmoLPParsing(t *testing.T) {
 	cfg := config.Config{}
 	cfg.Lens.ChainID = osmosis.ChainID
@@ -106,7 +194,7 @@ func TestAccointingOsmoLPParsing(t *testing.T) {
 	chain := mkChain(1, osmosis.ChainID, osmosis.Name)
 
 	// make transactions for this user entering and leaving LPs
-	transferTxs := getTestTransferTXs(t, targetAddress, chain)
+	transferTxs := getTestSwapTXs(t, targetAddress, chain)
 
 	// attempt to parse
 	err := parser.ProcessTaxableTx(targetAddress.Address, transferTxs)
@@ -192,7 +280,36 @@ func mkTaxableEvent(id uint, amount decimal.Decimal, denom db.Denom, address db.
 	}
 }
 
-func getTestTransferTXs(t *testing.T, targetAddress db.Address, targetChain db.Chain) []db.TaxableTransaction {
+func getTestIbcTransferTXs(t *testing.T, sourceAddress db.Address, targetAddress db.Address, sourceChain db.Chain, targetChain db.Chain) []db.TaxableTransaction {
+	// BlockTimes
+	oneYearAgo := time.Now().Add(-1 * time.Hour * 24 * 365)
+
+	// the transfer on the source chain
+	block1 := mkBlk(1, 1, oneYearAgo, sourceChain)
+
+	// create the transfer msg
+	msgTypeTransfer := mkMsgType(1, ibc.MsgTransfer)
+
+	// create TXs
+	transferTX1 := mkTx(1, "somehash1", 0, block1, sourceAddress, nil)
+
+	// create Msgs
+	transferMsg := mkMsg(1, transferTX1, msgTypeTransfer, 0)
+
+	// create denoms
+	coin1, coin1DenomUnit := mkDenom(1, "ujuno", "Juno", "JUNO")
+
+	// populate denom cache
+	db.CachedDenomUnits = []db.DenomUnit{coin1DenomUnit}
+
+	// create taxable transactions
+	// joins
+	taxableTX1 := mkTaxableTransaction(1, transferMsg, decimal.NewFromInt(1000000), decimal.NewFromInt(1000000), coin1, coin1, sourceAddress, targetAddress)
+
+	return []db.TaxableTransaction{taxableTX1}
+}
+
+func getTestSwapTXs(t *testing.T, targetAddress db.Address, targetChain db.Chain) []db.TaxableTransaction {
 	randoAddress := mkAddress(t, 2)
 
 	// BlockTimes
@@ -203,7 +320,7 @@ func getTestTransferTXs(t *testing.T, targetAddress db.Address, targetChain db.C
 	block1 := mkBlk(1, 1, oneYearAgo, targetChain)
 	block2 := mkBlk(2, 2, sixMonthAgo, targetChain)
 
-	// create the transfer msg type
+	// create the swap messages
 	// joins
 	joinSwapExternAmountIn := mkMsgType(1, gamm.MsgJoinSwapExternAmountIn)
 	joinSwapShareAmountOut := mkMsgType(2, gamm.MsgJoinSwapShareAmountOut)
