@@ -35,8 +35,8 @@ func GetAddressPrefix(address string) string {
 			regex := fmt.Sprintf("(?P<prefix>%s(valoper)?)1[a-z0-9]{38}", chain)
 			r := regexp.MustCompile(regex)
 			matches := r.FindStringSubmatch(address)
-			//the match array will be in the order: full match, then prefix
 
+			// the match array will be in the order: full match, then prefix
 			if len(matches) >= 2 {
 				return matches[1]
 			}

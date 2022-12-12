@@ -293,7 +293,7 @@ func ParseMsgTransfer(address string, event db.TaxableTransaction) Row {
 		selfTransfer = core.IsAddressEqual(event.SenderAddress.Address, senderAddrPrefix, event.ReceiverAddress.Address, receiverAddrPrefix)
 	}
 
-	//The base bech32 address was the same, so this was a self transfer and is not taxable
+	// The base bech32 address was the same, so this was a self transfer and is not taxable
 	if selfTransfer {
 		row.Classification = Ignored
 	}
