@@ -12,51 +12,19 @@ ifeq (,$(VERSION))
   endif
 endif
 
-PACKAGES_SIMTEST=$(shell go list ./... | grep '/simulation')
-LEDGER_ENABLED ?= true
-DOCKER := $(shell which docker)
-BUILDDIR ?= $(CURDIR)/build
-export GO111MODULE = on
-
-build_tags = netgo
-ifeq ($(LEDGER_ENABLED),true)
-  ifeq ($(OS),Windows_NT)
-    GCCEXE = $(shell where gcc.exe 2> NUL)
-    ifeq ($(GCCEXE),)
-      $(error gcc.exe not installed for ledger support, please install or set LEDGER_ENABLED=false)
-    else
-      build_tags += ledger
-    endif
-  else
-    UNAME_S = $(shell uname -s)
-    ifeq ($(UNAME_S),OpenBSD)
-      $(warning OpenBSD detected, disabling ledger support (https://github.com/cosmos/cosmos-sdk/issues/1988))
-    else
-      GCC = $(shell command -v gcc 2> /dev/null)
-      ifeq ($(GCC),)
-        $(error gcc not installed for ledger support, please install or set LEDGER_ENABLED=false)
-      else
-        build_tags += ledger
-      endif
-    endif
-  endif
-endif
-
-build_tags += $(BUILD_TAGS)
-build_tags := $(strip $(build_tags))
-ldflags += $(LDFLAGS)
-ldflags := $(strip $(ldflags))
-
-# process linker flags
-ldflags = -X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags_comma_sep)"
-ldflags += -w -s
-
-BUILD_FLAGS := -tags "$(build_tags)" -ldflags '$(ldflags)'
+FQCN = ghcr.io/defiantlabs/cosmos-tax-cli-private/cosmos-tax-cli-private# default value, overide with: make -e FQCN="foo"
 
 all: install
 
 install: go.sum
-	go install -mod=readonly $(BUILD_FLAGS) .
+	go install .
 
 build:
-	go build $(BUILD_FLAGS) .
+	go build -o bin/cosmos-tax-cli-private .
+
+clean:
+	rm -rf build
+
+build-docker:
+	docker build -t $(FQCN):$(VERSION) -f ./Dockerfile .
+	docker push $(FQCN):$(VERSION)
