@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/core"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/bank"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/distribution"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/ibc"
@@ -284,6 +285,19 @@ func ParseMsgSwapExactAmountOut(event db.TaxableTransaction) Row {
 func ParseMsgTransfer(address string, event db.TaxableTransaction) Row {
 	row := &Row{}
 	err := row.ParseBasic(address, event)
+	selfTransfer := false
+
+	senderAddrPrefix := core.GetAddressPrefix(event.SenderAddress.Address)
+	receiverAddrPrefix := core.GetAddressPrefix(event.ReceiverAddress.Address)
+	if senderAddrPrefix != "" && receiverAddrPrefix != "" {
+		selfTransfer = core.IsAddressEqual(event.SenderAddress.Address, senderAddrPrefix, event.ReceiverAddress.Address, receiverAddrPrefix)
+	}
+
+	// The base bech32 address was the same, so this was a self transfer and is not taxable
+	if selfTransfer {
+		row.Classification = Ignored
+	}
+
 	if err != nil {
 		config.Log.Fatal("Error with ParseMsgTransfer.", zap.Error(err))
 	}

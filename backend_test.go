@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/types"
@@ -24,6 +26,15 @@ func TestCosmosHubAddressEquality(t *testing.T) {
 	if acctErr != nil || valoperErr != nil || !cosmAccountAddress.Equals(cosmValAccountAddress) {
 		t.Fatal("Addresses not equivalent", acctErr, valoperErr)
 	}
+}
+
+func TestMatchAddressCaptureGroup(t *testing.T) {
+	valoperAddress := "cosmosvaloper130mdu9a0etmeuw52qfxk73pn0ga6gawkxsrlwf" // strangelove's valoper
+	accountAddress := "cosmos130mdu9a0etmeuw52qfxk73pn0ga6gawkryh2z6"        // strangelove's delegator
+	r := regexp.MustCompile(`(?P<prefix>cosmos(valoper)?)1[a-z0-9]{38}`)
+	fmt.Printf("%#v\n", r.FindStringSubmatch(valoperAddress))
+	fmt.Printf("%#v\n", r.FindStringSubmatch(accountAddress))
+	fmt.Printf("%#v\n", r.SubexpNames())
 }
 
 // Works on all chains but you need to know the prefix (e.g. junovaloper) in advance
