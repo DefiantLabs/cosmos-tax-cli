@@ -72,14 +72,23 @@ func initConfig() {
 		viper.SetConfigFile(cfgFile)
 		viper.SetConfigType("toml")
 	} else {
-		// Find home directory.
-		home, err := os.UserHomeDir()
+		// Check in current working dir
+		pwd, err := os.Getwd()
 		if err != nil {
-			log.Fatalf("Failed to find user home dir. Err: %v", err)
+			log.Fatalf("Could not determine current working dir. Err: %v", err)
 		}
-		defaultCfgLocation := fmt.Sprintf("%s/.cosmos-tax-cli-private", home)
-
-		viper.AddConfigPath(defaultCfgLocation)
+		if _, err := os.Stat(fmt.Sprintf("%v/config.toml", pwd)); err == nil {
+			cfgFile = pwd
+		} else {
+			// file not in current working dir. Check home dir instead
+			// Find home directory.
+			home, err := os.UserHomeDir()
+			if err != nil {
+				log.Fatalf("Failed to find user home dir. Err: %v", err)
+			}
+			cfgFile = fmt.Sprintf("%s/.cosmos-tax-cli-private", home)
+		}
+		viper.AddConfigPath(cfgFile)
 		viper.SetConfigType("toml")
 		viper.SetConfigName("config")
 	}
