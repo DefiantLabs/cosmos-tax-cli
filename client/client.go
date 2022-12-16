@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv"
@@ -34,15 +35,25 @@ func setup() (*gorm.DB, *config.Config, error) {
 
 	fileConfig, err := config.GetConfig(location)
 	if err != nil {
-		log.Panicf("Error opening configuration file. Err: %v", err)
-		return nil, nil, err
+		if !strings.Contains(err.Error(), "no such file or directory") {
+			log.Panicf("Error opening configuration file. Err: %v", err)
+			return nil, nil, err
+		}
 	}
 
+	// merge and validate configs
 	cfg := config.MergeConfigs(fileConfig, argConfig)
+	err = cfg.ValidateClientConfig()
+	if err != nil {
+		log.Fatalf("Config validation failed. Err: %v", err)
+	}
+
+	// Configure logger
 	logLevel := cfg.Log.Level
 	logPath := cfg.Log.Path
 	config.DoConfigureLogger(logPath, logLevel)
 
+	// Configure DB
 	db, err := dbTypes.PostgresDbConnect(cfg.Database.Host, cfg.Database.Port, cfg.Database.Database, cfg.Database.User, cfg.Database.Password, logLevel)
 	if err != nil {
 		config.Log.Error("Could not establish connection to the database", zap.Error(err))

@@ -84,6 +84,28 @@ func (conf *Config) Validate() error {
 	return nil
 }
 
+// ValidateClientConfig will validate the config for fields required by the client
+func (conf *Config) ValidateClientConfig() error {
+	// Database Checks
+	if util.StrNotSet(conf.Database.Host) {
+		return errors.New("database host must be set")
+	}
+	if util.StrNotSet(conf.Database.Port) {
+		return errors.New("database port must be set")
+	}
+	if util.StrNotSet(conf.Database.Database) {
+		return errors.New("database name (i.e. Database) must be set")
+	}
+	if util.StrNotSet(conf.Database.User) {
+		return errors.New("database user must be set")
+	}
+	if util.StrNotSet(conf.Database.Password) {
+		return errors.New("database password must be set")
+	}
+
+	return nil
+}
+
 type database struct {
 	Host     string
 	Port     string
