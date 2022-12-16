@@ -19,11 +19,11 @@ import (
 var DB *gorm.DB
 var GlobalCfg *config.Config
 
-func setup() (*gorm.DB, *config.Config, error) {
-	argConfig, err := config.ParseArgs(os.Stderr, os.Args[1:])
+func setup() (*gorm.DB, *config.Config, int, error) {
+	argConfig, svcPort, err := config.ParseArgs(os.Stderr, os.Args[1:])
 	if err != nil {
 		log.Panicf("Error parsing args. Err: %v", err)
-		return nil, nil, err
+		return nil, nil, svcPort, err
 	}
 
 	var location string
@@ -37,7 +37,7 @@ func setup() (*gorm.DB, *config.Config, error) {
 	if err != nil {
 		if !strings.Contains(err.Error(), "no such file or directory") {
 			log.Panicf("Error opening configuration file. Err: %v", err)
-			return nil, nil, err
+			return nil, nil, svcPort, err
 		}
 	}
 
@@ -57,16 +57,16 @@ func setup() (*gorm.DB, *config.Config, error) {
 	db, err := dbTypes.PostgresDbConnect(cfg.Database.Host, cfg.Database.Port, cfg.Database.Database, cfg.Database.User, cfg.Database.Password, logLevel)
 	if err != nil {
 		config.Log.Error("Could not establish connection to the database", zap.Error(err))
-		return nil, nil, err
+		return nil, nil, svcPort, err
 	}
 
 	dbTypes.CacheDenoms(db)
 
-	return db, &cfg, nil
+	return db, &cfg, svcPort, nil
 }
 
 func main() {
-	db, cfg, err := setup()
+	db, cfg, svcPort, err := setup()
 	if err != nil {
 		log.Fatalf("Error setting up. Err: %v", err)
 	}
@@ -78,7 +78,7 @@ func main() {
 	r.Use(CORSMiddleware())
 
 	r.POST("/events.csv", GetTaxableEventsCSV)
-	err = r.Run(":8080")
+	err = r.Run(fmt.Sprintf(":%v", svcPort))
 	if err != nil {
 		config.Log.Fatal("Error starting server.", zap.Error(err))
 	}

@@ -33,7 +33,7 @@ var testConfig *config.Config
 
 // nolint:unused
 func setupConfig(t *testing.T) {
-	argConfig, err := config.ParseArgs(os.Stderr, os.Args[1:])
+	argConfig, _, err := config.ParseArgs(os.Stderr, os.Args[1:])
 	if err != nil {
 		assert.Nil(t, err)
 	}

@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-func ParseArgs(w io.Writer, args []string) (Config, error) {
+func ParseArgs(w io.Writer, args []string) (Config, int, error) {
 	c := Config{}
 	fs := flag.NewFlagSet("config", flag.ContinueOnError)
 
@@ -19,10 +19,14 @@ func ParseArgs(w io.Writer, args []string) (Config, error) {
 	fs.StringVar(&c.Database.Password, "db.password", "", "The PostgreSQL user password for the indexer db")
 	fs.StringVar(&c.Database.User, "db.user", "", "The PostgreSQL user for the indexer db")
 
+	// Service
+	var svcPort int
+	fs.IntVar(&svcPort, "port", 8080, "the port the UI client will be served from")
+
 	err := fs.Parse(args)
 	if err != nil {
-		return c, err
+		return c, svcPort, err
 	}
 
-	return c, nil
+	return c, svcPort, nil
 }
