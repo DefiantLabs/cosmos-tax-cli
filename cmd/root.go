@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -39,6 +40,31 @@ func init() {
 	// initConfig on initialize of cobra guarantees config struct will be set before all subcommands are executed
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.cosmos-tax-cli-private/config.yaml)")
+
+	// Log
+	rootCmd.PersistentFlags().StringVar(&conf.Log.Level, "log.level", "debug", "log level")
+	rootCmd.PersistentFlags().StringVar(&conf.Log.Path, "log.path", "", "log path (default is $HOME/.cosmos-tax-cli-private/logs.txt")
+
+	// Base
+	rootCmd.PersistentFlags().StringVar(&conf.Base.AddressRegex, "base.addrRegex", "", "address regex")
+	rootCmd.PersistentFlags().StringVar(&conf.Base.AddressPrefix, "base.addrPrefix", "", "address prefix")
+	rootCmd.PersistentFlags().Int64Var(&conf.Base.StartBlock, "base.startBlock", 0, "block to start indexing at")
+	rootCmd.PersistentFlags().Int64Var(&conf.Base.EndBlock, "base.endBlock", -1, "block to stop indexing at (use -1 to index indefinitely")
+
+	// Lens
+	rootCmd.PersistentFlags().StringVar(&conf.Lens.RPC, "lens.rpc", "", "node rpc endpoint")
+	rootCmd.PersistentFlags().StringVar(&conf.Lens.Key, "lens.key", "default", "lens key")
+	rootCmd.PersistentFlags().StringVar(&conf.Lens.AccountPrefix, "lens.accountPrefix", "", "lens account prefix")
+	rootCmd.PersistentFlags().StringVar(&conf.Lens.KeyringBackend, "lens.keyringBackend", "", "lens keyring backend")
+	rootCmd.PersistentFlags().StringVar(&conf.Lens.ChainID, "lens.chainID", "", "lens chain ID")
+	rootCmd.PersistentFlags().StringVar(&conf.Lens.ChainName, "lens.chainName", "", "lens chain name")
+
+	// Database
+	rootCmd.PersistentFlags().StringVar(&conf.Database.Host, "db.host", "", "database host")
+	rootCmd.PersistentFlags().StringVar(&conf.Database.Port, "db.port", "5432", "database port")
+	rootCmd.PersistentFlags().StringVar(&conf.Database.Database, "db.database", "", "database name")
+	rootCmd.PersistentFlags().StringVar(&conf.Database.User, "db.user", "", "database user")
+	rootCmd.PersistentFlags().StringVar(&conf.Database.Password, "db.password", "", "database password")
 }
 
 func initConfig() {
@@ -59,18 +85,23 @@ func initConfig() {
 	}
 
 	// Load defaults into a file at $HOME?
+	var noConfig bool
 	err := viper.ReadInConfig()
 	if err != nil {
-		log.Fatalf("Failed to read config file. Err: %v", err)
+		if strings.Contains(err.Error(), "Config File \"config\" Not Found") {
+			noConfig = true
+		} else {
+			log.Fatalf("Failed to read config file. Err: %v", err)
+		}
 	}
 
-	// Unmarshal the config into struct
-	err = viper.Unmarshal(&conf)
-	if err != nil {
-		log.Fatalf("Failed to unmarshal config. Err: %v", err)
+	if !noConfig {
+		// Unmarshal the config into struct
+		err = viper.Unmarshal(&conf)
+		if err != nil {
+			log.Fatalf("Failed to unmarshal config. Err: %v", err)
+		}
 	}
-
-	// TODO: Consider creating a set of defaults
 
 	// Validate config
 	err = conf.Validate()
