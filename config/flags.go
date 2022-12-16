@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-func ParseArgs(w io.Writer, args []string) (Config, int, error) {
+func ParseArgs(w io.Writer, args []string) (Config, *flag.FlagSet, int, error) {
 	c := Config{}
 	fs := flag.NewFlagSet("config", flag.ContinueOnError)
 
@@ -25,8 +25,8 @@ func ParseArgs(w io.Writer, args []string) (Config, int, error) {
 
 	err := fs.Parse(args)
 	if err != nil {
-		return c, svcPort, err
+		return c, fs, svcPort, err
 	}
 
-	return c, svcPort, nil
+	return c, fs, svcPort, nil
 }

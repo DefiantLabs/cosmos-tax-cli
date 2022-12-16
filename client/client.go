@@ -20,7 +20,7 @@ var DB *gorm.DB
 var GlobalCfg *config.Config
 
 func setup() (*gorm.DB, *config.Config, int, error) {
-	argConfig, svcPort, err := config.ParseArgs(os.Stderr, os.Args[1:])
+	argConfig, flagSet, svcPort, err := config.ParseArgs(os.Stderr, os.Args[1:])
 	if err != nil {
 		if strings.Contains(err.Error(), "help requested") {
 			log.Println("Please see valid flags above.")
@@ -52,6 +52,7 @@ func setup() (*gorm.DB, *config.Config, int, error) {
 	cfg := config.MergeConfigs(fileConfig, argConfig)
 	err = cfg.ValidateClientConfig()
 	if err != nil {
+		flagSet.PrintDefaults()
 		log.Fatalf("Config validation failed. Err: %v", err)
 	}
 
