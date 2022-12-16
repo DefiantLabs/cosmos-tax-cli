@@ -105,6 +105,7 @@ func initConfig() {
 	}
 
 	if !noConfig {
+		log.Println("CFG successfully read from: ", cfgFile)
 		// Unmarshal the config into struct
 		err = viper.Unmarshal(&conf)
 		if err != nil {
