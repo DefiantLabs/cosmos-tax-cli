@@ -22,6 +22,10 @@ var GlobalCfg *config.Config
 func setup() (*gorm.DB, *config.Config, int, error) {
 	argConfig, svcPort, err := config.ParseArgs(os.Stderr, os.Args[1:])
 	if err != nil {
+		if strings.Contains(err.Error(), "flag provided but not defined") {
+			log.Println("Invalid flag. Please see valid flags above.")
+			os.Exit(0)
+		}
 		log.Panicf("Error parsing args. Err: %v", err)
 		return nil, nil, svcPort, err
 	}
