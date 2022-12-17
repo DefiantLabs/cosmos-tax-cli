@@ -104,6 +104,7 @@ func getJSON(url string, target interface{}) error {
 
 func DenomUpsertTask(apiHost string, db *gorm.DB) {
 	config.Log.Debug("Task started for DenomUpsertTask")
+	config.Log.Debug(apiHost)
 	denomsMetadata, err := rest.GetDenomsMetadatas(apiHost)
 	if err != nil {
 		config.Log.Error("Error in DenomUpsertTask when reaching out to the API. ", zap.Error(err))
