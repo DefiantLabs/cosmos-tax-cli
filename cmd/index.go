@@ -93,7 +93,7 @@ func index(cmd *cobra.Command, args []string) {
 	if err != nil {
 		config.Log.Fatal("Failed to connect to DB", zap.Error(err))
 	}
-	config.Log.Debug("DAN")
+
 	defer dbConn.Close()
 
 	// blockChan are just the block heights; limit max jobs in the queue, otherwise this queue would contain one
