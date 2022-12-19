@@ -130,6 +130,7 @@ type api struct {
 
 type base struct {
 	AddressRegex       string
+	API                string
 	AddressPrefix      string
 	StartBlock         int64
 	EndBlock           int64

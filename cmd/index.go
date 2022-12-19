@@ -58,22 +58,24 @@ func setupIndexer() *Indexer {
 	core.ChainSpecificMessageTypeHandlerBootstrap(idxr.cfg.Lens.ChainID)
 
 	// TODO may need to run this task in setup() so that we have a cold start functionality before the indexer starts
-	_, err = idxr.scheduler.Every(6).Hours().Do(tasks.DenomUpsertTask, idxr.cfg.Lens.RPC, idxr.db)
+	_, err = idxr.scheduler.Every(6).Hours().Do(tasks.DenomUpsertTask, idxr.cfg.Base.API, idxr.db)
 	if err != nil {
 		config.Log.Error("Error scheduling denmon upsert task. Err: ", zap.Error(err))
 	}
+
 	idxr.scheduler.StartAsync()
 
 	// Some chains do not have the denom metadata URL available on chain, so we do chain specific downloads instead.
 	tasks.DoChainSpecificUpsertDenoms(idxr.db, idxr.cfg.Lens.ChainID)
-
 	idxr.cl = config.GetLensClient(idxr.cfg.Lens)
+
 	config.SetChainConfig(idxr.cfg.Base.AddressPrefix)
 
 	// Depending on the app configuration, wait for the chain to catch up
 	chainCatchingUp, err := rpc.IsCatchingUp(idxr.cl)
 	for (idxr.cfg.Base.WaitForChain || idxr.cfg.Base.ExitWhenCaughtUp) && chainCatchingUp && err == nil {
 		// Wait between status checks, don't spam the node with requests
+		config.Log.Debug("Chain is still catching up, please wait or disable check in config.")
 		time.Sleep(time.Second * time.Duration(idxr.cfg.Base.WaitForChainDelay))
 		chainCatchingUp, err = rpc.IsCatchingUp(idxr.cl)
 	}
@@ -91,6 +93,7 @@ func index(cmd *cobra.Command, args []string) {
 	if err != nil {
 		config.Log.Fatal("Failed to connect to DB", zap.Error(err))
 	}
+
 	defer dbConn.Close()
 
 	// blockChan are just the block heights; limit max jobs in the queue, otherwise this queue would contain one
