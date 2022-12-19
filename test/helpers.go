@@ -2,12 +2,39 @@ package test
 
 import (
 	"fmt"
+	"math/big"
+
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 
 	configUtils "github.com/DefiantLabs/cosmos-tax-cli/config"
 	"github.com/DefiantLabs/cosmos-tax-cli/core"
 	dbUtils "github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 	"gorm.io/gorm"
 )
+
+func createOsmosisTaxableEvent(db *gorm.DB, blockHeight int64) {
+	addr := ensureTestAddress(db)
+	simpleDenom := ensureTestDenom(db)
+	chain := ensureTestChain(db, osmosis.ChainID, osmosis.Name)
+	block := ensureTestBlock(db, chain, blockHeight)
+	ensureOsmosisRewardsTaxableEvent(db, simpleDenom, addr, block, big.NewInt(420))
+}
+
+func setupOsmosisTestModels(db *gorm.DB) {
+	addr := ensureTestAddress(db)
+	simpleDenom := ensureTestDenom(db)
+	chain := ensureTestChain(db, osmosis.ChainID, osmosis.Name)
+	block := ensureTestBlock(db, chain, 1)
+
+	ensureOsmosisRewardsTaxableEvent(db, simpleDenom, addr, block, big.NewInt(100))
+}
+
+func ensureOsmosisRewardsTaxableEvent(db *gorm.DB, denom dbUtils.Denom, addr dbUtils.Address, block dbUtils.Block, amount *big.Int) dbUtils.TaxableEvent {
+	taxEvt := dbUtils.TaxableEvent{Source: dbUtils.OsmosisRewardDistribution, Amount: util.ToNumeric(amount), Denomination: denom, EventAddress: addr, Block: block}
+	db.FirstOrCreate(&taxEvt, &taxEvt)
+	return taxEvt
+}
 
 func ensureTestChain(db *gorm.DB, chainID string, name string) dbUtils.Chain {
 	chain := dbUtils.Chain{ChainID: chainID, Name: name}
@@ -53,18 +80,18 @@ func dbSetup(addressRegex string, addressPrefix string) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	//TODO: create config values for the prefixes here
-	//Could potentially check Node info at startup and pass in ourselves?
+	// TODO: create config values for the prefixes here
+	// Could potentially check Node info at startup and pass in ourselves?
 	core.SetupAddressRegex(addressRegex)
 	core.SetupAddressPrefix(addressPrefix)
 
-	//run database migrations at every runtime
+	// run database migrations at every runtime
 	err = dbUtils.MigrateModels(db)
 	if err != nil {
 		fmt.Println("Error running database migrations: ", err)
 		return nil, err
 	}
 
-	dbUtils.CacheDenoms(db) //Have to cache denoms to get translations from e.g. ujuno to Juno
+	dbUtils.CacheDenoms(db) // Have to cache denoms to get translations from e.g. ujuno to Juno
 	return db, nil
 }

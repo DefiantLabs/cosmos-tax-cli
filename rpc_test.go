@@ -24,7 +24,7 @@ import (
 //
 //nolint:unused
 func setupRPC() (*config.Config, *gocron.Scheduler, error) {
-	argConfig, err := config.ParseArgs(os.Stderr, os.Args[1:])
+	argConfig, _, _, err := config.ParseArgs(os.Stderr, os.Args)
 
 	if err != nil {
 		return nil, nil, err

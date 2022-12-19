@@ -2,7 +2,6 @@ package tx
 
 import (
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
-
 	cosmTx "github.com/cosmos/cosmos-sdk/types/tx"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -43,9 +42,9 @@ type GetTxByBlockHeightResponse struct {
 }
 
 type IndexerTx struct {
-	Body       Body `json:"body"`
-	AuthInfo   cosmTx.AuthInfo
-	Signatures []string `json:"signatures"`
+	Body     Body `json:"body"`
+	AuthInfo cosmTx.AuthInfo
+	Signers  []sdk.AccAddress // TODO: We may be able to use this in place of signer info under auth info... not 100% sure
 }
 
 type Response struct {
@@ -102,7 +101,7 @@ type Body struct {
 
 type AuthInfo struct {
 	TxFee         Fee          `json:"fee"`
-	TxSignerInfos []SignerInfo `json:"signer_infos"` //this is used in REST but not RPC parsers
+	TxSignerInfos []SignerInfo `json:"signer_infos"` // this is used in REST but not RPC parsers
 }
 
 type Fee struct {

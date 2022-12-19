@@ -24,13 +24,14 @@ type FailedBlockHandler func(height int64, code BlockProcessingFailure, err erro
 // Log error to stdout. Not much else we can do to handle right now.
 func HandleFailedBlock(height int64, code BlockProcessingFailure, err error) {
 	reason := "{unknown error}"
-	if code == NodeMissingBlockTxs {
+	switch code {
+	case NodeMissingBlockTxs:
 		reason = "node has no TX history for block"
-	} else if code == BlockQueryError {
+	case BlockQueryError:
 		reason = "failed to query block result for block"
-	} else if code == OsmosisNodeRewardLookupError {
+	case OsmosisNodeRewardLookupError:
 		reason = "Failed Osmosis rewards lookup for block"
-	} else if code == OsmosisNodeRewardIndexError {
+	case OsmosisNodeRewardIndexError:
 		reason = "Failed Osmosis rewards indexing for block"
 	}
 
