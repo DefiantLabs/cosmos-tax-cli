@@ -15,8 +15,8 @@ import (
 
 const (
 	MsgVote           = "/cosmos.gov.v1beta1.MsgVote"
-	MsgDeposit        = "/cosmos.gov.v1beta1.MsgDeposit"        //handle additional deposits to the given proposal
-	MsgSubmitProposal = "/cosmos.gov.v1beta1.MsgSubmitProposal" //handle the initial deposit for the proposer
+	MsgDeposit        = "/cosmos.gov.v1beta1.MsgDeposit"        // handle additional deposits to the given proposal
+	MsgSubmitProposal = "/cosmos.gov.v1beta1.MsgSubmitProposal" // handle the initial deposit for the proposer
 	MsgVoteWeighted   = "/cosmos.gov.v1beta1.MsgVoteWeighted"
 )
 
