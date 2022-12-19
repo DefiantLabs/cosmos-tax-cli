@@ -33,22 +33,10 @@ var queryCmd = &cobra.Command{
 
 		if !found {
 			err := cmd.Help()
-			config.Log.Error("Error getting cmd help.", zap.Error(err))
+			if err != nil {
+				config.Log.Error("Error getting cmd help.", zap.Error(err))
+			}
 			config.Log.Fatal(fmt.Sprintf("Invalid format %s, valid formats are %s", format, parsers))
-		}
-
-		// validate that 1 or more address have been provided
-		if len(address) == 0 && len(addresses) == 0 {
-			cmd.Help() //nolint:errcheck
-			config.Log.Fatal("One or more addresses must be provided")
-		}
-		// validate that addresses were not provided in more than one way
-		if len(address) > 0 && len(addresses) > 0 {
-			cmd.Help() //nolint:errcheck
-			config.Log.Fatal("If you would like to specify multiple addresses, please use the 'addresses' flag")
-		}
-		if len(addresses) == 0 {
-			addresses = []string{address}
 		}
 
 		// TODO: split out setup methods and only call necessary ones
@@ -104,7 +92,6 @@ var queryCmd = &cobra.Command{
 }
 
 var (
-	address   string   // flag storage for the address to query on
 	addresses []string // flag storage for the addresses to query on
 	output    string   // flag storage for the output file location
 	format    string   // flag storage for the output format
@@ -121,8 +108,11 @@ func init() {
 		config.Log.Fatal("Error during initialization, no CSV parsers found.")
 	}
 
-	queryCmd.Flags().StringVar(&address, "address", "", "The address to query for")
-	queryCmd.Flags().StringSliceVar(&addresses, "addresses", []string{}, "The addresses to query for")
+	queryCmd.Flags().StringSliceVar(&addresses, "address", nil, "The address to query for")
+	err := queryCmd.MarkFlagRequired("address")
+	if err != nil {
+		config.Log.Fatal("Error marking address field as required during query init. Err: ", zap.Error(err))
+	}
 
 	queryCmd.Flags().StringVar(&output, "output", "./output.csv", "The output location")
 	queryCmd.Flags().StringVar(&format, "format", validFormats[0], "The format to output")
