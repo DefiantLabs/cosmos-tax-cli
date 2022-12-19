@@ -11,7 +11,7 @@ import (
 
 type Config struct {
 	Database           database
-	API                api //deprecated in favor of lens.Rpc (at least in this app)
+	API                api // deprecated in favor of lens.Rpc (at least in this app)
 	ConfigFileLocation string
 	Base               base
 	Log                log
@@ -44,7 +44,7 @@ func (conf *Config) Validate() error {
 	if util.StrNotSet(conf.Base.AddressPrefix) {
 		return errors.New("base addressPrefix must be set")
 	}
-	if conf.Base.StartBlock == 0 { //TODO: Verify that 0 is not a valid starting block..
+	if conf.Base.StartBlock == 0 { // TODO: Verify that 0 is not a valid starting block..
 		return errors.New("base startblock must be set")
 	}
 	if conf.Base.EndBlock == 0 {
@@ -84,6 +84,28 @@ func (conf *Config) Validate() error {
 	return nil
 }
 
+// ValidateClientConfig will validate the config for fields required by the client
+func (conf *Config) ValidateClientConfig() error {
+	// Database Checks
+	if util.StrNotSet(conf.Database.Host) {
+		return errors.New("database host must be set")
+	}
+	if util.StrNotSet(conf.Database.Port) {
+		return errors.New("database port must be set")
+	}
+	if util.StrNotSet(conf.Database.Database) {
+		return errors.New("database name (i.e. Database) must be set")
+	}
+	if util.StrNotSet(conf.Database.User) {
+		return errors.New("database user must be set")
+	}
+	if util.StrNotSet(conf.Database.Password) {
+		return errors.New("database password must be set")
+	}
+
+	return nil
+}
+
 type database struct {
 	Host     string
 	Port     string
@@ -108,10 +130,12 @@ type api struct {
 
 type base struct {
 	AddressRegex       string
+	API                string
 	AddressPrefix      string
 	StartBlock         int64
 	EndBlock           int64
-	Throttling         int64
+	Throttling         float64
+	RPCWorkers         int64
 	BlockTimer         int64
 	WaitForChain       bool
 	WaitForChainDelay  int64
@@ -125,9 +149,10 @@ type log struct {
 	Path  string
 }
 
-func GetConfig(configFileLocation string) (conf Config, err error) {
-	_, err = toml.DecodeFile(configFileLocation, &conf)
-	return
+func GetConfig(configFileLocation string) (Config, error) {
+	var conf Config
+	_, err := toml.DecodeFile(configFileLocation, &conf)
+	return conf, err
 }
 
 func MergeConfigs(def Config, overide Config) Config {

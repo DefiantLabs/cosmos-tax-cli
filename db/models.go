@@ -8,6 +8,7 @@ import (
 
 type Block struct {
 	ID           uint
+	TimeStamp    time.Time
 	Height       int64 `gorm:"uniqueIndex:chainheight"`
 	BlockchainID uint  `gorm:"uniqueIndex:chainheight"`
 	Chain        Chain `gorm:"foreignKey:BlockchainID"`
@@ -22,18 +23,17 @@ type FailedBlock struct {
 
 type Chain struct {
 	ID      uint   `gorm:"primaryKey"`
-	ChainID string `gorm:"uniqueIndex"` //e.g. osmosis-1
-	Name    string //e.g. Osmosis
+	ChainID string `gorm:"uniqueIndex"` // e.g. osmosis-1
+	Name    string // e.g. Osmosis
 }
 
 type Tx struct {
 	ID              uint
-	TimeStamp       time.Time
 	Hash            string
 	Code            uint32
 	BlockID         uint
 	Block           Block
-	SignerAddressID *int //*int allows foreign key to be null
+	SignerAddressID *int // *int allows foreign key to be null
 	SignerAddress   Address
 	Fees            []Fee
 }
@@ -48,7 +48,7 @@ type Fee struct {
 	PayerAddress   Address `gorm:"foreignKey:PayerAddressID"`
 }
 
-//dbTypes.Address{Address: currTx.FeePayer().String()}
+// dbTypes.Address{Address: currTx.FeePayer().String()}
 
 type Address struct {
 	ID      uint
@@ -77,12 +77,13 @@ const (
 // Events can happen on chain and generate tendermint ABCI events that do not show up in transactions.
 type TaxableEvent struct {
 	ID             uint
-	Source         uint            //This will indicate what type of event occurred on chain. Currently, only used for Osmosis rewards.
-	Amount         decimal.Decimal `gorm:"type:decimal(78,0);"` //2^256 or 78 digits, cosmos Int can be up to this length
+	Source         uint            // This will indicate what type of event occurred on chain. Currently, only used for Osmosis rewards.
+	Amount         decimal.Decimal `gorm:"type:decimal(78,0);"` // 2^256 or 78 digits, cosmos Int can be up to this length
 	DenominationID uint
 	Denomination   Denom   `gorm:"foreignKey:DenominationID"`
 	AddressID      uint    `gorm:"index:idx_addr"`
 	EventAddress   Address `gorm:"foreignKey:AddressID"`
+	EventHash      string
 	BlockID        uint
 	Block          Block `gorm:"foreignKey:BlockID"`
 }
@@ -100,7 +101,7 @@ func (TaxableEvent) TableName() string {
 type TaxableTransaction struct {
 	ID                     uint
 	MessageID              uint
-	Message                Message
+	Message                Message         `gorm:"foreignKey:MessageID"`
 	AmountSent             decimal.Decimal `gorm:"type:decimal(78,0);"`
 	AmountReceived         decimal.Decimal `gorm:"type:decimal(78,0);"`
 	DenominationSentID     *uint
@@ -114,7 +115,7 @@ type TaxableTransaction struct {
 }
 
 func (TaxableTransaction) TableName() string {
-	return "taxable_tx" //Legacy
+	return "taxable_tx" // Legacy
 }
 
 type Denom struct {

@@ -24,7 +24,7 @@ import (
 //
 //nolint:unused
 func setupRPC() (*config.Config, *gocron.Scheduler, error) {
-	argConfig, err := config.ParseArgs(os.Stderr, os.Args[1:])
+	argConfig, _, _, err := config.ParseArgs(os.Stderr, os.Args)
 
 	if err != nil {
 		return nil, nil, err
@@ -46,13 +46,13 @@ func setupRPC() (*config.Config, *gocron.Scheduler, error) {
 
 	cfg := config.MergeConfigs(fileConfig, argConfig)
 
-	//0 is an invalid starting block, set it to 1
+	// 0 is an invalid starting block, set it to 1
 	if cfg.Base.StartBlock == 0 {
 		cfg.Base.StartBlock = 1
 	}
 
-	//TODO: create config values for the prefixes here
-	//Could potentially check Node info at startup and pass in ourselves?
+	// TODO: create config values for the prefixes here
+	// Could potentially check Node info at startup and pass in ourselves?
 	core.SetupAddressRegex("juno(valoper)?1[a-z0-9]{38}")
 	core.SetupAddressPrefix("juno")
 
@@ -74,10 +74,10 @@ func TestRPC(t *testing.T) {
 }
 
 func GetTestClient() *lensClient.ChainClient {
-	//IMPORTANT: the actual keyring-test will be searched for at the path {homepath}/keys/{ChainID}/keyring-test.
-	//You can use lens default settings to generate that directory appropriately then move it to the desired path.
-	//For example, 'lens keys restore default' will restore the key to the default keyring (e.g. /home/kyle/.lens/...)
-	//and you can move all of the necessary keys to whatever homepath you want to use. Or you can use --home flag.
+	// IMPORTANT: the actual keyring-test will be searched for at the path {homepath}/keys/{ChainID}/keyring-test.
+	// You can use lens default settings to generate that directory appropriately then move it to the desired path.
+	// For example, 'lens keys restore default' will restore the key to the default keyring (e.g. /home/kyle/.lens/...)
+	// and you can move all of the necessary keys to whatever homepath you want to use. Or you can use --home flag.
 	homepath := "/home/kyle/.lens"
 	cl, _ := lensClient.NewChainClient(GetJunoConfig(homepath, true), homepath, nil, nil)
 	return cl
@@ -120,7 +120,7 @@ func lensQueryBank(height int64) error {
 
 func rpcQueryTx(height int64) error {
 	cl := GetTestClient()
-	//requestEndpoint := fmt.Sprintf(rest.GetEndpoint("txs_by_block_height_endpoint"), height)
+	// requestEndpoint := fmt.Sprintf(rest.GetEndpoint("txs_by_block_height_endpoint"), height)
 	options := lensQuery.QueryOptions{Height: height}
 	query := lensQuery.Query{Client: cl, Options: &options}
 	resp, err := query.TxByHeight(cl.Codec)

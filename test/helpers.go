@@ -2,33 +2,60 @@ package test
 
 import (
 	"fmt"
+	"math/big"
+
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 
 	configUtils "github.com/DefiantLabs/cosmos-tax-cli/config"
 	"github.com/DefiantLabs/cosmos-tax-cli/core"
 	dbUtils "github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 	"gorm.io/gorm"
 )
 
-func ensureTestChain(db *gorm.DB, chainID string, name string) dbUtils.Chain {
+func createOsmosisTaxableEvent(db *gorm.DB, blockHeight int64) { //nolint: unused
+	addr := ensureTestAddress(db)
+	simpleDenom := ensureTestDenom(db)
+	chain := ensureTestChain(db, osmosis.ChainID, osmosis.Name)
+	block := ensureTestBlock(db, chain, blockHeight)
+	ensureOsmosisRewardsTaxableEvent(db, simpleDenom, addr, block, big.NewInt(420))
+}
+
+func setupOsmosisTestModels(db *gorm.DB) { //nolint: unused
+	addr := ensureTestAddress(db)
+	simpleDenom := ensureTestDenom(db)
+	chain := ensureTestChain(db, osmosis.ChainID, osmosis.Name)
+	block := ensureTestBlock(db, chain, 1)
+
+	ensureOsmosisRewardsTaxableEvent(db, simpleDenom, addr, block, big.NewInt(100))
+}
+
+func ensureOsmosisRewardsTaxableEvent(db *gorm.DB, denom dbUtils.Denom, addr dbUtils.Address, block dbUtils.Block, amount *big.Int) dbUtils.TaxableEvent { //nolint: unused
+	taxEvt := dbUtils.TaxableEvent{Source: dbUtils.OsmosisRewardDistribution, Amount: util.ToNumeric(amount), Denomination: denom, EventAddress: addr, Block: block}
+	db.FirstOrCreate(&taxEvt, &taxEvt)
+	return taxEvt
+}
+
+func ensureTestChain(db *gorm.DB, chainID string, name string) dbUtils.Chain { //nolint: unused
 	chain := dbUtils.Chain{ChainID: chainID, Name: name}
 	db.FirstOrCreate(&chain, &chain)
 	return chain
 }
 
-func ensureTestBlock(db *gorm.DB, chain dbUtils.Chain, height int64) dbUtils.Block {
+func ensureTestBlock(db *gorm.DB, chain dbUtils.Chain, height int64) dbUtils.Block { //nolint: unused
 	block := dbUtils.Block{Height: height, Chain: chain}
 	db.FirstOrCreate(&block, &block)
 	return block
 }
 
-func ensureTestDenom(db *gorm.DB) dbUtils.Denom {
+func ensureTestDenom(db *gorm.DB) dbUtils.Denom { //nolint: unused
 	denom := "uosmo"
 	simpleDenom := dbUtils.Denom{Base: denom, Symbol: denom}
 	db.FirstOrCreate(&simpleDenom)
 	return simpleDenom
 }
 
-func ensureTestAddress(db *gorm.DB) dbUtils.Address {
+func ensureTestAddress(db *gorm.DB) dbUtils.Address { //nolint: unused
 	address := "test1m2hg5t7n8f6kzh8kmh98phenk8a4xp5wyuz34y"
 	addr := dbUtils.Address{Address: address}
 	db.FirstOrCreate(&addr)
@@ -53,18 +80,18 @@ func dbSetup(addressRegex string, addressPrefix string) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	//TODO: create config values for the prefixes here
-	//Could potentially check Node info at startup and pass in ourselves?
+	// TODO: create config values for the prefixes here
+	// Could potentially check Node info at startup and pass in ourselves?
 	core.SetupAddressRegex(addressRegex)
 	core.SetupAddressPrefix(addressPrefix)
 
-	//run database migrations at every runtime
+	// run database migrations at every runtime
 	err = dbUtils.MigrateModels(db)
 	if err != nil {
 		fmt.Println("Error running database migrations: ", err)
 		return nil, err
 	}
 
-	dbUtils.CacheDenoms(db) //Have to cache denoms to get translations from e.g. ujuno to Juno
+	dbUtils.CacheDenoms(db) // Have to cache denoms to get translations from e.g. ujuno to Juno
 	return db, nil
 }

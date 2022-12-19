@@ -8,11 +8,15 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"github.com/DefiantLabs/cosmos-tax-cli/core"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/bank"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/distribution"
+	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/gov"
+	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/ibc"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/staking"
 	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
 )
 
 func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransaction) error {
@@ -22,12 +26,12 @@ func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransac
 	// Pull messages out of txMap that must be grouped together
 	parsers.SeparateParsingGroups(txMap, p.ParsingGroups)
 
-	//Parse all the potentially taxable events (one transaction group at a time)
+	// Parse all the potentially taxable events (one transaction group at a time)
 	for _, txGroup := range txMap {
-		//All messages have been removed into a parsing group
+		// All messages have been removed into a parsing group
 		if len(txGroup) != 0 {
-			//For the current transaction group, generate the rows for the CSV.
-			//Usually (but not always) a transaction will only have a single row in the CSV.
+			// For the current transaction group, generate the rows for the CSV.
+			// Usually (but not always) a transaction will only have a single row in the CSV.
 			txRows, err := ParseTx(address, txGroup)
 			if err != nil {
 				return err
@@ -38,7 +42,7 @@ func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransac
 		}
 	}
 
-	//Parse all the TXs found in the Parsing Groups
+	// Parse all the TXs found in the Parsing Groups
 	for _, txParsingGroup := range p.ParsingGroups {
 		err := txParsingGroup.ParseGroup()
 		if err != nil {
@@ -46,9 +50,9 @@ func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransac
 		}
 	}
 
-	//Handle fees on all taxableTxs at once, we don't do this in the regular parser or in the parsing groups
-	//This requires HandleFees to process the fees into unique mappings of tx -> fees (since we gather Taxable Messages in the taxableTxs)
-	//If we move it into the ParseTx function or into the ParseGroup function, we may be able to reduce the logic in the HandleFees func
+	// Handle fees on all taxableTxs at once, we don't do this in the regular parser or in the parsing groups
+	// This requires HandleFees to process the fees into unique mappings of tx -> fees (since we gather Taxable Messages in the taxableTxs)
+	// If we move it into the ParseTx function or into the ParseGroup function, we may be able to reduce the logic in the HandleFees func
 	feeRows, err := HandleFees(address, taxableTxs)
 	if err != nil {
 		return err
@@ -59,26 +63,21 @@ func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransac
 	return nil
 }
 
-func (p *Parser) ProcessTaxableEvent(address string, taxableEvents []db.TaxableEvent) error {
-	//Parse all the potentially taxable events
+func (p *Parser) ProcessTaxableEvent(taxableEvents []db.TaxableEvent) error {
+	// Parse all the potentially taxable events
 	for _, event := range taxableEvents {
-		//generate the rows for the CSV.
-		p.Rows = append(p.Rows, ParseEvent(address, event)...)
+		// generate the rows for the CSV.
+		p.Rows = append(p.Rows, ParseEvent(event)...)
 	}
 
 	return nil
 }
 
 func (p *Parser) InitializeParsingGroups(config config.Config) {
-	//switch config.Lens.ChainID {
-	//Stubbed until we have Osmosis compatibility
-	// case osmosis.ChainID:
-	// 	p.ParsingGroups = append(p.ParsingGroups, GetOsmosisTxParsingGroups()...)
-	// }
 }
 
 func (p *Parser) GetRows() []parsers.CsvRow {
-	//Combine all normal rows and parser group rows into 1
+	// Combine all normal rows and parser group rows into 1
 	accointingRows := p.Rows // contains TX rows and fees as well as taxable events
 	for _, v := range p.ParsingGroups {
 		for _, row := range v.GetRowsForParsingGroup() {
@@ -86,7 +85,7 @@ func (p *Parser) GetRows() []parsers.CsvRow {
 		}
 	}
 
-	//Sort by date
+	// Sort by date
 	sort.Slice(accointingRows, func(i int, j int) bool {
 		leftDate, err := time.Parse(timeLayout, accointingRows[i].Date)
 		if err != nil {
@@ -101,7 +100,7 @@ func (p *Parser) GetRows() []parsers.CsvRow {
 		return leftDate.Before(rightDate)
 	})
 
-	//Copy AccointingRows into csvRows for return val
+	// Copy AccointingRows into csvRows for return val
 	csvRows := make([]parsers.CsvRow, len(accointingRows))
 	for i, v := range accointingRows {
 		csvRows[i] = v
@@ -120,13 +119,13 @@ func (p Parser) GetHeaders() []string {
 // then we spread the fees out one per row. Otherwise we add a line for the fees,
 // where each fee has a separate line.
 func HandleFees(address string, events []db.TaxableTransaction) (rows []Row, err error) {
-	//No events -- This address didn't pay any fees
+	// No events -- This address didn't pay any fees
 	if len(events) == 0 {
 		return rows, nil
 	}
 
-	//We need to gather all unique fees, but we are receiving Messages not Txes
-	//Make a map from TX hash to fees array to keep unique
+	// We need to gather all unique fees, but we are receiving Messages not Txes
+	// Make a map from TX hash to fees array to keep unique
 	txToFeesMap := make(map[uint][]db.Fee)
 	txIdsToTx := make(map[uint]db.Tx)
 	for _, event := range events {
@@ -153,45 +152,64 @@ func HandleFees(address string, events []db.TaxableTransaction) (rows []Row, err
 }
 
 // ParseEvent: Parse the potentially taxable event
-func ParseEvent(address string, event db.TaxableEvent) (rows []Row) {
-	//Stubbed for Osmosis compatibility
+func ParseEvent(event db.TaxableEvent) (rows []Row) {
+	if event.Source == db.OsmosisRewardDistribution {
+		row, err := ParseOsmosisReward(event)
+		if err != nil {
+			// TODO: handle error parsing row. Should be impossible to reach this condition, ideally (once all bugs worked out)
+			config.Log.Fatal("error parsing row. Should be impossible to reach this condition, ideally (once all bugs worked out)", zap.Error(err))
+		}
+		rows = append(rows, row)
+	}
 
-	// if event.Source == db.OsmosisRewardDistribution {
-	// 	row, err := ParseOsmosisReward(address, event)
-	// 	if err != nil {
-	// 		//TODO: handle error parsing row. Should be impossible to reach this condition, ideally (once all bugs worked out)
-	// 		config.Log.Fatal("error parsing row. Should be impossible to reach this condition, ideally (once all bugs worked out)", zap.Error(err))
-	// 	}
-	// 	rows = append(rows, row)
-	// }
-
-	//rows = HandleFees(address, events, rows) TODO we have no fee handler for taxable EVENTS right now
+	// rows = HandleFees(address, events, rows) TODO we have no fee handler for taxable EVENTS right now
 	return rows
 }
 
 // ParseTx: Parse the potentially taxable TX and Messages
 // This function is used for parsing a single TX that will not need to relate to any others
-// Use TX Parsing Groups to parse txes as a group
+// Use TX Parsing Groups to parse txes as a group.
+// NOTE: just because two message types are related on chain does not mean they must be parsed as a group.
+// Whether or not a message must be parsed as a group depends on whether the taxable implications are clear without further context.
 func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.CsvRow, err error) {
 	for _, event := range events {
-		//Is this a MsgSend
-		if bank.IsMsgSend[event.Message.MessageType.MessageType] {
+		switch event.Message.MessageType.MessageType {
+		case bank.MsgSendV0:
 			rows = append(rows, ParseMsgSend(address, event))
-		} else if distribution.IsMsgWithdrawValidatorCommission[event.Message.MessageType.MessageType] {
+		case bank.MsgSend:
+			rows = append(rows, ParseMsgSend(address, event))
+		case bank.MsgMultiSendV0:
+			rows = append(rows, ParseMsgMultiSend(address, event))
+		case bank.MsgMultiSend:
+			rows = append(rows, ParseMsgMultiSend(address, event))
+		case distribution.MsgFundCommunityPool:
+			rows = append(rows, ParseMsgFundCommunityPool(address, event))
+		case distribution.MsgWithdrawValidatorCommission:
 			rows = append(rows, ParseMsgWithdrawValidatorCommission(address, event))
-		} else if distribution.IsMsgWithdrawDelegatorReward[event.Message.MessageType.MessageType] {
+		case distribution.MsgWithdrawRewards:
 			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
-		} else if staking.MsgDelegate == event.Message.MessageType.MessageType {
+		case distribution.MsgWithdrawDelegatorReward:
 			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
-		} else if staking.MsgUndelegate == event.Message.MessageType.MessageType {
+		case staking.MsgDelegate:
 			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
-		} else if staking.MsgBeginRedelegate == event.Message.MessageType.MessageType {
+		case staking.MsgUndelegate:
 			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
-		} else {
+		case staking.MsgBeginRedelegate:
+			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
+		case gamm.MsgSwapExactAmountIn:
+			rows = append(rows, ParseMsgSwapExactAmountIn(event))
+		case gamm.MsgSwapExactAmountOut:
+			rows = append(rows, ParseMsgSwapExactAmountOut(event))
+		case gov.MsgSubmitProposal:
+			rows = append(rows, ParseMsgSubmitProposal(address, event))
+		case gov.MsgDeposit:
+			rows = append(rows, ParseMsgDeposit(address, event))
+		case ibc.MsgTransfer:
+			rows = append(rows, ParseMsgTransfer(address, event))
+		default:
 			return nil, fmt.Errorf("no parser for message type '%v'", event.Message.MessageType.MessageType)
 		}
 	}
-
 	return rows, nil
 }
 
@@ -229,4 +247,89 @@ func ParseMsgSend(address string, event db.TaxableTransaction) Row {
 		config.Log.Fatal("Error with ParseMsgSend.", zap.Error(err))
 	}
 	return *row
+}
+
+func ParseMsgMultiSend(address string, event db.TaxableTransaction) Row {
+	row := &Row{}
+	err := row.ParseBasic(address, event)
+	if err != nil {
+		config.Log.Fatal("Error with ParseMsgMultiSend.", zap.Error(err))
+	}
+	return *row
+}
+
+func ParseMsgFundCommunityPool(address string, event db.TaxableTransaction) Row {
+	row := &Row{}
+	err := row.ParseBasic(address, event)
+	if err != nil {
+		config.Log.Fatal("Error with ParseMsgFundCommunityPool.", zap.Error(err))
+	}
+	return *row
+}
+
+func ParseMsgSubmitProposal(address string, event db.TaxableTransaction) Row {
+	row := &Row{}
+	err := row.ParseBasic(address, event)
+	if err != nil {
+		config.Log.Fatal("Error with ParseMsgSubmitProposal.", zap.Error(err))
+	}
+	return *row
+}
+
+func ParseMsgDeposit(address string, event db.TaxableTransaction) Row {
+	row := &Row{}
+	err := row.ParseBasic(address, event)
+	if err != nil {
+		config.Log.Fatal("Error with ParseMsgDeposit.", zap.Error(err))
+	}
+	return *row
+}
+
+func ParseMsgSwapExactAmountIn(event db.TaxableTransaction) Row {
+	row := &Row{}
+	err := row.ParseSwap(event)
+	if err != nil {
+		config.Log.Fatal("Error with ParseMsgSwapExactAmountIn.", zap.Error(err))
+	}
+	return *row
+}
+
+func ParseMsgSwapExactAmountOut(event db.TaxableTransaction) Row {
+	row := &Row{}
+	err := row.ParseSwap(event)
+	if err != nil {
+		config.Log.Fatal("Error with ParseMsgSwapExactAmountOut.", zap.Error(err))
+	}
+	return *row
+}
+
+func ParseMsgTransfer(address string, event db.TaxableTransaction) Row {
+	row := &Row{}
+	err := row.ParseBasic(address, event)
+	selfTransfer := false
+
+	senderAddrPrefix := core.GetAddressPrefix(event.SenderAddress.Address)
+	receiverAddrPrefix := core.GetAddressPrefix(event.ReceiverAddress.Address)
+	if senderAddrPrefix != "" && receiverAddrPrefix != "" {
+		selfTransfer = core.IsAddressEqual(event.SenderAddress.Address, senderAddrPrefix, event.ReceiverAddress.Address, receiverAddrPrefix)
+	}
+
+	// The base bech32 address was the same, so this was a self transfer and is not taxable
+	if selfTransfer {
+		row.Classification = Ignored
+	}
+
+	if err != nil {
+		config.Log.Fatal("Error with ParseMsgTransfer.", zap.Error(err))
+	}
+	return *row
+}
+
+func ParseOsmosisReward(event db.TaxableEvent) (Row, error) {
+	row := &Row{}
+	err := row.EventParseBasic(event)
+	if err != nil {
+		config.Log.Fatal("Error with ParseOsmosisReward.", zap.Error(err))
+	}
+	return *row, err
 }

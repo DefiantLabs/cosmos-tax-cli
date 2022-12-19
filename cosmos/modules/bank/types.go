@@ -6,27 +6,19 @@ import (
 
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
 	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
 const (
-	MsgSend      = "/cosmos.bank.v1beta1.MsgSend"
-	MsgMultiSend = "/cosmos.bank.v1beta1.MsgMultiSend"
+	MsgSendV0 = "MsgSend"
+	MsgSend   = "/cosmos.bank.v1beta1.MsgSend"
+
+	MsgMultiSendV0 = "MsgMultiSend"
+	MsgMultiSend   = "/cosmos.bank.v1beta1.MsgMultiSend"
 )
-
-// TODO: are these maps needed? When is that other string used?
-
-var IsMsgSend = map[string]bool{
-	"MsgSend": true,
-	MsgSend:   true,
-}
-
-var IsMsgMultiSend = map[string]bool{
-	"MsgMultiSend": true,
-	MsgMultiSend:   true,
-}
 
 // HandleMsg: Unmarshal JSON for MsgSend.
 // Note that MsgSend ignores the LogMessage because it isn't needed.
@@ -34,22 +26,22 @@ func (sf *WrapperMsgSend) HandleMsg(msgType string, msg sdk.Msg, log *txModule.L
 	sf.Type = msgType
 	sf.CosmosMsgSend = msg.(*bankTypes.MsgSend)
 
-	//Confirm that the action listed in the message log matches the Message type
+	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		return util.ReturnInvalidLog(msgType, log)
 	}
 
-	//The attribute in the log message that shows you the delegator withdrawal address and amount received
-	receivedCoinsEvt := txModule.GetEventWithType(bankTypes.EventTypeCoinReceived, log)
+	// The attribute in the log message that shows you the delegator withdrawal address and amount received
+	receivedCoinsEvt := txModule.GetEventWithType(bankTypes.EventTypeTransfer, log)
 	if receivedCoinsEvt == nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
-	receiverAddress := txModule.GetValueForAttribute(bankTypes.AttributeKeyReceiver, receivedCoinsEvt)
-	//coins_received := txModule.GetValueForAttribute("amount", receivedCoinsEvt)
+	receiverAddress := txModule.GetValueForAttribute(bankTypes.AttributeKeyRecipient, receivedCoinsEvt)
+	// coins_received := txModule.GetValueForAttribute("amount", receivedCoinsEvt)
 
-	if sf.CosmosMsgSend.ToAddress != receiverAddress {
+	if !strings.EqualFold(sf.CosmosMsgSend.ToAddress, receiverAddress) {
 		return fmt.Errorf("transaction receiver address %s does not match log event '%s' receiver address %s",
 			sf.CosmosMsgSend.ToAddress, bankTypes.EventTypeCoinReceived, receiverAddress)
 	}
@@ -61,19 +53,42 @@ func (sf *WrapperMsgMultiSend) HandleMsg(msgType string, msg sdk.Msg, log *txMod
 	sf.Type = msgType
 	sf.CosmosMsgMultiSend = msg.(*bankTypes.MsgMultiSend)
 
-	//Make sure the standard ordering of Inputs -> Outputs applies (where send Input[i] == received Output[i])
-	//This is assuming Inputs[i] corresponds to Outputs[i]
-	//Is this safe to assume? From testing it looks like it
-	for i, input := range sf.CosmosMsgMultiSend.Inputs {
-		correspondingOutput := sf.CosmosMsgMultiSend.Outputs[i]
+	fmt.Printf("%+v", sf.CosmosMsgMultiSend)
 
-		for ii, coinSent := range input.Coins {
-			correspondingCoin := correspondingOutput.Coins[ii]
+	// Make sure the that the total amount sent matches the total amount recieved for each coin
 
-			if !correspondingCoin.IsEqual(coinSent) {
-				return fmt.Errorf("Error processing MultiSend, inputs and outputs mismatch, send %s != received %s in standard ordering", coinSent, correspondingCoin)
+	// sum up input coins
+	sentMap := make(map[string]sdk.Int)
+	for _, input := range sf.CosmosMsgMultiSend.Inputs {
+		for _, coin := range input.Coins {
+			if currentTotal, ok := sentMap[coin.Denom]; ok {
+				sentMap[coin.Denom] = currentTotal.Add(coin.Amount)
+			} else {
+				sentMap[coin.Denom] = coin.Amount
 			}
-			sf.SenderReceiverAmounts = append(sf.SenderReceiverAmounts, SenderReceiverAmount{Sender: input.Address, Receiver: correspondingOutput.Address, Amount: coinSent})
+		}
+	}
+
+	// sum up output coins
+	recievedMap := make(map[string]sdk.Int)
+	for _, output := range sf.CosmosMsgMultiSend.Outputs {
+		for _, coin := range output.Coins {
+			if currentTotal, ok := recievedMap[coin.Denom]; ok {
+				recievedMap[coin.Denom] = currentTotal.Add(coin.Amount)
+			} else {
+				recievedMap[coin.Denom] = coin.Amount
+			}
+		}
+	}
+
+	// compare
+	for coin, amountSent := range sentMap {
+		if amountReceived, coinWasReceived := recievedMap[coin]; coinWasReceived {
+			if !amountReceived.Equal(amountSent) {
+				return fmt.Errorf("error processing MultiSend, inputs and outputs mismatch for denom %v, send %s != received %s", coin, amountSent, amountReceived)
+			}
+		} else {
+			return fmt.Errorf("error processing MultiSend, sent denom %v does not appear in recieved coins", coin)
 		}
 	}
 
@@ -100,11 +115,11 @@ func (sf *WrapperMsgSend) ParseRelevantData() []parsingTypes.MessageRelevantInfo
 		var currRelevantData parsingTypes.MessageRelevantInformation
 		currRelevantData.SenderAddress = sf.CosmosMsgSend.FromAddress
 		currRelevantData.ReceiverAddress = sf.CosmosMsgSend.ToAddress
-		//Amount always seems to be an integer, float may be an extra uneeded step
+		// Amount always seems to be an integer, float may be an extra uneeded step
 		currRelevantData.AmountSent = v.Amount.BigInt()
 		currRelevantData.DenominationSent = v.Denom
 
-		//This is required since we do CSV parsing on the receiver here too
+		// This is required since we do CSV parsing on the receiver here too
 		currRelevantData.AmountReceived = v.Amount.BigInt()
 		currRelevantData.DenominationReceived = v.Denom
 

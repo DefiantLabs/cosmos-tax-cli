@@ -3,8 +3,10 @@ package db
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
+
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -13,7 +15,7 @@ import (
 )
 
 func GetAddresses(addressList []string, db *gorm.DB) ([]Address, error) {
-	//Look up all DB Addresses that match the search
+	// Look up all DB Addresses that match the search
 	var addresses []Address
 	result := db.Where("address IN ?", addressList).Find(&addresses)
 	fmt.Printf("Found %d addresses in the db\n", result.RowsAffected)
@@ -62,7 +64,7 @@ func MigrateModels(db *gorm.DB) error {
 
 func GetHighestIndexedBlock(db *gorm.DB) Block {
 	var block Block
-	//this can potentially be optimized by getting max first and selecting it (this gets translated into a select * limit 1)
+	// this can potentially be optimized by getting max first and selecting it (this gets translated into a select * limit 1)
 	db.Table("blocks").Order("height desc").First(&block)
 	return block
 }
@@ -84,19 +86,19 @@ func UpsertFailedBlock(db *gorm.DB, blockHeight int64, chainID string, chainName
 	})
 }
 
-func IndexNewBlock(db *gorm.DB, blockHeight int64, txs []TxDBWrapper, chainID string, chainName string) error {
-	//consider optimizing the transaction, but how? Ordering matters due to foreign key constraints
-	//Order required: Block -> (For each Tx: Signer Address -> Tx -> (For each Message: Message -> Taxable Events))
-	//Also, foreign key relations are struct value based so create needs to be called first to get right foreign key ID
+func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []TxDBWrapper, chainID string, chainName string) error {
+	// consider optimizing the transaction, but how? Ordering matters due to foreign key constraints
+	// Order required: Block -> (For each Tx: Signer Address -> Tx -> (For each Message: Message -> Taxable Events))
+	// Also, foreign key relations are struct value based so create needs to be called first to get right foreign key ID
 	return db.Transaction(func(dbTransaction *gorm.DB) error {
-		block := Block{Height: blockHeight, Chain: Chain{ChainID: chainID, Name: chainName}}
+		block := Block{Height: blockHeight, TimeStamp: blockTime, Chain: Chain{ChainID: chainID, Name: chainName}}
 
 		if err := dbTransaction.Where(&block.Chain).FirstOrCreate(&block.Chain).Error; err != nil {
 			config.Log.Error("Error getting/creating chain DB object.", zap.Error(err))
 			return err
 		}
 
-		//block.BlockchainID = block.Chain.ID
+		// block.BlockchainID = block.Chain.ID
 
 		if err := dbTransaction.Where(&block).FirstOrCreate(&block).Error; err != nil {
 			config.Log.Error("Error getting/creating block DB object.", zap.Error(err))
@@ -112,7 +114,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, txs []TxDBWrapper, chainID st
 						return err
 					}
 
-					//creates foreign key relation.
+					// creates foreign key relation.
 					fee.PayerAddressID = fee.PayerAddress.ID
 				} else if fee.PayerAddress.Address == "" {
 					return errors.New("fee cannot have empty payer address")
@@ -130,17 +132,17 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, txs []TxDBWrapper, chainID st
 			}
 
 			if transaction.SignerAddress.Address != "" {
-				//viewing gorm logs shows this gets translated into a single ON CONFLICT DO NOTHING RETURNING "id"
+				// viewing gorm logs shows this gets translated into a single ON CONFLICT DO NOTHING RETURNING "id"
 				if err := dbTransaction.Where(&transaction.SignerAddress).FirstOrCreate(&transaction.SignerAddress).Error; err != nil {
 					config.Log.Error("Error getting/creating signer address for tx.", zap.Error(err))
 					return err
 				}
-				//store created db model in signer address, creates foreign key relation
+				// store created db model in signer address, creates foreign key relation
 				transaction.Tx.SignerAddress = transaction.SignerAddress
 			} else {
-				//store null foreign key relation in signer address id
-				//This should never happen and indicates an error somewhere in parsing
-				//Consider removing?
+				// store null foreign key relation in signer address id
+				// This should never happen and indicates an error somewhere in parsing
+				// Consider removing?
 				transaction.Tx.SignerAddressID = nil
 			}
 
@@ -173,10 +175,10 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, txs []TxDBWrapper, chainID st
 							config.Log.Error("Error getting/creating sender address.", zap.Error(err))
 							return err
 						}
-						//store created db model in sender address, creates foreign key relation
+						// store created db model in sender address, creates foreign key relation
 						taxableTx.TaxableTx.SenderAddress = taxableTx.SenderAddress
 					} else {
-						//nil creates null foreign key relation
+						// nil creates null foreign key relation
 						taxableTx.TaxableTx.SenderAddressID = nil
 					}
 
@@ -185,10 +187,10 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, txs []TxDBWrapper, chainID st
 							config.Log.Error("Error getting/creating receiver address.", zap.Error(err))
 							return err
 						}
-						//store created db model in receiver address, creates foreign key relation
+						// store created db model in receiver address, creates foreign key relation
 						taxableTx.TaxableTx.ReceiverAddress = taxableTx.ReceiverAddress
 					} else {
-						//nil creates null foreign key relation
+						// nil creates null foreign key relation
 						taxableTx.TaxableTx.ReceiverAddressID = nil
 					}
 					taxableTx.TaxableTx.Message = message.Message
@@ -225,10 +227,11 @@ func UpsertDenoms(db *gorm.DB, denoms []DenomDBWrapper) error {
 				}
 
 				for _, denomAlias := range denomUnit.Aliases {
-					denomAlias.DenomUnit = denomUnit.DenomUnit
+					thisDenomAlias := denomAlias // This is redundant but required for the picky gosec linter
+					thisDenomAlias.DenomUnit = denomUnit.DenomUnit
 					if err := dbTransaction.Clauses(clause.OnConflict{
 						DoNothing: true,
-					}).Create(&denomAlias).Error; err != nil {
+					}).Create(&thisDenomAlias).Error; err != nil {
 						return err
 					}
 				}

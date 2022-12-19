@@ -8,7 +8,7 @@ import (
 type Parser interface {
 	InitializeParsingGroups(config config.Config)
 	ProcessTaxableTx(address string, taxableTxs []db.TaxableTransaction) error
-	ProcessTaxableEvent(address string, taxableEvents []db.TaxableEvent) error
+	ProcessTaxableEvent(taxableEvents []db.TaxableEvent) error
 	GetHeaders() []string
 	GetRows() []CsvRow
 }
