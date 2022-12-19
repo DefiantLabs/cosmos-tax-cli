@@ -23,6 +23,10 @@ func (row Row) GetRowForCsv() []string {
 	}
 }
 
+func (row Row) GetDate() string {
+	return row.Date
+}
+
 func (row *Row) EventParseBasic(event db.TaxableEvent) error {
 	// row.OperationID = ??? TODO - maybe use the block hash or something. This isn't a TX so there is no TX hash. Have to test Accointing response to using block hash.
 

@@ -61,7 +61,7 @@ func ParseForAddress(address string, pgSQL *gorm.DB, parserKey string, cfg confi
 	}
 
 	// Get rows once right at the end
-	rows := parser.GetRows()
+	rows := parser.GetRows(address)
 
 	return rows, parser.GetHeaders(), nil
 }

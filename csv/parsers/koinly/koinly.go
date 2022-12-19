@@ -88,7 +88,7 @@ func (p *Parser) InitializeParsingGroups(config config.Config) {
 	}
 }
 
-func (p *Parser) GetRows() []parsers.CsvRow {
+func (p *Parser) GetRows(address string) []parsers.CsvRow {
 	// Combine all normal rows and parser group rows into 1
 	koinlyRows := p.Rows // contains TX rows and fees as well as taxable events
 	for _, v := range p.ParsingGroups {
@@ -144,6 +144,8 @@ func (p *Parser) GetRows() []parsers.CsvRow {
 				coinReplacementMap[coin1], math.Pow(10, float64(coinScalingMap[coin1])), coin1,
 				coinReplacementMap[coin2], math.Pow(10, float64(coinScalingMap[coin2])), coin2)
 		}
+
+		v.Description = fmt.Sprintf("Address: %s %s", address, v.Description)
 
 		csvRows[i] = v
 	}
