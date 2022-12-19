@@ -55,32 +55,13 @@ var queryCmd = &cobra.Command{
 				log.Println(address)
 				config.Log.Fatal("Error calling parser for address", zap.Error(err))
 			}
+
 			csvRows = append(csvRows, addressRows...)
 		}
 
 		// re-sort rows if needed
 		if len(addresses) > 1 {
-			// set the appropriate time format for the parser
-			timeLayout := "2006-01-02 15:04:05"
-			timeCol := 0
-			if format == "accointing" {
-				timeLayout = "01/02/2006 15:04:05"
-				timeCol = 1
-			}
-			// Sort by date
-			sort.Slice(csvRows, func(i int, j int) bool {
-				leftDate, err := time.Parse(timeLayout, csvRows[i].GetRowForCsv()[timeCol])
-				if err != nil {
-					config.Log.Error("Error sorting left date.", zap.Error(err))
-					return false
-				}
-				rightDate, err := time.Parse(timeLayout, csvRows[j].GetRowForCsv()[timeCol])
-				if err != nil {
-					config.Log.Error("Error sorting right date.", zap.Error(err))
-					return false
-				}
-				return leftDate.Before(rightDate)
-			})
+			sortRows(csvRows, format)
 		}
 
 		buffer := csv.ToCsv(csvRows, headers)
@@ -89,6 +70,28 @@ var queryCmd = &cobra.Command{
 			config.Log.Fatal("Error writing out CSV", zap.Error(err))
 		}
 	},
+}
+
+func sortRows(csvRows []parsers_pkg.CsvRow, format string) {
+	// set the appropriate time format for the parser
+	timeLayout := "2006-01-02 15:04:05"
+	if format == "accointing" {
+		timeLayout = "01/02/2006 15:04:05"
+	}
+	// Sort by date
+	sort.Slice(csvRows, func(i int, j int) bool {
+		leftDate, err := time.Parse(timeLayout, csvRows[i].GetDate())
+		if err != nil {
+			config.Log.Error("Error sorting left date.", zap.Error(err))
+			return false
+		}
+		rightDate, err := time.Parse(timeLayout, csvRows[j].GetDate())
+		if err != nil {
+			config.Log.Error("Error sorting right date.", zap.Error(err))
+			return false
+		}
+		return leftDate.Before(rightDate)
+	})
 }
 
 var (

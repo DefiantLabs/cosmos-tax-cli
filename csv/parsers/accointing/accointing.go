@@ -80,7 +80,7 @@ func (p *Parser) InitializeParsingGroups(config config.Config) {
 	}
 }
 
-func (p *Parser) GetRows() []parsers.CsvRow {
+func (p *Parser) GetRows(address string) []parsers.CsvRow {
 	// Combine all normal rows and parser group rows into 1
 	accointingRows := p.Rows // contains TX rows and fees as well as taxable events
 	for _, v := range p.ParsingGroups {
@@ -107,6 +107,7 @@ func (p *Parser) GetRows() []parsers.CsvRow {
 	// Copy AccointingRows into csvRows for return val
 	csvRows := make([]parsers.CsvRow, len(accointingRows))
 	for i, v := range accointingRows {
+		v.Comments = fmt.Sprintf("Address: %s %s", address, v.Comments)
 		csvRows[i] = v
 	}
 

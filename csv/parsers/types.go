@@ -10,7 +10,7 @@ type Parser interface {
 	ProcessTaxableTx(address string, taxableTxs []db.TaxableTransaction) error
 	ProcessTaxableEvent(taxableEvents []db.TaxableEvent) error
 	GetHeaders() []string
-	GetRows() []CsvRow
+	GetRows(address string) []CsvRow
 }
 
 type ParsingGroup interface {
@@ -24,4 +24,5 @@ type ParsingGroup interface {
 
 type CsvRow interface {
 	GetRowForCsv() []string
+	GetDate() string
 }
