@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
@@ -45,6 +46,15 @@ var queryCmd = &cobra.Command{
 			config.Log.Fatal("Error setting up query", zap.Error(err))
 		}
 
+		// Validate addresses
+		for _, address := range addresses {
+			if strings.Contains(address, ",") {
+				throwInvalidAddressErr(cmd, fmt.Sprintf("Invalid address '%v'. Addresses cannot contain commas", address))
+			} else if strings.Contains(address, " ") {
+				throwInvalidAddressErr(cmd, fmt.Sprintf("Invalid address '%v'. Addresses cannot contain spaces", address))
+			}
+		}
+
 		var headers []string
 		var csvRows []parsers_pkg.CsvRow
 		for _, address := range addresses {
@@ -70,6 +80,14 @@ var queryCmd = &cobra.Command{
 			config.Log.Fatal("Error writing out CSV", zap.Error(err))
 		}
 	},
+}
+
+func throwInvalidAddressErr(cmd *cobra.Command, cause string) {
+	err := cmd.Help()
+	if err != nil {
+		config.Log.Error("Error getting cmd help.", zap.Error(err))
+	}
+	config.Log.Fatal(cause)
 }
 
 func sortRows(csvRows []parsers_pkg.CsvRow, format string) {
@@ -111,7 +129,7 @@ func init() {
 		config.Log.Fatal("Error during initialization, no CSV parsers found.")
 	}
 
-	queryCmd.Flags().StringSliceVar(&addresses, "address", nil, "The address to query for")
+	queryCmd.Flags().StringSliceVar(&addresses, "address", nil, "A comma separated list of the address(s) to query. (Both '--address addr1,addr2' and '--address addr1 --address addr2' are valid)")
 	err := queryCmd.MarkFlagRequired("address")
 	if err != nil {
 		config.Log.Fatal("Error marking address field as required during query init. Err: ", zap.Error(err))
