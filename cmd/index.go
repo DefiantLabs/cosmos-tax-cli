@@ -221,12 +221,12 @@ func GetIndexerStartingHeight(configStartHeight int64, cl *client.ChainClient, d
 	return latestBlock
 }
 
-func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler core.FailedBlockHandler) {
+func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler core.FailedBlockHandler) { //nolint: unused
 	defer wg.Done()
 
 	startHeight := idxr.cfg.Base.StartBlock
-	if startHeight == -1 {
-		//startHeight = OsmosisGetRewardsStartIndexHeight(idxr.db, idxr.cfg.Lens.ChainID)
+	if startHeight == -1 { //nolint: staticcheck
+		// startHeight = OsmosisGetRewardsStartIndexHeight(idxr.db, idxr.cfg.Lens.ChainID)
 	}
 
 	endHeight := idxr.cfg.Base.EndBlock
@@ -259,7 +259,7 @@ func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler 
 	}
 }
 
-func (idxr *Indexer) indexOsmosisReward(rpcClient osmosis.URIClient, epoch int64) (core.BlockProcessingFailure, error) {
+func (idxr *Indexer) indexOsmosisReward(rpcClient osmosis.URIClient, epoch int64) (core.BlockProcessingFailure, error) { //nolint: unused
 	// config.Log.Debug(fmt.Sprintf("Getting rewards for epoch %v", epoch))
 	// rewards, err := rpcClient.GetEpochRewards(epoch)
 	// if err != nil {

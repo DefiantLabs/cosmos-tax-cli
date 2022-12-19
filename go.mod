@@ -22,10 +22,7 @@ require (
 	gorm.io/gorm v1.23.6
 )
 
-require (
-	github.com/cosmos/ibc-go/v3 v3.0.0
-	github.com/preichenberger/go-coinbasepro/v2 v2.1.0
-)
+require github.com/cosmos/ibc-go/v3 v3.0.0
 
 require (
 	filippo.io/edwards25519 v1.0.0-rc.1 // indirect
