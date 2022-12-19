@@ -1,14 +1,14 @@
-# dev info  
+# dev info
 
-## Bootstrap Script  
+## Bootstrap Script
 
-clone https://github.com/CosmosContracts/juno.git and make sure `docker-compose up` works.  Stop with `docker-compose down`. Make sure you have the required binaries like `jq` installed and on your path. Download this file to the juno repo you just cloned, and run this shell script.  
+clone https://github.com/CosmosContracts/juno.git and make sure `docker-compose up` works.  Stop with `docker-compose down`. Make sure you have the required binaries like `jq` installed and on your path. Download this file to the juno repo you just cloned, and run this shell script.
 
 
 ```
 #!/bin/bash
 
-## Generate a test-user key  
+## Generate a test-user key
 
 echo "Y" | junod keys delete test_user_wallet 2> /dev/null
 export TEST_USER_PASS="testuserpass"
@@ -16,7 +16,7 @@ echo "$TEST_USER_PASS" | junod keys add test_user_wallet
 echo "$TEST_USER_PASS" | junod keys export test_user_wallet 2> test_user_wallet.key
 
 
-## Generate a sample data  
+## Generate a sample data
 
 cat <<EOF > sample_data.sh
 #!/bin/sh
@@ -57,10 +57,10 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
-        chmod 755 /opt/\${TEST_DATA_FILE} 
+        chmod 755 /opt/\${TEST_DATA_FILE}
         /opt/\${TEST_DATA_FILE} &
         ./setup_and_run.sh juno16g2rahf5846rxzp3fwlswy08fz8ccuwk03k57y
-      
+
 EOF
 
 
