@@ -11,6 +11,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli-private/core"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/bank"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/distribution"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/gov"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/ibc"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/staking"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers"
@@ -171,7 +172,9 @@ func ParseEvent(event db.TaxableEvent) (rows []Row) {
 
 // ParseTx: Parse the potentially taxable TX and Messages
 // This function is used for parsing a single TX that will not need to relate to any others
-// Use TX Parsing Groups to parse txes as a group
+// Use TX Parsing Groups to parse txes as a group.
+// NOTE: just because two message types are related on chain does not mean they must be parsed as a group.
+// Whether or not a message must be parsed as a group depends on whether the taxable implications are clear without further context.
 func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.CsvRow, err error) {
 	for _, event := range events {
 		switch event.Message.MessageType.MessageType {
@@ -187,8 +190,8 @@ func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.Csv
 			rows = append(rows, ParseMsgFundCommunityPool(address, event))
 		case distribution.MsgWithdrawValidatorCommission:
 			rows = append(rows, ParseMsgWithdrawValidatorCommission(address, event))
-		case distribution.MsgWithdrawRewards: // FIXME: it is unclear if this is a delegator or validator reward...
-			rows = append(rows, ParseMsgWithdrawValidatorCommission(address, event))
+		case distribution.MsgWithdrawRewards:
+			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
 		case distribution.MsgWithdrawDelegatorReward:
 			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
 		case staking.MsgDelegate:
@@ -201,6 +204,10 @@ func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.Csv
 			rows = append(rows, ParseMsgSwapExactAmountIn(event))
 		case gamm.MsgSwapExactAmountOut:
 			rows = append(rows, ParseMsgSwapExactAmountOut(event))
+		case gov.MsgSubmitProposal:
+			rows = append(rows, ParseMsgSubmitProposal(address, event))
+		case gov.MsgDeposit:
+			rows = append(rows, ParseMsgDeposit(address, event))
 		case ibc.MsgTransfer:
 			rows = append(rows, ParseMsgTransfer(address, event))
 		default:
@@ -260,6 +267,24 @@ func ParseMsgFundCommunityPool(address string, event db.TaxableTransaction) Row 
 	err := row.ParseBasic(address, event)
 	if err != nil {
 		config.Log.Fatal("Error with ParseMsgFundCommunityPool.", zap.Error(err))
+	}
+	return *row
+}
+
+func ParseMsgSubmitProposal(address string, event db.TaxableTransaction) Row {
+	row := &Row{}
+	err := row.ParseBasic(address, event)
+	if err != nil {
+		config.Log.Fatal("Error with ParseMsgSubmitProposal.", zap.Error(err))
+	}
+	return *row
+}
+
+func ParseMsgDeposit(address string, event db.TaxableTransaction) Row {
+	row := &Row{}
+	err := row.ParseBasic(address, event)
+	if err != nil {
+		config.Log.Fatal("Error with ParseMsgDeposit.", zap.Error(err))
 	}
 	return *row
 }

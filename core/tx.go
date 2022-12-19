@@ -40,6 +40,8 @@ var messageTypeHandler = map[string]func() txTypes.CosmosMessage{
 	distribution.MsgWithdrawDelegatorReward:     func() txTypes.CosmosMessage { return &distribution.WrapperMsgWithdrawDelegatorReward{} },
 	distribution.MsgWithdrawValidatorCommission: func() txTypes.CosmosMessage { return &distribution.WrapperMsgWithdrawValidatorCommission{} },
 	distribution.MsgFundCommunityPool:           func() txTypes.CosmosMessage { return &distribution.WrapperMsgFundCommunityPool{} },
+	gov.MsgDeposit:                              func() txTypes.CosmosMessage { return &gov.WrapperMsgDeposit{} },
+	gov.MsgSubmitProposal:                       func() txTypes.CosmosMessage { return &gov.WrapperMsgSubmitProposal{} },
 	staking.MsgDelegate:                         func() txTypes.CosmosMessage { return &staking.WrapperMsgDelegate{} },
 	staking.MsgUndelegate:                       func() txTypes.CosmosMessage { return &staking.WrapperMsgUndelegate{} },
 	staking.MsgBeginRedelegate:                  func() txTypes.CosmosMessage { return &staking.WrapperMsgBeginRedelegate{} },

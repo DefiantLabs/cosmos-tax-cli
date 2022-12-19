@@ -271,8 +271,8 @@ func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.Csv
 			rows = append(rows, ParseMsgFundCommunityPool(address, event))
 		case distribution.MsgWithdrawValidatorCommission:
 			rows = append(rows, ParseMsgWithdrawValidatorCommission(address, event))
-		case distribution.MsgWithdrawRewards: // FIXME: it is unclear if this is a delegator or validator reward...
-			rows = append(rows, ParseMsgWithdrawValidatorCommission(address, event))
+		case distribution.MsgWithdrawRewards:
+			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
 		case distribution.MsgWithdrawDelegatorReward:
 			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
 		case staking.MsgDelegate:
