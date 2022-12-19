@@ -12,7 +12,8 @@ ifeq (,$(VERSION))
   endif
 endif
 
-FQCN = ghcr.io/defiantlabs/cosmos-tax-cli-private/cosmos-tax-cli-private# default value, overide with: make -e FQCN="foo"
+# default value, overide with: make -e FQCN="foo"
+FQCN = ghcr.io/defiantlabs/cosmos-tax-cli-private
 
 all: install
 

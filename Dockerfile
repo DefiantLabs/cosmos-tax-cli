@@ -1,5 +1,6 @@
 # FROM golang:1.19-alpine AS build-env
 FROM ubuntu AS build-env
+
 LABEL org.opencontainers.image.source="https://github.com/defiantlabs/cosmos-tax-cli-private"
 
 ENV PACKAGES make git ssh gcc musl-dev golang net-tools curl
@@ -8,7 +9,7 @@ ENV PACKAGES make git ssh gcc musl-dev golang net-tools curl
 RUN apt-get -y update && apt-get install -y $PACKAGES
 
 # Copy the App
-WORKDIR /go/src/github.com/DefiantLabs/cosmos-tax-cli-private/cosmos-tax-cli-private
+WORKDIR /go/src/github.com/DefiantLabs/cosmos-tax-cli-private
 ADD . .
 
 # Build Defaults
@@ -18,6 +19,10 @@ ARG TARGETOS=linux
 # Build Local App.
 RUN CGO_ENABLED=1 LDFLAGS='-linkmode external -extldflags "-static"' GOOS=${TARGETOS} GOARCH=${TARGETARCH} go install
 RUN wget -O /lib/libwasmvm.x86_64.so https://github.com/CosmWasm/wasmvm/raw/main/internal/api/libwasmvm.x86_64.so
+
+# Build client
+WORKDIR /go/src/github.com/DefiantLabs/cosmos-tax-cli-private/client
+RUN CGO_ENABLED=1 LDFLAGS='-linkmode external -extldflags "-static"' GOOS=${TARGETOS} GOARCH=${TARGETARCH} go install
 
 # Move all binaries to path
 RUN cp /root/go/bin/* /bin/
