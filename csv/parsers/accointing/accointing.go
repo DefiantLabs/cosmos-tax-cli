@@ -5,8 +5,6 @@ import (
 	"sort"
 	"time"
 
-	"go.uber.org/zap"
-
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/core"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/bank"
@@ -93,12 +91,12 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parser
 	sort.Slice(accointingRows, func(i int, j int) bool {
 		leftDate, err := time.Parse(timeLayout, accointingRows[i].Date)
 		if err != nil {
-			config.Log.Error("Error sorting left date.", zap.Error(err))
+			config.Log.Error("Error sorting left date.", err)
 			return false
 		}
 		rightDate, err := time.Parse(timeLayout, accointingRows[j].Date)
 		if err != nil {
-			config.Log.Error("Error sorting right date.", zap.Error(err))
+			config.Log.Error("Error sorting right date.", err)
 			return false
 		}
 		return leftDate.Before(rightDate)
@@ -111,7 +109,7 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parser
 		if startDate != nil && firstToKeep == nil {
 			rowDate, err := time.Parse(timeLayout, accointingRows[i].Date)
 			if err != nil {
-				config.Log.Fatal("Error parsing row date.", zap.Error(err))
+				config.Log.Fatal("Error parsing row date.", err)
 			}
 			if rowDate.Before(*startDate) {
 				continue
@@ -122,7 +120,7 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parser
 		} else if endDate != nil && lastToKeep == nil {
 			rowDate, err := time.Parse(timeLayout, accointingRows[i].Date)
 			if err != nil {
-				config.Log.Fatal("Error parsing row date.", zap.Error(err))
+				config.Log.Fatal("Error parsing row date.", err)
 			}
 			if rowDate.Before(*endDate) {
 				continue
@@ -199,7 +197,7 @@ func ParseEvent(event db.TaxableEvent) (rows []Row) {
 		row, err := ParseOsmosisReward(event)
 		if err != nil {
 			// TODO: handle error parsing row. Should be impossible to reach this condition, ideally (once all bugs worked out)
-			config.Log.Fatal("error parsing row. Should be impossible to reach this condition, ideally (once all bugs worked out)", zap.Error(err))
+			config.Log.Fatal("error parsing row. Should be impossible to reach this condition, ideally (once all bugs worked out)", err)
 		}
 		rows = append(rows, row)
 	}
@@ -261,7 +259,7 @@ func ParseMsgWithdrawValidatorCommission(address string, event db.TaxableTransac
 	row := &Row{}
 	err := row.ParseBasic(address, event)
 	if err != nil {
-		config.Log.Fatal("Error with ParseMsgWithdrawValidatorCommission.", zap.Error(err))
+		config.Log.Fatal("Error with ParseMsgWithdrawValidatorCommission.", err)
 	}
 	row.Classification = Staked
 	return *row
@@ -273,7 +271,7 @@ func ParseMsgWithdrawDelegatorReward(address string, event db.TaxableTransaction
 	row := &Row{}
 	err := row.ParseBasic(address, event)
 	if err != nil {
-		config.Log.Fatal("Error with ParseMsgWithdrawDelegatorReward.", zap.Error(err))
+		config.Log.Fatal("Error with ParseMsgWithdrawDelegatorReward.", err)
 	}
 	row.Classification = Staked
 	return *row
@@ -286,7 +284,7 @@ func ParseMsgSend(address string, event db.TaxableTransaction) Row {
 	row := &Row{}
 	err := row.ParseBasic(address, event)
 	if err != nil {
-		config.Log.Fatal("Error with ParseMsgSend.", zap.Error(err))
+		config.Log.Fatal("Error with ParseMsgSend.", err)
 	}
 	return *row
 }
@@ -295,7 +293,7 @@ func ParseMsgMultiSend(address string, event db.TaxableTransaction) Row {
 	row := &Row{}
 	err := row.ParseBasic(address, event)
 	if err != nil {
-		config.Log.Fatal("Error with ParseMsgMultiSend.", zap.Error(err))
+		config.Log.Fatal("Error with ParseMsgMultiSend.", err)
 	}
 	return *row
 }
@@ -304,7 +302,7 @@ func ParseMsgFundCommunityPool(address string, event db.TaxableTransaction) Row 
 	row := &Row{}
 	err := row.ParseBasic(address, event)
 	if err != nil {
-		config.Log.Fatal("Error with ParseMsgFundCommunityPool.", zap.Error(err))
+		config.Log.Fatal("Error with ParseMsgFundCommunityPool.", err)
 	}
 	return *row
 }
@@ -313,7 +311,7 @@ func ParseMsgSubmitProposal(address string, event db.TaxableTransaction) Row {
 	row := &Row{}
 	err := row.ParseBasic(address, event)
 	if err != nil {
-		config.Log.Fatal("Error with ParseMsgSubmitProposal.", zap.Error(err))
+		config.Log.Fatal("Error with ParseMsgSubmitProposal.", err)
 	}
 	return *row
 }
@@ -322,7 +320,7 @@ func ParseMsgDeposit(address string, event db.TaxableTransaction) Row {
 	row := &Row{}
 	err := row.ParseBasic(address, event)
 	if err != nil {
-		config.Log.Fatal("Error with ParseMsgDeposit.", zap.Error(err))
+		config.Log.Fatal("Error with ParseMsgDeposit.", err)
 	}
 	return *row
 }
@@ -331,7 +329,7 @@ func ParseMsgSwapExactAmountIn(event db.TaxableTransaction) Row {
 	row := &Row{}
 	err := row.ParseSwap(event)
 	if err != nil {
-		config.Log.Fatal("Error with ParseMsgSwapExactAmountIn.", zap.Error(err))
+		config.Log.Fatal("Error with ParseMsgSwapExactAmountIn.", err)
 	}
 	return *row
 }
@@ -340,7 +338,7 @@ func ParseMsgSwapExactAmountOut(event db.TaxableTransaction) Row {
 	row := &Row{}
 	err := row.ParseSwap(event)
 	if err != nil {
-		config.Log.Fatal("Error with ParseMsgSwapExactAmountOut.", zap.Error(err))
+		config.Log.Fatal("Error with ParseMsgSwapExactAmountOut.", err)
 	}
 	return *row
 }
@@ -362,7 +360,7 @@ func ParseMsgTransfer(address string, event db.TaxableTransaction) Row {
 	}
 
 	if err != nil {
-		config.Log.Fatal("Error with ParseMsgTransfer.", zap.Error(err))
+		config.Log.Fatal("Error with ParseMsgTransfer.", err)
 	}
 	return *row
 }
@@ -371,7 +369,7 @@ func ParseOsmosisReward(event db.TaxableEvent) (Row, error) {
 	row := &Row{}
 	err := row.EventParseBasic(event)
 	if err != nil {
-		config.Log.Fatal("Error with ParseOsmosisReward.", zap.Error(err))
+		config.Log.Fatal("Error with ParseOsmosisReward.", err)
 	}
 	return *row, err
 }

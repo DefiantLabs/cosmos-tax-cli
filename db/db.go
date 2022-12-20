@@ -7,7 +7,6 @@ import (
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 
-	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -20,7 +19,7 @@ func GetAddresses(addressList []string, db *gorm.DB) ([]Address, error) {
 	result := db.Where("address IN ?", addressList).Find(&addresses)
 	fmt.Printf("Found %d addresses in the db\n", result.RowsAffected)
 	if result.Error != nil {
-		config.Log.Error("Error searching DB for addresses.", zap.Error(result.Error))
+		config.Log.Error("Error searching DB for addresses.", result.Error)
 	}
 
 	return addresses, result.Error
@@ -74,12 +73,12 @@ func UpsertFailedBlock(db *gorm.DB, blockHeight int64, chainID string, chainName
 		failedBlock := FailedBlock{Height: blockHeight, Chain: Chain{ChainID: chainID, Name: chainName}}
 
 		if err := dbTransaction.Where(&failedBlock.Chain).FirstOrCreate(&failedBlock.Chain).Error; err != nil {
-			config.Log.Error("Error creating chain DB object.", zap.Error(err))
+			config.Log.Error("Error creating chain DB object.", err)
 			return err
 		}
 
 		if err := dbTransaction.Where(&failedBlock).FirstOrCreate(&failedBlock).Error; err != nil {
-			config.Log.Error("Error creating failed block DB object.", zap.Error(err))
+			config.Log.Error("Error creating failed block DB object.", err)
 			return err
 		}
 		return nil
@@ -94,14 +93,14 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 		block := Block{Height: blockHeight, TimeStamp: blockTime, Chain: Chain{ChainID: chainID, Name: chainName}}
 
 		if err := dbTransaction.Where(&block.Chain).FirstOrCreate(&block.Chain).Error; err != nil {
-			config.Log.Error("Error getting/creating chain DB object.", zap.Error(err))
+			config.Log.Error("Error getting/creating chain DB object.", err)
 			return err
 		}
 
 		// block.BlockchainID = block.Chain.ID
 
 		if err := dbTransaction.Where(&block).FirstOrCreate(&block).Error; err != nil {
-			config.Log.Error("Error getting/creating block DB object.", zap.Error(err))
+			config.Log.Error("Error getting/creating block DB object.", err)
 			return err
 		}
 
@@ -110,7 +109,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 			for _, fee := range transaction.Tx.Fees {
 				if fee.PayerAddress.Address != "" {
 					if err := dbTransaction.Where(&fee.PayerAddress).FirstOrCreate(&fee.PayerAddress).Error; err != nil {
-						config.Log.Error("Error getting/creating fee payer address.", zap.Error(err))
+						config.Log.Error("Error getting/creating fee payer address.", err)
 						return err
 					}
 
@@ -134,7 +133,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 			if transaction.SignerAddress.Address != "" {
 				// viewing gorm logs shows this gets translated into a single ON CONFLICT DO NOTHING RETURNING "id"
 				if err := dbTransaction.Where(&transaction.SignerAddress).FirstOrCreate(&transaction.SignerAddress).Error; err != nil {
-					config.Log.Error("Error getting/creating signer address for tx.", zap.Error(err))
+					config.Log.Error("Error getting/creating signer address for tx.", err)
 					return err
 				}
 				// store created db model in signer address, creates foreign key relation
@@ -150,7 +149,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 			transaction.Tx.Fees = fees
 
 			if err := dbTransaction.Create(&transaction.Tx).Error; err != nil {
-				config.Log.Error("Error creating tx.", zap.Error(err))
+				config.Log.Error("Error creating tx.", err)
 				return err
 			}
 
@@ -159,20 +158,20 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 					config.Log.Fatal("Message type not getting to DB")
 				}
 				if err := dbTransaction.Where(&message.Message.MessageType).FirstOrCreate(&message.Message.MessageType).Error; err != nil {
-					config.Log.Error("Error getting/creating message_type.", zap.Error(err))
+					config.Log.Error("Error getting/creating message_type.", err)
 					return err
 				}
 
 				message.Message.Tx = transaction.Tx
 				if err := dbTransaction.Create(&message.Message).Error; err != nil {
-					config.Log.Error("Error creating message.", zap.Error(err))
+					config.Log.Error("Error creating message.", err)
 					return err
 				}
 
 				for _, taxableTx := range message.TaxableTxs {
 					if taxableTx.SenderAddress.Address != "" {
 						if err := dbTransaction.Where(&taxableTx.SenderAddress).FirstOrCreate(&taxableTx.SenderAddress).Error; err != nil {
-							config.Log.Error("Error getting/creating sender address.", zap.Error(err))
+							config.Log.Error("Error getting/creating sender address.", err)
 							return err
 						}
 						// store created db model in sender address, creates foreign key relation
@@ -184,7 +183,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 
 					if taxableTx.ReceiverAddress.Address != "" {
 						if err := dbTransaction.Where(&taxableTx.ReceiverAddress).FirstOrCreate(&taxableTx.ReceiverAddress).Error; err != nil {
-							config.Log.Error("Error getting/creating receiver address.", zap.Error(err))
+							config.Log.Error("Error getting/creating receiver address.", err)
 							return err
 						}
 						// store created db model in receiver address, creates foreign key relation
@@ -195,7 +194,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 					}
 					taxableTx.TaxableTx.Message = message.Message
 					if err := dbTransaction.Create(&taxableTx.TaxableTx).Error; err != nil {
-						config.Log.Error("Error creating taxable event.", zap.Error(err))
+						config.Log.Error("Error creating taxable event.", err)
 						return err
 					}
 				}

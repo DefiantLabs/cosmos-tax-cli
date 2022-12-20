@@ -12,7 +12,6 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
 
 	"github.com/preichenberger/go-coinbasepro/v2"
-	"go.uber.org/zap"
 )
 
 var IsOsmosisJoin = map[string]bool{
@@ -131,7 +130,7 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 				} else {
 					receivedAmount, err := strconv.ParseFloat(row.ReceivedAmount, 64)
 					if err != nil {
-						config.Log.Fatal(fmt.Sprintf("Could not parse amount %v", row.ReceivedAmount), zap.Error(err))
+						config.Log.Fatal(fmt.Sprintf("Could not parse amount %v", row.ReceivedAmount), err)
 					}
 					gamValue := receivedAmount * price
 					row.Description = fmt.Sprintf("%v %v on %v was $%v USD", row.SentAmount, row.SentCurrency, row.Date, gamValue)
@@ -145,7 +144,7 @@ func (sf *WrapperLpTxGroup) ParseGroup() error {
 				} else {
 					sentAmount, err := strconv.ParseFloat(row.SentAmount, 64)
 					if err != nil {
-						config.Log.Fatal(fmt.Sprintf("Could not parse amount %v", row.SentAmount), zap.Error(err))
+						config.Log.Fatal(fmt.Sprintf("Could not parse amount %v", row.SentAmount), err)
 					}
 					gamValue := sentAmount * price
 					row.Description = fmt.Sprintf("%v %v on %v was $%v USD", row.ReceivedAmount, row.ReceivedCurrency, row.Date, gamValue)

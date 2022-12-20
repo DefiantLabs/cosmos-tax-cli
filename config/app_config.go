@@ -112,6 +112,7 @@ type database struct {
 	Database string
 	User     string
 	Password string
+	LogLevel string
 }
 
 type lens struct {
@@ -145,8 +146,9 @@ type base struct {
 }
 
 type log struct {
-	Level string
-	Path  string
+	Level  string
+	Path   string
+	Pretty bool
 }
 
 func GetConfig(configFileLocation string) (Config, error) {

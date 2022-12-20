@@ -1,43 +1,101 @@
 package config
 
 import (
-	lg "log"
+	"io"
+	"os"
+	"strings"
 
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
+	"github.com/rs/zerolog"
+	zlog "github.com/rs/zerolog/log"
 )
 
-var Log *zap.Logger // Global logger
+type Logger struct{}
 
-func DoConfigureLogger(logPath string, logLevel string) {
-	// only log to path if set
-	outputPaths := []string{"stdout"}
+// Log is exposed on the config as a drop-in replacement for our old logger
+var Log Logger
+
+// These functions are provided to reduce refactoring.
+func (l *Logger) Debug(msg string, err ...error) {
+	if len(err) == 1 {
+		zlog.Debug().Err(err[0]).Msg(msg)
+	}
+	zlog.Debug().Msg(msg)
+}
+
+func (l *Logger) Info(msg string, err ...error) {
+	if len(err) == 1 {
+		zlog.Info().Err(err[0]).Msg(msg)
+	}
+	zlog.Info().Msg(msg)
+}
+
+func (l *Logger) Warn(msg string, err ...error) {
+	if len(err) == 1 {
+		zlog.Warn().Err(err[0]).Msg(msg)
+	}
+	zlog.Warn().Msg(msg)
+}
+
+func (l *Logger) Error(msg string, err ...error) {
+	if len(err) == 1 {
+		zlog.Error().Err(err[0]).Msg(msg)
+	}
+	zlog.Error().Msg(msg)
+}
+
+func (l *Logger) Fatal(msg string, err ...error) {
+	if len(err) == 1 {
+		zlog.Fatal().Err(err[0]).Msg(msg)
+	}
+	zlog.Fatal().Msg(msg)
+}
+
+func (l *Logger) Panic(msg string, err ...error) {
+	if len(err) == 1 {
+		zlog.Panic().Err(err[0]).Msg(msg)
+	}
+	zlog.Panic().Msg(msg)
+}
+
+func DoConfigureLogger(logPath string, logLevel string, prettyLogging bool) {
+	// TODO: I might be able to make this look cleaner
+	writers := io.MultiWriter(os.Stdout)
 	if len(logPath) > 0 {
-		outputPaths = append(outputPaths, logPath)
+		if _, err := os.Stat(logPath); os.IsNotExist(err) {
+			file, err := os.Create(logPath)
+			if err != nil {
+				panic(err)
+			}
+			writers = io.MultiWriter(os.Stdout, file)
+		} else {
+			file, err := os.OpenFile(logPath, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+			if err != nil {
+				panic(err)
+			}
+			writers = io.MultiWriter(os.Stdout, file)
+		}
+	}
+	if prettyLogging {
+		zlog.Logger = zlog.Output(zerolog.ConsoleWriter{Out: writers})
+	} else {
+		zlog.Logger = zlog.Output(writers)
 	}
 
-	// Logger
-	cfg := zap.Config{
-		OutputPaths: outputPaths,
-		EncoderConfig: zapcore.EncoderConfig{
-			MessageKey:  "message",
-			LevelKey:    "level",
-			EncodeLevel: zapcore.LowercaseLevelEncoder,
-			EncodeTime:  zapcore.ISO8601TimeEncoder,
-			TimeKey:     "timestamp",
-		},
-		Encoding: "json",
-		Level:    zap.NewAtomicLevel(),
-	}
-
-	al, err := zap.ParseAtomicLevel(logLevel)
-	if err != nil {
-		lg.Fatalf("logger setup failure. Err: %v", err)
-	}
-
-	cfg.Level = al
-	Log, err = cfg.Build()
-	if err != nil {
-		lg.Fatalf("logger setup failure. Err: %v", err)
+	// Set the log level (default to info)
+	switch strings.ToLower(logLevel) {
+	case "debug":
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	case "info":
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	case "warn":
+		zerolog.SetGlobalLevel(zerolog.WarnLevel)
+	case "error":
+		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+	case "fatal":
+		zerolog.SetGlobalLevel(zerolog.FatalLevel)
+	case "panic":
+		zerolog.SetGlobalLevel(zerolog.PanicLevel)
+	default:
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	}
 }

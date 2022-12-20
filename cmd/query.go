@@ -13,7 +13,6 @@ import (
 	parsers_pkg "github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers"
 
 	"github.com/spf13/cobra"
-	"go.uber.org/zap"
 )
 
 var queryCmd = &cobra.Command{
@@ -35,7 +34,7 @@ var queryCmd = &cobra.Command{
 		if !found {
 			err := cmd.Help()
 			if err != nil {
-				config.Log.Error("Error getting cmd help.", zap.Error(err))
+				config.Log.Error("Error getting cmd help.", err)
 			}
 			config.Log.Fatal(fmt.Sprintf("Invalid format %s, valid formats are %s", format, parsers))
 		}
@@ -43,7 +42,7 @@ var queryCmd = &cobra.Command{
 		// TODO: split out setup methods and only call necessary ones
 		_, db, _, err := setup(conf)
 		if err != nil {
-			config.Log.Fatal("Error setting up query", zap.Error(err))
+			config.Log.Fatal("Error setting up query", err)
 		}
 
 		// Validate addresses
@@ -84,7 +83,7 @@ var queryCmd = &cobra.Command{
 			addressRows, headers, err = csv.ParseForAddress(address, startDate, endDate, db, format, conf)
 			if err != nil {
 				log.Println(address)
-				config.Log.Fatal("Error calling parser for address", zap.Error(err))
+				config.Log.Fatal("Error calling parser for address", err)
 			}
 
 			csvRows = append(csvRows, addressRows...)
@@ -98,7 +97,7 @@ var queryCmd = &cobra.Command{
 		buffer := csv.ToCsv(csvRows, headers)
 		err = os.WriteFile(output, buffer.Bytes(), 0600)
 		if err != nil {
-			config.Log.Fatal("Error writing out CSV", zap.Error(err))
+			config.Log.Fatal("Error writing out CSV", err)
 		}
 	},
 }
@@ -106,7 +105,7 @@ var queryCmd = &cobra.Command{
 func throwValidationErr(cmd *cobra.Command, cause string) {
 	err := cmd.Help()
 	if err != nil {
-		config.Log.Error("Error getting cmd help.", zap.Error(err))
+		config.Log.Error("Error getting cmd help.", err)
 	}
 	config.Log.Fatal(cause)
 }
@@ -122,12 +121,12 @@ func sortRows(csvRows []parsers_pkg.CsvRow, format string) {
 	sort.Slice(csvRows, func(i int, j int) bool {
 		leftDate, err := time.Parse(timeLayout, csvRows[i].GetDate())
 		if err != nil {
-			config.Log.Error("Error sorting left date.", zap.Error(err))
+			config.Log.Error("Error sorting left date.", err)
 			return false
 		}
 		rightDate, err := time.Parse(timeLayout, csvRows[j].GetDate())
 		if err != nil {
-			config.Log.Error("Error sorting right date.", zap.Error(err))
+			config.Log.Error("Error sorting right date.", err)
 			return false
 		}
 		return leftDate.Before(rightDate)
@@ -143,11 +142,6 @@ var (
 )
 
 func init() {
-	// Setup Logger
-	logLevel := conf.Log.Level
-	logPath := conf.Log.Path
-	config.DoConfigureLogger(logPath, logLevel)
-
 	validFormats := parsers_pkg.GetParserKeys()
 	if len(validFormats) == 0 {
 		config.Log.Fatal("Error during initialization, no CSV parsers found.")
@@ -156,7 +150,7 @@ func init() {
 	queryCmd.Flags().StringSliceVar(&addresses, "address", nil, "A comma separated list of the address(s) to query. (Both '--address addr1,addr2' and '--address addr1 --address addr2' are valid)")
 	err := queryCmd.MarkFlagRequired("address")
 	if err != nil {
-		config.Log.Fatal("Error marking address field as required during query init. Err: ", zap.Error(err))
+		config.Log.Fatal("Error marking address field as required during query init. Err: ", err)
 	}
 
 	queryCmd.Flags().StringVar(&output, "output", "./output.csv", "The output location")

@@ -11,7 +11,6 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/rest"
 
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -47,12 +46,12 @@ func UpsertOsmosisDenoms(db *gorm.DB) {
 
 	denomAssets, err := getOsmosisAssetsList(url)
 	if err != nil {
-		config.Log.Fatal("Download Osmosis Denom Metadata", zap.Error(err))
+		config.Log.Fatal("Download Osmosis Denom Metadata", err)
 	} else {
 		denoms := toDenoms(denomAssets)
 		err = dbTypes.UpsertDenoms(db, denoms)
 		if err != nil {
-			config.Log.Fatal("Upsert Osmosis Denom Metadata", zap.Error(err))
+			config.Log.Fatal("Upsert Osmosis Denom Metadata", err)
 		}
 	}
 }
@@ -107,7 +106,7 @@ func DenomUpsertTask(apiHost string, db *gorm.DB) {
 	config.Log.Debug(apiHost)
 	denomsMetadata, err := rest.GetDenomsMetadatas(apiHost)
 	if err != nil {
-		config.Log.Error("Error in DenomUpsertTask when reaching out to the API. ", zap.Error(err))
+		config.Log.Error("Error in DenomUpsertTask when reaching out to the API. ", err)
 		return
 	}
 
@@ -130,7 +129,7 @@ func DenomUpsertTask(apiHost string, db *gorm.DB) {
 
 	err = dbTypes.UpsertDenoms(db, denoms)
 	if err != nil {
-		config.Log.Error("Error upserting in DenomUpsertTask", zap.Error(err))
+		config.Log.Error("Error upserting in DenomUpsertTask", err)
 		return
 	}
 	config.Log.Info("Task ended for DenomUpsertTask")

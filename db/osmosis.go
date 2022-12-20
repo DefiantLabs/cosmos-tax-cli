@@ -8,7 +8,6 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -72,10 +71,10 @@ func IndexOsmoRewards(db *gorm.DB, chainID string, chainName string, rewards []*
 			denom, err := GetDenomForBase(coin.Denom)
 			if err != nil {
 				// attempt to add missing denoms to the database
-				config.Log.Error("Denom lookup failed. Will be inserted as UNKNOWN", zap.Error(err), zap.String("denom received", coin.Denom))
+				config.Log.Error(fmt.Sprintf("Denom lookup failed. Will be inserted as UNKNOWN. Denom Received: %v", coin.Denom), err)
 				denom, err = AddUnknownDenom(db, coin.Denom)
 				if err != nil {
-					config.Log.Error("There was an error adding a missing denom", zap.Error(err), zap.String("denom received", coin.Denom))
+					config.Log.Error(fmt.Sprintf("There was an error adding a missing denom. Denom Received: %v", coin.Denom), err)
 					return err
 				}
 			}
@@ -116,7 +115,7 @@ func IndexOsmoRewards(db *gorm.DB, chainID string, chainName string, rewards []*
 
 		err := createTaxableEvents(db, dbEvents[i:batchEnd])
 		if err != nil {
-			config.Log.Error("Error storing DB events.", zap.Error(err))
+			config.Log.Error("Error storing DB events.", err)
 			return err
 		}
 	}

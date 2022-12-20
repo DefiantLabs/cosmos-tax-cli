@@ -10,7 +10,6 @@ import (
 	stdTypes "github.com/cosmos/cosmos-sdk/types"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	govTypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	"go.uber.org/zap"
 )
 
 const (
@@ -106,7 +105,7 @@ func (sf *WrapperMsgSubmitProposal) HandleMsg(msgType string, msg stdTypes.Msg, 
 	if err != nil {
 		sf.MultiCoinsReceived, err = stdTypes.ParseCoinsNormalized(coinsReceived)
 		if err != nil {
-			config.Log.Error("Error parsing coins normalized", zap.Error(err))
+			config.Log.Error("Error parsing coins normalized", err)
 			return err
 		}
 	} else {
@@ -143,7 +142,7 @@ func (sf *WrapperMsgDeposit) HandleMsg(msgType string, msg stdTypes.Msg, log *tx
 	if err != nil {
 		sf.MultiCoinsReceived, err = stdTypes.ParseCoinsNormalized(coinsReceived)
 		if err != nil {
-			config.Log.Error("Error parsing coins normalized", zap.Error(err))
+			config.Log.Error("Error parsing coins normalized", err)
 			return err
 		}
 	} else {

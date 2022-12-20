@@ -29,7 +29,6 @@ import (
 	cryptoTypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types"
 	cosmosTx "github.com/cosmos/cosmos-sdk/types/tx"
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -241,7 +240,7 @@ func AnalyzeSwaps() {
 func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper, txTime time.Time, err error) {
 	txTime, err = time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
 	if err != nil {
-		config.Log.Error("Error parsing tx timestamp.", zap.Error(err))
+		config.Log.Error("Error parsing tx timestamp.", err)
 		return
 	}
 
@@ -267,7 +266,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 				currMessageDBWrapper.Message = currMessage
 				if err != txTypes.ErrUnknownMessage {
 					// What should we do here? This is an actual error during parsing
-					config.Log.Error(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed for msg of type '%v'.", tx.TxResponse.Height, msgType), zap.Error(err))
+					config.Log.Error(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed for msg of type '%v'.", tx.TxResponse.Height, msgType), err)
 					config.Log.Error(fmt.Sprint(messageLog))
 					config.Log.Error(tx.TxResponse.TxHash)
 					config.Log.Fatal("Issue parsing a cosmos msg that we DO have a parser for! PLEASE INVESTIGATE")
@@ -303,11 +302,11 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 							denomSent, err = dbTypes.GetDenomForBase(v.DenominationSent)
 							if err != nil {
 								// attempt to add missing denoms to the database
-								config.Log.Warn("Denom lookup failed. Will be inserted as UNKNOWN", zap.Error(err), zap.String("denom sent", v.DenominationSent))
+								config.Log.Warn(fmt.Sprintf("Denom lookup failed. Will be inserted as UNKNOWN. Denom sent: %v", v.DenominationSent), err)
 
 								denomSent, err = dbTypes.AddUnknownDenom(db, v.DenominationSent)
 								if err != nil {
-									config.Log.Error("There was an error adding a missing denom", zap.Error(err), zap.String("denom received", v.DenominationSent))
+									config.Log.Error(fmt.Sprintf("There was an error adding a missing denom. Denom sent: %v", v.DenominationSent), err)
 									return txDBWapper, txTime, err
 								}
 							}
@@ -320,10 +319,10 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 							denomReceived, err = dbTypes.GetDenomForBase(v.DenominationReceived)
 							if err != nil {
 								// attempt to add missing denoms to the database
-								config.Log.Error("Denom lookup failed. Will be inserted as UNKNOWN", zap.Error(err), zap.String("denom received", v.DenominationReceived))
+								config.Log.Error(fmt.Sprintf("Denom lookup failed. Will be inserted as UNKNOWN. Denom received: %v", v.DenominationReceived), err)
 								denomReceived, err = dbTypes.AddUnknownDenom(db, v.DenominationReceived)
 								if err != nil {
-									config.Log.Error("There was an error adding a missing denom", zap.Error(err), zap.String("denom received", v.DenominationReceived))
+									config.Log.Error(fmt.Sprintf("There was an error adding a missing denom. Denom received: %v", v.DenominationReceived), err)
 									return txDBWapper, txTime, err
 								}
 							}
@@ -374,10 +373,10 @@ func ProcessFees(db *gorm.DB, authInfo cosmosTx.AuthInfo, signers []types.AccAdd
 			denom, err := dbTypes.GetDenomForBase(coin.Denom)
 			if err != nil {
 				// attempt to add missing denoms to the database
-				config.Log.Error("Denom lookup failed. Will be inserted as UNKNOWN", zap.Error(err), zap.String("denom received", coin.Denom))
+				config.Log.Error(fmt.Sprintf("Denom lookup failed. Will be inserted as UNKNOWN. Denom: %v", coin.Denom), err)
 				denom, err = dbTypes.AddUnknownDenom(db, coin.Denom)
 				if err != nil {
-					config.Log.Error("There was an error adding a missing denom", zap.Error(err), zap.String("denom received", coin.Denom))
+					config.Log.Error(fmt.Sprintf("There was an error adding a missing denom. Denom: %v", coin.Denom), err)
 					return nil, err
 				}
 			}
@@ -400,7 +399,7 @@ func ProcessFees(db *gorm.DB, authInfo cosmosTx.AuthInfo, signers []types.AccAdd
 					hexPub := hex.EncodeToString(pubKey.Bytes())
 					bechAddr, err := ParseSignerAddress(hexPub, "")
 					if err != nil {
-						config.Log.Error(fmt.Sprintf("Error parsing signer address '%v' for tx.", hexPub), zap.Error(err))
+						config.Log.Error(fmt.Sprintf("Error parsing signer address '%v' for tx.", hexPub), err)
 					} else {
 						payerAddr.Address = bechAddr
 					}
