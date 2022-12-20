@@ -6,11 +6,10 @@ import (
 	"strings"
 
 	"github.com/rs/zerolog"
+	zlog "github.com/rs/zerolog/log"
 )
 
-type Logger struct {
-	ZeroLogger *zerolog.Logger
-}
+type Logger struct{}
 
 // Log is exposed on the config as a drop-in replacement for our old logger
 var Log Logger
@@ -18,47 +17,47 @@ var Log Logger
 // These functions are provided to reduce refactoring.
 func (l *Logger) Debug(msg string, err ...error) {
 	if len(err) == 1 {
-		l.ZeroLogger.Debug().Err(err[0]).Msg(msg)
+		zlog.Debug().Err(err[0]).Msg(msg)
 	}
-	l.ZeroLogger.Debug().Msg(msg)
+	zlog.Debug().Msg(msg)
 }
 
 func (l *Logger) Info(msg string, err ...error) {
 	if len(err) == 1 {
-		l.ZeroLogger.Info().Err(err[0]).Msg(msg)
+		zlog.Info().Err(err[0]).Msg(msg)
 	}
-	l.ZeroLogger.Info().Msg(msg)
+	zlog.Info().Msg(msg)
 }
 
 func (l *Logger) Warn(msg string, err ...error) {
 	if len(err) == 1 {
-		l.ZeroLogger.Warn().Err(err[0]).Msg(msg)
+		zlog.Warn().Err(err[0]).Msg(msg)
 	}
-	l.ZeroLogger.Warn().Msg(msg)
+	zlog.Warn().Msg(msg)
 }
 
 func (l *Logger) Error(msg string, err ...error) {
 	if len(err) == 1 {
-		l.ZeroLogger.Error().Err(err[0]).Msg(msg)
+		zlog.Error().Err(err[0]).Msg(msg)
 	}
-	l.ZeroLogger.Error().Msg(msg)
+	zlog.Error().Msg(msg)
 }
 
 func (l *Logger) Fatal(msg string, err ...error) {
 	if len(err) == 1 {
-		l.ZeroLogger.Fatal().Err(err[0]).Msg(msg)
+		zlog.Fatal().Err(err[0]).Msg(msg)
 	}
-	l.ZeroLogger.Fatal().Msg(msg)
+	zlog.Fatal().Msg(msg)
 }
 
 func (l *Logger) Panic(msg string, err ...error) {
 	if len(err) == 1 {
-		l.ZeroLogger.Panic().Err(err[0]).Msg(msg)
+		zlog.Panic().Err(err[0]).Msg(msg)
 	}
-	l.ZeroLogger.Panic().Msg(msg)
+	zlog.Panic().Msg(msg)
 }
 
-func DoConfigureLogger(logPath string, logLevel string) {
+func DoConfigureLogger(logPath string, logLevel string, prettyLogging bool) {
 	// TODO: I might be able to make this look cleaner
 	writers := io.MultiWriter(os.Stdout)
 	if len(logPath) > 0 {
@@ -76,8 +75,11 @@ func DoConfigureLogger(logPath string, logLevel string) {
 			writers = io.MultiWriter(os.Stdout, file)
 		}
 	}
-	logger := zerolog.New(writers).With().Timestamp().Logger()
-	Log.ZeroLogger = &logger
+	if prettyLogging {
+		zlog.Logger = zlog.Output(zerolog.ConsoleWriter{Out: writers})
+	} else {
+		zlog.Logger = zlog.Output(writers)
+	}
 
 	// Set the log level (default to info)
 	switch strings.ToLower(logLevel) {

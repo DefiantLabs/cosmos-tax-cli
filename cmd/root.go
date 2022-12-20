@@ -129,7 +129,8 @@ func setup(cfg config.Config) (*config.Config, *gorm.DB, *gocron.Scheduler, erro
 	// Logger
 	logLevel := cfg.Log.Level
 	logPath := cfg.Log.Path
-	config.DoConfigureLogger(logPath, logLevel)
+	prettyLogging := cfg.Log.Pretty
+	config.DoConfigureLogger(logPath, logLevel, prettyLogging)
 
 	// 0 is an invalid starting block, set it to 1
 	if cfg.Base.StartBlock == 0 {

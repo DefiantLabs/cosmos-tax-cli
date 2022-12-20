@@ -2,6 +2,7 @@
 [log]
 level = "info"
 path = "/exact/file/path.txt"
+pretty = true
 
 #App configuration values
 [base]

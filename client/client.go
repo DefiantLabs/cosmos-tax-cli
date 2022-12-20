@@ -59,7 +59,8 @@ func setup() (*gorm.DB, *config.Config, int, error) {
 	// Configure logger
 	logLevel := cfg.Log.Level
 	logPath := cfg.Log.Path
-	config.DoConfigureLogger(logPath, logLevel)
+	prettyLogging := cfg.Log.Pretty
+	config.DoConfigureLogger(logPath, logLevel, prettyLogging)
 
 	// Configure DB
 	db, err := dbTypes.PostgresDbConnect(cfg.Database.Host, cfg.Database.Port, cfg.Database.Database, cfg.Database.User, cfg.Database.Password, logLevel)

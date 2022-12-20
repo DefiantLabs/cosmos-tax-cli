@@ -142,11 +142,6 @@ var (
 )
 
 func init() {
-	// Setup Logger
-	logLevel := conf.Log.Level
-	logPath := conf.Log.Path
-	config.DoConfigureLogger(logPath, logLevel)
-
 	validFormats := parsers_pkg.GetParserKeys()
 	if len(validFormats) == 0 {
 		config.Log.Fatal("Error during initialization, no CSV parsers found.")

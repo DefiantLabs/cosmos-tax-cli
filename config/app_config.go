@@ -145,8 +145,9 @@ type base struct {
 }
 
 type log struct {
-	Level string
-	Path  string
+	Level  string
+	Path   string
+	Pretty bool
 }
 
 func GetConfig(configFileLocation string) (Config, error) {
