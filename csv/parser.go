@@ -1,14 +1,15 @@
 package csv
 
 import (
-	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/koinly"
-	"go.uber.org/zap"
+	"time"
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/accointing"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/koinly"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
 
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -31,7 +32,7 @@ func GetParser(parserKey string) parsers.Parser {
 	return nil
 }
 
-func ParseForAddress(address string, pgSQL *gorm.DB, parserKey string, cfg config.Config) ([]parsers.CsvRow, []string, error) {
+func ParseForAddress(address string, startDate, endDate *time.Time, pgSQL *gorm.DB, parserKey string, cfg config.Config) ([]parsers.CsvRow, []string, error) {
 	parser := GetParser(parserKey)
 	parser.InitializeParsingGroups(cfg)
 
@@ -60,8 +61,8 @@ func ParseForAddress(address string, pgSQL *gorm.DB, parserKey string, cfg confi
 		return nil, nil, err
 	}
 
-	// Get rows once right at the end
-	rows := parser.GetRows(address)
+	// Get rows once right at the end, also filter them by date
+	rows := parser.GetRows(address, startDate, endDate)
 
 	return rows, parser.GetHeaders(), nil
 }
