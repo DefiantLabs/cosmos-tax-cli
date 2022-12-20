@@ -434,6 +434,19 @@ func (sf *WrapperMsgJoinPool) HandleMsg(msgType string, msg sdk.Msg, log *txModu
 	// Address of whoever initiated the join
 	poolJoinedEvent := txModule.GetEventWithType(gammTypes.TypeEvtPoolJoined, log)
 	if poolJoinedEvent == nil {
+		// If the message doesn't have the pool_joined event, we can parse the transaction event to extract the
+		// amounts of the tokens they transferred in.
+
+		// Get the sender from the transfer in
+
+		// Get the token amounts from the transfer in
+
+		// Make sure these values are set on the mgs object
+
+		// Validate that neither amount is actually gamms
+
+		// If this fails, still return an error
+
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
