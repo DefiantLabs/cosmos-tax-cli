@@ -21,7 +21,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/strangelove-ventures/lens/client"
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -60,7 +59,7 @@ func setupIndexer() *Indexer {
 	// TODO may need to run this task in setup() so that we have a cold start functionality before the indexer starts
 	_, err = idxr.scheduler.Every(6).Hours().Do(tasks.DenomUpsertTask, idxr.cfg.Base.API, idxr.db)
 	if err != nil {
-		config.Log.Error("Error scheduling denmon upsert task. Err: ", zap.Error(err))
+		config.Log.Error("Error scheduling denmon upsert task. Err: ", err)
 	}
 
 	idxr.scheduler.StartAsync()
@@ -80,7 +79,7 @@ func setupIndexer() *Indexer {
 		chainCatchingUp, err = rpc.IsCatchingUp(idxr.cl)
 	}
 	if err != nil {
-		config.Log.Fatal("Error querying chain status.", zap.Error(err))
+		config.Log.Fatal("Error querying chain status.", err)
 	}
 
 	return &idxr
@@ -91,7 +90,7 @@ func index(cmd *cobra.Command, args []string) {
 	idxr := setupIndexer()
 	dbConn, err := idxr.db.DB()
 	if err != nil {
-		config.Log.Fatal("Failed to connect to DB", zap.Error(err))
+		config.Log.Fatal("Failed to connect to DB", err)
 	}
 
 	defer dbConn.Close()
@@ -183,7 +182,7 @@ func (idxr *Indexer) enqueueBlocksToProcess(blockChan chan int64) {
 			var err error
 			latestBlock, err = rpc.GetLatestBlockHeight(idxr.cl)
 			if err != nil {
-				config.Log.Fatal("Error getting blockchain latest height. Err: %v", zap.Error(err))
+				config.Log.Fatal("Error getting blockchain latest height. Err: %v", err)
 			}
 
 			// Throttling in case of hitting public APIs
@@ -250,7 +249,7 @@ func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler 
 		var err error
 		endHeight, err = rpc.GetLatestBlockHeight(idxr.cl)
 		if err != nil {
-			config.Log.Fatal("Error getting blockchain latest height.", zap.Error(err))
+			config.Log.Fatal("Error getting blockchain latest height.", err)
 		}
 	}
 
@@ -279,7 +278,7 @@ func (idxr *Indexer) indexOsmosisReward(rpcClient osmosis.URIClient, epoch int64
 	config.Log.Debug(fmt.Sprintf("Getting rewards for epoch %v", epoch))
 	rewards, err := rpcClient.GetEpochRewards(epoch)
 	if err != nil {
-		config.Log.Error(fmt.Sprintf("Error getting rewards for epoch %d\n", epoch), zap.Error(err))
+		config.Log.Error(fmt.Sprintf("Error getting rewards for epoch %d\n", epoch), err)
 		return core.OsmosisNodeRewardLookupError, err
 	}
 
@@ -287,7 +286,7 @@ func (idxr *Indexer) indexOsmosisReward(rpcClient osmosis.URIClient, epoch int64
 		config.Log.Info(fmt.Sprintf("Found %v rewards at epoch %v, sending to DB", len(rewards), epoch))
 		err = dbTypes.IndexOsmoRewards(idxr.db, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName, rewards)
 		if err != nil {
-			config.Log.Error("Error storing rewards in DB.", zap.Error(err))
+			config.Log.Error("Error storing rewards in DB.", err)
 			return core.OsmosisNodeRewardIndexError, err
 		}
 	}
@@ -306,7 +305,7 @@ func (idxr *Indexer) queryRPC(blockChan chan int64, blockTXsChan chan *indexerTx
 				config.Log.Error(fmt.Sprintf("Failed to process block %v after %v attempts. Will add to failed blocks table", blockToProcess, maxAttempts))
 				err := dbTypes.UpsertFailedBlock(idxr.db, blockToProcess, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
 				if err != nil {
-					config.Log.Fatal(fmt.Sprintf("Failed to store that block %v failed. Not safe to continue.", blockToProcess), zap.Error(err))
+					config.Log.Fatal(fmt.Sprintf("Failed to store that block %v failed. Not safe to continue.", blockToProcess), err)
 				}
 			}
 		}
@@ -321,7 +320,7 @@ func processBlock(cl *client.ChainClient, failedBlockHandler func(height int64, 
 	// TODO: Do something smarter than giving up when we encounter an error.
 	txsEventResp, err := rpc.GetTxsByBlockHeight(cl, newBlock.Height)
 	if err != nil {
-		config.Log.Error("Error getting transactions by block height. Will reattempt", zap.Error(err))
+		config.Log.Error("Error getting transactions by block height. Will reattempt", err)
 		return err
 	}
 
@@ -355,18 +354,18 @@ func (idxr *Indexer) processTxs(wg *sync.WaitGroup, blockTXsChan chan *indexerTx
 	for txToProcess := range blockTXsChan {
 		txDBWrappers, blockTime, err := core.ProcessRPCTXs(idxr.db, txToProcess.CosmosGetTxsEventResponse)
 		if err != nil {
-			config.Log.Error("ProcessRpcTxs: unhandled error", zap.Error(err))
+			config.Log.Error("ProcessRpcTxs: unhandled error", err)
 			failedBlockHandler(txToProcess.Height, core.UnprocessableTxError, err)
 		}
 
 		// While debugging we'll sometimes want to turn off INSERTS to the DB
 		// Note that this does not turn off certain reads or DB connections.
 		if idxr.cfg.Base.IndexingEnabled {
-			config.Log.Info(fmt.Sprintf("Indexing block %d, threaded.\n", txToProcess.Height))
+			config.Log.Info(fmt.Sprintf("Indexing block %d, threaded.", txToProcess.Height))
 			err = dbTypes.IndexNewBlock(idxr.db, txToProcess.Height, blockTime, txDBWrappers, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
 			if err != nil {
 				if err != nil {
-					config.Log.Fatal(fmt.Sprintf("Error indexing block %v.", txToProcess.Height), zap.Error(err))
+					config.Log.Fatal(fmt.Sprintf("Error indexing block %v.", txToProcess.Height), err)
 				}
 			}
 		}

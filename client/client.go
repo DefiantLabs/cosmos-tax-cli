@@ -13,7 +13,6 @@ import (
 	dbTypes "github.com/DefiantLabs/cosmos-tax-cli-private/db"
 
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -65,7 +64,7 @@ func setup() (*gorm.DB, *config.Config, int, error) {
 	// Configure DB
 	db, err := dbTypes.PostgresDbConnect(cfg.Database.Host, cfg.Database.Port, cfg.Database.Database, cfg.Database.User, cfg.Database.Password, logLevel)
 	if err != nil {
-		config.Log.Error("Could not establish connection to the database", zap.Error(err))
+		config.Log.Error("Could not establish connection to the database", err)
 		return nil, nil, svcPort, err
 	}
 
@@ -89,7 +88,7 @@ func main() {
 	r.POST("/events.csv", GetTaxableEventsCSV)
 	err = r.Run(fmt.Sprintf(":%v", svcPort))
 	if err != nil {
-		config.Log.Fatal("Error starting server.", zap.Error(err))
+		config.Log.Fatal("Error starting server.", err)
 	}
 }
 

@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"go.uber.org/zap"
-
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/core"
 	"github.com/go-co-op/gocron"
@@ -141,7 +139,7 @@ func setup(cfg config.Config) (*config.Config, *gorm.DB, *gocron.Scheduler, erro
 	db, err := dbTypes.PostgresDbConnect(cfg.Database.Host, cfg.Database.Port, cfg.Database.Database,
 		cfg.Database.User, cfg.Database.Password, cfg.Log.Level)
 	if err != nil {
-		config.Log.Fatal("Could not establish connection to the database", zap.Error(err))
+		config.Log.Fatal("Could not establish connection to the database", err)
 	}
 
 	sqldb, _ := db.DB()
@@ -158,7 +156,7 @@ func setup(cfg config.Config) (*config.Config, *gorm.DB, *gocron.Scheduler, erro
 	// run database migrations at every runtime
 	err = dbTypes.MigrateModels(db)
 	if err != nil {
-		config.Log.Error("Error running DB migrations", zap.Error(err))
+		config.Log.Error("Error running DB migrations", err)
 		return nil, nil, nil, err
 	}
 

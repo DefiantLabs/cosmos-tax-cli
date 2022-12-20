@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
-	"go.uber.org/zap"
 )
 
 type BlockProcessingFailure int
@@ -35,5 +34,5 @@ func HandleFailedBlock(height int64, code BlockProcessingFailure, err error) {
 		reason = "Failed Osmosis rewards indexing for block"
 	}
 
-	config.Log.Error(fmt.Sprintf("Block %v failed. Reason: %v", height, reason), zap.Error(err))
+	config.Log.Error(fmt.Sprintf("Block %v failed. Reason: %v", height, reason), err)
 }

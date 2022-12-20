@@ -9,7 +9,6 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/koinly"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
 
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -39,25 +38,25 @@ func ParseForAddress(address string, startDate, endDate *time.Time, pgSQL *gorm.
 	// TODO: need to pass in chain and date range
 	taxableTxs, err := db.GetTaxableTransactions(address, pgSQL)
 	if err != nil {
-		config.Log.Error("Error getting taxable transaction.", zap.Error(err))
+		config.Log.Error("Error getting taxable transaction.", err)
 		return nil, nil, err
 	}
 
 	err = parser.ProcessTaxableTx(address, taxableTxs)
 	if err != nil {
-		config.Log.Error("Error processing taxable transaction.", zap.Error(err))
+		config.Log.Error("Error processing taxable transaction.", err)
 		return nil, nil, err
 	}
 
 	taxableEvents, err := db.GetTaxableEvents(address, pgSQL)
 	if err != nil {
-		config.Log.Error("Error getting taxable events.", zap.Error(err))
+		config.Log.Error("Error getting taxable events.", err)
 		return nil, nil, err
 	}
 
 	err = parser.ProcessTaxableEvent(taxableEvents)
 	if err != nil {
-		config.Log.Error("Error processing taxable events.", zap.Error(err))
+		config.Log.Error("Error processing taxable events.", err)
 		return nil, nil, err
 	}
 

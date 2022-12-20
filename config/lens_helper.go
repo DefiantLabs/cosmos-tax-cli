@@ -3,7 +3,6 @@ package config
 import (
 	ibcTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/ibc/types"
 	lensClient "github.com/strangelove-ventures/lens/client"
-	"go.uber.org/zap"
 )
 
 func GetLensClient(conf lens) *lensClient.ChainClient {
@@ -13,7 +12,7 @@ func GetLensClient(conf lens) *lensClient.ChainClient {
 	// and you can move all of the necessary keys to whatever homepath you want to use. Or you can use --home flag.
 	cl, err := lensClient.NewChainClient(GetLensConfig(conf, true), conf.Homepath, nil, nil)
 	if err != nil {
-		Log.Fatal("Error connecting to cain.", zap.Error(err))
+		Log.Fatal("Error connecting to cain.", err)
 	}
 	RegisterAdditionalTypes(cl)
 	return cl

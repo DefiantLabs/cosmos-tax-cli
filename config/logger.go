@@ -1,12 +1,10 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
 	"github.com/rs/zerolog"
-	"go.uber.org/zap"
 )
 
 type Logger struct {
@@ -16,24 +14,47 @@ type Logger struct {
 // Log is exposed on the config as a drop-in replacement for our old logger
 var Log Logger
 
-func (l *Logger) Fatal(msg string, err ...zap.Field) {
-	l.ZeroLogger.Fatal().Msg(fmt.Sprint(msg, err))
+// These functions are provided to reduce refactoring.
+func (l *Logger) Debug(msg string, err ...error) {
+	if len(err) == 1 {
+		l.ZeroLogger.Debug().Err(err[0]).Msg(msg)
+	}
+	l.ZeroLogger.Debug().Msg(msg)
 }
 
-func (l *Logger) Error(msg string, err ...zap.Field) {
-	l.ZeroLogger.Error().Msg(fmt.Sprint(msg, err))
+func (l *Logger) Info(msg string, err ...error) {
+	if len(err) == 1 {
+		l.ZeroLogger.Info().Err(err[0]).Msg(msg)
+	}
+	l.ZeroLogger.Info().Msg(msg)
 }
 
-func (l *Logger) Debug(msg string, err ...zap.Field) {
-	l.ZeroLogger.Debug().Msg(fmt.Sprint(msg, err))
+func (l *Logger) Warn(msg string, err ...error) {
+	if len(err) == 1 {
+		l.ZeroLogger.Warn().Err(err[0]).Msg(msg)
+	}
+	l.ZeroLogger.Warn().Msg(msg)
 }
 
-func (l *Logger) Warn(msg string, err ...zap.Field) {
-	l.ZeroLogger.Warn().Msg(fmt.Sprint(msg, err))
+func (l *Logger) Error(msg string, err ...error) {
+	if len(err) == 1 {
+		l.ZeroLogger.Error().Err(err[0]).Msg(msg)
+	}
+	l.ZeroLogger.Error().Msg(msg)
 }
 
-func (l *Logger) Info(msg string, err ...zap.Field) {
-	l.ZeroLogger.Info().Msg(fmt.Sprint(msg, err))
+func (l *Logger) Fatal(msg string, err ...error) {
+	if len(err) == 1 {
+		l.ZeroLogger.Fatal().Err(err[0]).Msg(msg)
+	}
+	l.ZeroLogger.Fatal().Msg(msg)
+}
+
+func (l *Logger) Panic(msg string, err ...error) {
+	if len(err) == 1 {
+		l.ZeroLogger.Panic().Err(err[0]).Msg(msg)
+	}
+	l.ZeroLogger.Panic().Msg(msg)
 }
 
 func DoConfigureLogger(logPath string, logLevel string) {
