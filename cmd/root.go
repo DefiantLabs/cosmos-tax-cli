@@ -138,7 +138,7 @@ func setup(cfg config.Config) (*config.Config, *gorm.DB, *gocron.Scheduler, erro
 	}
 
 	db, err := dbTypes.PostgresDbConnect(cfg.Database.Host, cfg.Database.Port, cfg.Database.Database,
-		cfg.Database.User, cfg.Database.Password, cfg.Log.Level)
+		cfg.Database.User, cfg.Database.Password, strings.ToLower(cfg.Database.LogLevel))
 	if err != nil {
 		config.Log.Fatal("Could not establish connection to the database", err)
 	}

@@ -35,5 +35,6 @@ port = "5432"
 database = "taxappdb"
 user = "taxapp"
 password = "taxapptest"
+logLevel = "error"
 
 [logger]

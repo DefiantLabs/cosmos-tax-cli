@@ -112,6 +112,7 @@ type database struct {
 	Database string
 	User     string
 	Password string
+	LogLevel string
 }
 
 type lens struct {
