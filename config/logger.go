@@ -1,6 +1,7 @@
 package config
 
 import (
+	"io"
 	"os"
 	"strings"
 
@@ -58,7 +59,24 @@ func (l *Logger) Panic(msg string, err ...error) {
 }
 
 func DoConfigureLogger(logPath string, logLevel string) {
-	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
+	// TODO: I might be able to make this look cleaner
+	writers := io.MultiWriter(os.Stdout)
+	if len(logPath) > 0 {
+		if _, err := os.Stat(logPath); os.IsNotExist(err) {
+			file, err := os.Create(logPath)
+			if err != nil {
+				panic(err)
+			}
+			writers = io.MultiWriter(os.Stdout, file)
+		} else {
+			file, err := os.OpenFile(logPath, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+			if err != nil {
+				panic(err)
+			}
+			writers = io.MultiWriter(os.Stdout, file)
+		}
+	}
+	logger := zerolog.New(writers).With().Timestamp().Logger()
 	Log.ZeroLogger = &logger
 
 	// Set the log level (default to info)
@@ -78,9 +96,4 @@ func DoConfigureLogger(logPath string, logLevel string) {
 	default:
 		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	}
-
-	// Cmds like this can be called to modify the logger time format
-	// zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-
-	// FIXME: figure out how to log to a file.
 }
