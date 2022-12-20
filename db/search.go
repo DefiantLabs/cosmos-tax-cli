@@ -12,8 +12,10 @@ func GetTaxableTransactions(address string, db *gorm.DB) ([]TaxableTransaction, 
 		Where("addresses.address = ?", address).
 		Preload("Message").Preload("Message.MessageType").Preload("Message.Tx").
 		Preload("Message.Tx.Block").
-		Preload("Message.Tx.SignerAddress").Preload("Message.Tx.Fees").Preload("Message.Tx.Fees.Denomination").Preload("Message.Tx.Fees.PayerAddress").
-		Preload("SenderAddress").Preload("ReceiverAddress").Preload("DenominationSent").Preload("DenominationReceived").Find(&taxableTransactions)
+		Preload("Message.Tx.SignerAddress").Preload("Message.Tx.Fees").
+		Preload("Message.Tx.Fees.Denomination").Preload("Message.Tx.Fees.PayerAddress").
+		Preload("SenderAddress").Preload("ReceiverAddress").Preload("DenominationSent").
+		Preload("DenominationReceived").Find(&taxableTransactions)
 
 	return taxableTransactions, result.Error
 }

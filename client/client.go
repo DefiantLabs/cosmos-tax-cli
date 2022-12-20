@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv"
@@ -117,6 +118,8 @@ type TaxableEventsCSVRequest struct {
 	Format    string  `json:"format"`
 }
 
+var jsTimeFmt = "2006-01-02T15:04:05Z07:00"
+
 func GetTaxableEventsCSV(c *gin.Context) {
 	var requestBody TaxableEventsCSVRequest
 	err := c.BindJSON(&requestBody)
@@ -127,14 +130,22 @@ func GetTaxableEventsCSV(c *gin.Context) {
 	}
 
 	// We expect ISO 8601 dates in UTC
-	var startDate string
+	var startDate *time.Time
 	if requestBody.StartDate != nil {
-		startDate = *requestBody.StartDate
+		startTime, err := time.Parse(jsTimeFmt, *requestBody.StartDate)
+		if err != nil {
+			c.AbortWithError(500, fmt.Errorf("invalid start time. Err %v", err)) // nolint:errcheck
+		}
+		startDate = &startTime
 	}
 
-	var endDate string
+	var endDate *time.Time
 	if requestBody.EndDate != nil {
-		endDate = *requestBody.EndDate
+		endTime, err := time.Parse(jsTimeFmt, *requestBody.EndDate)
+		if err != nil {
+			c.AbortWithError(500, fmt.Errorf("invalid end time. Err %v", err)) // nolint:errcheck
+		}
+		endDate = &endTime
 	}
 
 	if requestBody.Address == "" {
@@ -148,7 +159,7 @@ func GetTaxableEventsCSV(c *gin.Context) {
 		return
 	}
 
-	accountRows, headers, err := csv.ParseForAddress(requestBody.Address, DB, requestBody.Format, *GlobalCfg)
+	accountRows, headers, err := csv.ParseForAddress(requestBody.Address, startDate, endDate, DB, requestBody.Format, *GlobalCfg)
 	if err != nil {
 		// the error returned here has already been pushed to the context... I think.
 		c.AbortWithError(500, errors.New("Error getting rows for address")) // nolint:staticcheck,errcheck

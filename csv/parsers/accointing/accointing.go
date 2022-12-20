@@ -80,7 +80,7 @@ func (p *Parser) InitializeParsingGroups(config config.Config) {
 	}
 }
 
-func (p *Parser) GetRows(address string) []parsers.CsvRow {
+func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parsers.CsvRow {
 	// Combine all normal rows and parser group rows into 1
 	accointingRows := p.Rows // contains TX rows and fees as well as taxable events
 	for _, v := range p.ParsingGroups {
@@ -103,6 +103,43 @@ func (p *Parser) GetRows(address string) []parsers.CsvRow {
 		}
 		return leftDate.Before(rightDate)
 	})
+
+	// Now that we are sorted, if we have a start date, drop everything from before it, if end date is set, drop everything after it
+	var firstToKeep *int
+	var lastToKeep *int
+	for i := range accointingRows {
+		if startDate != nil && firstToKeep == nil {
+			rowDate, err := time.Parse(timeLayout, accointingRows[i].Date)
+			if err != nil {
+				config.Log.Fatal("Error parsing row date.", zap.Error(err))
+			}
+			if rowDate.Before(*startDate) {
+				continue
+			} else {
+				startIdx := i
+				firstToKeep = &startIdx
+			}
+		} else if endDate != nil && lastToKeep == nil {
+			rowDate, err := time.Parse(timeLayout, accointingRows[i].Date)
+			if err != nil {
+				config.Log.Fatal("Error parsing row date.", zap.Error(err))
+			}
+			if rowDate.Before(*endDate) {
+				continue
+			} else if i > 0 {
+				endIdx := i - 1
+				lastToKeep = &endIdx
+				break
+			}
+		}
+	}
+	if firstToKeep != nil && lastToKeep != nil { // nolint:gocritic
+		accointingRows = accointingRows[*firstToKeep:*lastToKeep]
+	} else if firstToKeep != nil {
+		accointingRows = accointingRows[*firstToKeep:]
+	} else if lastToKeep != nil {
+		accointingRows = accointingRows[:*lastToKeep]
+	}
 
 	// Copy AccointingRows into csvRows for return val
 	csvRows := make([]parsers.CsvRow, len(accointingRows))

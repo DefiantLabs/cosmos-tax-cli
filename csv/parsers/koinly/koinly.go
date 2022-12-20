@@ -88,7 +88,7 @@ func (p *Parser) InitializeParsingGroups(config config.Config) {
 	}
 }
 
-func (p *Parser) GetRows(address string) []parsers.CsvRow {
+func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parsers.CsvRow {
 	// Combine all normal rows and parser group rows into 1
 	koinlyRows := p.Rows // contains TX rows and fees as well as taxable events
 	for _, v := range p.ParsingGroups {
@@ -111,6 +111,43 @@ func (p *Parser) GetRows(address string) []parsers.CsvRow {
 		}
 		return leftDate.Before(rightDate)
 	})
+
+	// Now that we are sorted, if we have a start date, drop everything from before it, if end date is set, drop everything after it
+	var firstToKeep *int
+	var lastToKeep *int
+	for i := range koinlyRows {
+		if startDate != nil && firstToKeep == nil {
+			rowDate, err := time.Parse(TimeLayout, koinlyRows[i].Date)
+			if err != nil {
+				config.Log.Fatal("Error parsing row date.", zap.Error(err))
+			}
+			if rowDate.Before(*startDate) {
+				continue
+			} else {
+				startIdx := i
+				firstToKeep = &startIdx
+			}
+		} else if endDate != nil && lastToKeep == nil {
+			rowDate, err := time.Parse(TimeLayout, koinlyRows[i].Date)
+			if err != nil {
+				config.Log.Fatal("Error parsing row date.", zap.Error(err))
+			}
+			if rowDate.Before(*endDate) {
+				continue
+			} else if i > 0 {
+				endIdx := i - 1
+				lastToKeep = &endIdx
+				break
+			}
+		}
+	}
+	if firstToKeep != nil && lastToKeep != nil { // nolint:gocritic
+		koinlyRows = koinlyRows[*firstToKeep:*lastToKeep]
+	} else if firstToKeep != nil {
+		koinlyRows = koinlyRows[*firstToKeep:]
+	} else if lastToKeep != nil {
+		koinlyRows = koinlyRows[:*lastToKeep]
+	}
 
 	// Before generating a CSV, we need to do a pass over all the cells to calculate proper scaling
 	calculateScaling(koinlyRows)
