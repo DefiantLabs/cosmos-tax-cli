@@ -437,17 +437,32 @@ func (sf *WrapperMsgJoinPool) HandleMsg(msgType string, msg sdk.Msg, log *txModu
 		// If the message doesn't have the pool_joined event, we can parse the transaction event to extract the
 		// amounts of the tokens they transferred in.
 
-		// Get the sender from the transfer in
+		// find the multi-coin amount that also is not gamms... those must be the coins transferred in
+		var tokensIn string
+		var sender string
+		for i, attr := range transferEvt.Attributes {
+			if attr.Key == "amount" && !strings.Contains(attr.Value, "gamm/pool") && strings.Contains(attr.Value, ",") {
+				tokensIn = attr.Value
+				// If we haven't found the sender yet, it will be the address that sent this non-gamm token
+				if i > 0 && transferEvt.Attributes[i-1].Key == "sender" {
+					sender = transferEvt.Attributes[i-1].Value
+				}
+				break
+			}
+		}
+		// if either of these methods failed to get info, give up and return an error
+		if len(tokensIn) == 0 || sender == "" {
+			return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		}
 
-		// Get the token amounts from the transfer in
-
-		// Make sure these values are set on the mgs object
-
-		// Validate that neither amount is actually gamms
-
-		// If this fails, still return an error
-
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		// if we got what we needed, set the correct values and return successfully
+		sf.Address = sender
+		sf.TokensIn, err = sdk.ParseCoinsNormalized(tokensIn)
+		if err != nil {
+			fmt.Println("Error parsing coins")
+			return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		}
+		return nil
 	}
 
 	// Address of whoever initiated the join.
@@ -463,7 +478,6 @@ func (sf *WrapperMsgJoinPool) HandleMsg(msgType string, msg sdk.Msg, log *txModu
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 	sf.TokensIn, err = sdk.ParseCoinsNormalized(tokensInString)
-
 	if err != nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
