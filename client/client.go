@@ -23,13 +23,13 @@ func setup() (*gorm.DB, *config.Config, int, error) {
 	argConfig, flagSet, svcPort, err := config.ParseArgs(os.Stderr, os.Args[1:])
 	if err != nil {
 		if strings.Contains(err.Error(), "help requested") {
-			log.Println("Please see valid flags above.")
+			config.Log.Info("Please see valid flags above.")
 			os.Exit(0)
 		} else if strings.Contains(err.Error(), "flag provided but not defined") {
-			log.Println("Invalid flag. Please see valid flags above.")
+			config.Log.Info("Invalid flag. Please see valid flags above.")
 			os.Exit(0)
 		}
-		log.Panicf("Error parsing args. Err: %v", err)
+		config.Log.Panicf("Error parsing args. Err: %v", err)
 		return nil, nil, svcPort, err
 	}
 
@@ -43,7 +43,7 @@ func setup() (*gorm.DB, *config.Config, int, error) {
 	fileConfig, err := config.GetConfig(location)
 	if err != nil {
 		if !strings.Contains(err.Error(), "no such file or directory") {
-			log.Panicf("Error opening configuration file. Err: %v", err)
+			config.Log.Panicf("Error opening configuration file. Err: %v", err)
 			return nil, nil, svcPort, err
 		}
 	}
@@ -53,7 +53,7 @@ func setup() (*gorm.DB, *config.Config, int, error) {
 	err = cfg.ValidateClientConfig()
 	if err != nil {
 		flagSet.PrintDefaults()
-		log.Fatalf("Config validation failed. Err: %v", err)
+		config.Log.Fatalf("Config validation failed. Err: %v", err)
 	}
 
 	// Configure logger
@@ -83,13 +83,56 @@ func main() {
 	DB = db
 	GlobalCfg = cfg
 
-	r := gin.Default()
+	r := gin.New()
+	r.Use(gin.Recovery())
+	r.Use(ZeroLogMiddleware())
+
 	r.Use(CORSMiddleware())
 
 	r.POST("/events.csv", GetTaxableEventsCSV)
 	err = r.Run(fmt.Sprintf(":%v", svcPort))
 	if err != nil {
 		config.Log.Fatal("Error starting server.", err)
+	}
+}
+
+// ZeroLogMiddleware sends gin logs to our zerologger
+func ZeroLogMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Start timer
+		start := time.Now()
+
+		// Process Request
+		c.Next()
+
+		// Stop timer
+		duration := time.Since(start).Milliseconds()
+
+		config.Log.Debugf("Duration: %vms", duration)
+
+		/*
+			entry := log.WithFields(log.Fields{
+				"client_ip":  util.GetClientIP(c),
+				"duration":   duration,
+				"method":     c.Request.Method,
+				"path":       c.Request.RequestURI,
+				"status":     c.Writer.Status(),
+				"user_id":    util.GetUserID(c),
+				"referrer":   c.Request.Referer(),
+				"request_id": c.Writer.Header().Get("Request-Id"),
+				// "api_version": util.ApiVersion,
+			})
+
+		*/
+
+		/*
+			if c.Writer.Status() >= 500 {
+				entry.Error(c.Errors.String())
+			} else {
+				entry.Info("")
+			}
+
+		*/
 	}
 }
 

@@ -13,7 +13,7 @@ import (
 type Logger struct{}
 
 // Log is exposed on the config as a drop-in replacement for our old logger
-var Log Logger
+var Log *Logger
 
 // These functions are provided to reduce refactoring.
 func (l *Logger) Debug(msg string, err ...error) {
