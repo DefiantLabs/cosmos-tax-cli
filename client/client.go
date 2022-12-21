@@ -169,6 +169,7 @@ func GetTaxableEventsCSV(c *gin.Context) {
 	accountRows, headers, err := csv.ParseForAddress(addresses, startDate, endDate, DB, requestBody.Format, *GlobalCfg)
 	if err != nil {
 		// the error returned here has already been pushed to the context... I think.
+		config.Log.Errorf("Error getting rows for addresses: %v", addresses)
 		c.AbortWithError(500, errors.New("Error getting rows for address")) // nolint:staticcheck,errcheck
 		return
 	}
