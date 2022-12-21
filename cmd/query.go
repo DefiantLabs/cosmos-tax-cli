@@ -39,7 +39,7 @@ var queryCmd = &cobra.Command{
 		}
 
 		// TODO: split out setup methods and only call necessary ones
-		_, db, _, err := setup(conf)
+		cfg, db, _, err := setup(conf)
 		if err != nil {
 			config.Log.Fatal("Error setting up query", err)
 		}
@@ -80,9 +80,13 @@ var queryCmd = &cobra.Command{
 		}
 
 		buffer := csv.ToCsv(csvRows, headers)
-		err = os.WriteFile(output, buffer.Bytes(), 0600)
-		if err != nil {
-			config.Log.Fatal("Error writing out CSV", err)
+		if cfg.Base.CSVtoStdOut || strings.ToLower(output) == "stdout" {
+			fmt.Println(buffer.String())
+		} else {
+			err = os.WriteFile(output, buffer.Bytes(), 0600)
+			if err != nil {
+				config.Log.Fatal("Error writing out CSV", err)
+			}
 		}
 	},
 }
