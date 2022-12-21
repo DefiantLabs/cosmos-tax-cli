@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -22,11 +23,19 @@ func (l *Logger) Debug(msg string, err ...error) {
 	zlog.Debug().Msg(msg)
 }
 
+func (l *Logger) Debugf(msg string, args ...interface{}) {
+	zlog.Debug().Msg(fmt.Sprintf(msg, args...))
+}
+
 func (l *Logger) Info(msg string, err ...error) {
 	if len(err) == 1 {
 		zlog.Info().Err(err[0]).Msg(msg)
 	}
 	zlog.Info().Msg(msg)
+}
+
+func (l *Logger) Infof(msg string, args ...interface{}) {
+	zlog.Info().Msg(fmt.Sprintf(msg, args...))
 }
 
 func (l *Logger) Warn(msg string, err ...error) {
@@ -36,11 +45,19 @@ func (l *Logger) Warn(msg string, err ...error) {
 	zlog.Warn().Msg(msg)
 }
 
+func (l *Logger) Warnf(msg string, args ...interface{}) {
+	zlog.Warn().Msg(fmt.Sprintf(msg, args...))
+}
+
 func (l *Logger) Error(msg string, err ...error) {
 	if len(err) == 1 {
 		zlog.Error().Err(err[0]).Msg(msg)
 	}
 	zlog.Error().Msg(msg)
+}
+
+func (l *Logger) Errorf(msg string, args ...interface{}) {
+	zlog.Error().Msg(fmt.Sprintf(msg, args...))
 }
 
 func (l *Logger) Fatal(msg string, err ...error) {
@@ -50,11 +67,19 @@ func (l *Logger) Fatal(msg string, err ...error) {
 	zlog.Fatal().Msg(msg)
 }
 
+func (l *Logger) Fatalf(msg string, args ...interface{}) {
+	zlog.Fatal().Msg(fmt.Sprintf(msg, args...))
+}
+
 func (l *Logger) Panic(msg string, err ...error) {
 	if len(err) == 1 {
 		zlog.Panic().Err(err[0]).Msg(msg)
 	}
 	zlog.Panic().Msg(msg)
+}
+
+func (l *Logger) Panicf(msg string, args ...interface{}) {
+	zlog.Panic().Msg(fmt.Sprintf(msg, args...))
 }
 
 func DoConfigureLogger(logPath string, logLevel string, prettyLogging bool) {

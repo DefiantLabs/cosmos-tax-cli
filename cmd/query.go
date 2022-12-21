@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"sort"
 	"strings"
 	"time"
 
@@ -74,24 +73,10 @@ var queryCmd = &cobra.Command{
 			endDate = &parsedDate
 		}
 
-		// Get data for each address
-		var headers []string
-		var csvRows []parsers_pkg.CsvRow
-		for _, address := range addresses {
-			var addressRows []parsers_pkg.CsvRow
-
-			addressRows, headers, err = csv.ParseForAddress(address, startDate, endDate, db, format, conf)
-			if err != nil {
-				log.Println(address)
-				config.Log.Fatal("Error calling parser for address", err)
-			}
-
-			csvRows = append(csvRows, addressRows...)
-		}
-
-		// re-sort rows if needed
-		if len(addresses) > 1 {
-			sortRows(csvRows, format)
+		csvRows, headers, err := csv.ParseForAddress(addresses, startDate, endDate, db, format, conf)
+		if err != nil {
+			log.Println(addresses)
+			config.Log.Fatal("Error calling parser for address", err)
 		}
 
 		buffer := csv.ToCsv(csvRows, headers)
@@ -108,29 +93,6 @@ func throwValidationErr(cmd *cobra.Command, cause string) {
 		config.Log.Error("Error getting cmd help.", err)
 	}
 	config.Log.Fatal(cause)
-}
-
-// TODO: Figure out a way to make this cleaner by moving it into a function on the parse itself
-func sortRows(csvRows []parsers_pkg.CsvRow, format string) {
-	// set the appropriate time format for the parser
-	timeLayout := "2006-01-02 15:04:05"
-	if format == "accointing" {
-		timeLayout = "01/02/2006 15:04:05"
-	}
-	// Sort by date
-	sort.Slice(csvRows, func(i int, j int) bool {
-		leftDate, err := time.Parse(timeLayout, csvRows[i].GetDate())
-		if err != nil {
-			config.Log.Error("Error sorting left date.", err)
-			return false
-		}
-		rightDate, err := time.Parse(timeLayout, csvRows[j].GetDate())
-		if err != nil {
-			config.Log.Error("Error sorting right date.", err)
-			return false
-		}
-		return leftDate.Before(rightDate)
-	})
 }
 
 var (

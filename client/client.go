@@ -63,7 +63,7 @@ func setup() (*gorm.DB, *config.Config, int, error) {
 	config.DoConfigureLogger(logPath, logLevel, prettyLogging)
 
 	// Configure DB
-	db, err := dbTypes.PostgresDbConnect(cfg.Database.Host, cfg.Database.Port, cfg.Database.Database, cfg.Database.User, cfg.Database.Password, logLevel)
+	db, err := dbTypes.PostgresDbConnect(cfg.Database.Host, cfg.Database.Port, cfg.Database.Database, cfg.Database.User, cfg.Database.Password, strings.ToLower(cfg.Database.LogLevel))
 	if err != nil {
 		config.Log.Error("Could not establish connection to the database", err)
 		return nil, nil, svcPort, err
@@ -112,7 +112,7 @@ func CORSMiddleware() gin.HandlerFunc {
 
 type TaxableEventsCSVRequest struct {
 	Chain     string  `json:"chain"`
-	Address   string  `json:"address"`
+	Addresses string  `json:"addresses"`
 	StartDate *string `json:"startDate"` // can be null
 	EndDate   *string `json:"endDate"`   // can be null
 	Format    string  `json:"format"`
@@ -147,21 +147,29 @@ func GetTaxableEventsCSV(c *gin.Context) {
 		}
 		endDate = &endTime
 	}
+	config.Log.Infof("Start: %s End: %s\n", startDate, endDate)
 
-	if requestBody.Address == "" {
+	if requestBody.Addresses == "" {
 		c.JSON(422, gin.H{"message": "Address is required"})
 		return
 	}
-	fmt.Printf("Start: %s End: %s\n", startDate, endDate)
+
+	// parse addresses
+	var addresses []string
+	// strip spaces
+	requestBody.Addresses = strings.ReplaceAll(requestBody.Addresses, " ", "")
+	// split on commas
+	addresses = strings.Split(requestBody.Addresses, ",")
 
 	if requestBody.Format == "" {
 		c.JSON(422, gin.H{"message": "Format is required"})
 		return
 	}
 
-	accountRows, headers, err := csv.ParseForAddress(requestBody.Address, startDate, endDate, DB, requestBody.Format, *GlobalCfg)
+	accountRows, headers, err := csv.ParseForAddress(addresses, startDate, endDate, DB, requestBody.Format, *GlobalCfg)
 	if err != nil {
 		// the error returned here has already been pushed to the context... I think.
+		config.Log.Errorf("Error getting rows for addresses: %v", addresses)
 		c.AbortWithError(500, errors.New("Error getting rows for address")) // nolint:staticcheck,errcheck
 		return
 	}
