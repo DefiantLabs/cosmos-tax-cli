@@ -1,7 +1,7 @@
 package config
 
 import (
-	ibcTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/ibc/types"
+	ibcTypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
 	lensClient "github.com/strangelove-ventures/lens/client"
 )
 

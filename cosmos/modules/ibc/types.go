@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
-	types "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/ibc/types"
 	txModule "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
+	"github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
 
 	stdTypes "github.com/cosmos/cosmos-sdk/types"
 )
