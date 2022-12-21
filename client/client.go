@@ -63,7 +63,7 @@ func setup() (*gorm.DB, *config.Config, int, error) {
 	config.DoConfigureLogger(logPath, logLevel, prettyLogging)
 
 	// Configure DB
-	db, err := dbTypes.PostgresDbConnect(cfg.Database.Host, cfg.Database.Port, cfg.Database.Database, cfg.Database.User, cfg.Database.Password, logLevel)
+	db, err := dbTypes.PostgresDbConnect(cfg.Database.Host, cfg.Database.Port, cfg.Database.Database, cfg.Database.User, cfg.Database.Password, strings.ToLower(cfg.Database.LogLevel))
 	if err != nil {
 		config.Log.Error("Could not establish connection to the database", err)
 		return nil, nil, svcPort, err
