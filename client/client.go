@@ -147,12 +147,12 @@ func GetTaxableEventsCSV(c *gin.Context) {
 		}
 		endDate = &endTime
 	}
+	config.Log.Infof("Start: %s End: %s\n", startDate, endDate)
 
 	if requestBody.Address == "" {
 		c.JSON(422, gin.H{"message": "Address is required"})
 		return
 	}
-	fmt.Printf("Start: %s End: %s\n", startDate, endDate)
 
 	if requestBody.Format == "" {
 		c.JSON(422, gin.H{"message": "Format is required"})
