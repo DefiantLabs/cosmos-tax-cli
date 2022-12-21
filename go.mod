@@ -177,5 +177,4 @@ replace (
 	google.golang.org/grpc => google.golang.org/grpc v1.33.2
 )
 
-//github.com/strangelove-ventures/lens => /home/kyle/projects/DefiantLabs/lens
 replace github.com/strangelove-ventures/lens => github.com/DefiantLabs/lens v0.0.5-dl
