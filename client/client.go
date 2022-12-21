@@ -96,6 +96,27 @@ func main() {
 	}
 }
 
+func GetClientIP(c *gin.Context) string {
+	// first check the X-Forwarded-For header
+	requester := c.Request.Header.Get("X-Forwarded-For")
+	// if empty, check the Real-IP header
+	if len(requester) == 0 {
+		requester = c.Request.Header.Get("X-Real-IP")
+	}
+	// if the requester is still empty, use the hard-coded address from the socket
+	if len(requester) == 0 {
+		requester = c.Request.RemoteAddr
+	}
+
+	// if requester is a comma delimited list, take the first one
+	// (this happens when proxied via elastic load balancer then again through nginx)
+	if strings.Contains(requester, ",") {
+		requester = strings.Split(requester, ",")[0]
+	}
+
+	return requester
+}
+
 // ZeroLogMiddleware sends gin logs to our zerologger
 func ZeroLogMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -106,33 +127,22 @@ func ZeroLogMiddleware() gin.HandlerFunc {
 		c.Next()
 
 		// Stop timer
-		duration := time.Since(start).Milliseconds()
+		duration := fmt.Sprint(time.Since(start).Milliseconds())
 
-		config.Log.Debugf("Duration: %vms", duration)
+		// create and send log event
+		event := config.Log.ZInfo().
+			Str("client_ip", GetClientIP(c)).
+			Str("duration", duration).
+			Str("method", c.Request.Method).
+			Str("path", c.Request.RequestURI).
+			Str("status", fmt.Sprint(c.Writer.Status())).
+			Str("referrer", c.Request.Referer())
 
-		/*
-			entry := log.WithFields(log.Fields{
-				"client_ip":  util.GetClientIP(c),
-				"duration":   duration,
-				"method":     c.Request.Method,
-				"path":       c.Request.RequestURI,
-				"status":     c.Writer.Status(),
-				"user_id":    util.GetUserID(c),
-				"referrer":   c.Request.Referer(),
-				"request_id": c.Writer.Header().Get("Request-Id"),
-				// "api_version": util.ApiVersion,
-			})
+		if c.Writer.Status() >= 500 {
+			event.Err(c.Errors.Last())
+		}
 
-		*/
-
-		/*
-			if c.Writer.Status() >= 500 {
-				entry.Error(c.Errors.String())
-			} else {
-				entry.Info("")
-			}
-
-		*/
+		event.Send()
 	}
 }
 
