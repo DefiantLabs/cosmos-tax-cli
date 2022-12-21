@@ -7,7 +7,7 @@ require (
 	github.com/cosmos/cosmos-sdk v0.45.4
 	github.com/gin-gonic/gin v1.7.0
 	github.com/go-co-op/gocron v1.13.0
-	github.com/gogo/protobuf v1.3.3
+	github.com/gogo/protobuf v1.3.3 // indirect
 	github.com/imdario/mergo v0.3.12
 	github.com/osmosis-labs/osmosis/v9 v9.0.0
 	github.com/shopspring/decimal v1.3.1
@@ -16,7 +16,7 @@ require (
 	github.com/strangelove-ventures/lens v0.0.5-dl
 	github.com/stretchr/testify v1.7.1
 	github.com/tendermint/tendermint v0.34.19
-	google.golang.org/grpc v1.46.2
+	google.golang.org/grpc v1.46.2 // indirect
 	gorm.io/driver/postgres v1.3.1
 	gorm.io/gorm v1.23.6
 )
