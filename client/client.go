@@ -112,7 +112,7 @@ func CORSMiddleware() gin.HandlerFunc {
 
 type TaxableEventsCSVRequest struct {
 	Chain     string  `json:"chain"`
-	Address   string  `json:"address"`
+	Addresses string  `json:"addresses"`
 	StartDate *string `json:"startDate"` // can be null
 	EndDate   *string `json:"endDate"`   // can be null
 	Format    string  `json:"format"`
@@ -149,17 +149,24 @@ func GetTaxableEventsCSV(c *gin.Context) {
 	}
 	config.Log.Infof("Start: %s End: %s\n", startDate, endDate)
 
-	if requestBody.Address == "" {
+	if requestBody.Addresses == "" {
 		c.JSON(422, gin.H{"message": "Address is required"})
 		return
 	}
+
+	// parse addresses
+	var addresses []string
+	// strip spaces
+	requestBody.Addresses = strings.ReplaceAll(requestBody.Addresses, " ", "")
+	// split on commas
+	addresses = strings.Split(requestBody.Addresses, ",")
 
 	if requestBody.Format == "" {
 		c.JSON(422, gin.H{"message": "Format is required"})
 		return
 	}
 
-	accountRows, headers, err := csv.ParseForAddress(requestBody.Address, startDate, endDate, DB, requestBody.Format, *GlobalCfg)
+	accountRows, headers, err := csv.ParseForAddress(addresses, startDate, endDate, DB, requestBody.Format, *GlobalCfg)
 	if err != nil {
 		// the error returned here has already been pushed to the context... I think.
 		c.AbortWithError(500, errors.New("Error getting rows for address")) // nolint:staticcheck,errcheck
