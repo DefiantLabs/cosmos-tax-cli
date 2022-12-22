@@ -55,14 +55,16 @@ func SeparateParsingGroups(txMap map[uint][]db.TaxableTransaction, parsingGroups
 		// Loop through the transactions
 		for _, message := range txMsgs {
 			// if the msg in this tx belongs to the group
+			var txInGroup bool
 			for _, txGroup := range parsingGroups {
 				if txGroup.BelongsToGroup(message) {
 					// add to the group list
 					txGroup.AddTxToGroup(message)
-				} else {
-					// add it to the output list
-					remainingTxMsgs = append(remainingTxMsgs, message)
+					txInGroup = true
 				}
+			}
+			if !txInGroup {
+				remainingTxMsgs = append(remainingTxMsgs, message)
 			}
 		}
 		txMap[txIdx] = remainingTxMsgs
