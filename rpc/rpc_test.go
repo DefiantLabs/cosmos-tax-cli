@@ -71,8 +71,8 @@ func setupRPC(t *testing.T) *gocron.Scheduler {
 	}
 	// TODO: create config values for the prefixes here
 	// Could potentially check Node info at startup and pass in ourselves?
-	core.SetupAddressRegex(testConfig.Base.AddressRegex)
-	core.SetupAddressPrefix(testConfig.Base.AddressPrefix)
+	core.SetupAddressRegex(testConfig.Lens.AccountPrefix + "(valoper)?1[a-z0-9]{38}")
+	core.SetupAddressPrefix(testConfig.Lens.AccountPrefix)
 
 	scheduler := gocron.NewScheduler(time.UTC)
 	return scheduler

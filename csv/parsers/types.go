@@ -3,12 +3,11 @@ package parsers
 import (
 	"time"
 
-	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
 )
 
 type Parser interface {
-	InitializeParsingGroups(config config.Config)
+	InitializeParsingGroups()
 	ProcessTaxableTx(address string, taxableTxs []db.TaxableTransaction) error
 	ProcessTaxableEvent(taxableEvents []db.TaxableEvent) error
 	GetHeaders() []string
