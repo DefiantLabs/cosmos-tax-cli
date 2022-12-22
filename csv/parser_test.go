@@ -26,7 +26,7 @@ func TestKoinlyOsmoLPParsing(t *testing.T) {
 	cfg := config.Config{}
 	cfg.Lens.ChainID = osmosis.ChainID
 	parser := GetParser(koinly.ParserKey)
-	parser.InitializeParsingGroups(cfg)
+	parser.InitializeParsingGroups()
 
 	// setup user and chain
 	targetAddress := mkAddress(t, 1)
@@ -65,7 +65,7 @@ func TestKoinlyOsmoRewardParsing(t *testing.T) {
 	cfg := config.Config{}
 	cfg.Lens.ChainID = osmosis.ChainID
 	parser := GetParser(koinly.ParserKey)
-	parser.InitializeParsingGroups(cfg)
+	parser.InitializeParsingGroups()
 
 	// setup user and chain
 	targetAddress := mkAddress(t, 1)
@@ -100,7 +100,7 @@ func TestAccointingIbcMsgTransferSelf(t *testing.T) {
 	cfg := config.Config{}
 	cfg.Lens.ChainID = osmosis.ChainID
 	parser := GetParser(accointing.ParserKey)
-	parser.InitializeParsingGroups(cfg)
+	parser.InitializeParsingGroups()
 
 	me := "osmo18zljeu4lg4jppkz75en82qr3zymfcnchwvsqgu"
 	alsoMe := "juno18zljeu4lg4jppkz75en82qr3zymfcnchs9qtej"
@@ -144,7 +144,7 @@ func TestAccointingIbcMsgTransferExternal(t *testing.T) {
 	cfg := config.Config{}
 	cfg.Lens.ChainID = osmosis.ChainID
 	parser := GetParser(accointing.ParserKey)
-	parser.InitializeParsingGroups(cfg)
+	parser.InitializeParsingGroups()
 
 	me := "osmo14mmus5h7m6vkp0pteks8wawaj4wf3sx7fy3s2r"
 	someoneElse := "juno18zljeu4lg4jppkz75en82qr3zymfcnchs9qtej"
@@ -187,7 +187,7 @@ func TestAccointingOsmoLPParsing(t *testing.T) {
 	cfg := config.Config{}
 	cfg.Lens.ChainID = osmosis.ChainID
 	parser := GetParser(accointing.ParserKey)
-	parser.InitializeParsingGroups(cfg)
+	parser.InitializeParsingGroups()
 
 	// setup user and chain
 	targetAddress := mkAddress(t, 1)
@@ -222,7 +222,7 @@ func TestAccointingOsmoRewardParsing(t *testing.T) {
 	cfg := config.Config{}
 	cfg.Lens.ChainID = osmosis.ChainID
 	parser := GetParser(accointing.ParserKey)
-	parser.InitializeParsingGroups(cfg)
+	parser.InitializeParsingGroups()
 
 	// setup user and chain
 	targetAddress := mkAddress(t, 1)

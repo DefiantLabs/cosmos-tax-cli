@@ -14,7 +14,6 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/staking"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/gamm"
 )
 
@@ -80,10 +79,8 @@ func (p *Parser) ProcessTaxableEvent(taxableEvents []db.TaxableEvent) error {
 	return nil
 }
 
-func (p *Parser) InitializeParsingGroups(config config.Config) {
-	if config.Lens.ChainID == osmosis.ChainID {
-		p.ParsingGroups = append(p.ParsingGroups, GetOsmosisTxParsingGroups()...)
-	}
+func (p *Parser) InitializeParsingGroups() {
+	p.ParsingGroups = append(p.ParsingGroups, GetOsmosisTxParsingGroups()...)
 }
 
 func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parsers.CsvRow {
