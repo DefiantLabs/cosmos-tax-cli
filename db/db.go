@@ -99,7 +99,9 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 
 		// block.BlockchainID = block.Chain.ID
 
-		if err := dbTransaction.Where(&block).FirstOrCreate(&block).Error; err != nil {
+		if err := dbTransaction.
+			Where(Block{Height: block.Height, BlockchainID: block.BlockchainID}).
+			FirstOrCreate(&block).Error; err != nil {
 			config.Log.Error("Error getting/creating block DB object.", err)
 			return err
 		}
