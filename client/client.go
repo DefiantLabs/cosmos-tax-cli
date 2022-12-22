@@ -23,13 +23,13 @@ func setup() (*gorm.DB, *config.Config, int, error) {
 	argConfig, flagSet, svcPort, err := config.ParseArgs(os.Stderr, os.Args[1:])
 	if err != nil {
 		if strings.Contains(err.Error(), "help requested") {
-			log.Println("Please see valid flags above.")
+			config.Log.Info("Please see valid flags above.")
 			os.Exit(0)
 		} else if strings.Contains(err.Error(), "flag provided but not defined") {
-			log.Println("Invalid flag. Please see valid flags above.")
+			config.Log.Info("Invalid flag. Please see valid flags above.")
 			os.Exit(0)
 		}
-		log.Panicf("Error parsing args. Err: %v", err)
+		config.Log.Panicf("Error parsing args. Err: %v", err)
 		return nil, nil, svcPort, err
 	}
 
@@ -43,7 +43,7 @@ func setup() (*gorm.DB, *config.Config, int, error) {
 	fileConfig, err := config.GetConfig(location)
 	if err != nil {
 		if !strings.Contains(err.Error(), "no such file or directory") {
-			log.Panicf("Error opening configuration file. Err: %v", err)
+			config.Log.Panicf("Error opening configuration file. Err: %v", err)
 			return nil, nil, svcPort, err
 		}
 	}
@@ -53,7 +53,7 @@ func setup() (*gorm.DB, *config.Config, int, error) {
 	err = cfg.ValidateClientConfig()
 	if err != nil {
 		flagSet.PrintDefaults()
-		log.Fatalf("Config validation failed. Err: %v", err)
+		config.Log.Fatalf("Config validation failed. Err: %v", err)
 	}
 
 	// Configure logger
@@ -83,13 +83,66 @@ func main() {
 	DB = db
 	GlobalCfg = cfg
 
-	r := gin.Default()
+	r := gin.New()
+	r.Use(gin.Recovery())
+	r.Use(ZeroLogMiddleware())
+
 	r.Use(CORSMiddleware())
 
 	r.POST("/events.csv", GetTaxableEventsCSV)
 	err = r.Run(fmt.Sprintf(":%v", svcPort))
 	if err != nil {
 		config.Log.Fatal("Error starting server.", err)
+	}
+}
+
+func GetClientIP(c *gin.Context) string {
+	// first check the X-Forwarded-For header
+	requester := c.Request.Header.Get("X-Forwarded-For")
+	// if empty, check the Real-IP header
+	if len(requester) == 0 {
+		requester = c.Request.Header.Get("X-Real-IP")
+	}
+	// if the requester is still empty, use the hard-coded address from the socket
+	if len(requester) == 0 {
+		requester = c.Request.RemoteAddr
+	}
+
+	// if requester is a comma delimited list, take the first one
+	// (this happens when proxied via elastic load balancer then again through nginx)
+	if strings.Contains(requester, ",") {
+		requester = strings.Split(requester, ",")[0]
+	}
+
+	return requester
+}
+
+// ZeroLogMiddleware sends gin logs to our zerologger
+func ZeroLogMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Start timer
+		start := time.Now()
+
+		// Process Request
+		c.Next()
+
+		// Stop timer
+		duration := fmt.Sprint(time.Since(start).Milliseconds())
+
+		// create and send log event
+		event := config.Log.ZInfo().
+			Str("client_ip", GetClientIP(c)).
+			Str("duration", duration).
+			Str("method", c.Request.Method).
+			Str("path", c.Request.RequestURI).
+			Str("status", fmt.Sprint(c.Writer.Status())).
+			Str("referrer", c.Request.Referer())
+
+		if c.Writer.Status() >= 500 {
+			event.Err(c.Errors.Last())
+		}
+
+		event.Send()
 	}
 }
 
