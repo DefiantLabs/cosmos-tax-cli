@@ -148,7 +148,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 			transaction.Tx.Block = block
 			transaction.Tx.Fees = fees
 
-			if err := dbTransaction.Create(&transaction.Tx).Error; err != nil {
+			if err := dbTransaction.Where(&transaction.Tx).FirstOrCreate(&transaction.Tx).Error; err != nil {
 				config.Log.Error("Error creating tx.", err)
 				return err
 			}
@@ -163,7 +163,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 				}
 
 				message.Message.Tx = transaction.Tx
-				if err := dbTransaction.Create(&message.Message).Error; err != nil {
+				if err := dbTransaction.Where(&message.Message).FirstOrCreate(&message.Message).Error; err != nil {
 					config.Log.Error("Error creating message.", err)
 					return err
 				}
@@ -193,7 +193,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 						taxableTx.TaxableTx.ReceiverAddressID = nil
 					}
 					taxableTx.TaxableTx.Message = message.Message
-					if err := dbTransaction.Create(&taxableTx.TaxableTx).Error; err != nil {
+					if err := dbTransaction.Where(&taxableTx.TaxableTx).FirstOrCreate(&taxableTx.TaxableTx).Error; err != nil {
 						config.Log.Error("Error creating taxable event.", err)
 						return err
 					}
