@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/core"
 	"github.com/go-co-op/gocron"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -44,8 +43,6 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&conf.Log.Path, "log.path", "", "log path (default is $HOME/.cosmos-tax-cli-private/logs.txt")
 
 	// Base
-	rootCmd.PersistentFlags().StringVar(&conf.Base.AddressRegex, "base.addrRegex", "", "address regex")
-	rootCmd.PersistentFlags().StringVar(&conf.Base.AddressPrefix, "base.addrPrefix", "", "address prefix")
 	rootCmd.PersistentFlags().Int64Var(&conf.Base.StartBlock, "base.startBlock", 0, "block to start indexing at")
 	rootCmd.PersistentFlags().Int64Var(&conf.Base.EndBlock, "base.endBlock", -1, "block to stop indexing at (use -1 to index indefinitely")
 
@@ -147,10 +144,6 @@ func setup(cfg config.Config) (*config.Config, *gorm.DB, *gocron.Scheduler, erro
 	sqldb.SetMaxIdleConns(10)
 	sqldb.SetMaxOpenConns(100)
 	sqldb.SetConnMaxLifetime(time.Hour)
-
-	// TODO: make mapping for all chains, globally initialized
-	core.SetupAddressRegex(cfg.Base.AddressRegex)   // e.g. "juno(valoper)?1[a-z0-9]{38}"
-	core.SetupAddressPrefix(cfg.Base.AddressPrefix) // e.g. juno
 
 	scheduler := gocron.NewScheduler(time.UTC)
 

@@ -54,7 +54,11 @@ func setupIndexer() *Indexer {
 		log.Fatalf("Error during application setup. Err: %v", err)
 	}
 
+	// Setup chain specific stuff
+	core.SetupAddressRegex(idxr.cfg.Lens.AccountPrefix + "(valoper)?1[a-z0-9]{38}")
+	core.SetupAddressPrefix(idxr.cfg.Lens.AccountPrefix)
 	core.ChainSpecificMessageTypeHandlerBootstrap(idxr.cfg.Lens.ChainID)
+	config.SetChainConfig(idxr.cfg.Lens.AccountPrefix)
 
 	// TODO may need to run this task in setup() so that we have a cold start functionality before the indexer starts
 	_, err = idxr.scheduler.Every(6).Hours().Do(tasks.DenomUpsertTask, idxr.cfg.Base.API, idxr.db)
@@ -67,8 +71,6 @@ func setupIndexer() *Indexer {
 	// Some chains do not have the denom metadata URL available on chain, so we do chain specific downloads instead.
 	tasks.DoChainSpecificUpsertDenoms(idxr.db, idxr.cfg.Lens.ChainID)
 	idxr.cl = config.GetLensClient(idxr.cfg.Lens)
-
-	config.SetChainConfig(idxr.cfg.Base.AddressPrefix)
 
 	// Depending on the app configuration, wait for the chain to catch up
 	chainCatchingUp, err := rpc.IsCatchingUp(idxr.cl)

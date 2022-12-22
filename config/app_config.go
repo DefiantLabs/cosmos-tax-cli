@@ -38,12 +38,6 @@ func (conf *Config) Validate() error {
 	}
 
 	// Base Checks
-	if util.StrNotSet(conf.Base.AddressRegex) {
-		return errors.New("base addressRegex must be set")
-	}
-	if util.StrNotSet(conf.Base.AddressPrefix) {
-		return errors.New("base addressPrefix must be set")
-	}
 	if conf.Base.StartBlock == 0 { // TODO: Verify that 0 is not a valid starting block..
 		return errors.New("base startblock must be set")
 	}
@@ -130,9 +124,7 @@ type api struct {
 }
 
 type base struct {
-	AddressRegex       string
 	API                string
-	AddressPrefix      string
 	StartBlock         int64
 	EndBlock           int64
 	Throttling         float64
