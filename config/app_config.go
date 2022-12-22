@@ -143,6 +143,8 @@ type base struct {
 	IndexingEnabled    bool
 	ExitWhenCaughtUp   bool
 	OsmosisRewardsOnly bool
+	CreateCSVFile      bool
+	CSVFile            string
 }
 
 type log struct {
