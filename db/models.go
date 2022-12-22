@@ -29,7 +29,7 @@ type Chain struct {
 
 type Tx struct {
 	ID              uint
-	Hash            string
+	Hash            string `gorm:"uniqueIndex"`
 	Code            uint32
 	BlockID         uint
 	Block           Block
