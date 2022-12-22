@@ -168,10 +168,10 @@ func (idxr *Indexer) enqueueBlocksToProcess(blockChan chan int64) {
 	for {
 		// The program is configured to stop running after a set block height.
 		// Generally this will only be done while debugging or if a particular block was incorrectly processed.
-		if lastBlock != -1 && currBlock >= lastBlock {
+		if lastBlock != -1 && currBlock > lastBlock {
 			config.Log.Info("Hit the last block we're allowed to index, exiting enqueue func.")
 			return
-		} else if idxr.cfg.Base.ExitWhenCaughtUp && currBlock >= latestBlock {
+		} else if idxr.cfg.Base.ExitWhenCaughtUp && currBlock > latestBlock {
 			config.Log.Info("Hit the last block we're allowed to index, exiting enqueue func.")
 			return
 		}
