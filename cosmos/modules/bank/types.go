@@ -53,10 +53,7 @@ func (sf *WrapperMsgMultiSend) HandleMsg(msgType string, msg sdk.Msg, log *txMod
 	sf.Type = msgType
 	sf.CosmosMsgMultiSend = msg.(*bankTypes.MsgMultiSend)
 
-	fmt.Printf("%+v", sf.CosmosMsgMultiSend)
-
-	// Make sure the that the total amount sent matches the total amount recieved for each coin
-
+	// Make sure the that the total amount sent matches the total amount received for each coin
 	// sum up input coins
 	sentMap := make(map[string]sdk.Int)
 	for _, input := range sf.CosmosMsgMultiSend.Inputs {
