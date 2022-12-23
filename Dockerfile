@@ -1,50 +1,92 @@
-# FROM golang:1.19-alpine AS build-env
-FROM ubuntu AS build-env
+FROM golang:1.19-alpine3.16 AS build-env
 
-LABEL org.opencontainers.image.source="https://github.com/defiantlabs/cosmos-tax-cli-private"
-
-ENV PACKAGES make git ssh gcc musl-dev golang net-tools curl
-
-# RUN apk add --no-cache $PACKAGES
-RUN apt-get -y update && apt-get install -y $PACKAGES
-
-# Copy the App
-WORKDIR /go/src/github.com/DefiantLabs/cosmos-tax-cli-private
-ADD . .
-
-# Build Defaults
+# Customize to your build env
+ARG ARCH=x86_64
 ARG TARGETARCH=amd64
 ARG TARGETOS=linux
+ARG BUILD_TAGS=muslc
+ARG LD_FLAGS=-linkmode=external -extldflags '-Wl,-z,muldefs -static'
 
-# Build Local App.
-RUN CGO_ENABLED=1 LDFLAGS='-linkmode external -extldflags "-static"' GOOS=${TARGETOS} GOARCH=${TARGETARCH} go install
-RUN wget -O /lib/libwasmvm.x86_64.so https://github.com/CosmWasm/wasmvm/raw/main/internal/api/libwasmvm.x86_64.so
+# Customise to your repo.
+ARG GITHUB_ORGANIZATION=DefiantLabs
+ARG REPO_HOST=github.com
+ARG GITHUB_REPO=cosmos-tax-cli-private
+ARG VERSION=latest
 
-# Build client
-WORKDIR /go/src/github.com/DefiantLabs/cosmos-tax-cli-private/client
-RUN CGO_ENABLED=1 LDFLAGS='-linkmode external -extldflags "-static"' GOOS=${TARGETOS} GOARCH=${TARGETARCH} go install
+# Install cli tools for building and final image
+RUN apk add --update --no-cache curl make git libc-dev bash gcc linux-headers eudev-dev ncurses-dev libc6-compat jq
 
-# Move all binaries to path
-RUN cp /root/go/bin/* /bin/
+# Copy files required for building
+WORKDIR /go/src/${REPO_HOST}/${GITHUB_ORGANIZATION}/${GITHUB_REPO}
+COPY . .
 
-# Defaults
-ARG USERNAME=defiant
-ARG USER_UID=1137
-ARG USER_GID=$USER_UID
+# Install build dependencies.
+ADD https://github.com/CosmWasm/wasmvm/releases/download/v1.1.1/libwasmvm_muslc.aarch64.a /lib/libwasmvm_muslc.aarch64.a
+ADD https://github.com/CosmWasm/wasmvm/releases/download/v1.1.1/libwasmvm_muslc.${ARCH}.a /lib/libwasmvm_muslc.${ARCH}.a
+RUN sha256sum /lib/libwasmvm_muslc.aarch64.a | grep 9ecb037336bd56076573dc18c26631a9d2099a7f2b40dc04b6cae31ffb4c8f9a
+RUN sha256sum /lib/libwasmvm_muslc.${ARCH}.a | grep 6e4de7ba9bad4ae9679c7f9ecf7e283dd0160e71567c6a7be6ae47c81ebe7f32
+RUN cp /lib/libwasmvm_muslc.${ARCH}.a /lib/libwasmvm_muslc.a
+RUN cp /lib64/ld-linux-x86-64.so.2 /lib64/libdl.so.2
 
-# Create the user
-RUN groupadd --gid $USER_GID $USERNAME \
-    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
-    && apt-get update \
-    && apt-get install -y sudo \
-    && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
-    && chmod 0440 /etc/sudoers.d/$USERNAME
+# Build the app
+RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go install -ldflags ${LD_FLAGS} -tags ${BUILD_TAGS}
 
-# Clean up to make image smaller.
-RUN rm -rf /go/src/
-RUN apt-get clean autoclean
-RUN apt-get autoremove --yes
-RUN rm -rf /var/lib/{apt,dpkg,cache,log}/
+# Build a sub app
+WORKDIR /go/src/${REPO_HOST}/${GITHUB_ORGANIZATION}/${GITHUB_REPO}/client
+RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go install -ldflags ${LD_FLAGS} -tags ${BUILD_TAGS}
 
-USER $USERNAME
+# Use busybox to create a user
+FROM busybox:stable-musl AS busybox
+RUN addgroup --gid 1137 -S defiant && adduser --uid 1137 -S defiant -G defiant
+
+# Use scratch for the final image
+FROM scratch
+
+# Label should match your github repo
+LABEL org.opencontainers.image.source="https://github.com/defiantlabs/cosmos-tax-cli-private"
+
+# Install Binaries
+COPY --from=build-env /go/bin /bin
+COPY --from=build-env /usr/bin/ldd /bin/ldd
+COPY --from=build-env /usr/bin/curl /bin/curl
+COPY --from=build-env /usr/bin/jq /bin/jq
+
+# Install Libraries
+COPY --from=build-env /usr/lib/libgcc_s.so.1 /lib/
+COPY --from=build-env /lib/ld-musl-x86_64.so.1 /lib
+COPY --from=build-env /usr/lib/libonig.so.5 /lib
+COPY --from=build-env /usr/lib/libcurl.so.4 /lib
+COPY --from=build-env /lib/libz.so.1 /lib
+COPY --from=build-env /usr/lib/libnghttp2.so.14 /lib
+COPY --from=build-env /lib/libssl.so.1.1 /lib
+COPY --from=build-env /lib/libcrypto.so.1.1 /lib
+COPY --from=build-env /usr/lib/libbrotlidec.so.1 /lib
+COPY --from=build-env /usr/lib/libbrotlicommon.so.1 /lib
+
+# Install trusted CA certificates
+COPY --from=build-env /etc/ssl/cert.pem /etc/ssl/cert.pem
+
+# Install cli tools from busybox
+COPY --from=busybox /bin/ln /bin/ln
+COPY --from=busybox /bin/cp /bin/cp
+COPY --from=busybox /bin/ls /bin/ls
+COPY --from=busybox /bin/busybox /bin/sh
+COPY --from=busybox /bin/cat /bin/cat
+COPY --from=busybox /bin/less /bin/less
+COPY --from=busybox /bin/grep /bin/grep
+COPY --from=busybox /bin/sleep /bin/sleep
+COPY --from=busybox /bin/env /bin/env
+COPY --from=busybox /bin/tar /bin/tar
+COPY --from=busybox /bin/tee /bin/tee
+COPY --from=busybox /bin/du /bin/du
+COPY --from=busybox /bin/df /bin/df
+COPY --from=busybox /bin/nc /bin/nc
+COPY --from=busybox /bin/netstat /bin/netstat
+
+# Copy user from busybox to scratch
+COPY --from=busybox /etc/passwd /etc/passwd
+COPY --from=busybox --chown=1137:1137 /home/defiant /home/defiant
+
+# Set home directory and user
 WORKDIR /home/defiant
+USER defiant
