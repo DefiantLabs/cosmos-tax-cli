@@ -165,7 +165,15 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 				}
 
 				message.Message.Tx = transaction.Tx
-				if err := dbTransaction.Where(&message.Message).FirstOrCreate(&message.Message).Error; err != nil {
+				message.Message.TxID = transaction.Tx.ID
+				message.Message.MessageTypeID = message.Message.MessageType.ID
+				if err := dbTransaction.
+					Where(Message{
+						TxID:          message.Message.TxID,
+						MessageTypeID: message.Message.MessageTypeID,
+						MessageIndex:  message.Message.MessageIndex,
+					}).
+					FirstOrCreate(&message.Message).Error; err != nil {
 					config.Log.Error("Error creating message.", err)
 					return err
 				}
