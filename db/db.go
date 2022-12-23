@@ -165,7 +165,15 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 				}
 
 				message.Message.Tx = transaction.Tx
-				if err := dbTransaction.Where(&message.Message).FirstOrCreate(&message.Message).Error; err != nil {
+				message.Message.TxID = transaction.Tx.ID
+				message.Message.MessageTypeID = message.Message.MessageType.ID
+				if err := dbTransaction.
+					Where(Message{
+						TxID:          message.Message.TxID,
+						MessageTypeID: message.Message.MessageTypeID,
+						MessageIndex:  message.Message.MessageIndex,
+					}).
+					FirstOrCreate(&message.Message).Error; err != nil {
 					config.Log.Error("Error creating message.", err)
 					return err
 				}
@@ -194,9 +202,18 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 						// nil creates null foreign key relation
 						taxableTx.TaxableTx.ReceiverAddressID = nil
 					}
+
+					// It is possible to have more than 1 taxable TX for a single msg. In most cases it should only be 1 or 2, but
+					// more is possible. Keying off of msg ID and amount may be sufficient....
 					taxableTx.TaxableTx.Message = message.Message
-					if err := dbTransaction.Where(&taxableTx.TaxableTx).FirstOrCreate(&taxableTx.TaxableTx).Error; err != nil {
-						config.Log.Error("Error creating taxable event.", err)
+					if err := dbTransaction.
+						Where(TaxableTransaction{
+							MessageID:      message.Message.ID,
+							AmountSent:     taxableTx.TaxableTx.AmountSent,
+							AmountReceived: taxableTx.TaxableTx.AmountReceived,
+						}).
+						FirstOrCreate(&taxableTx.TaxableTx).Error; err != nil {
+						config.Log.Error("Error creating taxable transaction.", err)
 						return err
 					}
 				}
