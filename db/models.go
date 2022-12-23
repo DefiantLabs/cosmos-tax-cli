@@ -100,7 +100,7 @@ func (TaxableEvent) TableName() string {
 
 type TaxableTransaction struct {
 	ID                     uint
-	MessageID              uint
+	MessageID              uint            `gorm:"index:idx_msg"`
 	Message                Message         `gorm:"foreignKey:MessageID"`
 	AmountSent             decimal.Decimal `gorm:"type:decimal(78,0);"`
 	AmountReceived         decimal.Decimal `gorm:"type:decimal(78,0);"`
