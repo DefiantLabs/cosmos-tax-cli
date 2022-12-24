@@ -25,7 +25,51 @@ services:
           - defiant
     <<: *logging
 
-  cosmos-tax-cli-private:
+  cosmos-tax-cli-private-client:
+    restart: "unless-stopped"
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        - TARGETPLATFORM=linux/amd64
+    image: cosmos-tax-cli-private:local
+    user: defiant
+    stop_grace_period: 1m
+    volumes:
+      - cosmos-tax-cli-private-client:/var/lib/cosmos-tax-cli-private-client
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - 8080:8080/tcp
+    networks:
+      default:
+        aliases:
+          - defiant
+    <<: *logging
+    command: /bin/sh -c "client --db.host postgres --db.database postgres --db.user taxuser --db.password password"
+  cosmos-tax-cli-web:
+    restart: "unless-stopped"
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        - TARGETPLATFORM=linux/amd64
+    image: ghcr.io/defiantlabs/cosmos-tax-cli-web:main-540d502abe5752452b03012c79a396e74b95cf0f
+    # user: defiant
+    stop_grace_period: 1m
+    volumes:
+      - cosmos-tax-cli-web:/var/lib/cosmos-tax-cli-web
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - REACT_APP_API_URL=http://cosmos-tax-cli-private-client:8080
+    ports:
+      - 3000:3000/tcp
+    networks:
+      default:
+        aliases:
+          - defiant
+    <<: *logging
+    command: /bin/sh -c "npm run start"
+  cosmos-tax-cli-private-index:
     restart: "no"
     build:
       context: .
@@ -36,14 +80,16 @@ services:
     user: defiant
     stop_grace_period: 1m
     volumes:
-      - defiant-data:/var/lib/cosmos-tax-cli-private
+      - cosmos-tax-cli-private-index:/var/lib/cosmos-tax-cli-private-index
       - /etc/localtime:/etc/localtime:ro
     networks:
       default:
         aliases:
           - defiant
     <<: *logging
-    command: /bin/sh -c "/home/defiant/entrypoint-example.sh"
+    command: /bin/sh -c "sleep 5 ; cosmos-tax-cli-private index --log.pretty = false --log.level = debug --base.startBlock 1 --base.endBlock -1 --base.api http://osmosis-archive.nodes.defiantlabs.net:1317 --lens.accountPrefix osmo --lens.keyringBackend test --lens.chainID osmosis-1 --lens.chainName osmosis --lens.rpc http://osmosis-archive.nodes.defiantlabs.net:26657/ --db.host postgres --db.database postgres --db.user taxuser --db.password password"
 volumes:
-  defiant-data:
   postgres:
+  cosmos-tax-cli-private-client:
+  cosmos-tax-cli-web:
+  cosmos-tax-cli-private-index:

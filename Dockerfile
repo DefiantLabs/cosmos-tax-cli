@@ -65,7 +65,6 @@ COPY --from=build-env /usr/bin/jq /bin/jq
 
 # Install Libraries
 # cosmos-tax-cli-private
-COPY --from=build-env /go/src/app/entrypoint-example.sh /home/defiant
 COPY --from=build-env /usr/lib/libgcc_s.so.1 /lib/
 COPY --from=build-env /lib/ld-musl*.so.1* /lib
 
