@@ -1,9 +1,8 @@
 FROM golang:1.19-alpine3.16 AS build-env
 
 # Customize to your build env
-ARG ARCH=x86_64
-ARG TARGETARCH=amd64
-ARG TARGETOS=linux
+
+ARG TARGETPLATFORM
 ARG BUILD_TAGS=muslc
 ARG LD_FLAGS=-linkmode=external -extldflags '-Wl,-z,muldefs -static'
 
@@ -21,19 +20,35 @@ WORKDIR /go/src/${REPO_HOST}/${GITHUB_ORGANIZATION}/${GITHUB_REPO}
 COPY . .
 
 # Install build dependencies.
-ADD https://github.com/CosmWasm/wasmvm/releases/download/v1.1.1/libwasmvm_muslc.aarch64.a /lib/libwasmvm_muslc.aarch64.a
-ADD https://github.com/CosmWasm/wasmvm/releases/download/v1.1.1/libwasmvm_muslc.${ARCH}.a /lib/libwasmvm_muslc.${ARCH}.a
-RUN sha256sum /lib/libwasmvm_muslc.aarch64.a | grep 9ecb037336bd56076573dc18c26631a9d2099a7f2b40dc04b6cae31ffb4c8f9a
-RUN sha256sum /lib/libwasmvm_muslc.${ARCH}.a | grep 6e4de7ba9bad4ae9679c7f9ecf7e283dd0160e71567c6a7be6ae47c81ebe7f32
-RUN cp /lib/libwasmvm_muslc.${ARCH}.a /lib/libwasmvm_muslc.a
-RUN cp /lib64/ld-linux-x86-64.so.2 /lib64/libdl.so.2
+RUN if [ "${TARGETPLATFORM}" = "linux/amd64" ] ; then \
+      wget -P /lib https://github.com/CosmWasm/wasmvm/releases/download/v1.1.1/libwasmvm_muslc.x86_64.a ; \
+      cp /lib/libwasmvm_muslc.x86_64.a /lib/libwasmvm_muslc.a ; \
+    fi
 
-# Build the app
-RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go install -ldflags ${LD_FLAGS} -tags ${BUILD_TAGS}
+RUN if  [ "${TARGETPLATFORM}" = "linux/arm64" ] ; then \
+      wget -P /lib https://github.com/CosmWasm/wasmvm/releases/download/v1.1.1/libwasmvm_muslc.aarch64.a ; \
+      cp /lib/libwasmvm_muslc.aarch64.a /lib/libwasmvm_muslc.a ; \
+    fi
+
+
+
+RUN if [ "${TARGETPLATFORM}" = "linux/amd64" ] ; then \
+      GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go install -ldflags ${LD_FLAGS} -tags ${BUILD_TAGS} ; \
+    fi
+
+RUN if [ "${TARGETPLATFORM}" = "linux/arm64" ] ; then \
+      GOOS=linux GOARCH=arm64 CGO_ENABLED=1 go install -ldflags ${LD_FLAGS} -tags ${BUILD_TAGS} ; \
+    fi
 
 # Build a sub app
 WORKDIR /go/src/${REPO_HOST}/${GITHUB_ORGANIZATION}/${GITHUB_REPO}/client
-RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go install -ldflags ${LD_FLAGS} -tags ${BUILD_TAGS}
+RUN if [ "${TARGETPLATFORM}" = "linux/amd64" ] ; then \
+      GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go install -ldflags ${LD_FLAGS} -tags ${BUILD_TAGS} ; \
+    fi
+
+RUN if [ "${TARGETPLATFORM}" = "linux/arm64" ] ; then \
+      GOOS=linux GOARCH=arm64 CGO_ENABLED=1 go install -ldflags ${LD_FLAGS} -tags ${BUILD_TAGS} ; \
+    fi
 
 # Use busybox to create a user
 FROM busybox:stable-musl AS busybox
@@ -41,6 +56,7 @@ RUN addgroup --gid 1137 -S defiant && adduser --uid 1137 -S defiant -G defiant
 
 # Use scratch for the final image
 FROM scratch
+ARG ARCH=x86_64
 
 # Label should match your github repo
 LABEL org.opencontainers.image.source="https://github.com/defiantlabs/cosmos-tax-cli-private"
@@ -53,7 +69,8 @@ COPY --from=build-env /usr/bin/jq /bin/jq
 
 # Install Libraries
 COPY --from=build-env /usr/lib/libgcc_s.so.1 /lib/
-COPY --from=build-env /lib/ld-musl-x86_64.so.1 /lib
+COPY --from=build-env /lib/ld-musl*.so.1* /lib
+# COPY --from=build-env /lib/ld-musl-aarch64.so.1* /lib
 COPY --from=build-env /usr/lib/libonig.so.5 /lib
 COPY --from=build-env /usr/lib/libcurl.so.4 /lib
 COPY --from=build-env /lib/libz.so.1 /lib
