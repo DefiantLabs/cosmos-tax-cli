@@ -28,12 +28,8 @@ clean:
 
 build-docker-amd:
 	docker build -t $(FQCN):$(VERSION) -f ./Dockerfile \
-	--build-arg TARGETPLATFORM=linux/amd64 \
-	.
-	docker push $(FQCN):$(VERSION)
+	--build-arg TARGETPLATFORM=linux/amd64 .
 
 build-docker-arm:
 	docker build -t $(FQCN):$(VERSION) -f ./Dockerfile \
-	--build-arg TARGETPLATFORM=linux/arm64 \
-	.
-	docker push $(FQCN):$(VERSION)
+	--build-arg TARGETPLATFORM=linux/arm64 .
