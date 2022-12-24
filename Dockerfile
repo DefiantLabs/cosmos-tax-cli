@@ -6,6 +6,8 @@ ARG TARGETPLATFORM
 ARG BUILD_TAGS=muslc
 ARG LD_FLAGS=-linkmode=external -extldflags '-Wl,-z,muldefs -static'
 
+RUN echo ${TARGETPLATFORM}
+
 RUN if [ "${TARGETPLATFORM}" = "linux/amd64" ] ; then \
         export TARGETOS = linux \
         export ARCH = x86_64 \
@@ -23,7 +25,6 @@ ARG GITHUB_REPO=cosmos-tax-cli-private
 ARG VERSION=latest
 
 RUN echo HELLOHELLOHELLOHELLO
-RUN echo ${TARGETPLATFORM}
 RUN echo ${ARCH}
 RUN echo ${TARGETARCH}
 RUN echo ${TARGETOS}
