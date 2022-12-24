@@ -26,6 +26,16 @@ build:
 clean:
 	rm -rf build
 
-build-docker:
-	docker build -t $(FQCN):$(VERSION) -f ./Dockerfile .
+build-docker-linux:
+	docker build -t $(FQCN):$(VERSION) -f ./Dockerfile \
+	--build-arg ARCH=x86_64 \
+	--build-arg TARGETARCH=amd64 \
+	.
+	docker push $(FQCN):$(VERSION)
+
+build-docker-mac:
+	docker build -t $(FQCN):$(VERSION) -f ./Dockerfile \
+	--build-arg ARCH=aarch64 \
+	--build-arg TARGETARCH=arm64 \
+	.
 	docker push $(FQCN):$(VERSION)
