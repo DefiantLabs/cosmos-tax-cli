@@ -1,4 +1,4 @@
-name: pre-commit and test
+name: pre-commit checks
 on:
   pull_request:
     types:
@@ -9,12 +9,10 @@ on:
   push:
     branches:
       - main
-
 env:
   GO_VERSION: '^1.19'
 
 jobs:
-
   pre-commit:
     runs-on: ubuntu-latest
     steps:
@@ -27,18 +25,3 @@ jobs:
       - run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -  -b $(go env GOPATH)/bin v1.49.0
       - run: echo "PATH=$PATH:/home/runner/go/bin" >> $GITHUB_ENV
       - uses: pre-commit/action@v3.0.0
-
-
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/setup-go@v3
-        with:
-          go-version: ${{ env.GO_VERSION }}
-      - uses: actions/checkout@v3
-      - name: test code
-        run: |
-          cd csv
-          go test -v ./...
-          cd ../osmosis
-          go test -v ./...
