@@ -40,6 +40,7 @@ func init() {
 
 	// Log
 	rootCmd.PersistentFlags().StringVar(&conf.Log.Level, "log.level", "debug", "log level")
+	rootCmd.PersistentFlags().BoolVar(&conf.Log.Pretty, "log.pretty", false, "pretty logs")
 	rootCmd.PersistentFlags().StringVar(&conf.Log.Path, "log.path", "", "log path (default is $HOME/.cosmos-tax-cli-private/logs.txt")
 
 	// Base

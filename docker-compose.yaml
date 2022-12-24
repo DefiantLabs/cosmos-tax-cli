@@ -1,0 +1,49 @@
+version: "3.9"
+x-logging: &logging
+  logging:
+    driver: json-file
+    options:
+      max-size: 100m
+      max-file: "3"
+      tag: '{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}'
+
+services:
+  postgres:
+    restart: "unless-stopped"
+    image: postgres:15-alpine
+    stop_grace_period: 1m
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=taxuser
+      - POSTGRES_PASSWORD=password
+    ports:
+      - 5432:5432/tcp
+    networks:
+      default:
+        aliases:
+          - defiant
+    <<: *logging
+
+  cosmos-tax-cli-private:
+    restart: "no"
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        - TARGETPLATFORM=linux/amd64
+    image: cosmos-tax-cli-private:local
+    user: defiant
+    stop_grace_period: 1m
+    volumes:
+      - defiant-data:/var/lib/cosmos-tax-cli-private
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      default:
+        aliases:
+          - defiant
+    <<: *logging
+    command: /bin/sh -c "/home/defiant/entrypoint-example.sh"
+volumes:
+  defiant-data:
+  postgres:
