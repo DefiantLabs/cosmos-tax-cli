@@ -58,8 +58,6 @@ jobs:
             type=ref,event=branch,priority=4
             type=ref,event=tag,priority=5
             type=ref,event=pr,priority=6
-            
-            
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v3
