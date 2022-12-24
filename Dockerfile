@@ -2,6 +2,7 @@ FROM golang:1.19-alpine3.16 AS build-env
 
 # Customize to your build env
 ARG ARCH
+ARG TARGETPLATFORM
 ARG TARGETARCH
 ARG TARGETOS=linux
 ARG BUILD_TAGS=muslc
@@ -12,6 +13,10 @@ ARG GITHUB_ORGANIZATION=DefiantLabs
 ARG REPO_HOST=github.com
 ARG GITHUB_REPO=cosmos-tax-cli-private
 ARG VERSION=latest
+
+RUN echo HELLOHELLOHELLOHELLO
+RUN echo ${TARGETPLATFORM}
+RUN echo HELLOHELLOHELLOHELLO
 
 # Install cli tools for building and final image
 RUN apk add --update --no-cache curl make git libc-dev bash gcc linux-headers eudev-dev ncurses-dev libc6-compat jq
