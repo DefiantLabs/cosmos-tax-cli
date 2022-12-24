@@ -7,13 +7,13 @@ ARG BUILD_TAGS=muslc
 ARG LD_FLAGS=-linkmode=external -extldflags '-Wl,-z,muldefs -static'
 
 RUN if [ "${TARGETPLATFORM}" = "linux/amd64" ] ; then \
-        TARGETOS=linux \
-        ARCH = x86_64 \
-        TARGETARCH = amd64 \
+        export TARGETOS = linux \
+        export ARCH = x86_64 \
+        export TARGETARCH = amd64 \
     elif [ "${TARGETARCH}" = "linux/arm64" ] ; then \
-        TARGETOS=linux \
-        ARCH = aarch64 \
-        TARGETARCH = arm64 \
+        export TARGETOS = linux \
+        export ARCH = aarch64 \
+        export TARGETARCH = arm64 \
     fi
 
 # Customise to your repo.
