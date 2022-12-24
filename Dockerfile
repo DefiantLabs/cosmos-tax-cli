@@ -9,13 +9,15 @@ ARG LD_FLAGS=-linkmode=external -extldflags '-Wl,-z,muldefs -static'
 RUN echo ${TARGETPLATFORM}
 
 RUN if [ "${TARGETPLATFORM}" = "linux/amd64" ] ; then \
-        export TARGETOS=linux \
-        export ARCH=x86_64 \
-        export TARGETARCH=amd64 \
-    elif [ "${TARGETARCH}" = "linux/arm64" ] ; then \
-        export TARGETOS=linux \
-        export ARCH=aarch64 \
-        export TARGETARCH=arm64 \
+      export TARGETOS=linux \
+      export ARCH=x86_64 \
+      export TARGETARCH=amd64 \
+    fi
+
+RUN if  [ "${TARGETARCH}" = "linux/arm64" ] ; then \
+      export TARGETOS=linux \
+      export ARCH=aarch64 \
+      export TARGETARCH=arm64 \
     fi
 
 # Customise to your repo.
