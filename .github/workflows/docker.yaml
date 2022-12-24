@@ -1,4 +1,4 @@
-name: Create Package
+name: Docker Package
 
 on:
   pull_request:
