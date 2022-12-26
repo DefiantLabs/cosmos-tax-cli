@@ -87,7 +87,26 @@ services:
         aliases:
           - defiant
     <<: *logging
-    command: /bin/sh -c "sleep 5 ; cosmos-tax-cli-private index --log.pretty = false --log.level = debug --base.startBlock 1 --base.endBlock -1 --base.api http://osmosis-archive.nodes.defiantlabs.net:1317 --lens.accountPrefix osmo --lens.keyringBackend test --lens.chainID osmosis-1 --lens.chainName osmosis --lens.rpc http://osmosis-archive.nodes.defiantlabs.net:26657/ --db.host postgres --db.database postgres --db.user taxuser --db.password password"
+    command:
+    - /bin/sh
+    - -c
+    - |
+      sleep 5
+      cosmos-tax-cli-private index \
+      --log.pretty = true \
+      --log.level = debug \
+      --base.startBlock 5200791 \
+      --base.endBlock 5200891 \
+      --base.api https://api.cosmoshub.strange.love:443 \
+      --lens.rpc http://35.223.140.66:26657 \
+      --lens.accountPrefix cosmos \
+      --lens.keyringBackend test \
+      --lens.chainID cosmoshub-4 \
+      --lens.chainName cosmoshub \
+      --db.host postgres \
+      --db.database postgres \
+      --db.user taxuser \
+      --db.password password"
 volumes:
   postgres:
   cosmos-tax-cli-private-client:

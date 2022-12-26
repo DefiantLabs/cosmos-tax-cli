@@ -47,6 +47,7 @@ func init() {
 	rootCmd.PersistentFlags().Int64Var(&conf.Base.StartBlock, "base.startBlock", 0, "block to start indexing at")
 	rootCmd.PersistentFlags().Int64Var(&conf.Base.EndBlock, "base.endBlock", -1, "block to stop indexing at (use -1 to index indefinitely")
 	rootCmd.PersistentFlags().StringVar(&conf.Base.API, "base.api", "", "node api endpoint")
+	rootCmd.PersistentFlags().BoolVar(&conf.Base.IndexingEnabled, "base.api", true, "enable indexing?")
 
 	// Lens
 	rootCmd.PersistentFlags().StringVar(&conf.Lens.RPC, "lens.rpc", "", "node rpc endpoint")
