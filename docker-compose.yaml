@@ -25,7 +25,7 @@ services:
           - defiant
     <<: *logging
 
-  cosmos-tax-cli-private-client:
+  client:
     restart: "unless-stopped"
     build:
       context: .
@@ -46,21 +46,21 @@ services:
           - defiant
     <<: *logging
     command: /bin/sh -c "client --db.host postgres --db.database postgres --db.user taxuser --db.password password"
-  cosmos-tax-cli-web:
+  web:
     restart: "unless-stopped"
     build:
       context: .
       dockerfile: ./Dockerfile
       args:
         - TARGETPLATFORM=linux/amd64
-    image: ghcr.io/defiantlabs/cosmos-tax-cli-web:main-540d502abe5752452b03012c79a396e74b95cf0f
+    image: ghcr.io/defiantlabs/cosmos-tax-cli-web:sha-c40f082
     # user: defiant
     stop_grace_period: 1m
     volumes:
       - cosmos-tax-cli-web:/var/lib/cosmos-tax-cli-web
       - /etc/localtime:/etc/localtime:ro
     environment:
-      - REACT_APP_API_URL=http://cosmos-tax-cli-private-client:8080
+      - REACT_APP_API_URL=http://localhost:8080
     ports:
       - 3000:3000/tcp
     networks:
@@ -69,7 +69,7 @@ services:
           - defiant
     <<: *logging
     command: /bin/sh -c "npm run start"
-  cosmos-tax-cli-private-index:
+  indexer:
     restart: "no"
     build:
       context: .
@@ -95,18 +95,19 @@ services:
       cosmos-tax-cli-private index \
       --log.pretty = true \
       --log.level = debug \
-      --base.startBlock 5200791 \
-      --base.endBlock 5200891 \
-      --base.api https://api.cosmoshub.strange.love:443 \
-      --lens.rpc http://35.223.140.66:26657 \
-      --lens.accountPrefix cosmos \
+      --base.startBlock 4558967 \
+      --base.endBlock 4558967 \
+      --base.index true \
+      --base.api https://api.osmosis.strange.love:443 \
+      --lens.rpc https://osmosis-mainnet-archive.allthatnode.com:26657 \
+      --lens.accountPrefix osmo \
       --lens.keyringBackend test \
-      --lens.chainID cosmoshub-4 \
-      --lens.chainName cosmoshub \
+      --lens.chainID osmosis-1 \
+      --lens.chainName osmosis \
       --db.host postgres \
       --db.database postgres \
       --db.user taxuser \
-      --db.password password"
+      --db.password password
 volumes:
   postgres:
   cosmos-tax-cli-private-client:
