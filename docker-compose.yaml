@@ -36,7 +36,7 @@ services:
     user: defiant
     stop_grace_period: 1m
     volumes:
-      - cosmos-tax-cli-private-client:/var/lib/cosmos-tax-cli-private-client
+      - client:/var/lib/cosmos-tax-cli-private-client
       - /etc/localtime:/etc/localtime:ro
     ports:
       - 8080:8080/tcp
@@ -57,7 +57,7 @@ services:
     # user: defiant
     stop_grace_period: 1m
     volumes:
-      - cosmos-tax-cli-web:/var/lib/cosmos-tax-cli-web
+      - web:/var/lib/cosmos-tax-cli-web
       - /etc/localtime:/etc/localtime:ro
     environment:
       - REACT_APP_API_URL=http://localhost:8080
@@ -80,7 +80,7 @@ services:
     user: defiant
     stop_grace_period: 1m
     volumes:
-      - cosmos-tax-cli-private-index:/var/lib/cosmos-tax-cli-private-index
+      - indexer:/var/lib/cosmos-tax-cli-private-index
       - /etc/localtime:/etc/localtime:ro
     networks:
       default:
@@ -110,6 +110,6 @@ services:
       --db.password password
 volumes:
   postgres:
-  cosmos-tax-cli-private-client:
-  cosmos-tax-cli-web:
-  cosmos-tax-cli-private-index:
+  client:
+  web:
+  indexer:
