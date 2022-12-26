@@ -48,6 +48,9 @@ func init() {
 	rootCmd.PersistentFlags().Int64Var(&conf.Base.EndBlock, "base.endBlock", -1, "block to stop indexing at (use -1 to index indefinitely")
 	rootCmd.PersistentFlags().StringVar(&conf.Base.API, "base.api", "", "node api endpoint")
 	rootCmd.PersistentFlags().BoolVar(&conf.Base.IndexingEnabled, "base.index", true, "enable indexing?")
+	rootCmd.PersistentFlags().Float64Var(&conf.Base.Throttling, "base.throttling", 0.5, "throttle delay")
+	rootCmd.PersistentFlags().Int64Var(&conf.Base.RPCWorkers, "base.rpcworkers", 1, "rpc workers")
+	rootCmd.PersistentFlags().BoolVar(&conf.Base.WaitForChain, "base.waitforchain", false, "wait for chain to be in sync?")
 
 	// Lens
 	rootCmd.PersistentFlags().StringVar(&conf.Lens.RPC, "lens.rpc", "", "node rpc endpoint")

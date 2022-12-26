@@ -95,8 +95,8 @@ services:
       cosmos-tax-cli-private index \
       --log.pretty = true \
       --log.level = debug \
-      --base.startBlock 4558967 \
-      --base.endBlock 4558967 \
+      --base.startBlock 2603111 \
+      --base.endBlock 7505704 \
       --base.index true \
       --base.api https://api.osmosis.strange.love:443 \
       --lens.rpc https://osmosis-mainnet-archive.allthatnode.com:26657 \
