@@ -1,0 +1,115 @@
+version: "3.9"
+x-logging: &logging
+  logging:
+    driver: json-file
+    options:
+      max-size: 100m
+      max-file: "3"
+      tag: '{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}'
+
+services:
+  postgres:
+    restart: "unless-stopped"
+    image: postgres:15-alpine
+    stop_grace_period: 1m
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=taxuser
+      - POSTGRES_PASSWORD=password
+    ports:
+      - 5432:5432/tcp
+    networks:
+      default:
+        aliases:
+          - defiant
+    <<: *logging
+
+  client:
+    restart: "unless-stopped"
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        - TARGETPLATFORM=linux/amd64
+    image: cosmos-tax-cli-private:local
+    user: defiant
+    stop_grace_period: 1m
+    volumes:
+      - client:/var/lib/cosmos-tax-cli-private-client
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - 8080:8080/tcp
+    networks:
+      default:
+        aliases:
+          - defiant
+    <<: *logging
+    command: /bin/sh -c "client --db.host postgres --db.database postgres --db.user taxuser --db.password password"
+  web:
+    restart: "unless-stopped"
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        - TARGETPLATFORM=linux/amd64
+    image: ghcr.io/defiantlabs/cosmos-tax-cli-web:sha-c40f082
+    # user: defiant
+    stop_grace_period: 1m
+    volumes:
+      - web:/var/lib/cosmos-tax-cli-web
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - REACT_APP_API_URL=http://localhost:8080
+    ports:
+      - 3000:3000/tcp
+    networks:
+      default:
+        aliases:
+          - defiant
+    <<: *logging
+    command: /bin/sh -c "npm run start"
+  indexer:
+    restart: "no"
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        - TARGETPLATFORM=linux/amd64
+    image: cosmos-tax-cli-private:local
+    user: defiant
+    stop_grace_period: 1m
+    volumes:
+      - indexer:/var/lib/cosmos-tax-cli-private-index
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      default:
+        aliases:
+          - defiant
+    <<: *logging
+    command:
+    - /bin/sh
+    - -c
+    - |
+      sleep 5
+      cosmos-tax-cli-private index \
+      --log.pretty = true \
+      --log.level = debug \
+      --base.startBlock 2603111 \
+      --base.endBlock 7505704 \
+      --base.index true \
+      --base.api https://api.osmosis.strange.love:443 \
+      --lens.rpc https://osmosis-mainnet-archive.allthatnode.com:26657 \
+      --lens.accountPrefix osmo \
+      --lens.keyringBackend test \
+      --lens.chainID osmosis-1 \
+      --lens.chainName osmosis \
+      --db.host postgres \
+      --db.database postgres \
+      --db.user taxuser \
+      --db.password password
+volumes:
+  postgres:
+  client:
+  web:
+  indexer:

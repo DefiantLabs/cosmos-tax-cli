@@ -50,6 +50,7 @@ RUN addgroup --gid 1137 -S defiant && adduser --uid 1137 -S defiant -G defiant
 
 # Use scratch for the final image
 FROM scratch
+WORKDIR /home/defiant
 
 # Label should match your github repo
 LABEL org.opencontainers.image.source="https://github.com/defiantlabs/cosmos-tax-cli-private"
