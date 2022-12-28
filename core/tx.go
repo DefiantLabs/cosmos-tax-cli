@@ -23,6 +23,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/incentives"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/lockup"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/superfluid"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
@@ -48,32 +49,37 @@ var messageTypeHandler = map[string]func() txTypes.CosmosMessage{
 }
 
 var messageTypeIgnorer = map[string]interface{}{
-	authz.MsgExec:                      nil,
-	authz.MsgGrant:                     nil,
-	authz.MsgRevoke:                    nil,
-	distribution.MsgSetWithdrawAddress: nil,
-	gov.MsgVote:                        nil,
-	ibc.MsgUpdateClient:                nil,
-	ibc.MsgAcknowledgement:             nil,
-	ibc.MsgRecvPacket:                  nil,
-	ibc.MsgTimeout:                     nil,
-	ibc.MsgCreateClient:                nil,
-	ibc.MsgConnectionOpenTry:           nil,
-	ibc.MsgConnectionOpenConfirm:       nil,
-	ibc.MsgChannelOpenTry:              nil,
-	ibc.MsgChannelOpenConfirm:          nil,
-	ibc.MsgConnectionOpenInit:          nil,
-	ibc.MsgConnectionOpenAck:           nil,
-	ibc.MsgChannelOpenInit:             nil,
-	ibc.MsgChannelOpenAck:              nil,
-	incentives.MsgCreateGauge:          nil,
-	incentives.MsgAddToGauge:           nil,
-	lockup.MsgBeginUnlocking:           nil,
-	lockup.MsgLockTokens:               nil,
-	slashing.MsgUnjail:                 nil,
-	slashing.MsgUpdateParams:           nil,
-	staking.MsgCreateValidator:         nil,
-	staking.MsgEditValidator:           nil,
+	authz.MsgExec:                           nil,
+	authz.MsgGrant:                          nil,
+	authz.MsgRevoke:                         nil,
+	distribution.MsgSetWithdrawAddress:      nil,
+	gov.MsgVote:                             nil,
+	ibc.MsgUpdateClient:                     nil,
+	ibc.MsgAcknowledgement:                  nil,
+	ibc.MsgRecvPacket:                       nil,
+	ibc.MsgTimeout:                          nil,
+	ibc.MsgCreateClient:                     nil,
+	ibc.MsgConnectionOpenTry:                nil,
+	ibc.MsgConnectionOpenConfirm:            nil,
+	ibc.MsgChannelOpenTry:                   nil,
+	ibc.MsgChannelOpenConfirm:               nil,
+	ibc.MsgConnectionOpenInit:               nil,
+	ibc.MsgConnectionOpenAck:                nil,
+	ibc.MsgChannelOpenInit:                  nil,
+	ibc.MsgChannelOpenAck:                   nil,
+	incentives.MsgCreateGauge:               nil,
+	incentives.MsgAddToGauge:                nil,
+	lockup.MsgBeginUnlocking:                nil,
+	lockup.MsgLockTokens:                    nil,
+	lockup.MsgBeginUnlockingAll:             nil,
+	slashing.MsgUnjail:                      nil,
+	slashing.MsgUpdateParams:                nil,
+	staking.MsgCreateValidator:              nil,
+	staking.MsgEditValidator:                nil,
+	superfluid.MsgSuperfluidDelegate:        nil,
+	superfluid.MsgSuperfluidUndelegate:      nil,
+	superfluid.MsgSuperfluidUnbondLock:      nil,
+	superfluid.MsgLockAndSuperfluidDelegate: nil,
 }
 
 // Merge the chain specific message type handlers into the core message type handler map
