@@ -85,6 +85,8 @@ COPY --from=build-env /etc/ssl/cert.pem /etc/ssl/cert.pem
 
 # Install cli tools from busybox
 COPY --from=busybox /bin/ln /bin/ln
+COPY --from=busybox /bin/chown /bin/chown
+COPY --from=busybox /bin/id /bin/id
 COPY --from=busybox /bin/cp /bin/cp
 COPY --from=busybox /bin/ls /bin/ls
 COPY --from=busybox /bin/busybox /bin/sh
@@ -106,4 +108,5 @@ COPY --from=busybox --chown=1137:1137 /home/defiant /home/defiant
 
 # Set home directory and user
 WORKDIR /home/defiant
+RUN chown -R defiant /home/defiant
 USER defiant
