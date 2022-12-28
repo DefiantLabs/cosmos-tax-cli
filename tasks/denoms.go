@@ -112,6 +112,13 @@ func DenomUpsertTask(apiHost string, db *gorm.DB) {
 
 	var denoms []dbTypes.DenomDBWrapper = make([]dbTypes.DenomDBWrapper, len(denomsMetadata.Metadatas))
 	for i, denom := range denomsMetadata.Metadatas {
+		if denom.Name == "" {
+			denom.Name = "UNKNOWN"
+		}
+		if denom.Symbol == "" {
+			denom.Symbol = "UNKNOWN"
+		}
+
 		denoms[i].Denom = dbTypes.Denom{Base: denom.Base, Name: denom.Name, Symbol: denom.Symbol}
 
 		denoms[i].DenomUnits = make([]dbTypes.DenomUnitDBWrapper, len(denom.DenomUnits))
