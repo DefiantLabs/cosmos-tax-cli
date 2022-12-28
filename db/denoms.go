@@ -96,8 +96,8 @@ func ConvertUnits(amount *big.Int, denom Denom) (*big.Float, string, error) {
 	power := math.Pow(10, float64(highestDenomUnit.Exponent-denomUnit.Exponent))
 	convertedAmount := new(big.Float).SetInt(amount)
 	dividedAmount := new(big.Float).Quo(convertedAmount, new(big.Float).SetFloat64(power))
-	if symbol == "UNKNOWN" {
-		symbol = denom.Base
+	if symbol == "UNKNOWN" || symbol == "" {
+		symbol = highestDenomUnit.Name
 	}
 	return dividedAmount, symbol, nil
 }
