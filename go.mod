@@ -80,6 +80,7 @@ require (
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.0.1 // indirect
 	github.com/gsterjov/go-libsecret v0.0.0-20161001094733-a6f4afe4910c // indirect
 	github.com/gtank/merlin v0.1.1 // indirect
 	github.com/gtank/ristretto255 v0.1.2 // indirect
@@ -139,6 +140,7 @@ require (
 	github.com/tendermint/btcd v0.1.1 // indirect
 	github.com/tendermint/crypto v0.0.0-20191022145703-50d29ede1e15 // indirect
 	github.com/tendermint/go-amino v0.16.0 // indirect
+	github.com/tendermint/liquidity v1.5.0 // indirect
 	github.com/tendermint/tm-db v0.6.7 // indirect
 	github.com/ugorji/go/codec v1.1.7 // indirect
 	github.com/zondax/hid v0.9.0 // indirect
@@ -177,4 +179,6 @@ replace (
 	google.golang.org/grpc => google.golang.org/grpc v1.33.2
 )
 
-replace github.com/strangelove-ventures/lens => github.com/DefiantLabs/lens v0.0.5-dl
+// FIXME: don't merge this!!
+//replace github.com/strangelove-ventures/lens => github.com/DefiantLabs/lens v0.0.5-dl
+replace github.com/strangelove-ventures/lens => ../lens
