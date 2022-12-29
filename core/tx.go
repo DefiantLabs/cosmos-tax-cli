@@ -24,6 +24,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/incentives"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/lockup"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/superfluid"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/tendermint/modules/tendermint"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
@@ -80,6 +81,10 @@ var messageTypeIgnorer = map[string]interface{}{
 	superfluid.MsgSuperfluidUndelegate:      nil,
 	superfluid.MsgSuperfluidUnbondLock:      nil,
 	superfluid.MsgLockAndSuperfluidDelegate: nil,
+	tendermint.MsgCreatePool:                nil,
+	tendermint.MsgDepositWithinBatch:        nil,
+	tendermint.MsgWithdrawWithinBatch:       nil,
+	tendermint.MsgSwapWithinBatch:           nil,
 }
 
 // Merge the chain specific message type handlers into the core message type handler map
