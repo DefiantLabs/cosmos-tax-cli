@@ -66,6 +66,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&conf.Database.Database, "db.database", "", "database name")
 	rootCmd.PersistentFlags().StringVar(&conf.Database.User, "db.user", "", "database user")
 	rootCmd.PersistentFlags().StringVar(&conf.Database.Password, "db.password", "", "database password")
+	rootCmd.PersistentFlags().StringVar(&conf.Database.LogLevel, "db.loglevel", "", "database loglevel")
 }
 
 func initConfig() {
