@@ -19,6 +19,7 @@ exitWhenCaughtUp = true #mainly used for Osmosis rewards indexing
 RewardIndexingEnabled = false #don't index Osmosis rewards, do not start other threads or processes. leave false on any chain except osmosis.
 RewardsStartBlock = 0 # start indexing rewards at beginning of the blockchain (if blank, if not set, it will just use startblock)
 RewardsEndBlock = 0 # stop indexing at this block, -1 to never stop indexing (if blank, if not set, it will just use endblock)
+Dry = false # if true, indexing will occur but data will not be written to the database.
 
 #Lens config options
 [lens]

@@ -149,6 +149,7 @@ type base struct {
 	IndexingEnabled       bool
 	ExitWhenCaughtUp      bool
 	RewardIndexingEnabled bool
+	Dry                   bool
 	RewardStartBlock      int64
 	RewardEndBlock        int64
 	CreateCSVFile         bool

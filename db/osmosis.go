@@ -64,7 +64,7 @@ func createTaxableEvents(db *gorm.DB, events []TaxableEvent) error {
 	})
 }
 
-func IndexOsmoRewards(db *gorm.DB, chainID string, chainName string, rewards []*osmosis.Rewards) error {
+func IndexOsmoRewards(db *gorm.DB, dryRun bool, chainID string, chainName string, rewards []*osmosis.Rewards) error {
 	dbEvents := []TaxableEvent{}
 
 	for _, curr := range rewards {
@@ -118,10 +118,12 @@ func IndexOsmoRewards(db *gorm.DB, chainID string, chainName string, rewards []*
 			continue
 		}
 
-		err := createTaxableEvents(db, dbEvents[i:batchEnd])
-		if err != nil {
-			config.Log.Error("Error storing DB events.", err)
-			return err
+		if !dryRun {
+			err := createTaxableEvents(db, dbEvents[i:batchEnd])
+			if err != nil {
+				config.Log.Error("Error storing DB events.", err)
+				return err
+			}
 		}
 	}
 
