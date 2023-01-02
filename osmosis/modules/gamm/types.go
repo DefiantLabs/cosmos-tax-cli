@@ -16,14 +16,17 @@ import (
 )
 
 const (
+	MsgCreateBalancerPool      = "/osmosis.gamm.v1beta1.MsgCreateBalancerPool"
+	MsgJoinPool                = "/osmosis.gamm.v1beta1.MsgJoinPool"
+	MsgExitPool                = "/osmosis.gamm.v1beta1.MsgExitPool"
 	MsgSwapExactAmountIn       = "/osmosis.gamm.v1beta1.MsgSwapExactAmountIn"
 	MsgSwapExactAmountOut      = "/osmosis.gamm.v1beta1.MsgSwapExactAmountOut"
 	MsgJoinSwapExternAmountIn  = "/osmosis.gamm.v1beta1.MsgJoinSwapExternAmountIn"
-	MsgJoinSwapShareAmountOut  = "/osmosis.gamm.v1beta1.MsgJoinSwapShareAmountOut"
-	MsgJoinPool                = "/osmosis.gamm.v1beta1.MsgJoinPool"
-	MsgExitSwapShareAmountIn   = "/osmosis.gamm.v1beta1.MsgExitSwapShareAmountIn"
 	MsgExitSwapExternAmountOut = "/osmosis.gamm.v1beta1.MsgExitSwapExternAmountOut"
-	MsgExitPool                = "/osmosis.gamm.v1beta1.MsgExitPool"
+	MsgExitSwapShareAmountIn   = "/osmosis.gamm.v1beta1.MsgExitSwapShareAmountIn"
+	MsgJoinSwapShareAmountOut  = "/osmosis.gamm.v1beta1.MsgJoinSwapShareAmountOut"
+	// Older msgs
+	MsgCreatePool = "/osmosis.gamm.v1beta1.MsgCreatePool"
 )
 
 type WrapperMsgSwapExactAmountIn struct {
