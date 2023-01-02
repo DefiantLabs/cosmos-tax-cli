@@ -44,10 +44,16 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&conf.Log.Path, "log.path", "", "log path (default is $HOME/.cosmos-tax-cli-private/logs.txt")
 
 	// Base
+	// chain indexing
+	rootCmd.PersistentFlags().BoolVar(&conf.Base.IndexingEnabled, "base.index", true, "enable indexing?")
 	rootCmd.PersistentFlags().Int64Var(&conf.Base.StartBlock, "base.startBlock", 0, "block to start indexing at")
 	rootCmd.PersistentFlags().Int64Var(&conf.Base.EndBlock, "base.endBlock", -1, "block to stop indexing at (use -1 to index indefinitely")
+	// reward indexing
+	rootCmd.PersistentFlags().BoolVar(&conf.Base.RewardIndexingEnabled, "base.indexRewards", true, "enable osmosis reward indexing?")
+	rootCmd.PersistentFlags().Int64Var(&conf.Base.RewardStartBlock, "base.rewardStartBlock", 0, "block to start indexing rewards at")
+	rootCmd.PersistentFlags().Int64Var(&conf.Base.RewardEndBlock, "base.rewardEndBlock", 0, "block to stop indexing rewards at (use -1 to index indefinitely")
+	// other base setting
 	rootCmd.PersistentFlags().StringVar(&conf.Base.API, "base.api", "", "node api endpoint")
-	rootCmd.PersistentFlags().BoolVar(&conf.Base.IndexingEnabled, "base.index", true, "enable indexing?")
 	rootCmd.PersistentFlags().Float64Var(&conf.Base.Throttling, "base.throttling", 0.5, "throttle delay")
 	rootCmd.PersistentFlags().Int64Var(&conf.Base.RPCWorkers, "base.rpcworkers", 1, "rpc workers")
 	rootCmd.PersistentFlags().BoolVar(&conf.Base.WaitForChain, "base.waitforchain", false, "wait for chain to be in sync?")

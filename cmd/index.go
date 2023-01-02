@@ -135,19 +135,19 @@ func index(cmd *cobra.Command, args []string) {
 	var wg sync.WaitGroup // This group is to ensure we are done processing transactions (as well as osmo rewards) before returning
 
 	// Start a thread to process transactions after the RPC querier retrieves them.
-	if !idxr.cfg.Base.OsmosisRewardsOnly {
+	if idxr.cfg.Base.IndexingEnabled {
 		wg.Add(1)
 		go idxr.processTxs(&wg, blockTXsChan, core.HandleFailedBlock) // TODO: are we sure more workers here wouldn't make this faster?
 	}
 
 	// Osmosis specific indexing requirements. Osmosis distributes rewards to LP holders on a daily basis.
-	if config.IsOsmosis(idxr.cfg) {
+	if config.IsOsmosis(idxr.cfg) && idxr.cfg.Base.RewardIndexingEnabled {
 		wg.Add(1)
 		go idxr.indexOsmosisRewards(&wg, core.HandleFailedBlock)
 	}
 
 	// Add jobs to the queue to be processed
-	if !idxr.cfg.Base.OsmosisRewardsOnly {
+	if idxr.cfg.Base.IndexingEnabled {
 		idxr.enqueueBlocksToProcess(blockChan)
 		// close the block chan once all blocks have been written to it
 		close(blockChan)
@@ -241,12 +241,12 @@ func GetIndexerStartingHeight(configStartHeight int64, cl *client.ChainClient, d
 func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler core.FailedBlockHandler) {
 	defer wg.Done()
 
-	startHeight := idxr.cfg.Base.StartBlock
+	startHeight := idxr.cfg.Base.RewardStartBlock
 	if startHeight == -1 {
 		startHeight = OsmosisGetRewardsStartIndexHeight(idxr.db, idxr.cfg.Lens.ChainID)
 	}
 
-	endHeight := idxr.cfg.Base.EndBlock
+	endHeight := idxr.cfg.Base.RewardEndBlock
 	if endHeight == -1 {
 		var err error
 		endHeight, err = rpc.GetLatestBlockHeight(idxr.cl)
@@ -254,6 +254,8 @@ func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler 
 			config.Log.Fatal("Error getting blockchain latest height.", err)
 		}
 	}
+
+	config.Log.Infof("Indexing Rewards from block: %v to %v", idxr.cfg.Base.RewardStartBlock, endHeight)
 
 	rpcClient := osmosis.URIClient{
 		Address: idxr.cl.Config.RPCAddr,
