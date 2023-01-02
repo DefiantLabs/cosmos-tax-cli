@@ -62,9 +62,9 @@ type MessageType struct {
 
 type Message struct {
 	ID            uint
-	TxID          uint
+	TxID          uint `gorm:"index:idx_txid_typeid"`
 	Tx            Tx
-	MessageTypeID uint `gorm:"foreignKey:MessageTypeID"`
+	MessageTypeID uint `gorm:"foreignKey:MessageTypeID,index:idx_txid_typeid"`
 	MessageType   MessageType
 	MessageIndex  int
 }
