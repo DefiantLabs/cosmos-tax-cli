@@ -49,42 +49,61 @@ var messageTypeHandler = map[string]func() txTypes.CosmosMessage{
 	ibc.MsgTransfer:                             func() txTypes.CosmosMessage { return &ibc.WrapperMsgTransfer{} },
 }
 
+// These messages are ignored for tax purposes.
+// Fees will still be tracked, there is just not need to parse the msg body.
 var messageTypeIgnorer = map[string]interface{}{
-	authz.MsgExec:                           nil,
-	authz.MsgGrant:                          nil,
-	authz.MsgRevoke:                         nil,
-	distribution.MsgSetWithdrawAddress:      nil,
-	gov.MsgVote:                             nil,
-	ibc.MsgUpdateClient:                     nil,
-	ibc.MsgAcknowledgement:                  nil,
-	ibc.MsgRecvPacket:                       nil,
-	ibc.MsgTimeout:                          nil,
-	ibc.MsgCreateClient:                     nil,
-	ibc.MsgConnectionOpenTry:                nil,
-	ibc.MsgConnectionOpenConfirm:            nil,
-	ibc.MsgChannelOpenTry:                   nil,
-	ibc.MsgChannelOpenConfirm:               nil,
-	ibc.MsgConnectionOpenInit:               nil,
-	ibc.MsgConnectionOpenAck:                nil,
-	ibc.MsgChannelOpenInit:                  nil,
-	ibc.MsgChannelOpenAck:                   nil,
-	incentives.MsgCreateGauge:               nil,
-	incentives.MsgAddToGauge:                nil,
-	lockup.MsgBeginUnlocking:                nil,
-	lockup.MsgLockTokens:                    nil,
-	lockup.MsgBeginUnlockingAll:             nil,
-	slashing.MsgUnjail:                      nil,
-	slashing.MsgUpdateParams:                nil,
-	staking.MsgCreateValidator:              nil,
-	staking.MsgEditValidator:                nil,
+	/////////////////////////////////
+	/////// Nontaxable Events ///////
+	/////////////////////////////////
+	// Authz module actions are not taxable
+	authz.MsgExec:   nil,
+	authz.MsgGrant:  nil,
+	authz.MsgRevoke: nil,
+	// Making a config change is not taxable
+	distribution.MsgSetWithdrawAddress: nil,
+	// Voting is not taxable
+	gov.MsgVote: nil,
+	// The IBC msgs below do not create taxable events
+	ibc.MsgUpdateClient:          nil,
+	ibc.MsgAcknowledgement:       nil,
+	ibc.MsgRecvPacket:            nil,
+	ibc.MsgTimeout:               nil,
+	ibc.MsgCreateClient:          nil,
+	ibc.MsgConnectionOpenTry:     nil,
+	ibc.MsgConnectionOpenConfirm: nil,
+	ibc.MsgChannelOpenTry:        nil,
+	ibc.MsgChannelOpenConfirm:    nil,
+	ibc.MsgConnectionOpenInit:    nil,
+	ibc.MsgConnectionOpenAck:     nil,
+	ibc.MsgChannelOpenInit:       nil,
+	ibc.MsgChannelOpenAck:        nil,
+	// Creating and modifying gauges does not create taxable events
+	incentives.MsgCreateGauge: nil,
+	incentives.MsgAddToGauge:  nil,
+	// Locking/unlocking is not taxable
+	lockup.MsgBeginUnlocking:    nil,
+	lockup.MsgLockTokens:        nil,
+	lockup.MsgBeginUnlockingAll: nil,
+	// Unjailing and updating params is not taxable
+	slashing.MsgUnjail:       nil,
+	slashing.MsgUpdateParams: nil,
+	// Creating and editing validator is not taxable
+	staking.MsgCreateValidator: nil,
+	staking.MsgEditValidator:   nil,
+	// Delegating and Locking are not taxable
 	superfluid.MsgSuperfluidDelegate:        nil,
 	superfluid.MsgSuperfluidUndelegate:      nil,
 	superfluid.MsgSuperfluidUnbondLock:      nil,
 	superfluid.MsgLockAndSuperfluidDelegate: nil,
-	tendermint.MsgCreatePool:                nil,
-	tendermint.MsgDepositWithinBatch:        nil,
-	tendermint.MsgWithdrawWithinBatch:       nil,
-	tendermint.MsgSwapWithinBatch:           nil,
+
+	///////////////////////////////////////////
+	/////// Taxable Events, future work ///////
+	///////////////////////////////////////////
+	// We do not currently support the tendermint liquidity pool module
+	tendermint.MsgCreatePool:          nil,
+	tendermint.MsgDepositWithinBatch:  nil,
+	tendermint.MsgWithdrawWithinBatch: nil,
+	tendermint.MsgSwapWithinBatch:     nil,
 }
 
 // Merge the chain specific message type handlers into the core message type handler map
