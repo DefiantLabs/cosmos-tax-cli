@@ -33,7 +33,7 @@ services:
 
   indexer:
     restart: "no"
-    image: ghcr.io/defiantlabs/cosmos-tax-cli-private:pr-203
+    image: ghcr.io/defiantlabs/cosmos-tax-cli-private:sha-766a0e6
     user: defiant
     stop_grace_period: 1m
     volumes:
@@ -56,13 +56,12 @@ services:
       cosmos-tax-cli-private index \
       --log.pretty = true \
       --log.level = debug \
-      --base.startBlock 2713094 \
-      --base.endBlock -1 \
+      --base.startBlock 2711549 \
+      --base.endBlock 2711549 \
       --base.index true \
-      --base.throttling 0.0005 \
-      --base.rpcworkers 12 \
+      --base.throttling 2.0 \
       --base.api https://api.osmosis.strange.love:443 \
-      --lens.rpc http://34.138.108.49:26657 \
+      --lens.rpc https://osmosis-mainnet-archive.allthatnode.com:26657 \
       --lens.accountPrefix osmo \
       --lens.keyringBackend test \
       --lens.chainID osmosis-1 \
@@ -70,8 +69,7 @@ services:
       --db.host postgres \
       --db.database postgres \
       --db.user taxuser \
-      --db.password password \
-      --db.loglevel error
+      --db.password password
 
   # client:
   #   restart: "unless-stopped"

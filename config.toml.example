@@ -16,7 +16,10 @@ waitForChain = false #if true, indexer will start when the node is caught up to 
 waitForChainDelay = 10 #seconds to wait between each check for node to catch up to the chain
 indexingEnabled = true #If false, TX won't be added to the DB but other values might be READ from the DB
 exitWhenCaughtUp = true #mainly used for Osmosis rewards indexing
-osmosisRewardsOnly = false #only index Osmosis rewards, do not start other threads or processes. leave false on any chain except osmosis.
+RewardIndexingEnabled = false #don't index Osmosis rewards, do not start other threads or processes. leave false on any chain except osmosis.
+RewardsStartBlock = 0 # start indexing rewards at beginning of the blockchain (if blank, if not set, it will just use startblock)
+RewardsEndBlock = 0 # stop indexing at this block, -1 to never stop indexing (if blank, if not set, it will just use endblock)
+Dry = false # if true, indexing will occur but data will not be written to the database.
 
 #Lens config options
 [lens]
