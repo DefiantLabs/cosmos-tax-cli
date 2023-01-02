@@ -40,6 +40,7 @@ var indexCmd = &cobra.Command{
 // The Indexer struct is used to perform index operations
 type Indexer struct {
 	cfg       *config.Config
+	dryRun    bool
 	db        *gorm.DB
 	cl        *client.ChainClient
 	scheduler *gocron.Scheduler
@@ -49,7 +50,7 @@ func setupIndexer() *Indexer {
 	var idxr Indexer
 	var err error
 	// TODO: split out setup methods and only call necessary ones
-	idxr.cfg, idxr.db, idxr.scheduler, err = setup(conf)
+	idxr.cfg, idxr.dryRun, idxr.db, idxr.scheduler, err = setup(conf)
 	if err != nil {
 		log.Fatalf("Error during application setup. Err: %v", err)
 	}
@@ -135,19 +136,19 @@ func index(cmd *cobra.Command, args []string) {
 	var wg sync.WaitGroup // This group is to ensure we are done processing transactions (as well as osmo rewards) before returning
 
 	// Start a thread to process transactions after the RPC querier retrieves them.
-	if !idxr.cfg.Base.OsmosisRewardsOnly {
+	if idxr.cfg.Base.IndexingEnabled {
 		wg.Add(1)
 		go idxr.processTxs(&wg, blockTXsChan, core.HandleFailedBlock) // TODO: are we sure more workers here wouldn't make this faster?
 	}
 
 	// Osmosis specific indexing requirements. Osmosis distributes rewards to LP holders on a daily basis.
-	if config.IsOsmosis(idxr.cfg) {
+	if config.IsOsmosis(idxr.cfg) && idxr.cfg.Base.RewardIndexingEnabled {
 		wg.Add(1)
 		go idxr.indexOsmosisRewards(&wg, core.HandleFailedBlock)
 	}
 
 	// Add jobs to the queue to be processed
-	if !idxr.cfg.Base.OsmosisRewardsOnly {
+	if idxr.cfg.Base.IndexingEnabled {
 		idxr.enqueueBlocksToProcess(blockChan)
 		// close the block chan once all blocks have been written to it
 		close(blockChan)
@@ -241,12 +242,12 @@ func GetIndexerStartingHeight(configStartHeight int64, cl *client.ChainClient, d
 func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler core.FailedBlockHandler) {
 	defer wg.Done()
 
-	startHeight := idxr.cfg.Base.StartBlock
+	startHeight := idxr.cfg.Base.RewardStartBlock
 	if startHeight == -1 {
 		startHeight = OsmosisGetRewardsStartIndexHeight(idxr.db, idxr.cfg.Lens.ChainID)
 	}
 
-	endHeight := idxr.cfg.Base.EndBlock
+	endHeight := idxr.cfg.Base.RewardEndBlock
 	if endHeight == -1 {
 		var err error
 		endHeight, err = rpc.GetLatestBlockHeight(idxr.cl)
@@ -254,6 +255,8 @@ func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler 
 			config.Log.Fatal("Error getting blockchain latest height.", err)
 		}
 	}
+
+	config.Log.Infof("Indexing Rewards from block: %v to %v", idxr.cfg.Base.RewardStartBlock, endHeight)
 
 	rpcClient := osmosis.URIClient{
 		Address: idxr.cl.Config.RPCAddr,
@@ -286,7 +289,7 @@ func (idxr *Indexer) indexOsmosisReward(rpcClient osmosis.URIClient, epoch int64
 
 	if len(rewards) > 0 {
 		config.Log.Info(fmt.Sprintf("Found %v rewards at epoch %v, sending to DB", len(rewards), epoch))
-		err = dbTypes.IndexOsmoRewards(idxr.db, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName, rewards)
+		err = dbTypes.IndexOsmoRewards(idxr.db, idxr.dryRun, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName, rewards)
 		if err != nil {
 			config.Log.Error("Error storing rewards in DB.", err)
 			return core.OsmosisNodeRewardIndexError, err
@@ -354,6 +357,8 @@ func (idxr *Indexer) processTxs(wg *sync.WaitGroup, blockTXsChan chan *indexerTx
 	defer wg.Done()
 
 	for txToProcess := range blockTXsChan {
+		config.Log.Info(fmt.Sprintf("Indexing block %d, threaded.", txToProcess.Height))
+
 		txDBWrappers, blockTime, err := core.ProcessRPCTXs(idxr.db, txToProcess.CosmosGetTxsEventResponse)
 		if err != nil {
 			config.Log.Error("ProcessRpcTxs: unhandled error", err)
@@ -362,8 +367,7 @@ func (idxr *Indexer) processTxs(wg *sync.WaitGroup, blockTXsChan chan *indexerTx
 
 		// While debugging we'll sometimes want to turn off INSERTS to the DB
 		// Note that this does not turn off certain reads or DB connections.
-		if idxr.cfg.Base.IndexingEnabled {
-			config.Log.Info(fmt.Sprintf("Indexing block %d, threaded.", txToProcess.Height))
+		if !idxr.dryRun {
 			err = dbTypes.IndexNewBlock(idxr.db, txToProcess.Height, blockTime, txDBWrappers, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
 			if err != nil {
 				if err != nil {

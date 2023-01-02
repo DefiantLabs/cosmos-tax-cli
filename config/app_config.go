@@ -44,6 +44,20 @@ func (conf *Config) Validate() error {
 	if conf.Base.EndBlock == 0 {
 		return errors.New("base endblock must be set")
 	}
+	// If rewards indexes are not valid, error
+	if conf.Base.RewardStartBlock < 0 {
+		return errors.New("rewards startblock must be valid")
+	}
+	if conf.Base.RewardEndBlock < -1 {
+		return errors.New("rewards endblock must be valid")
+	}
+	// If rewards indexs are not set, use base start/end
+	if conf.Base.RewardStartBlock == 0 {
+		conf.Base.RewardStartBlock = conf.Base.StartBlock
+	}
+	if conf.Base.RewardEndBlock == 0 {
+		conf.Base.RewardEndBlock = conf.Base.EndBlock
+	}
 	// Throttling can safely default to 0
 	// BlockTimer can safely default to 0
 	// WaitForChain can safely default to false
@@ -124,19 +138,22 @@ type api struct {
 }
 
 type base struct {
-	API                string
-	StartBlock         int64
-	EndBlock           int64
-	Throttling         float64
-	RPCWorkers         int64
-	BlockTimer         int64
-	WaitForChain       bool
-	WaitForChainDelay  int64
-	IndexingEnabled    bool
-	ExitWhenCaughtUp   bool
-	OsmosisRewardsOnly bool
-	CreateCSVFile      bool
-	CSVFile            string
+	API                   string
+	StartBlock            int64
+	EndBlock              int64
+	Throttling            float64
+	RPCWorkers            int64
+	BlockTimer            int64
+	WaitForChain          bool
+	WaitForChainDelay     int64
+	IndexingEnabled       bool
+	ExitWhenCaughtUp      bool
+	RewardIndexingEnabled bool
+	Dry                   bool
+	RewardStartBlock      int64
+	RewardEndBlock        int64
+	CreateCSVFile         bool
+	CSVFile               string
 }
 
 type log struct {

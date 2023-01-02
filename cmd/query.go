@@ -39,7 +39,7 @@ var queryCmd = &cobra.Command{
 		}
 
 		// TODO: split out setup methods and only call necessary ones
-		cfg, db, _, err := setup(conf)
+		cfg, _, db, _, err := setup(conf)
 		if err != nil {
 			config.Log.Fatal("Error setting up query", err)
 		}
