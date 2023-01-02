@@ -85,6 +85,8 @@ COPY --from=build-env /etc/ssl/cert.pem /etc/ssl/cert.pem
 
 # Install cli tools from busybox
 COPY --from=busybox /bin/ln /bin/ln
+COPY --from=busybox /bin/dd /bin/dd
+COPY --from=busybox /bin/vi /bin/vi
 COPY --from=busybox /bin/chown /bin/chown
 COPY --from=busybox /bin/id /bin/id
 COPY --from=busybox /bin/cp /bin/cp
