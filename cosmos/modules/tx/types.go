@@ -2,9 +2,8 @@ package tx
 
 import (
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
-	cosmTx "github.com/cosmos/cosmos-sdk/types/tx"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	cosmTx "github.com/cosmos/cosmos-sdk/types/tx"
 )
 
 type GetTxsEventResponseWrapper struct {

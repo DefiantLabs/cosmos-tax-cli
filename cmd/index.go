@@ -135,10 +135,18 @@ func index(cmd *cobra.Command, args []string) {
 
 	var wg sync.WaitGroup // This group is to ensure we are done processing transactions (as well as osmo rewards) before returning
 
+	dbDataChan := make(chan *ProcessedTXWrapper, rpcQueryThreads)
 	// Start a thread to process transactions after the RPC querier retrieves them.
 	if idxr.cfg.Base.IndexingEnabled {
 		wg.Add(1)
-		go idxr.processTxs(&wg, blockTXsChan, core.HandleFailedBlock) // TODO: are we sure more workers here wouldn't make this faster?
+		go idxr.processTxs(&wg, blockTXsChan, dbDataChan, core.HandleFailedBlock) // TODO: are we sure more workers here wouldn't make this faster?
+
+		// While debugging we'll sometimes want to turn off INSERTS to the DB
+		// Note that this does not turn off certain reads or DB connections.
+		if !idxr.dryRun {
+			wg.Add(1)
+			go idxr.sendProcessedDataToDB(&wg, dbDataChan)
+		}
 	}
 
 	// Osmosis specific indexing requirements. Osmosis distributes rewards to LP holders on a daily basis.
@@ -351,7 +359,13 @@ func processBlock(cl *client.ChainClient, failedBlockHandler func(height int64, 
 	return nil
 }
 
-func (idxr *Indexer) processTxs(wg *sync.WaitGroup, blockTXsChan chan *indexerTx.GetTxsEventResponseWrapper, failedBlockHandler core.FailedBlockHandler) {
+type ProcessedTXWrapper struct {
+	Height    int64
+	BlockTime time.Time
+	Data      []dbTypes.TxDBWrapper
+}
+
+func (idxr *Indexer) processTxs(wg *sync.WaitGroup, blockTXsChan chan *indexerTx.GetTxsEventResponseWrapper, dbDataChan chan *ProcessedTXWrapper, failedBlockHandler core.FailedBlockHandler) {
 	blocksProcessed := 0
 	timeStart := time.Now()
 	defer wg.Done()
@@ -365,14 +379,37 @@ func (idxr *Indexer) processTxs(wg *sync.WaitGroup, blockTXsChan chan *indexerTx
 			failedBlockHandler(txToProcess.Height, core.UnprocessableTxError, err)
 		}
 
-		// While debugging we'll sometimes want to turn off INSERTS to the DB
-		// Note that this does not turn off certain reads or DB connections.
-		if !idxr.dryRun {
-			err = dbTypes.IndexNewBlock(idxr.db, txToProcess.Height, blockTime, txDBWrappers, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
+		res := &ProcessedTXWrapper{
+			Data:      txDBWrappers,
+			Height:    txToProcess.Height,
+			BlockTime: blockTime,
+		}
+
+		dbDataChan <- res
+
+		// Just measuring how many blocks/second we can process
+		if idxr.cfg.Base.BlockTimer > 0 {
+			blocksProcessed++
+			if blocksProcessed%int(idxr.cfg.Base.BlockTimer) == 0 {
+				totalTime := time.Since(timeStart)
+				config.Log.Info(fmt.Sprintf("Processing %d blocks took %f seconds. %d total blocks have been processed.\n", idxr.cfg.Base.BlockTimer, totalTime.Seconds(), blocksProcessed))
+				timeStart = time.Now()
+			}
+		}
+	}
+	close(dbDataChan)
+}
+
+func (idxr *Indexer) sendProcessedDataToDB(wg *sync.WaitGroup, dbDataChan chan *ProcessedTXWrapper) {
+	blocksProcessed := 0
+	timeStart := time.Now()
+	defer wg.Done()
+
+	for data := range dbDataChan {
+		err := dbTypes.IndexNewBlock(idxr.db, data.Height, data.BlockTime, data.Data, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
+		if err != nil {
 			if err != nil {
-				if err != nil {
-					config.Log.Fatal(fmt.Sprintf("Error indexing block %v.", txToProcess.Height), err)
-				}
+				config.Log.Fatal(fmt.Sprintf("Error indexing block %v.", data.Height), err)
 			}
 		}
 
@@ -381,7 +418,7 @@ func (idxr *Indexer) processTxs(wg *sync.WaitGroup, blockTXsChan chan *indexerTx
 			blocksProcessed++
 			if blocksProcessed%int(idxr.cfg.Base.BlockTimer) == 0 {
 				totalTime := time.Since(timeStart)
-				config.Log.Info(fmt.Sprintf("Processing %d blocks took %f seconds. %d total blocks have been processed.\n", idxr.cfg.Base.BlockTimer, totalTime.Seconds(), blocksProcessed))
+				config.Log.Info(fmt.Sprintf("Inserting %d blocks into the DB took %f seconds. %d total blocks have been inserted.\n", idxr.cfg.Base.BlockTimer, totalTime.Seconds(), blocksProcessed))
 				timeStart = time.Now()
 			}
 		}
