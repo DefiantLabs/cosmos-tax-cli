@@ -13,7 +13,6 @@ import (
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/core"
-	indexerTx "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
 	dbTypes "github.com/DefiantLabs/cosmos-tax-cli-private/db"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/rpc"
@@ -114,15 +113,14 @@ func index(cmd *cobra.Command, args []string) {
 	} else if rpcQueryThreads > 64 {
 		rpcQueryThreads = 64
 	}
-	blockTXsChan := make(chan *indexerTx.GetTxsEventResponseWrapper, 4*rpcQueryThreads)
-
+	dbDataChan := make(chan *dbData, 4*rpcQueryThreads)
 	var txChanWaitGroup sync.WaitGroup // This group is to ensure we are done getting transactions before we close the TX channel
 	// Spin up a (configurable) number of threads to query RPC endpoints for Transactions.
 	// this is assumed to be the slowest process that allows concurrency and thus has the most dedicated go routines.
 	for i := 0; i < rpcQueryThreads; i++ {
 		txChanWaitGroup.Add(1)
 		go func() {
-			idxr.queryRPC(blockChan, blockTXsChan, core.HandleFailedBlock)
+			idxr.queryRPC(blockChan, dbDataChan, core.HandleFailedBlock)
 			txChanWaitGroup.Done()
 		}()
 	}
@@ -130,7 +128,7 @@ func index(cmd *cobra.Command, args []string) {
 	// close the transaction chan once all transactions have been written to it
 	go func() {
 		txChanWaitGroup.Wait()
-		close(blockTXsChan)
+		close(dbDataChan)
 	}()
 
 	var wg sync.WaitGroup // This group is to ensure we are done processing transactions (as well as osmo rewards) before returning
@@ -138,7 +136,7 @@ func index(cmd *cobra.Command, args []string) {
 	// Start a thread to process transactions after the RPC querier retrieves them.
 	if idxr.cfg.Base.IndexingEnabled {
 		wg.Add(1)
-		go idxr.processTxs(&wg, blockTXsChan, core.HandleFailedBlock) // TODO: are we sure more workers here wouldn't make this faster?
+		go idxr.processTxs(&wg, dbDataChan) // TODO: are we sure more workers here wouldn't make this faster?
 	}
 
 	// Osmosis specific indexing requirements. Osmosis distributes rewards to LP holders on a daily basis.
@@ -298,12 +296,12 @@ func (idxr *Indexer) indexOsmosisReward(rpcClient osmosis.URIClient, epoch int64
 	return 0, nil
 }
 
-func (idxr *Indexer) queryRPC(blockChan chan int64, blockTXsChan chan *indexerTx.GetTxsEventResponseWrapper, failedBlockHandler core.FailedBlockHandler) {
+func (idxr *Indexer) queryRPC(blockChan chan int64, dbDataChan chan *dbData, failedBlockHandler core.FailedBlockHandler) {
 	maxAttempts := 5
 	for blockToProcess := range blockChan {
 		// attempt to process the block 5 times and then give up
 		var attemptCount int
-		for processBlock(idxr.cl, failedBlockHandler, blockTXsChan, blockToProcess) != nil && attemptCount < maxAttempts {
+		for processBlock(idxr.cl, idxr.db, failedBlockHandler, dbDataChan, blockToProcess) != nil && attemptCount < maxAttempts {
 			attemptCount++
 			if attemptCount == maxAttempts {
 				// TODO: When we work on resume functionality, we need to build in a way to clear blocks out of the failure table when they succeed
@@ -317,7 +315,7 @@ func (idxr *Indexer) queryRPC(blockChan chan int64, blockTXsChan chan *indexerTx
 	}
 }
 
-func processBlock(cl *client.ChainClient, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error), blockTXsChan chan *indexerTx.GetTxsEventResponseWrapper, blockToProcess int64) error {
+func processBlock(cl *client.ChainClient, dbConn *gorm.DB, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error), dbDataChan chan *dbData, blockToProcess int64) error {
 	// fmt.Printf("Querying RPC transactions for block %d\n", blockToProcess)
 	newBlock := dbTypes.Block{Height: blockToProcess}
 
@@ -343,35 +341,43 @@ func processBlock(cl *client.ChainClient, failedBlockHandler func(height int64, 
 		}
 	}
 
-	res := &indexerTx.GetTxsEventResponseWrapper{
-		CosmosGetTxsEventResponse: txsEventResp,
-		Height:                    blockToProcess,
+	txDBWrappers, blockTime, err := core.ProcessRPCTXs(dbConn, txsEventResp)
+	if err != nil {
+		config.Log.Error("ProcessRpcTxs: unhandled error", err)
+		failedBlockHandler(blockToProcess, core.UnprocessableTxError, err)
 	}
-	blockTXsChan <- res
+
+	res := &dbData{
+		data:        txDBWrappers,
+		blockTime:   blockTime,
+		blockHeight: blockToProcess,
+	}
+	dbDataChan <- res
+
 	return nil
 }
 
-func (idxr *Indexer) processTxs(wg *sync.WaitGroup, blockTXsChan chan *indexerTx.GetTxsEventResponseWrapper, failedBlockHandler core.FailedBlockHandler) {
+type dbData struct {
+	data        []dbTypes.TxDBWrapper
+	blockTime   time.Time
+	blockHeight int64
+}
+
+func (idxr *Indexer) processTxs(wg *sync.WaitGroup, dbDataChan chan *dbData) {
 	blocksProcessed := 0
 	timeStart := time.Now()
 	defer wg.Done()
 
-	for txToProcess := range blockTXsChan {
-		config.Log.Info(fmt.Sprintf("Indexing block %d, threaded.", txToProcess.Height))
-
-		txDBWrappers, blockTime, err := core.ProcessRPCTXs(idxr.db, txToProcess.CosmosGetTxsEventResponse)
-		if err != nil {
-			config.Log.Error("ProcessRpcTxs: unhandled error", err)
-			failedBlockHandler(txToProcess.Height, core.UnprocessableTxError, err)
-		}
+	for data := range dbDataChan {
+		config.Log.Info(fmt.Sprintf("Indexing block %d, threaded.", data.blockHeight))
 
 		// While debugging we'll sometimes want to turn off INSERTS to the DB
 		// Note that this does not turn off certain reads or DB connections.
 		if !idxr.dryRun {
-			err = dbTypes.IndexNewBlock(idxr.db, txToProcess.Height, blockTime, txDBWrappers, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
+			err := dbTypes.IndexNewBlock(idxr.db, data.blockHeight, data.blockTime, data.data, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
 			if err != nil {
 				if err != nil {
-					config.Log.Fatal(fmt.Sprintf("Error indexing block %v.", txToProcess.Height), err)
+					config.Log.Fatal(fmt.Sprintf("Error indexing block %v.", data.blockHeight), err)
 				}
 			}
 		}
