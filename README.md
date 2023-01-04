@@ -1,50 +1,54 @@
 # Cosmos Tax CLI
 
 This application indexes a Cosmos chain to a standardized DB schema with the following goals in mind:
-
 * A generalized DB schema that could potentially work with all Cosmos SDK Chains
 * A focus on making it easy to correlate transactions with addresses and store relevant data
 
-# Requirements
+In addition to indexing a chain, this tool can also query the indexed data to find all transactions associated with
+one or more addresses on a given chain. This data can be returned in one of multiple formatted CSVs designed
+to integrate with tools for determining an individuals tax liability as a result of these transactions.
 
-## PostgreSQL
-
-The app requires a postgresql server with an established database and an owner user/role with password login.
-
-## Go
-
-The app is written and Go and you will need to build from source. This requires a system install of Go.
+This CLI tool for indexing and querying the chain is also accompanied by a webserver (found in the `client` directory)
+which can allow a frontend UI to request a CSV. Defiant has created its own version of this frontend which can be found
+[here](https://github.com/DefiantLabs/sycamore)
 
 ## Getting Started
-Lens is a prerequisite to using this tool, so make sure Lens is set up properly. There is a [lens] section in our config.toml.example
-and the vars in there are so configuring the Lens SDK will work properly. The code in this repo only queries RPC, it does not create TXs.
-So the key you use does not need to be associated with a wallet that has funds in it. Therefore, you can create a random key using lens.
-I suggest installing lens (git clone git@github.com:DefiantLabs/lens.git). Run a make build which will put the 'lens' binary in the build folder.
-If for some reason it fails, you can use git clone https://github.com/strangelove-ventures/lens.git and do the same thing.
+The typical workflow for using the tax CLI is to index the chain for a given period of time and persist this data
+in a database to allow multiple users to query for their data. This section will cover the end to end process of
+indexing and querying data.
 
-Run lens and look at the help sections, it will tell you what your home directory is. Generally this is ~/.lens. All keys and config files
-used by lens will go there. Lens uses a file in that directory called config.yaml to understand how to connect to various blockchains.
-I found it easier to manually edit this config file than use the lens command to do it. Here's an example of a valid chain (under 'chains') in config.yaml:
+### Prerequisites
+Before you can begin indexing a chain, you must first configure the applications dependencies.
 
-kujira:
-    key: kujiman
-    chain-id: kaiyo-1
-    rpc-addr: https://rpc.kujira.ccvalidators.com:443
-    grpc-addr: https://rpc.kujira.ccvalidators.com:443
-    account-prefix: kuji
-    keyring-backend: test
-    gas-adjustment: 1.2
-    gas-prices: 0.01ukuji
-    key-directory: /home/kyle/.lens/keys/kaiyo-1
-    debug: false
-    timeout: 20s
-    output-format: json
-    sign-mode: direct
+#### PostgreSQL
+The app requires a postgresql server with an established database and an owner user/role with password login.
+A simple example for setting up a containerized database locally can be found [here](https://towardsdatascience.com/local-development-set-up-of-postgresql-with-docker-c022632f13ea).
 
-To get the key kujiman to exist, you'd need to run lens keys add kujiman --chain kujira. Lens will create a new mnemonic for kujiman and store the key in the .lens
-directory. You can also specify --keyring-backend test which will ensure the key is not password protected (which makes queries easier). Otherwise password prompts
-can interrupt your programs. (Note: this only matters for TXs, not for queries. Keys are not needed for queries since queries are free and do not modify data).
+#### Go
+The app is written and Go and you will need to build from source. This requires a system install of Go 1.19.
+Instruction for installing and configuring Go can be found [here](https://go.dev/doc/install).
 
-At this point you should be ready to run the indexer. The indexer is what adds records to the Postgres DB and is what runs when you run the main program.
-There is also a CSV generator, but right now you can only access it by calling the appropriate functions - there are test cases that do this. Eventually,
-a frontend and CLI will be available to run the CSV generator.
+### Indexing
+At this point you should be ready to run the indexer. The indexer is what adds records to the Postgres DB and required
+in order to index all the data that one might want to query.
+
+To run the indexer, simply use the `index` command `go run main.go index --config {{PATH_TO_CONFIG}}` where `{{PATH_TO_CONFIG}}`
+is replaced with the path to a local config file used to configure the application. An example config file can be found
+[here](https://github.com/DefiantLabs/cosmos-tax-cli-private/blob/main/config.toml.example). For more information about
+the config file, as well as the CLI flags which can be used to override config settings, please refer to the more
+in-depth [indexer](#indexer) section below.
+
+### Querying
+Once the chain has been indexed, data can be queried using the `query` command. As with indexing, a config file is provided
+to configure the application. In addition, the addresses you wish to query can be provided as a comma separated list:
+
+`go run main.go query --address "address1,address2" --config {{PATH_TO_CONFIG}}`
+
+For more information about the query function and its optional arguments, please refer to the more in-depth
+[query](#query) section below.
+
+## Indexer
+// TODO, add help text and a breakdown of all the config fields/flags.
+
+## Query
+// TODO, add help text and a breakdown of all the config fields/flags.
