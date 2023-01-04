@@ -133,10 +133,10 @@ func index(cmd *cobra.Command, args []string) {
 
 	var wg sync.WaitGroup // This group is to ensure we are done processing transactions (as well as osmo rewards) before returning
 
-	// Start a thread to process transactions after the RPC querier retrieves them.
+	// Start a thread to index the data queried from the chain.
 	if idxr.cfg.Base.IndexingEnabled {
 		wg.Add(1)
-		go idxr.processTxs(&wg, dbDataChan) // TODO: are we sure more workers here wouldn't make this faster?
+		go idxr.consumeTxDBWrapper(&wg, dbDataChan) // TODO: are we sure more workers here wouldn't make this faster?
 	}
 
 	// Osmosis specific indexing requirements. Osmosis distributes rewards to LP holders on a daily basis.
@@ -296,6 +296,9 @@ func (idxr *Indexer) indexOsmosisReward(rpcClient osmosis.URIClient, epoch int64
 	return 0, nil
 }
 
+// queryRPC will query the RPC endpoint
+// this information will be parsed and converted into the domain objects we use for indexing this data.
+// data is then passed to a channel to be consumed and inserted into the DB
 func (idxr *Indexer) queryRPC(blockChan chan int64, dbDataChan chan *dbData, failedBlockHandler core.FailedBlockHandler) {
 	maxAttempts := 5
 	for blockToProcess := range blockChan {
@@ -348,9 +351,9 @@ func processBlock(cl *client.ChainClient, dbConn *gorm.DB, failedBlockHandler fu
 	}
 
 	res := &dbData{
-		data:        txDBWrappers,
-		blockTime:   blockTime,
-		blockHeight: blockToProcess,
+		txDBWrappers: txDBWrappers,
+		blockTime:    blockTime,
+		blockHeight:  blockToProcess,
 	}
 	dbDataChan <- res
 
@@ -358,12 +361,15 @@ func processBlock(cl *client.ChainClient, dbConn *gorm.DB, failedBlockHandler fu
 }
 
 type dbData struct {
-	data        []dbTypes.TxDBWrapper
-	blockTime   time.Time
-	blockHeight int64
+	txDBWrappers []dbTypes.TxDBWrapper
+	blockTime    time.Time
+	blockHeight  int64
 }
 
-func (idxr *Indexer) processTxs(wg *sync.WaitGroup, dbDataChan chan *dbData) {
+// consumeTxDBWrapper will read the data out of the db data chan that had been processed by the workers
+// if this is a dry run, we will simply empty the channel and track progress
+// otherwise we will index the data in the DB.
+func (idxr *Indexer) consumeTxDBWrapper(wg *sync.WaitGroup, dbDataChan chan *dbData) {
 	blocksProcessed := 0
 	timeStart := time.Now()
 	defer wg.Done()
@@ -374,7 +380,7 @@ func (idxr *Indexer) processTxs(wg *sync.WaitGroup, dbDataChan chan *dbData) {
 		// While debugging we'll sometimes want to turn off INSERTS to the DB
 		// Note that this does not turn off certain reads or DB connections.
 		if !idxr.dryRun {
-			err := dbTypes.IndexNewBlock(idxr.db, data.blockHeight, data.blockTime, data.data, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
+			err := dbTypes.IndexNewBlock(idxr.db, data.blockHeight, data.blockTime, data.txDBWrappers, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
 			if err != nil {
 				if err != nil {
 					config.Log.Fatal(fmt.Sprintf("Error indexing block %v.", data.blockHeight), err)
