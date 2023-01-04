@@ -14,8 +14,13 @@ which can allow a frontend UI to request a CSV. Defiant has created its own vers
 
 ## Getting Started
 The typical workflow for using the tax CLI is to index the chain for a given period of time and persist this data
-in a database to allow multiple users to query for their data. This section will cover the end to end process of
+in a database to allow multiple users to query for their data. This section will cover the end-to-end process of
 indexing and querying data.
+
+Note: While this readme includes up-to-date information about using the tool, the tool itself also contains some
+internal documentation. Running `go run main.go` without any arguments should display the help text for the application
+as well as a list of the flags that can be used. Additionally, calling any of the commands with the `--help` flag
+will display their help text.
 
 ### Prerequisites
 Before you can begin indexing a chain, you must first configure the applications dependencies.
@@ -46,6 +51,47 @@ to configure the application. In addition, the addresses you wish to query can b
 
 For more information about the query function and its optional arguments, please refer to the more in-depth
 [query](#query) section below.
+
+## Config
+A config file can be used to configure the tool. The config is broken into 4 sections:
+- [Log](#log)
+- [Database](#database)
+- [Base](#base)
+- [Lens](#lens)
+
+Note: Ultimately all the settings available in the config will be available via CLI flags.
+To see a list of the currently supported flags, simply display the application help text:
+`go run main.go`
+
+### Log
+#### Level
+This setting is used to determine which level of logs will be included. The available levels include
+- `Debug`
+- `Info`
+- `Warn`
+- `Error`
+- `Fatal`
+- `Panic`
+
+If not provided, logging will default to `info` level.
+
+#### Path
+Logs will always be written to standard out, but if desired they can also be written to a file.
+To do this, simply provide a path to a file.
+
+#### Pretty
+We use a logging package called [ZeroLog](https://github.com/rs/zerolog). To take advantage of their "pretty" logging
+you can set `Pretty` to true.
+
+### Database
+The config options for the database are largely self-explanatory.
+`Host`: The address needed to connect to the DB.
+`Port`: The port needed to connect to the DB.
+
+
+### Base
+
+### Lens
 
 ## Indexer
 // TODO, add help text and a breakdown of all the config fields/flags.
