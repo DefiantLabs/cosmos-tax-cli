@@ -375,17 +375,16 @@ func (idxr *Indexer) consumeTxDBWrapper(wg *sync.WaitGroup, dbDataChan chan *dbD
 	defer wg.Done()
 
 	for data := range dbDataChan {
-		config.Log.Info(fmt.Sprintf("Indexing block %d, threaded.", data.blockHeight))
-
 		// While debugging we'll sometimes want to turn off INSERTS to the DB
 		// Note that this does not turn off certain reads or DB connections.
 		if !idxr.dryRun {
+			config.Log.Info(fmt.Sprintf("Indexing block %d.", data.blockHeight))
 			err := dbTypes.IndexNewBlock(idxr.db, data.blockHeight, data.blockTime, data.txDBWrappers, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
 			if err != nil {
-				if err != nil {
-					config.Log.Fatal(fmt.Sprintf("Error indexing block %v.", data.blockHeight), err)
-				}
+				config.Log.Fatal(fmt.Sprintf("Error indexing block %v.", data.blockHeight), err)
 			}
+		} else {
+			config.Log.Info(fmt.Sprintf("Processing block %d (dry run, block data will not be stored in DB).", data.blockHeight))
 		}
 
 		// Just measuring how many blocks/second we can process
