@@ -61,9 +61,7 @@ func init() {
 
 	// Lens
 	rootCmd.PersistentFlags().StringVar(&conf.Lens.RPC, "lens.rpc", "", "node rpc endpoint")
-	rootCmd.PersistentFlags().StringVar(&conf.Lens.Key, "lens.key", "default", "lens key")
 	rootCmd.PersistentFlags().StringVar(&conf.Lens.AccountPrefix, "lens.accountPrefix", "", "lens account prefix")
-	rootCmd.PersistentFlags().StringVar(&conf.Lens.KeyringBackend, "lens.keyringBackend", "", "lens keyring backend")
 	rootCmd.PersistentFlags().StringVar(&conf.Lens.ChainID, "lens.chainID", "", "lens chain ID")
 	rootCmd.PersistentFlags().StringVar(&conf.Lens.ChainName, "lens.chainName", "", "lens chain name")
 
