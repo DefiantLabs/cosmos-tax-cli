@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"math"
@@ -13,7 +12,6 @@ import (
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/core"
-	indexerTx "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
 	dbTypes "github.com/DefiantLabs/cosmos-tax-cli-private/db"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/rpc"
@@ -114,15 +112,14 @@ func index(cmd *cobra.Command, args []string) {
 	} else if rpcQueryThreads > 64 {
 		rpcQueryThreads = 64
 	}
-	blockTXsChan := make(chan *indexerTx.GetTxsEventResponseWrapper, 4*rpcQueryThreads)
-
+	dbDataChan := make(chan *dbData, 4*rpcQueryThreads)
 	var txChanWaitGroup sync.WaitGroup // This group is to ensure we are done getting transactions before we close the TX channel
 	// Spin up a (configurable) number of threads to query RPC endpoints for Transactions.
 	// this is assumed to be the slowest process that allows concurrency and thus has the most dedicated go routines.
 	for i := 0; i < rpcQueryThreads; i++ {
 		txChanWaitGroup.Add(1)
 		go func() {
-			idxr.queryRPC(blockChan, blockTXsChan, core.HandleFailedBlock)
+			idxr.queryRPC(blockChan, dbDataChan, core.HandleFailedBlock)
 			txChanWaitGroup.Done()
 		}()
 	}
@@ -130,15 +127,15 @@ func index(cmd *cobra.Command, args []string) {
 	// close the transaction chan once all transactions have been written to it
 	go func() {
 		txChanWaitGroup.Wait()
-		close(blockTXsChan)
+		close(dbDataChan)
 	}()
 
 	var wg sync.WaitGroup // This group is to ensure we are done processing transactions (as well as osmo rewards) before returning
 
-	// Start a thread to process transactions after the RPC querier retrieves them.
+	// Start a thread to index the data queried from the chain.
 	if idxr.cfg.Base.IndexingEnabled {
 		wg.Add(1)
-		go idxr.processTxs(&wg, blockTXsChan, core.HandleFailedBlock) // TODO: are we sure more workers here wouldn't make this faster?
+		go idxr.consumeTxDBWrapper(&wg, dbDataChan) // TODO: are we sure more workers here wouldn't make this faster?
 	}
 
 	// Osmosis specific indexing requirements. Osmosis distributes rewards to LP holders on a daily basis.
@@ -162,7 +159,7 @@ func index(cmd *cobra.Command, args []string) {
 // enqueueBlocksToProcess will pass the blocks that need to be processed to the blockchannel
 func (idxr *Indexer) enqueueBlocksToProcess(blockChan chan int64) {
 	// Start at the last indexed block height (or the block height in the config, if set)
-	currBlock := GetIndexerStartingHeight(idxr.cfg.Base.StartBlock, idxr.cl, idxr.db)
+	currBlock := idxr.GetIndexerStartingHeight()
 	// Don't index past this block no matter what
 	lastBlock := idxr.cfg.Base.EndBlock
 	var latestBlock int64 = math.MaxInt64
@@ -196,6 +193,12 @@ func (idxr *Indexer) enqueueBlocksToProcess(blockChan chan int64) {
 
 			// Already at the latest block, wait for the next block to be available.
 			for currBlock <= latestBlock && (currBlock <= lastBlock || lastBlock == -1) && len(blockChan) != cap(blockChan) {
+				// if we are not re-indexing, skip curr block if already indexed
+				if !idxr.cfg.Base.ReIndex && blockAlreadyIndexed(currBlock, idxr.db) {
+					currBlock++
+					continue
+				}
+
 				if idxr.cfg.Base.Throttling != 0 {
 					time.Sleep(time.Second * time.Duration(idxr.cfg.Base.Throttling))
 				}
@@ -218,25 +221,41 @@ func OsmosisGetRewardsStartIndexHeight(db *gorm.DB, chainID string) int64 {
 	return block.Height
 }
 
-func GetIndexerStartingHeight(configStartHeight int64, cl *client.ChainClient, db *gorm.DB) int64 {
-	// Start the indexer at the configured value if one has been set. This starting height will be used
-	// instead of searching the database to find the last indexed block.
-	if configStartHeight != -1 {
-		return configStartHeight
-	}
-
-	latestBlock, err := rpc.GetLatestBlockHeight(cl)
+// blockAlreadyIndexed will return true if the block is already in the DB
+func blockAlreadyIndexed(blockHeight int64, db *gorm.DB) bool {
+	var exists bool
+	err := db.Raw(`SELECT count(*) > 0 FROM blocks WHERE height = ?::int;`, blockHeight).Row().Scan(&exists)
 	if err != nil {
-		log.Fatalf("Error getting blockchain latest height. Err: %v", err)
+		config.Log.Fatalf("Error checking DB for block. Err: %v", err)
+	}
+	return exists
+}
+
+// GetIndexerStartingHeight will determine which block to start at
+// if start block is set to -1, it will start at the highest block indexed
+// otherwise, it will start at the first missing block between the start and end height
+func (idxr *Indexer) GetIndexerStartingHeight() int64 {
+	// If the start height is set to -1, resume from the highest block already indexed
+	if idxr.cfg.Base.StartBlock == -1 {
+		latestBlock, err := rpc.GetLatestBlockHeight(idxr.cl)
+		if err != nil {
+			log.Fatalf("Error getting blockchain latest height. Err: %v", err)
+		}
+
+		fmt.Println("Found latest block", latestBlock)
+		highestIndexedBlock := dbTypes.GetHighestIndexedBlock(idxr.db)
+		if highestIndexedBlock.Height < latestBlock {
+			return highestIndexedBlock.Height + 1
+		}
 	}
 
-	fmt.Println("Found latest block", latestBlock)
-	highestIndexedBlock := dbTypes.GetHighestIndexedBlock(db)
-	if highestIndexedBlock.Height < latestBlock {
-		return highestIndexedBlock.Height + 1
+	// if we are re-indexing, just start at the configured start block
+	if idxr.cfg.Base.ReIndex {
+		return idxr.cfg.Base.StartBlock
 	}
 
-	return latestBlock
+	// Otherwise, start at the first block after the configured start block that we have not yet indexed.
+	return dbTypes.GetFirstMissingBlockInRange(idxr.db, idxr.cfg.Base.StartBlock, idxr.cfg.Base.EndBlock)
 }
 
 func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler core.FailedBlockHandler) {
@@ -298,12 +317,15 @@ func (idxr *Indexer) indexOsmosisReward(rpcClient osmosis.URIClient, epoch int64
 	return 0, nil
 }
 
-func (idxr *Indexer) queryRPC(blockChan chan int64, blockTXsChan chan *indexerTx.GetTxsEventResponseWrapper, failedBlockHandler core.FailedBlockHandler) {
+// queryRPC will query the RPC endpoint
+// this information will be parsed and converted into the domain objects we use for indexing this data.
+// data is then passed to a channel to be consumed and inserted into the DB
+func (idxr *Indexer) queryRPC(blockChan chan int64, dbDataChan chan *dbData, failedBlockHandler core.FailedBlockHandler) {
 	maxAttempts := 5
 	for blockToProcess := range blockChan {
 		// attempt to process the block 5 times and then give up
 		var attemptCount int
-		for processBlock(idxr.cl, failedBlockHandler, blockTXsChan, blockToProcess) != nil && attemptCount < maxAttempts {
+		for processBlock(idxr.cl, idxr.db, failedBlockHandler, dbDataChan, blockToProcess) != nil && attemptCount < maxAttempts {
 			attemptCount++
 			if attemptCount == maxAttempts {
 				// TODO: When we work on resume functionality, we need to build in a way to clear blocks out of the failure table when they succeed
@@ -317,7 +339,7 @@ func (idxr *Indexer) queryRPC(blockChan chan int64, blockTXsChan chan *indexerTx
 	}
 }
 
-func processBlock(cl *client.ChainClient, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error), blockTXsChan chan *indexerTx.GetTxsEventResponseWrapper, blockToProcess int64) error {
+func processBlock(cl *client.ChainClient, dbConn *gorm.DB, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error), dbDataChan chan *dbData, blockToProcess int64) error {
 	// fmt.Printf("Querying RPC transactions for block %d\n", blockToProcess)
 	newBlock := dbTypes.Block{Height: blockToProcess}
 
@@ -334,46 +356,57 @@ func processBlock(cl *client.ChainClient, failedBlockHandler func(height int64, 
 		blockResults, err := rpc.GetBlockByHeight(cl, newBlock.Height)
 		if err != nil || blockResults == nil {
 			failedBlockHandler(newBlock.Height, core.BlockQueryError, err)
+			return nil
 		} else if len(blockResults.TxsResults) > 0 {
 			// Two queries for the same block got a diff # of TXs. Though it is not guaranteed,
 			// DeliverTx events typically make it into a block so this warrants manual investigation.
 			// In this case, we couldn't look up TXs on the node but the Node's block has DeliverTx events,
 			// so we should log this and manually review the block on e.g. mintscan or another tool.
-			failedBlockHandler(newBlock.Height, core.NodeMissingBlockTxs, errors.New("node has DeliverTx results for block, but querying txs by height failed"))
+			config.Log.Fatalf("Two queries for the same block (%v) got a diff # of TXs.", newBlock.Height)
 		}
 	}
 
-	res := &indexerTx.GetTxsEventResponseWrapper{
-		CosmosGetTxsEventResponse: txsEventResp,
-		Height:                    blockToProcess,
+	txDBWrappers, blockTime, err := core.ProcessRPCTXs(dbConn, txsEventResp)
+	if err != nil {
+		config.Log.Error("ProcessRpcTxs: unhandled error", err)
+		failedBlockHandler(blockToProcess, core.UnprocessableTxError, err)
 	}
-	blockTXsChan <- res
+
+	res := &dbData{
+		txDBWrappers: txDBWrappers,
+		blockTime:    blockTime,
+		blockHeight:  blockToProcess,
+	}
+	dbDataChan <- res
+
 	return nil
 }
 
-func (idxr *Indexer) processTxs(wg *sync.WaitGroup, blockTXsChan chan *indexerTx.GetTxsEventResponseWrapper, failedBlockHandler core.FailedBlockHandler) {
+type dbData struct {
+	txDBWrappers []dbTypes.TxDBWrapper
+	blockTime    time.Time
+	blockHeight  int64
+}
+
+// consumeTxDBWrapper will read the data out of the db data chan that had been processed by the workers
+// if this is a dry run, we will simply empty the channel and track progress
+// otherwise we will index the data in the DB.
+func (idxr *Indexer) consumeTxDBWrapper(wg *sync.WaitGroup, dbDataChan chan *dbData) {
 	blocksProcessed := 0
 	timeStart := time.Now()
 	defer wg.Done()
 
-	for txToProcess := range blockTXsChan {
-		config.Log.Info(fmt.Sprintf("Indexing block %d, threaded.", txToProcess.Height))
-
-		txDBWrappers, blockTime, err := core.ProcessRPCTXs(idxr.db, txToProcess.CosmosGetTxsEventResponse)
-		if err != nil {
-			config.Log.Error("ProcessRpcTxs: unhandled error", err)
-			failedBlockHandler(txToProcess.Height, core.UnprocessableTxError, err)
-		}
-
+	for data := range dbDataChan {
 		// While debugging we'll sometimes want to turn off INSERTS to the DB
 		// Note that this does not turn off certain reads or DB connections.
 		if !idxr.dryRun {
-			err = dbTypes.IndexNewBlock(idxr.db, txToProcess.Height, blockTime, txDBWrappers, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
+			config.Log.Info(fmt.Sprintf("Indexing block %d.", data.blockHeight))
+			err := dbTypes.IndexNewBlock(idxr.db, data.blockHeight, data.blockTime, data.txDBWrappers, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
 			if err != nil {
-				if err != nil {
-					config.Log.Fatal(fmt.Sprintf("Error indexing block %v.", txToProcess.Height), err)
-				}
+				config.Log.Fatal(fmt.Sprintf("Error indexing block %v.", data.blockHeight), err)
 			}
+		} else {
+			config.Log.Info(fmt.Sprintf("Processing block %d (dry run, block data will not be stored in DB).", data.blockHeight))
 		}
 
 		// Just measuring how many blocks/second we can process

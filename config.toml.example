@@ -6,7 +6,9 @@ pretty = true
 
 #App configuration values
 [base]
-startblock = 1 # start indexing at beginning of the blockchain
+addressRegex = "kujira(valoper)?1[a-z0-9]{38}"
+addressPrefix = "kujira"
+startblock = 1 # start indexing at beginning of the blockchain, -1 to resume from highest block indexed
 endblock = 100 # stop indexing at this block, -1 to never stop indexing
 throttling = 0
 blockTimer = 10000 #print out how long it takes to process this many blocks
