@@ -194,6 +194,12 @@ func (idxr *Indexer) enqueueBlocksToProcess(blockChan chan int64) {
 
 			// Already at the latest block, wait for the next block to be available.
 			for currBlock <= latestBlock && (currBlock <= lastBlock || lastBlock == -1) && len(blockChan) != cap(blockChan) {
+				// skip curr block if already indexed
+				if blockAlreadyIndexed(currBlock, idxr.db) {
+					currBlock++
+					continue
+				}
+
 				if idxr.cfg.Base.Throttling != 0 {
 					time.Sleep(time.Second * time.Duration(idxr.cfg.Base.Throttling))
 				}
@@ -214,6 +220,16 @@ func OsmosisGetRewardsStartIndexHeight(db *gorm.DB, chainID string) int64 {
 	}
 
 	return block.Height
+}
+
+// blockAlreadyIndexed will return true if the block is already in the DB
+func blockAlreadyIndexed(blockHeight int64, db *gorm.DB) bool {
+	var exists bool
+	err := db.Raw(`SELECT count(*) > 0 FROM blocks WHERE height = ?::int;`, blockHeight).Row().Scan(&exists)
+	if err != nil {
+		config.Log.Fatalf("Error checking DB for block. Err: %v", err)
+	}
+	return exists
 }
 
 // GetIndexerStartingHeight will determine which block to start at
