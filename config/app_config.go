@@ -141,6 +141,7 @@ type base struct {
 	API                   string
 	StartBlock            int64
 	EndBlock              int64
+	ReIndex               bool
 	Throttling            float64
 	RPCWorkers            int64
 	BlockTimer            int64
