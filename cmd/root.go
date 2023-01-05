@@ -39,7 +39,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.cosmos-tax-cli-private/config.yaml)")
 
 	// Log
-	rootCmd.PersistentFlags().StringVar(&conf.Log.Level, "log.level", "debug", "log level")
+	rootCmd.PersistentFlags().StringVar(&conf.Log.Level, "log.level", "info", "log level")
 	rootCmd.PersistentFlags().BoolVar(&conf.Log.Pretty, "log.pretty", false, "pretty logs")
 	rootCmd.PersistentFlags().StringVar(&conf.Log.Path, "log.path", "", "log path (default is $HOME/.cosmos-tax-cli-private/logs.txt")
 
@@ -61,9 +61,7 @@ func init() {
 
 	// Lens
 	rootCmd.PersistentFlags().StringVar(&conf.Lens.RPC, "lens.rpc", "", "node rpc endpoint")
-	rootCmd.PersistentFlags().StringVar(&conf.Lens.Key, "lens.key", "default", "lens key")
 	rootCmd.PersistentFlags().StringVar(&conf.Lens.AccountPrefix, "lens.accountPrefix", "", "lens account prefix")
-	rootCmd.PersistentFlags().StringVar(&conf.Lens.KeyringBackend, "lens.keyringBackend", "", "lens keyring backend")
 	rootCmd.PersistentFlags().StringVar(&conf.Lens.ChainID, "lens.chainID", "", "lens chain ID")
 	rootCmd.PersistentFlags().StringVar(&conf.Lens.ChainName, "lens.chainName", "", "lens chain name")
 

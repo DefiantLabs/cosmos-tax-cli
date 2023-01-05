@@ -23,11 +23,8 @@ Dry = false # if true, indexing will occur but data will not be written to the d
 
 #Lens config options
 [lens]
-homepath = "/home/kyle/.lens"
 rpc = "https://rpc.kujira.ccvalidators.com:443" #On Kujira use one of the endpoints from the list https://github.com/Team-Kujira/networks/tree/master/mainnet
-key = "kujiman"
 accountPrefix = "kujira"
-keyringBackend = "test"
 chainID = "kaiyo-1"
 chainName = "Kujira"
 

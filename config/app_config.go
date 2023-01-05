@@ -73,14 +73,8 @@ func (conf *Config) Validate() error {
 	if util.StrNotSet(conf.Lens.RPC) {
 		return errors.New("lens rpc must be set")
 	}
-	if util.StrNotSet(conf.Lens.Key) {
-		return errors.New("lens key must be set")
-	}
 	if util.StrNotSet(conf.Lens.AccountPrefix) {
 		return errors.New("lens accountPrefix must be set")
-	}
-	if util.StrNotSet(conf.Lens.KeyringBackend) {
-		return errors.New("lens keyringBackend must be set")
 	}
 	if util.StrNotSet(conf.Lens.ChainID) {
 		return errors.New("lens chainID must be set")
@@ -124,13 +118,10 @@ type database struct {
 }
 
 type lens struct {
-	Homepath       string
-	RPC            string
-	Key            string
-	AccountPrefix  string
-	KeyringBackend string
-	ChainID        string
-	ChainName      string
+	RPC           string
+	AccountPrefix string
+	ChainID       string
+	ChainName     string
 }
 
 type api struct {
