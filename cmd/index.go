@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"math"
@@ -335,12 +334,13 @@ func processBlock(cl *client.ChainClient, dbConn *gorm.DB, failedBlockHandler fu
 		blockResults, err := rpc.GetBlockByHeight(cl, newBlock.Height)
 		if err != nil || blockResults == nil {
 			failedBlockHandler(newBlock.Height, core.BlockQueryError, err)
+			return nil
 		} else if len(blockResults.TxsResults) > 0 {
 			// Two queries for the same block got a diff # of TXs. Though it is not guaranteed,
 			// DeliverTx events typically make it into a block so this warrants manual investigation.
 			// In this case, we couldn't look up TXs on the node but the Node's block has DeliverTx events,
 			// so we should log this and manually review the block on e.g. mintscan or another tool.
-			failedBlockHandler(newBlock.Height, core.NodeMissingBlockTxs, errors.New("node has DeliverTx results for block, but querying txs by height failed"))
+			config.Log.Fatalf("Two queries for the same block (%v) got a diff # of TXs.", newBlock.Height)
 		}
 	}
 
