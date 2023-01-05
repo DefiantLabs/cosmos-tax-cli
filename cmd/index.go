@@ -340,7 +340,7 @@ func processBlock(cl *client.ChainClient, dbConn *gorm.DB, failedBlockHandler fu
 			// DeliverTx events typically make it into a block so this warrants manual investigation.
 			// In this case, we couldn't look up TXs on the node but the Node's block has DeliverTx events,
 			// so we should log this and manually review the block on e.g. mintscan or another tool.
-			config.Log.Fatal("Two queries for the same block got a diff # of TXs.")
+			config.Log.Fatalf("Two queries for the same block (%v) got a diff # of TXs.", newBlock.Height)
 		}
 	}
 
