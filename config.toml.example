@@ -6,8 +6,6 @@ pretty = true
 
 #App configuration values
 [base]
-addressRegex = "kujira(valoper)?1[a-z0-9]{38}"
-addressPrefix = "kujira"
 startblock = 1 # start indexing at beginning of the blockchain
 endblock = 100 # stop indexing at this block, -1 to never stop indexing
 throttling = 0
