@@ -57,7 +57,6 @@ func TestKoinlyOsmoLPParsing(t *testing.T) {
 		} else {
 			assert.Equal(t, cols[9], koinly.LiquidityOut.String())
 		}
-		// TODO: add more tests
 	}
 }
 
@@ -91,8 +90,6 @@ func TestKoinlyOsmoRewardParsing(t *testing.T) {
 
 		// make sure transactions are properly labeled
 		assert.Equal(t, cols[9], "reward")
-
-		// TODO: add more tests
 	}
 }
 
