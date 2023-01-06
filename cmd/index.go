@@ -5,6 +5,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -355,7 +356,11 @@ func processBlock(cl *client.ChainClient, dbConn *gorm.DB, failedBlockHandler fu
 		// The node might have pruned history resulting in a failed lookup. Recheck to see if the block was supposed to have TX results.
 		blockResults, err := rpc.GetBlockByHeight(cl, newBlock.Height)
 		if err != nil || blockResults == nil {
-			failedBlockHandler(newBlock.Height, core.BlockQueryError, err)
+			if err != nil && strings.Contains(err.Error(), "is not available, lowest height is") {
+				failedBlockHandler(newBlock.Height, core.NodeMissingHistoryForBlock, err)
+			} else {
+				failedBlockHandler(newBlock.Height, core.BlockQueryError, err)
+			}
 			return nil
 		} else if len(blockResults.TxsResults) > 0 {
 			// Two queries for the same block got a diff # of TXs. Though it is not guaranteed,
