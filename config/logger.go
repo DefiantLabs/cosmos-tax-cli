@@ -91,7 +91,6 @@ func (l *Logger) Panicf(msg string, args ...interface{}) {
 }
 
 func DoConfigureLogger(logPath string, logLevel string, prettyLogging bool) {
-	// TODO: I might be able to make this look cleaner
 	writers := io.MultiWriter(os.Stdout)
 	if len(logPath) > 0 {
 		if _, err := os.Stat(logPath); os.IsNotExist(err) {

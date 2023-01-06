@@ -47,7 +47,6 @@ type Indexer struct {
 func setupIndexer() *Indexer {
 	var idxr Indexer
 	var err error
-	// TODO: split out setup methods and only call necessary ones
 	idxr.cfg, idxr.dryRun, idxr.db, idxr.scheduler, err = setup(conf)
 	if err != nil {
 		log.Fatalf("Error during application setup. Err: %v", err)
@@ -59,13 +58,14 @@ func setupIndexer() *Indexer {
 	core.ChainSpecificMessageTypeHandlerBootstrap(idxr.cfg.Lens.ChainID)
 	config.SetChainConfig(idxr.cfg.Lens.AccountPrefix)
 
-	// TODO may need to run this task in setup() so that we have a cold start functionality before the indexer starts
-	_, err = idxr.scheduler.Every(6).Hours().Do(tasks.DenomUpsertTask, idxr.cfg.Base.API, idxr.db)
-	if err != nil {
-		config.Log.Error("Error scheduling denmon upsert task. Err: ", err)
+	// Setup scheduler to periodically update denoms
+	if idxr.cfg.Base.API != "" {
+		_, err = idxr.scheduler.Every(6).Hours().Do(tasks.DenomUpsertTask, idxr.cfg.Base.API, idxr.db)
+		if err != nil {
+			config.Log.Error("Error scheduling denmon upsert task. Err: ", err)
+		}
+		idxr.scheduler.StartAsync()
 	}
-
-	idxr.scheduler.StartAsync()
 
 	// Some chains do not have the denom metadata URL available on chain, so we do chain specific downloads instead.
 	tasks.DoChainSpecificUpsertDenoms(idxr.db, idxr.cfg.Lens.ChainID)
@@ -135,7 +135,7 @@ func index(cmd *cobra.Command, args []string) {
 	// Start a thread to index the data queried from the chain.
 	if idxr.cfg.Base.IndexingEnabled {
 		wg.Add(1)
-		go idxr.consumeTxDBWrapper(&wg, dbDataChan) // TODO: are we sure more workers here wouldn't make this faster?
+		go idxr.consumeTxDBWrapper(&wg, dbDataChan)
 	}
 
 	// Osmosis specific indexing requirements. Osmosis distributes rewards to LP holders on a daily basis.
@@ -186,7 +186,6 @@ func (idxr *Indexer) enqueueBlocksToProcess(blockChan chan int64) {
 			}
 
 			// Throttling in case of hitting public APIs
-			// TODO: track tx/s downloaded from each RPC endpoint and implement throttling limits per endpoint.
 			if idxr.cfg.Base.Throttling != 0 {
 				time.Sleep(time.Second * time.Duration(idxr.cfg.Base.Throttling))
 			}
@@ -328,7 +327,6 @@ func (idxr *Indexer) queryRPC(blockChan chan int64, dbDataChan chan *dbData, fai
 		for processBlock(idxr.cl, idxr.db, failedBlockHandler, dbDataChan, blockToProcess) != nil && attemptCount < maxAttempts {
 			attemptCount++
 			if attemptCount == maxAttempts {
-				// TODO: When we work on resume functionality, we need to build in a way to clear blocks out of the failure table when they succeed
 				config.Log.Error(fmt.Sprintf("Failed to process block %v after %v attempts. Will add to failed blocks table", blockToProcess, maxAttempts))
 				err := dbTypes.UpsertFailedBlock(idxr.db, blockToProcess, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
 				if err != nil {
@@ -343,8 +341,6 @@ func processBlock(cl *client.ChainClient, dbConn *gorm.DB, failedBlockHandler fu
 	// fmt.Printf("Querying RPC transactions for block %d\n", blockToProcess)
 	newBlock := dbTypes.Block{Height: blockToProcess}
 
-	// TODO: There is currently no pagination implemented!
-	// TODO: Do something smarter than giving up when we encounter an error.
 	txsEventResp, err := rpc.GetTxsByBlockHeight(cl, newBlock.Height)
 	if err != nil {
 		config.Log.Error("Error getting transactions by block height. Will reattempt", err)

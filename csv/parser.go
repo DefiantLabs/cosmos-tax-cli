@@ -40,7 +40,6 @@ func ParseForAddress(addresses []string, startDate, endDate *time.Time, pgSQL *g
 	var headers []string
 	var csvRows []parsers.CsvRow
 	for _, address := range addresses {
-		// TODO: need to pass in chain and date range
 		taxableTxs, err := db.GetTaxableTransactions(address, pgSQL)
 		if err != nil {
 			config.Log.Error("Error getting taxable transaction.", err)
@@ -78,7 +77,6 @@ func ParseForAddress(addresses []string, startDate, endDate *time.Time, pgSQL *g
 	return csvRows, headers, nil
 }
 
-// TODO: Figure out a way to make this cleaner by moving it into a function on the parse itself
 func SortRows(csvRows []parsers.CsvRow, parserKey string) {
 	// set the appropriate time format for the parser
 	timeLayout := "2006-01-02 15:04:05"

@@ -89,7 +89,6 @@ func getRate(cbClient *coinbasepro.Client, coin string, transactionTime time.Tim
 }
 
 func (sf *WrapperLpTxGroup) ParseGroup() error {
-	// TODO: Do specialized processing on LP messages
 	cbClient := coinbasepro.NewClient()
 	for _, txMessages := range sf.GroupedTxes {
 		for _, message := range txMessages {

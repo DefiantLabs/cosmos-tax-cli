@@ -38,7 +38,7 @@ func (conf *Config) Validate() error {
 	}
 
 	// Base Checks
-	if conf.Base.StartBlock == 0 { // TODO: Verify that 0 is not a valid starting block..
+	if conf.Base.StartBlock == 0 {
 		return errors.New("base startblock must be set")
 	}
 	if conf.Base.EndBlock == 0 {
@@ -62,7 +62,7 @@ func (conf *Config) Validate() error {
 	// BlockTimer can safely default to 0
 	// WaitForChain can safely default to false
 	// WaitForChainDelay can safely default to 0
-	// IndexingEnabled can safely default to false TODO: but do we want this?
+	// IndexingEnabled can safely default to false
 	// ExitWhenCaughtUp can safely default to false
 	// OsmosisRewardsOnly can safely default to false
 

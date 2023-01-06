@@ -69,7 +69,6 @@ func setupRPC(t *testing.T) *gocron.Scheduler {
 	if testConfig == nil {
 		setupConfig(t)
 	}
-	// TODO: create config values for the prefixes here
 	// Could potentially check Node info at startup and pass in ourselves?
 	core.SetupAddressRegex(testConfig.Lens.AccountPrefix + "(valoper)?1[a-z0-9]{38}")
 	core.SetupAddressPrefix(testConfig.Lens.AccountPrefix)
