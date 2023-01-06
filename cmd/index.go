@@ -23,7 +23,11 @@ import (
 	"gorm.io/gorm"
 )
 
+var reindexMsgType string
+
 func init() {
+	indexCmd.Flags().StringVar(&reindexMsgType, "re-index-message-type", "", "If specified, the indexer will reindex only the blocks containing the message type provided.")
+
 	rootCmd.AddCommand(indexCmd)
 }
 
@@ -94,7 +98,6 @@ func index(cmd *cobra.Command, args []string) {
 	if err != nil {
 		config.Log.Fatal("Failed to connect to DB", err)
 	}
-
 	defer dbConn.Close()
 
 	// blockChan are just the block heights; limit max jobs in the queue, otherwise this queue would contain one
@@ -147,7 +150,11 @@ func index(cmd *cobra.Command, args []string) {
 
 	// Add jobs to the queue to be processed
 	if idxr.cfg.Base.IndexingEnabled {
-		idxr.enqueueBlocksToProcess(blockChan)
+		if reindexMsgType != "" {
+			idxr.enqueueBlocksToProcessByMsgType(blockChan, reindexMsgType)
+		} else {
+			idxr.enqueueBlocksToProcess(blockChan)
+		}
 		// close the block chan once all blocks have been written to it
 		close(blockChan)
 	}
@@ -155,6 +162,44 @@ func index(cmd *cobra.Command, args []string) {
 	// If we error out in the main loop, this will block. Meaning we may not know of an error for 6 hours until last scheduled task stops
 	idxr.scheduler.Stop()
 	wg.Wait()
+}
+
+// enqueueBlocksToProcessByMsgType will pass the blocks containing the specified msg type to the indexer
+func (idxr *Indexer) enqueueBlocksToProcessByMsgType(blockChan chan int64, msgType string) {
+	// get the block range
+	startBlock := idxr.cfg.Base.StartBlock
+	endBlock := idxr.cfg.Base.EndBlock
+	if endBlock == -1 {
+		heighestBlock := dbTypes.GetHighestIndexedBlock(idxr.db)
+		endBlock = heighestBlock.Height
+	}
+
+	rows, err := idxr.db.Raw(`SELECT height FROM blocks
+							JOIN txes ON txes.block_id = blocks.id
+							JOIN messages ON messages.tx_id = txes.id
+							JOIN message_types ON message_types.id = messages.message_type_id
+							AND message_types.message_type = ?
+							WHERE height > ? AND height < ?;
+							`, msgType, startBlock, endBlock).Rows()
+	if err != nil {
+		config.Log.Fatalf("Error checking DB for blocks to reindex. Err: %v", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var block int64
+		err = idxr.db.ScanRows(rows, &block)
+		if err != nil {
+			config.Log.Fatal("Error getting block height. Err: %v", err)
+		}
+		config.Log.Debugf("Sending block %v to be re-indexed.", block)
+
+		if idxr.cfg.Base.Throttling != 0 {
+			time.Sleep(time.Second * time.Duration(idxr.cfg.Base.Throttling))
+		}
+
+		// Add the new block to the queue
+		blockChan <- block
+	}
 }
 
 // enqueueBlocksToProcess will pass the blocks that need to be processed to the blockchannel
@@ -255,8 +300,14 @@ func (idxr *Indexer) GetIndexerStartingHeight() int64 {
 		return idxr.cfg.Base.StartBlock
 	}
 
+	maxStart := idxr.cfg.Base.EndBlock
+	if maxStart == -1 {
+		heighestBlock := dbTypes.GetHighestIndexedBlock(idxr.db)
+		maxStart = heighestBlock.Height
+	}
+
 	// Otherwise, start at the first block after the configured start block that we have not yet indexed.
-	return dbTypes.GetFirstMissingBlockInRange(idxr.db, idxr.cfg.Base.StartBlock, idxr.cfg.Base.EndBlock)
+	return dbTypes.GetFirstMissingBlockInRange(idxr.db, idxr.cfg.Base.StartBlock, maxStart)
 }
 
 func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler core.FailedBlockHandler) {
@@ -348,7 +399,7 @@ func processBlock(cl *client.ChainClient, dbConn *gorm.DB, failedBlockHandler fu
 	// TODO: Do something smarter than giving up when we encounter an error.
 	txsEventResp, err := rpc.GetTxsByBlockHeight(cl, newBlock.Height)
 	if err != nil {
-		config.Log.Error("Error getting transactions by block height. Will reattempt", err)
+		config.Log.Errorf("Error getting transactions by block height (%v). Err: %v. Will reattempt", newBlock.Height, err)
 		return err
 	}
 
