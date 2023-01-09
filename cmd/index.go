@@ -210,8 +210,8 @@ func (idxr *Indexer) enqueueBlocksToProcessByMsgType(blockChan chan int64, chain
 	}
 }
 
-func (idxr *Indexer) enqueueFailedBlocksInRange(blockChan chan int64, chainID uint) {
-	// Get all failed blocks within range
+func (idxr *Indexer) enqueueFailedBlocks(blockChan chan int64, chainID uint) {
+	// Get all failed blocks
 	failedBlocks := dbTypes.GetFailedBlocks(idxr.db, chainID)
 	if len(failedBlocks) == 0 {
 		return
@@ -230,7 +230,7 @@ func (idxr *Indexer) enqueueFailedBlocksInRange(blockChan chan int64, chainID ui
 func (idxr *Indexer) enqueueBlocksToProcess(blockChan chan int64, chainID uint) {
 	// Unless explicitly prevented, lets attempt to enqueue any failed blocks
 	if !idxr.cfg.Base.PreventReattempts {
-		idxr.enqueueFailedBlocksInRange(blockChan, chainID)
+		idxr.enqueueFailedBlocks(blockChan, chainID)
 	}
 
 	// Start at the last indexed block height (or the block height in the config, if set)
