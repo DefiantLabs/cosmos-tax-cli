@@ -62,6 +62,14 @@ func MigrateModels(db *gorm.DB) error {
 }
 
 func GetFirstMissingBlockInRange(db *gorm.DB, start, end int64) int64 {
+	// Find the highest block we have indexed so far
+	currMax := GetHighestIndexedBlock(db)
+
+	// If this is after the start date, fine the first missing block between the desired start, and the highest we have indexed +1
+	if currMax.Height > start {
+		end = currMax.Height + 1
+	}
+
 	var firstMissingBlock int64
 	err := db.Raw(`SELECT s.i AS missing_blocks
 						FROM generate_series($1::int,$2::int) s(i)
