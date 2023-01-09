@@ -212,24 +212,15 @@ func (idxr *Indexer) enqueueBlocksToProcessByMsgType(blockChan chan int64, chain
 
 func (idxr *Indexer) enqueueFailedBlocksInRange(blockChan chan int64, chainID uint) {
 	// Get all failed blocks within range
-	query := fmt.Sprintf("SELECT height FROM failed_blocks WHERE height > %v and blockchain_id = %v", idxr.cfg.Base.StartBlock, chainID)
-	if idxr.cfg.Base.EndBlock != -1 {
-		query = fmt.Sprintf("SELECT height FROM failed_blocks WHERE height > %v AND height < %v AND blockchain_id = %v",
-			idxr.cfg.Base.StartBlock, idxr.cfg.Base.EndBlock, chainID)
-	}
-	rows, err := idxr.db.Raw(query).Rows()
-	if err != nil {
-		config.Log.Fatalf("Error checking DB for failed blocks. Err: %v", err)
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var block int64
-		err = idxr.db.ScanRows(rows, &block)
-		if err != nil {
-			config.Log.Fatal("Error getting block height. Err: %v", err)
+	failedBlocks := dbTypes.GetFailedBlocks(idxr.db, chainID)
+	for _, block := range failedBlocks {
+		if idxr.cfg.Base.Throttling != 0 {
+			time.Sleep(time.Second * time.Duration(idxr.cfg.Base.Throttling))
 		}
-		blockChan <- block
+		config.Log.Infof("Will re-attempt failed block: %v", block.Height)
+		blockChan <- block.Height
 	}
+	config.Log.Info("All failed blocks have been re-enqueued for processing")
 }
 
 // enqueueBlocksToProcess will pass the blocks that need to be processed to the blockchannel
@@ -408,7 +399,7 @@ func (idxr *Indexer) indexOsmosisReward(rpcClient osmosis.URIClient, epoch int64
 // this information will be parsed and converted into the domain objects we use for indexing this data.
 // data is then passed to a channel to be consumed and inserted into the DB
 func (idxr *Indexer) queryRPC(blockChan chan int64, dbDataChan chan *dbData, failedBlockHandler core.FailedBlockHandler) {
-	maxAttempts := 1 //FIXME: don't commit this
+	maxAttempts := 5
 	for blockToProcess := range blockChan {
 		// attempt to process the block 5 times and then give up
 		var attemptCount int
