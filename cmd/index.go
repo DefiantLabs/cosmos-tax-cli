@@ -150,10 +150,18 @@ func index(cmd *cobra.Command, args []string) {
 
 	// Add jobs to the queue to be processed
 	if idxr.cfg.Base.IndexingEnabled {
+		chain := dbTypes.Chain{
+			ChainID: idxr.cfg.Lens.ChainID,
+			Name:    idxr.cfg.Lens.ChainName,
+		}
+		chainID, err := dbTypes.GetDBChainID(idxr.db, chain)
+		if err != nil {
+			config.Log.Fatal("Failed to add/create chain in DB", err)
+		}
 		if reindexMsgType != "" {
-			idxr.enqueueBlocksToProcessByMsgType(blockChan, reindexMsgType)
+			idxr.enqueueBlocksToProcessByMsgType(blockChan, chainID, reindexMsgType)
 		} else {
-			idxr.enqueueBlocksToProcess(blockChan)
+			idxr.enqueueBlocksToProcess(blockChan, chainID)
 		}
 		// close the block chan once all blocks have been written to it
 		close(blockChan)
@@ -165,12 +173,12 @@ func index(cmd *cobra.Command, args []string) {
 }
 
 // enqueueBlocksToProcessByMsgType will pass the blocks containing the specified msg type to the indexer
-func (idxr *Indexer) enqueueBlocksToProcessByMsgType(blockChan chan int64, msgType string) {
+func (idxr *Indexer) enqueueBlocksToProcessByMsgType(blockChan chan int64, chainID uint, msgType string) {
 	// get the block range
 	startBlock := idxr.cfg.Base.StartBlock
 	endBlock := idxr.cfg.Base.EndBlock
 	if endBlock == -1 {
-		heighestBlock := dbTypes.GetHighestIndexedBlock(idxr.db)
+		heighestBlock := dbTypes.GetHighestIndexedBlock(idxr.db, chainID)
 		endBlock = heighestBlock.Height
 	}
 
@@ -179,8 +187,8 @@ func (idxr *Indexer) enqueueBlocksToProcessByMsgType(blockChan chan int64, msgTy
 							JOIN messages ON messages.tx_id = txes.id
 							JOIN message_types ON message_types.id = messages.message_type_id
 							AND message_types.message_type = ?
-							WHERE height > ? AND height < ?;
-							`, msgType, startBlock, endBlock).Rows()
+							WHERE height > ? AND height < ? AND blockchain_id = ?::int;
+							`, msgType, startBlock, endBlock, chainID).Rows()
 	if err != nil {
 		config.Log.Fatalf("Error checking DB for blocks to reindex. Err: %v", err)
 	}
@@ -203,9 +211,9 @@ func (idxr *Indexer) enqueueBlocksToProcessByMsgType(blockChan chan int64, msgTy
 }
 
 // enqueueBlocksToProcess will pass the blocks that need to be processed to the blockchannel
-func (idxr *Indexer) enqueueBlocksToProcess(blockChan chan int64) {
+func (idxr *Indexer) enqueueBlocksToProcess(blockChan chan int64, chainID uint) {
 	// Start at the last indexed block height (or the block height in the config, if set)
-	currBlock := idxr.GetIndexerStartingHeight()
+	currBlock := idxr.GetIndexerStartingHeight(chainID)
 	// Don't index past this block no matter what
 	lastBlock := idxr.cfg.Base.EndBlock
 	var latestBlock int64 = math.MaxInt64
@@ -240,7 +248,7 @@ func (idxr *Indexer) enqueueBlocksToProcess(blockChan chan int64) {
 			// Already at the latest block, wait for the next block to be available.
 			for currBlock <= latestBlock && (currBlock <= lastBlock || lastBlock == -1) && len(blockChan) != cap(blockChan) {
 				// if we are not re-indexing, skip curr block if already indexed
-				if !idxr.cfg.Base.ReIndex && blockAlreadyIndexed(currBlock, idxr.db) {
+				if !idxr.cfg.Base.ReIndex && blockAlreadyIndexed(currBlock, chainID, idxr.db) {
 					currBlock++
 					continue
 				}
@@ -268,9 +276,9 @@ func OsmosisGetRewardsStartIndexHeight(db *gorm.DB, chainID string) int64 {
 }
 
 // blockAlreadyIndexed will return true if the block is already in the DB
-func blockAlreadyIndexed(blockHeight int64, db *gorm.DB) bool {
+func blockAlreadyIndexed(blockHeight int64, chainID uint, db *gorm.DB) bool {
 	var exists bool
-	err := db.Raw(`SELECT count(*) > 0 FROM blocks WHERE height = ?::int;`, blockHeight).Row().Scan(&exists)
+	err := db.Raw(`SELECT count(*) > 0 FROM blocks WHERE height = ?::int and blockchain_id = ?::int;`, blockHeight, chainID).Row().Scan(&exists)
 	if err != nil {
 		config.Log.Fatalf("Error checking DB for block. Err: %v", err)
 	}
@@ -280,7 +288,7 @@ func blockAlreadyIndexed(blockHeight int64, db *gorm.DB) bool {
 // GetIndexerStartingHeight will determine which block to start at
 // if start block is set to -1, it will start at the highest block indexed
 // otherwise, it will start at the first missing block between the start and end height
-func (idxr *Indexer) GetIndexerStartingHeight() int64 {
+func (idxr *Indexer) GetIndexerStartingHeight(chainID uint) int64 {
 	// If the start height is set to -1, resume from the highest block already indexed
 	if idxr.cfg.Base.StartBlock == -1 {
 		latestBlock, err := rpc.GetLatestBlockHeight(idxr.cl)
@@ -289,7 +297,7 @@ func (idxr *Indexer) GetIndexerStartingHeight() int64 {
 		}
 
 		fmt.Println("Found latest block", latestBlock)
-		highestIndexedBlock := dbTypes.GetHighestIndexedBlock(idxr.db)
+		highestIndexedBlock := dbTypes.GetHighestIndexedBlock(idxr.db, chainID)
 		if highestIndexedBlock.Height < latestBlock {
 			return highestIndexedBlock.Height + 1
 		}
@@ -302,12 +310,12 @@ func (idxr *Indexer) GetIndexerStartingHeight() int64 {
 
 	maxStart := idxr.cfg.Base.EndBlock
 	if maxStart == -1 {
-		heighestBlock := dbTypes.GetHighestIndexedBlock(idxr.db)
+		heighestBlock := dbTypes.GetHighestIndexedBlock(idxr.db, chainID)
 		maxStart = heighestBlock.Height
 	}
 
 	// Otherwise, start at the first block after the configured start block that we have not yet indexed.
-	return dbTypes.GetFirstMissingBlockInRange(idxr.db, idxr.cfg.Base.StartBlock, maxStart)
+	return dbTypes.GetFirstMissingBlockInRange(idxr.db, idxr.cfg.Base.StartBlock, maxStart, chainID)
 }
 
 func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler core.FailedBlockHandler) {

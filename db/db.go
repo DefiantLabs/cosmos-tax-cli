@@ -61,9 +61,9 @@ func MigrateModels(db *gorm.DB) error {
 	)
 }
 
-func GetFirstMissingBlockInRange(db *gorm.DB, start, end int64) int64 {
+func GetFirstMissingBlockInRange(db *gorm.DB, start, end int64, chainID uint) int64 {
 	// Find the highest block we have indexed so far
-	currMax := GetHighestIndexedBlock(db)
+	currMax := GetHighestIndexedBlock(db, chainID)
 
 	// If this is after the start date, fine the first missing block between the desired start, and the highest we have indexed +1
 	if currMax.Height > start {
@@ -73,8 +73,8 @@ func GetFirstMissingBlockInRange(db *gorm.DB, start, end int64) int64 {
 	var firstMissingBlock int64
 	err := db.Raw(`SELECT s.i AS missing_blocks
 						FROM generate_series($1::int,$2::int) s(i)
-						WHERE NOT EXISTS (SELECT 1 FROM blocks WHERE height = s.i)
-						ORDER BY s.i ASC LIMIT 1;`, start, end).Row().Scan(&firstMissingBlock)
+						WHERE NOT EXISTS (SELECT 1 FROM blocks WHERE height = s.i AND blockchain_id = $3::int)
+						ORDER BY s.i ASC LIMIT 1;`, start, end, chainID).Row().Scan(&firstMissingBlock)
 	if err != nil {
 		config.Log.Fatalf("Unable to find start block. Err: %v", err)
 	}
@@ -82,10 +82,18 @@ func GetFirstMissingBlockInRange(db *gorm.DB, start, end int64) int64 {
 	return firstMissingBlock
 }
 
-func GetHighestIndexedBlock(db *gorm.DB) Block {
+func GetDBChainID(db *gorm.DB, chain Chain) (uint, error) {
+	if err := db.Where(&chain).FirstOrCreate(&chain).Error; err != nil {
+		config.Log.Error("Error getting/creating chain DB object.", err)
+		return chain.ID, err
+	}
+	return chain.ID, nil
+}
+
+func GetHighestIndexedBlock(db *gorm.DB, chainID uint) Block {
 	var block Block
 	// this can potentially be optimized by getting max first and selecting it (this gets translated into a select * limit 1)
-	db.Table("blocks").Order("height desc").First(&block)
+	db.Table("blocks").Where("blockchain_id = ?::int", chainID).Order("height desc").First(&block)
 	return block
 }
 
