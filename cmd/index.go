@@ -213,6 +213,9 @@ func (idxr *Indexer) enqueueBlocksToProcessByMsgType(blockChan chan int64, chain
 func (idxr *Indexer) enqueueFailedBlocksInRange(blockChan chan int64, chainID uint) {
 	// Get all failed blocks within range
 	failedBlocks := dbTypes.GetFailedBlocks(idxr.db, chainID)
+	if len(failedBlocks) == 0 {
+		return
+	}
 	for _, block := range failedBlocks {
 		if idxr.cfg.Base.Throttling != 0 {
 			time.Sleep(time.Second * time.Duration(idxr.cfg.Base.Throttling))

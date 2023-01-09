@@ -151,7 +151,9 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 			fees := []Fee{}
 			for _, fee := range transaction.Tx.Fees {
 				if fee.PayerAddress.Address != "" {
-					if err := dbTransaction.Where(&fee.PayerAddress).FirstOrCreate(&fee.PayerAddress).Error; err != nil {
+					if err := dbTransaction.Where(Address{Address: fee.PayerAddress.Address}).
+						FirstOrCreate(&fee.PayerAddress).
+						Error; err != nil {
 						config.Log.Error("Error getting/creating fee payer address.", err)
 						return err
 					}
@@ -167,15 +169,13 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 				}
 
 				fees = append(fees, fee)
-				// if err := dbTransaction.Where(&fee).FirstOrCreate(&fee).Error; err != nil {
-				// 	fmt.Printf("Error %s creating TaxableTransaction fee.\n", err)
-				// 	return err
-				// }
 			}
 
 			if transaction.SignerAddress.Address != "" {
 				// viewing gorm logs shows this gets translated into a single ON CONFLICT DO NOTHING RETURNING "id"
-				if err := dbTransaction.Where(&transaction.SignerAddress).FirstOrCreate(&transaction.SignerAddress).Error; err != nil {
+				if err := dbTransaction.Where(Address{Address: transaction.SignerAddress.Address}).
+					FirstOrCreate(&transaction.SignerAddress).
+					Error; err != nil {
 					config.Log.Error("Error getting/creating signer address for tx.", err)
 					return err
 				}
@@ -190,7 +190,6 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 
 			transaction.Tx.Block = block
 			transaction.Tx.Fees = fees
-
 			if err := dbTransaction.Where(&transaction.Tx).FirstOrCreate(&transaction.Tx).Error; err != nil {
 				config.Log.Error("Error creating tx.", err)
 				return err
