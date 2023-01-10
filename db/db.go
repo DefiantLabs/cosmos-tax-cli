@@ -125,7 +125,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 	// Order required: Block -> (For each Tx: Signer Address -> Tx -> (For each Message: Message -> Taxable Events))
 	// Also, foreign key relations are struct value based so create needs to be called first to get right foreign key ID
 	return db.Transaction(func(dbTransaction *gorm.DB) error {
-		block := Block{Height: blockHeight, TimeStamp: blockTime, Chain: Chain{ChainID: chainID, Name: chainName}}
+		block := Block{Height: blockHeight, TimeStamp: blockTime, Indexed: true, Chain: Chain{ChainID: chainID, Name: chainName}}
 		if err := dbTransaction.Where(&block.Chain).FirstOrCreate(&block.Chain).Error; err != nil {
 			config.Log.Error("Error getting/creating chain DB object.", err)
 			return err
@@ -142,6 +142,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 
 		if err := dbTransaction.
 			Where(Block{Height: block.Height, BlockchainID: block.BlockchainID}).
+			Assign(Block{Indexed: true, TimeStamp: blockTime}).
 			FirstOrCreate(&block).Error; err != nil {
 			config.Log.Error("Error getting/creating block DB object.", err)
 			return err
