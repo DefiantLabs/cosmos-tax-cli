@@ -12,6 +12,7 @@ type Block struct {
 	Height       int64 `gorm:"uniqueIndex:chainheight"`
 	BlockchainID uint  `gorm:"uniqueIndex:chainheight"`
 	Chain        Chain `gorm:"foreignKey:BlockchainID"`
+	Indexed      bool
 }
 
 type FailedBlock struct {
