@@ -116,14 +116,14 @@ func index(cmd *cobra.Command, args []string) {
 	} else if rpcQueryThreads > 64 {
 		rpcQueryThreads = 64
 	}
-	dbDataChan := make(chan *dbData, 4*rpcQueryThreads)
+	txDataChan := make(chan *dbData, 4*rpcQueryThreads)
 	var txChanWaitGroup sync.WaitGroup // This group is to ensure we are done getting transactions before we close the TX channel
 	// Spin up a (configurable) number of threads to query RPC endpoints for Transactions.
 	// this is assumed to be the slowest process that allows concurrency and thus has the most dedicated go routines.
 	for i := 0; i < rpcQueryThreads; i++ {
 		txChanWaitGroup.Add(1)
 		go func() {
-			idxr.queryRPC(blockChan, dbDataChan, core.HandleFailedBlock)
+			idxr.queryRPC(blockChan, txDataChan, core.HandleFailedBlock)
 			txChanWaitGroup.Done()
 		}()
 	}
@@ -131,21 +131,24 @@ func index(cmd *cobra.Command, args []string) {
 	// close the transaction chan once all transactions have been written to it
 	go func() {
 		txChanWaitGroup.Wait()
-		close(dbDataChan)
+		close(txDataChan)
 	}()
 
 	var wg sync.WaitGroup // This group is to ensure we are done processing transactions (as well as osmo rewards) before returning
 
+	// Osmosis specific indexing requirements. Osmosis distributes rewards to LP holders on a daily basis.
+	rewardsDataChan := make(chan []*osmosis.Rewards, 4*rpcQueryThreads)
+	if config.IsOsmosis(idxr.cfg) && idxr.cfg.Base.RewardIndexingEnabled {
+		wg.Add(1)
+		go idxr.indexOsmosisRewards(&wg, core.HandleFailedBlock, rewardsDataChan)
+	} else {
+		close(rewardsDataChan)
+	}
+
 	// Start a thread to index the data queried from the chain.
 	if idxr.cfg.Base.IndexingEnabled {
 		wg.Add(1)
-		go idxr.consumeTxDBWrapper(&wg, dbDataChan) // TODO: are we sure more workers here wouldn't make this faster?
-	}
-
-	// Osmosis specific indexing requirements. Osmosis distributes rewards to LP holders on a daily basis.
-	if config.IsOsmosis(idxr.cfg) && idxr.cfg.Base.RewardIndexingEnabled {
-		wg.Add(1)
-		go idxr.indexOsmosisRewards(&wg, core.HandleFailedBlock)
+		go idxr.doDBUpdates(&wg, txDataChan, rewardsDataChan)
 	}
 
 	// Add jobs to the queue to be processed
@@ -339,7 +342,7 @@ func (idxr *Indexer) GetIndexerStartingHeight(chainID uint) int64 {
 	return dbTypes.GetFirstMissingBlockInRange(idxr.db, idxr.cfg.Base.StartBlock, maxStart, chainID)
 }
 
-func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler core.FailedBlockHandler) {
+func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler core.FailedBlockHandler, rewardsDataChan chan []*osmosis.Rewards) {
 	defer wg.Done()
 
 	startHeight := idxr.cfg.Base.RewardStartBlock
@@ -366,12 +369,12 @@ func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler 
 	maxAttempts := 5
 	for epoch := startHeight; epoch <= endHeight; epoch++ {
 		attempts := 1
-		_, err := idxr.indexOsmosisReward(rpcClient, epoch)
+		_, err := idxr.indexOsmosisReward(rpcClient, epoch, rewardsDataChan)
 		for err != nil && attempts < maxAttempts {
 			attempts++
 			// for some reason these need an exponential backoff....
 			time.Sleep(time.Second * time.Duration(math.Pow(2, float64(attempts))))
-			code, err := idxr.indexOsmosisReward(rpcClient, epoch)
+			code, err := idxr.indexOsmosisReward(rpcClient, epoch, rewardsDataChan)
 			if err != nil && attempts == maxAttempts {
 				failedBlockHandler(epoch, code, err)
 			}
@@ -379,7 +382,7 @@ func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler 
 	}
 }
 
-func (idxr *Indexer) indexOsmosisReward(rpcClient osmosis.URIClient, epoch int64) (core.BlockProcessingFailure, error) {
+func (idxr *Indexer) indexOsmosisReward(rpcClient osmosis.URIClient, epoch int64, rewardsDataChan chan []*osmosis.Rewards) (core.BlockProcessingFailure, error) {
 	config.Log.Debug(fmt.Sprintf("Getting rewards for epoch %v", epoch))
 	rewards, err := rpcClient.GetEpochRewards(epoch)
 	if err != nil {
@@ -388,12 +391,7 @@ func (idxr *Indexer) indexOsmosisReward(rpcClient osmosis.URIClient, epoch int64
 	}
 
 	if len(rewards) > 0 {
-		config.Log.Info(fmt.Sprintf("Found %v rewards at epoch %v, sending to DB", len(rewards), epoch))
-		err = dbTypes.IndexOsmoRewards(idxr.db, idxr.dryRun, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName, rewards)
-		if err != nil {
-			config.Log.Error("Error storing rewards in DB.", err)
-			return core.OsmosisNodeRewardIndexError, err
-		}
+		rewardsDataChan <- rewards
 	}
 	return 0, nil
 }
@@ -473,35 +471,62 @@ type dbData struct {
 	blockHeight  int64
 }
 
-// consumeTxDBWrapper will read the data out of the db data chan that had been processed by the workers
+// doDBUpdates will read the data out of the db data chan that had been processed by the workers
 // if this is a dry run, we will simply empty the channel and track progress
 // otherwise we will index the data in the DB.
-func (idxr *Indexer) consumeTxDBWrapper(wg *sync.WaitGroup, dbDataChan chan *dbData) {
+// it will also read rewars data and index that.
+func (idxr *Indexer) doDBUpdates(wg *sync.WaitGroup, txDataChan chan *dbData, rewardsDataChan chan []*osmosis.Rewards) {
 	blocksProcessed := 0
 	timeStart := time.Now()
 	defer wg.Done()
 
-	for data := range dbDataChan {
-		// While debugging we'll sometimes want to turn off INSERTS to the DB
-		// Note that this does not turn off certain reads or DB connections.
-		if !idxr.dryRun {
-			config.Log.Info(fmt.Sprintf("Indexing %v TXs from block %d.", len(data.txDBWrappers), data.blockHeight))
-			err := dbTypes.IndexNewBlock(idxr.db, data.blockHeight, data.blockTime, data.txDBWrappers, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
-			if err != nil {
-				config.Log.Fatal(fmt.Sprintf("Error indexing block %v.", data.blockHeight), err)
+	for {
+		select {
+		// read rewards from the reward chan
+		case rewardData, ok := <-rewardsDataChan:
+			if !ok {
+				rewardsDataChan = nil
+				continue
 			}
-		} else {
-			config.Log.Info(fmt.Sprintf("Processing block %d (dry run, block data will not be stored in DB).", data.blockHeight))
-		}
 
-		// Just measuring how many blocks/second we can process
-		if idxr.cfg.Base.BlockTimer > 0 {
-			blocksProcessed++
-			if blocksProcessed%int(idxr.cfg.Base.BlockTimer) == 0 {
-				totalTime := time.Since(timeStart)
-				config.Log.Info(fmt.Sprintf("Processing %d blocks took %f seconds. %d total blocks have been processed.\n", idxr.cfg.Base.BlockTimer, totalTime.Seconds(), blocksProcessed))
-				timeStart = time.Now()
+			config.Log.Info(fmt.Sprintf("Found %v rewards at epoch %v, sending to DB", len(rewardData), rewardData[0].EpochBlockHeight))
+			err := dbTypes.IndexOsmoRewards(idxr.db, idxr.dryRun, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName, rewardData)
+			if err != nil {
+				config.Log.Fatal("Error storing rewards in DB.", err)
 			}
+
+		// read tx data from the data chan
+		case data, ok := <-txDataChan:
+			if !ok {
+				txDataChan = nil
+				continue
+			}
+
+			// While debugging we'll sometimes want to turn off INSERTS to the DB
+			// Note that this does not turn off certain reads or DB connections.
+			if !idxr.dryRun {
+				config.Log.Info(fmt.Sprintf("Indexing %v TXs from block %d.", len(data.txDBWrappers), data.blockHeight))
+				err := dbTypes.IndexNewBlock(idxr.db, data.blockHeight, data.blockTime, data.txDBWrappers, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
+				if err != nil {
+					config.Log.Fatal(fmt.Sprintf("Error indexing block %v.", data.blockHeight), err)
+				}
+			} else {
+				config.Log.Info(fmt.Sprintf("Processing block %d (dry run, block data will not be stored in DB).", data.blockHeight))
+			}
+
+			// Just measuring how many blocks/second we can process
+			if idxr.cfg.Base.BlockTimer > 0 {
+				blocksProcessed++
+				if blocksProcessed%int(idxr.cfg.Base.BlockTimer) == 0 {
+					totalTime := time.Since(timeStart)
+					config.Log.Info(fmt.Sprintf("Processing %d blocks took %f seconds. %d total blocks have been processed.\n", idxr.cfg.Base.BlockTimer, totalTime.Seconds(), blocksProcessed))
+					timeStart = time.Now()
+				}
+			}
+		}
+		if rewardsDataChan == nil && txDataChan == nil {
+			config.Log.Info("DB updates complete")
+			break
 		}
 	}
 }
