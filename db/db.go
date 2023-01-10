@@ -79,7 +79,7 @@ func GetFirstMissingBlockInRange(db *gorm.DB, start, end int64, chainID uint) in
 	var firstMissingBlock int64
 	err := db.Raw(`SELECT s.i AS missing_blocks
 						FROM generate_series($1::int,$2::int) s(i)
-						WHERE NOT EXISTS (SELECT 1 FROM blocks WHERE height = s.i AND blockchain_id = $3::int)
+						WHERE NOT EXISTS (SELECT 1 FROM blocks WHERE height = s.i AND blockchain_id = $3::int AND indexed = true)
 						ORDER BY s.i ASC LIMIT 1;`, start, end, chainID).Row().Scan(&firstMissingBlock)
 	if err != nil {
 		config.Log.Fatalf("Unable to find start block. Err: %v", err)
@@ -99,7 +99,7 @@ func GetDBChainID(db *gorm.DB, chain Chain) (uint, error) {
 func GetHighestIndexedBlock(db *gorm.DB, chainID uint) Block {
 	var block Block
 	// this can potentially be optimized by getting max first and selecting it (this gets translated into a select * limit 1)
-	db.Table("blocks").Where("blockchain_id = ?::int", chainID).Order("height desc").First(&block)
+	db.Table("blocks").Where("blockchain_id = ?::int AND indexed = true", chainID).Order("height desc").First(&block)
 	return block
 }
 
