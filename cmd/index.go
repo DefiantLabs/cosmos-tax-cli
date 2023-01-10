@@ -344,6 +344,7 @@ func (idxr *Indexer) GetIndexerStartingHeight(chainID uint) int64 {
 
 func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler core.FailedBlockHandler, rewardsDataChan chan []*osmosis.Rewards) {
 	defer wg.Done()
+	defer close(rewardsDataChan)
 
 	startHeight := idxr.cfg.Base.RewardStartBlock
 	if startHeight == -1 {
@@ -481,6 +482,12 @@ func (idxr *Indexer) doDBUpdates(wg *sync.WaitGroup, txDataChan chan *dbData, re
 	defer wg.Done()
 
 	for {
+		// break out of loop once both channels are fully consumed
+		if rewardsDataChan == nil && txDataChan == nil {
+			config.Log.Info("DB updates complete")
+			break
+		}
+
 		select {
 		// read rewards from the reward chan
 		case rewardData, ok := <-rewardsDataChan:
@@ -523,10 +530,6 @@ func (idxr *Indexer) doDBUpdates(wg *sync.WaitGroup, txDataChan chan *dbData, re
 					timeStart = time.Now()
 				}
 			}
-		}
-		if rewardsDataChan == nil && txDataChan == nil {
-			config.Log.Info("DB updates complete")
-			break
 		}
 	}
 }
