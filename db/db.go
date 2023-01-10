@@ -61,6 +61,12 @@ func MigrateModels(db *gorm.DB) error {
 	)
 }
 
+func GetFailedBlocks(db *gorm.DB, chainID uint) []FailedBlock {
+	var failedBlocks []FailedBlock
+	db.Table("failed_blocks").Where("blockchain_id = ?::int", chainID).Order("height asc").Scan(&failedBlocks)
+	return failedBlocks
+}
+
 func GetFirstMissingBlockInRange(db *gorm.DB, start, end int64, chainID uint) int64 {
 	// Find the highest block we have indexed so far
 	currMax := GetHighestIndexedBlock(db, chainID)
@@ -120,13 +126,19 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 	// Also, foreign key relations are struct value based so create needs to be called first to get right foreign key ID
 	return db.Transaction(func(dbTransaction *gorm.DB) error {
 		block := Block{Height: blockHeight, TimeStamp: blockTime, Chain: Chain{ChainID: chainID, Name: chainName}}
-
 		if err := dbTransaction.Where(&block.Chain).FirstOrCreate(&block.Chain).Error; err != nil {
 			config.Log.Error("Error getting/creating chain DB object.", err)
 			return err
 		}
+		block.BlockchainID = block.Chain.ID
 
-		// block.BlockchainID = block.Chain.ID
+		// remove from failed blocks if exists
+		if err := dbTransaction.
+			Exec("DELETE FROM failed_blocks WHERE height = ? AND blockchain_id = ?", block.Height, block.BlockchainID).
+			Error; err != nil {
+			config.Log.Error("Error updating failed block.", err)
+			return err
+		}
 
 		if err := dbTransaction.
 			Where(Block{Height: block.Height, BlockchainID: block.BlockchainID}).
@@ -139,7 +151,9 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 			fees := []Fee{}
 			for _, fee := range transaction.Tx.Fees {
 				if fee.PayerAddress.Address != "" {
-					if err := dbTransaction.Where(&fee.PayerAddress).FirstOrCreate(&fee.PayerAddress).Error; err != nil {
+					if err := dbTransaction.Where(Address{Address: fee.PayerAddress.Address}).
+						FirstOrCreate(&fee.PayerAddress).
+						Error; err != nil {
 						config.Log.Error("Error getting/creating fee payer address.", err)
 						return err
 					}
@@ -155,15 +169,13 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 				}
 
 				fees = append(fees, fee)
-				// if err := dbTransaction.Where(&fee).FirstOrCreate(&fee).Error; err != nil {
-				// 	fmt.Printf("Error %s creating TaxableTransaction fee.\n", err)
-				// 	return err
-				// }
 			}
 
 			if transaction.SignerAddress.Address != "" {
 				// viewing gorm logs shows this gets translated into a single ON CONFLICT DO NOTHING RETURNING "id"
-				if err := dbTransaction.Where(&transaction.SignerAddress).FirstOrCreate(&transaction.SignerAddress).Error; err != nil {
+				if err := dbTransaction.Where(Address{Address: transaction.SignerAddress.Address}).
+					FirstOrCreate(&transaction.SignerAddress).
+					Error; err != nil {
 					config.Log.Error("Error getting/creating signer address for tx.", err)
 					return err
 				}
@@ -178,7 +190,6 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 
 			transaction.Tx.Block = block
 			transaction.Tx.Fees = fees
-
 			if err := dbTransaction.Where(&transaction.Tx).FirstOrCreate(&transaction.Tx).Error; err != nil {
 				config.Log.Error("Error creating tx.", err)
 				return err

@@ -210,8 +210,29 @@ func (idxr *Indexer) enqueueBlocksToProcessByMsgType(blockChan chan int64, chain
 	}
 }
 
+func (idxr *Indexer) enqueueFailedBlocks(blockChan chan int64, chainID uint) {
+	// Get all failed blocks
+	failedBlocks := dbTypes.GetFailedBlocks(idxr.db, chainID)
+	if len(failedBlocks) == 0 {
+		return
+	}
+	for _, block := range failedBlocks {
+		if idxr.cfg.Base.Throttling != 0 {
+			time.Sleep(time.Second * time.Duration(idxr.cfg.Base.Throttling))
+		}
+		config.Log.Infof("Will re-attempt failed block: %v", block.Height)
+		blockChan <- block.Height
+	}
+	config.Log.Info("All failed blocks have been re-enqueued for processing")
+}
+
 // enqueueBlocksToProcess will pass the blocks that need to be processed to the blockchannel
 func (idxr *Indexer) enqueueBlocksToProcess(blockChan chan int64, chainID uint) {
+	// Unless explicitly prevented, lets attempt to enqueue any failed blocks
+	if !idxr.cfg.Base.PreventReattempts {
+		idxr.enqueueFailedBlocks(blockChan, chainID)
+	}
+
 	// Start at the last indexed block height (or the block height in the config, if set)
 	currBlock := idxr.GetIndexerStartingHeight(chainID)
 	// Don't index past this block no matter what
