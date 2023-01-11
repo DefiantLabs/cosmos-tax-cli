@@ -24,6 +24,10 @@ var coinReplacementMap = map[string]string{}
 var coinScalingMap = map[string]int{}
 var coinMaxDigitsMap = map[string]int{}
 
+func (p *Parser) TimeLayout() string {
+	return TimeLayout
+}
+
 func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransaction) error {
 	// Build a map, so we know which TX go with which messages
 	txMap := parsers.MakeTXMap(taxableTxs)

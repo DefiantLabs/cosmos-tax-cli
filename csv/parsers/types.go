@@ -12,6 +12,7 @@ type Parser interface {
 	ProcessTaxableEvent(taxableEvents []db.TaxableEvent) error
 	GetHeaders() []string
 	GetRows(address string, startDate, endDate *time.Time) []CsvRow
+	TimeLayout() string
 }
 
 type ParsingGroup interface {

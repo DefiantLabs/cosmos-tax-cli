@@ -17,6 +17,10 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/gamm"
 )
 
+func (p *Parser) TimeLayout() string {
+	return TimeLayout
+}
+
 func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransaction) error {
 	// Build a map, so we know which TX go with which messages
 	txMap := parsers.MakeTXMap(taxableTxs)

@@ -30,7 +30,8 @@ type Tag int
 
 const (
 	// send transactions
-	Gift Tag = iota
+	None Tag = iota
+	Gift
 	Lost
 	Donation
 
@@ -45,5 +46,5 @@ const (
 )
 
 func (at Tag) String() string {
-	return [...]string{"gift", "lost", "donation", "fork", "airdrop", "mined", "payment", "staked"}[at]
+	return [...]string{"", "gift", "lost", "donation", "fork", "airdrop", "mined", "payment", "staked"}[at]
 }
