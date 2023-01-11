@@ -9,6 +9,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/accointing"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/cointracker"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/koinly"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/taxbit"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
 
 	"gorm.io/gorm"
@@ -31,6 +32,9 @@ func GetParser(parserKey string) parsers.Parser {
 		return &parser
 	case cointracker.ParserKey:
 		parser := cointracker.Parser{}
+		return &parser
+	case taxbit.ParserKey:
+		parser := taxbit.Parser{}
 		return &parser
 	}
 	return nil
