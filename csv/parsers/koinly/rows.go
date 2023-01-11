@@ -30,7 +30,6 @@ func (row Row) GetDate() string {
 
 // EventParseBasic handles the deposit os osmos rewards
 func (row *Row) EventParseBasic(event db.TaxableEvent) error {
-	// row.OperationID = ??? TODO - maybe use the block hash or something. This isn't a TX so there is no TX hash. Have to test Accointing response to using block hash.
 	row.Date = event.Block.TimeStamp.Format(TimeLayout)
 
 	conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.Amount), event.Denomination)

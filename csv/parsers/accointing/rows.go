@@ -28,8 +28,6 @@ func (row Row) GetDate() string {
 }
 
 func (row *Row) EventParseBasic(event db.TaxableEvent) error {
-	// row.OperationID = ??? TODO - maybe use the block hash or something. This isn't a TX so there is no TX hash. Have to test Accointing response to using block hash.
-
 	conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.Amount), event.Denomination)
 	if err == nil {
 		row.InBuyAmount = conversionAmount.Text('f', -1)

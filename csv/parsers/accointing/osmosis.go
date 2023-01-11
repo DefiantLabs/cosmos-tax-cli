@@ -13,7 +13,6 @@ import (
 )
 
 func ParseGroup(sf *parsers.WrapperLpTxGroup) error {
-	// TODO: Do specialized processing on LP messages
 	cbClient := coinbasepro.NewClient()
 	for _, txMessages := range sf.GroupedTxes {
 		for _, message := range txMessages {
