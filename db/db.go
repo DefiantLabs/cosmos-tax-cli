@@ -3,6 +3,7 @@ package db
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
@@ -82,7 +83,10 @@ func GetFirstMissingBlockInRange(db *gorm.DB, start, end int64, chainID uint) in
 						WHERE NOT EXISTS (SELECT 1 FROM blocks WHERE height = s.i AND blockchain_id = $3::int AND indexed = true)
 						ORDER BY s.i ASC LIMIT 1;`, start, end, chainID).Row().Scan(&firstMissingBlock)
 	if err != nil {
-		config.Log.Fatalf("Unable to find start block. Err: %v", err)
+		if !strings.Contains(err.Error(), "no rows in result set") {
+			config.Log.Fatalf("Unable to find start block. Err: %v", err)
+		}
+		firstMissingBlock = start
 	}
 
 	return firstMissingBlock
