@@ -7,7 +7,7 @@ const (
 	ParserKey = "accointing"
 
 	// timeLayout is the golang time format string for this parser
-	timeLayout = "01/02/2006 15:04:05"
+	TimeLayout = "01/02/2006 15:04:05"
 )
 
 type Parser struct {

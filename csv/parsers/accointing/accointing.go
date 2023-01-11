@@ -42,7 +42,7 @@ func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransac
 
 	// Parse all the TXs found in the Parsing Groups
 	for _, txParsingGroup := range p.ParsingGroups {
-		err := txParsingGroup.ParseGroup()
+		err := txParsingGroup.ParseGroup(ParseGroup)
 		if err != nil {
 			return err
 		}
@@ -72,7 +72,7 @@ func (p *Parser) ProcessTaxableEvent(taxableEvents []db.TaxableEvent) error {
 }
 
 func (p *Parser) InitializeParsingGroups() {
-	p.ParsingGroups = append(p.ParsingGroups, GetOsmosisTxParsingGroups()...)
+	p.ParsingGroups = append(p.ParsingGroups, parsers.GetOsmosisTxParsingGroups()...)
 }
 
 func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parsers.CsvRow {
@@ -86,12 +86,12 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parser
 
 	// Sort by date
 	sort.Slice(accointingRows, func(i int, j int) bool {
-		leftDate, err := time.Parse(timeLayout, accointingRows[i].Date)
+		leftDate, err := time.Parse(TimeLayout, accointingRows[i].Date)
 		if err != nil {
 			config.Log.Error("Error sorting left date.", err)
 			return false
 		}
-		rightDate, err := time.Parse(timeLayout, accointingRows[j].Date)
+		rightDate, err := time.Parse(TimeLayout, accointingRows[j].Date)
 		if err != nil {
 			config.Log.Error("Error sorting right date.", err)
 			return false
@@ -104,7 +104,7 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parser
 	var lastToKeep *int
 	for i := range accointingRows {
 		if startDate != nil && firstToKeep == nil {
-			rowDate, err := time.Parse(timeLayout, accointingRows[i].Date)
+			rowDate, err := time.Parse(TimeLayout, accointingRows[i].Date)
 			if err != nil {
 				config.Log.Fatal("Error parsing row date.", err)
 			}
@@ -115,7 +115,7 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parser
 				firstToKeep = &startIdx
 			}
 		} else if endDate != nil && lastToKeep == nil {
-			rowDate, err := time.Parse(timeLayout, accointingRows[i].Date)
+			rowDate, err := time.Parse(TimeLayout, accointingRows[i].Date)
 			if err != nil {
 				config.Log.Fatal("Error parsing row date.", err)
 			}

@@ -50,7 +50,7 @@ func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransac
 
 	// Parse all the TXs found in the Parsing Groups
 	for _, txParsingGroup := range p.ParsingGroups {
-		err := txParsingGroup.ParseGroup()
+		err := txParsingGroup.ParseGroup(ParseGroup)
 		if err != nil {
 			return err
 		}
@@ -80,7 +80,7 @@ func (p *Parser) ProcessTaxableEvent(taxableEvents []db.TaxableEvent) error {
 }
 
 func (p *Parser) InitializeParsingGroups() {
-	p.ParsingGroups = append(p.ParsingGroups, GetOsmosisTxParsingGroups()...)
+	p.ParsingGroups = append(p.ParsingGroups, parsers.GetOsmosisTxParsingGroups()...)
 }
 
 func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parsers.CsvRow {

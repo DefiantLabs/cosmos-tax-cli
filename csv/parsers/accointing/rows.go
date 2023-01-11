@@ -39,7 +39,7 @@ func (row *Row) EventParseBasic(event db.TaxableEvent) error {
 		row.InBuyAsset = event.Denomination.Base
 	}
 	row.TransactionType = Deposit
-	row.Date = event.Block.TimeStamp.Format(timeLayout)
+	row.Date = event.Block.TimeStamp.Format(TimeLayout)
 	row.Classification = LiquidityPool
 
 	return nil
@@ -47,7 +47,7 @@ func (row *Row) EventParseBasic(event db.TaxableEvent) error {
 
 // ParseBasic: Handles the fields that are shared between most types.
 func (row *Row) ParseBasic(address string, event db.TaxableTransaction) error {
-	row.Date = event.Message.Tx.Block.TimeStamp.Format(timeLayout)
+	row.Date = event.Message.Tx.Block.TimeStamp.Format(TimeLayout)
 	row.OperationID = event.Message.Tx.Hash
 
 	// deposit
@@ -73,7 +73,7 @@ func (row *Row) ParseBasic(address string, event db.TaxableTransaction) error {
 }
 
 func (row *Row) ParseSwap(event db.TaxableTransaction) error {
-	row.Date = event.Message.Tx.Block.TimeStamp.Format(timeLayout)
+	row.Date = event.Message.Tx.Block.TimeStamp.Format(TimeLayout)
 	row.OperationID = event.Message.Tx.Hash
 	row.TransactionType = Order
 
@@ -97,7 +97,7 @@ func (row *Row) ParseSwap(event db.TaxableTransaction) error {
 }
 
 func (row *Row) ParseFee(tx db.Tx, fee db.Fee) error {
-	row.Date = tx.Block.TimeStamp.Format(timeLayout)
+	row.Date = tx.Block.TimeStamp.Format(TimeLayout)
 	row.OperationID = tx.Hash
 	row.TransactionType = Withdraw
 	row.Classification = Fee
