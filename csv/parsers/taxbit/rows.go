@@ -57,7 +57,7 @@ func (row *Row) ParseBasic(address string, event db.TaxableTransaction) error {
 		}
 		row.ReceivedAmount = conversionAmount.Text('f', -1)
 		row.ReceivedCurrency = conversionSymbol
-		// row.Label = Income
+		row.TransactionType = Sale
 	} else if event.SenderAddress.Address == address { // withdrawal
 		conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountSent), event.DenominationSent)
 		if err != nil {
@@ -65,8 +65,11 @@ func (row *Row) ParseBasic(address string, event db.TaxableTransaction) error {
 		}
 		row.SentAmount = conversionAmount.Text('f', -1)
 		row.SentCurrency = conversionSymbol
-		// row.Label = Cost
+		row.TransactionType = Buy
 	}
+
+	// TODO: Once we support indexing across multiple chains, we can look if the transaction is from one of the user's
+	// wallets to another one of their wallets, if this is the case this is a "Transfer" "In" or "Out".
 
 	return nil
 }
@@ -74,7 +77,7 @@ func (row *Row) ParseBasic(address string, event db.TaxableTransaction) error {
 func (row *Row) ParseSwap(event db.TaxableTransaction) error {
 	row.Date = event.Message.Tx.Block.TimeStamp.Format(TimeLayout)
 	row.TxHash = event.Message.Tx.Hash
-	// row.Label = Swap
+	row.TransactionType = Trade
 
 	recievedConversionAmount, recievedConversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountReceived), event.DenominationReceived)
 	if err != nil {
@@ -98,7 +101,7 @@ func (row *Row) ParseSwap(event db.TaxableTransaction) error {
 func (row *Row) ParseFee(tx db.Tx, fee db.Fee) error {
 	row.Date = tx.Block.TimeStamp.Format(TimeLayout)
 	row.TxHash = tx.Hash
-	// row.Label = Cost
+	row.TransactionType = Expense
 
 	sentConversionAmount, sentConversionSymbol, err := db.ConvertUnits(util.FromNumeric(fee.Amount), fee.Denomination)
 	if err != nil {

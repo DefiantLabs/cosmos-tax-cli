@@ -16,7 +16,7 @@ import (
 )
 
 // Register new parsers by adding them to this list
-var supportedParsers = []string{accointing.ParserKey, koinly.ParserKey, cointracker.ParserKey}
+var supportedParsers = []string{accointing.ParserKey, koinly.ParserKey, cointracker.ParserKey, taxbit.ParserKey}
 
 func init() {
 	parsers.RegisterParsers(supportedParsers)
