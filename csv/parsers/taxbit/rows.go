@@ -8,6 +8,13 @@ import (
 )
 
 func (row Row) GetRowForCsv() []string {
+	// Add source and dest as needed
+	if row.SentCurrency != "" {
+		row.SendingSource = "Hardware Wallet"
+	}
+	if row.ReceivedCurrency != "" {
+		row.ReceivingDestination = "Hardware Wallet"
+	}
 	return []string{
 		row.Date,
 		row.TransactionType.String(),
