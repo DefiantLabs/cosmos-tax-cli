@@ -10,10 +10,10 @@ import (
 func (row Row) GetRowForCsv() []string {
 	// Add source and dest as needed
 	if row.SentCurrency != "" {
-		row.SendingSource = "Hardware Wallet"
+		row.SendingSource = fmt.Sprintf("%s Wallet", row.SentCurrency)
 	}
 	if row.ReceivedCurrency != "" {
-		row.ReceivingDestination = "Hardware Wallet"
+		row.ReceivingDestination = fmt.Sprintf("%s Wallet", row.ReceivedCurrency)
 	}
 	return []string{
 		row.Date,
