@@ -12,6 +12,7 @@ type Block struct {
 	Height       int64 `gorm:"uniqueIndex:chainheight"`
 	BlockchainID uint  `gorm:"uniqueIndex:chainheight"`
 	Chain        Chain `gorm:"foreignKey:BlockchainID"`
+	Indexed      bool
 }
 
 type FailedBlock struct {
@@ -62,9 +63,9 @@ type MessageType struct {
 
 type Message struct {
 	ID            uint
-	TxID          uint
+	TxID          uint `gorm:"index:idx_txid_typeid"`
 	Tx            Tx
-	MessageTypeID uint `gorm:"foreignKey:MessageTypeID"`
+	MessageTypeID uint `gorm:"foreignKey:MessageTypeID,index:idx_txid_typeid"`
 	MessageType   MessageType
 	MessageIndex  int
 }

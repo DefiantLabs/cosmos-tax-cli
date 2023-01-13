@@ -39,24 +39,29 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.cosmos-tax-cli-private/config.yaml)")
 
 	// Log
-	rootCmd.PersistentFlags().StringVar(&conf.Log.Level, "log.level", "debug", "log level")
+	rootCmd.PersistentFlags().StringVar(&conf.Log.Level, "log.level", "info", "log level")
 	rootCmd.PersistentFlags().BoolVar(&conf.Log.Pretty, "log.pretty", false, "pretty logs")
 	rootCmd.PersistentFlags().StringVar(&conf.Log.Path, "log.path", "", "log path (default is $HOME/.cosmos-tax-cli-private/logs.txt")
 
 	// Base
-	rootCmd.PersistentFlags().Int64Var(&conf.Base.StartBlock, "base.startBlock", 0, "block to start indexing at")
-	rootCmd.PersistentFlags().Int64Var(&conf.Base.EndBlock, "base.endBlock", -1, "block to stop indexing at (use -1 to index indefinitely")
-	rootCmd.PersistentFlags().StringVar(&conf.Base.API, "base.api", "", "node api endpoint")
+	// chain indexing
 	rootCmd.PersistentFlags().BoolVar(&conf.Base.IndexingEnabled, "base.index", true, "enable indexing?")
+	rootCmd.PersistentFlags().Int64Var(&conf.Base.StartBlock, "base.startBlock", 0, "block to start indexing at (use -1 to resume from highest block indexed)")
+	rootCmd.PersistentFlags().Int64Var(&conf.Base.EndBlock, "base.endBlock", -1, "block to stop indexing at (use -1 to index indefinitely")
+	// reward indexing
+	rootCmd.PersistentFlags().BoolVar(&conf.Base.RewardIndexingEnabled, "base.indexRewards", true, "enable osmosis reward indexing?")
+	rootCmd.PersistentFlags().Int64Var(&conf.Base.RewardStartBlock, "base.rewardStartBlock", 0, "block to start indexing rewards at")
+	rootCmd.PersistentFlags().Int64Var(&conf.Base.RewardEndBlock, "base.rewardEndBlock", 0, "block to stop indexing rewards at (use -1 to index indefinitely")
+	// other base setting
+	rootCmd.PersistentFlags().BoolVar(&conf.Base.Dry, "base.dry", false, "index the chain but don't insert data in the DB.")
+	rootCmd.PersistentFlags().StringVar(&conf.Base.API, "base.api", "", "node api endpoint")
 	rootCmd.PersistentFlags().Float64Var(&conf.Base.Throttling, "base.throttling", 0.5, "throttle delay")
 	rootCmd.PersistentFlags().Int64Var(&conf.Base.RPCWorkers, "base.rpcworkers", 1, "rpc workers")
 	rootCmd.PersistentFlags().BoolVar(&conf.Base.WaitForChain, "base.waitforchain", false, "wait for chain to be in sync?")
 
 	// Lens
 	rootCmd.PersistentFlags().StringVar(&conf.Lens.RPC, "lens.rpc", "", "node rpc endpoint")
-	rootCmd.PersistentFlags().StringVar(&conf.Lens.Key, "lens.key", "default", "lens key")
 	rootCmd.PersistentFlags().StringVar(&conf.Lens.AccountPrefix, "lens.accountPrefix", "", "lens account prefix")
-	rootCmd.PersistentFlags().StringVar(&conf.Lens.KeyringBackend, "lens.keyringBackend", "", "lens keyring backend")
 	rootCmd.PersistentFlags().StringVar(&conf.Lens.ChainID, "lens.chainID", "", "lens chain ID")
 	rootCmd.PersistentFlags().StringVar(&conf.Lens.ChainName, "lens.chainName", "", "lens chain name")
 
@@ -129,7 +134,7 @@ func initConfig() {
 //   - Loads the application config from config.tml, cli args and parses/merges
 //   - Connects to the database and returns the db object
 //   - Returns various values used throughout the application
-func setup(cfg config.Config) (*config.Config, *gorm.DB, *gocron.Scheduler, error) {
+func setup(cfg config.Config) (*config.Config, bool, *gorm.DB, *gocron.Scheduler, error) {
 	// Logger
 	logLevel := cfg.Log.Level
 	logPath := cfg.Log.Path
@@ -158,11 +163,11 @@ func setup(cfg config.Config) (*config.Config, *gorm.DB, *gocron.Scheduler, erro
 	err = dbTypes.MigrateModels(db)
 	if err != nil {
 		config.Log.Error("Error running DB migrations", err)
-		return nil, nil, nil, err
+		return nil, false, nil, nil, err
 	}
 
 	// We should stop relying on the denom cache now that we are running this as a CLI tool only
 	dbTypes.CacheDenoms(db)
 
-	return &cfg, db, scheduler, nil
+	return &cfg, cfg.Base.Dry, db, scheduler, nil
 }

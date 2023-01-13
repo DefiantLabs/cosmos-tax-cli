@@ -44,6 +44,20 @@ func (conf *Config) Validate() error {
 	if conf.Base.EndBlock == 0 {
 		return errors.New("base endblock must be set")
 	}
+	// If rewards indexes are not valid, error
+	if conf.Base.RewardStartBlock < 0 {
+		return errors.New("rewards startblock must be valid")
+	}
+	if conf.Base.RewardEndBlock < -1 {
+		return errors.New("rewards endblock must be valid")
+	}
+	// If rewards indexs are not set, use base start/end
+	if conf.Base.RewardStartBlock == 0 {
+		conf.Base.RewardStartBlock = conf.Base.StartBlock
+	}
+	if conf.Base.RewardEndBlock == 0 {
+		conf.Base.RewardEndBlock = conf.Base.EndBlock
+	}
 	// Throttling can safely default to 0
 	// BlockTimer can safely default to 0
 	// WaitForChain can safely default to false
@@ -59,14 +73,8 @@ func (conf *Config) Validate() error {
 	if util.StrNotSet(conf.Lens.RPC) {
 		return errors.New("lens rpc must be set")
 	}
-	if util.StrNotSet(conf.Lens.Key) {
-		return errors.New("lens key must be set")
-	}
 	if util.StrNotSet(conf.Lens.AccountPrefix) {
 		return errors.New("lens accountPrefix must be set")
-	}
-	if util.StrNotSet(conf.Lens.KeyringBackend) {
-		return errors.New("lens keyringBackend must be set")
 	}
 	if util.StrNotSet(conf.Lens.ChainID) {
 		return errors.New("lens chainID must be set")
@@ -110,13 +118,10 @@ type database struct {
 }
 
 type lens struct {
-	Homepath       string
-	RPC            string
-	Key            string
-	AccountPrefix  string
-	KeyringBackend string
-	ChainID        string
-	ChainName      string
+	RPC           string
+	AccountPrefix string
+	ChainID       string
+	ChainName     string
 }
 
 type api struct {
@@ -124,19 +129,24 @@ type api struct {
 }
 
 type base struct {
-	API                string
-	StartBlock         int64
-	EndBlock           int64
-	Throttling         float64
-	RPCWorkers         int64
-	BlockTimer         int64
-	WaitForChain       bool
-	WaitForChainDelay  int64
-	IndexingEnabled    bool
-	ExitWhenCaughtUp   bool
-	OsmosisRewardsOnly bool
-	CreateCSVFile      bool
-	CSVFile            string
+	API                   string
+	StartBlock            int64
+	EndBlock              int64
+	ReIndex               bool
+	PreventReattempts     bool
+	Throttling            float64
+	RPCWorkers            int64
+	BlockTimer            int64
+	WaitForChain          bool
+	WaitForChainDelay     int64
+	IndexingEnabled       bool
+	ExitWhenCaughtUp      bool
+	RewardIndexingEnabled bool
+	Dry                   bool
+	RewardStartBlock      int64
+	RewardEndBlock        int64
+	CreateCSVFile         bool
+	CSVFile               string
 }
 
 type log struct {
