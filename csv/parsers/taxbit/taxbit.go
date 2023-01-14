@@ -287,7 +287,6 @@ func ParseEvent(event db.TaxableEvent) (rows []Row) {
 		rows = append(rows, row)
 	}
 
-	// rows = HandleFees(address, events, rows) TODO we have no fee handler for taxable EVENTS right now
 	return rows
 }
 

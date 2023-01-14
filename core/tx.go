@@ -227,10 +227,6 @@ func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]db
 
 		processedTx.SignerAddress = dbTypes.Address{Address: currTx.FeePayer().String()}
 
-		// TODO: Pass in key type (may be able to split from Type PublicKey)
-		// TODO: Signers is an array, need a many to many for the signers in the model
-		// signerAddress, err := ParseSignerAddress(currTx.AuthInfo.SignerInfos[0].PublicKey, "")
-
 		currTxDbWrappers[txIdx] = processedTx
 	}
 
