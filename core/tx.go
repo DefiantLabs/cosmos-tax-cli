@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
-	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/authz"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/bank"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/distribution"
@@ -159,7 +158,6 @@ func toEvents(msgEvents types.StringEvents) (list []txTypes.LogMessageEvent) {
 	return list
 }
 
-// TODO: get rid of some of the unnecessary types like cosmos-tax-cli-private/TxResponse.
 // All those structs were legacy and for REST API support but we no longer really need it.
 // For now I'm keeping it until we have RPC compatibility fully working and tested.
 func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]dbTypes.TxDBWrapper, time.Time, error) {
@@ -178,7 +176,7 @@ func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]db
 
 		// Get the Messages and Message Logs
 		for msgIdx := range currTx.Body.Messages {
-			currMsg := currTx.Body.Messages[msgIdx].GetCachedValue() // FIXME: understand why we use this....
+			currMsg := currTx.Body.Messages[msgIdx].GetCachedValue()
 			if currMsg != nil {
 				msg := currMsg.(types.Msg)
 				currMessages = append(currMessages, msg)
@@ -314,8 +312,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 				currMessage.MessageType = currMessageType
 				currMessageDBWrapper.Message = currMessage
 
-				// TODO: ParseRelevantData may need the logs to get the relevant information, unless we forever do that on the ParseCosmosMessageJSON side
-				var relevantData []parsingTypes.MessageRelevantInformation = cosmosMessage.ParseRelevantData()
+				var relevantData = cosmosMessage.ParseRelevantData()
 
 				if len(relevantData) > 0 {
 					var taxableTxs = make([]dbTypes.TaxableTxDBWrapper, len(relevantData))

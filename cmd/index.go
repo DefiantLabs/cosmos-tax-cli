@@ -407,7 +407,6 @@ func (idxr *Indexer) queryRPC(blockChan chan int64, dbDataChan chan *dbData, fai
 		for processBlock(idxr.cl, idxr.db, failedBlockHandler, dbDataChan, blockToProcess) != nil && attemptCount < maxAttempts {
 			attemptCount++
 			if attemptCount == maxAttempts {
-				// TODO: When we work on resume functionality, we need to build in a way to clear blocks out of the failure table when they succeed
 				config.Log.Error(fmt.Sprintf("Failed to process block %v after %v attempts. Will add to failed blocks table", blockToProcess, maxAttempts))
 				err := dbTypes.UpsertFailedBlock(idxr.db, blockToProcess, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
 				if err != nil {

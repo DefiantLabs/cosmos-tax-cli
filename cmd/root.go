@@ -20,8 +20,7 @@ var (
 	cfgFile string        // config file location to load
 	conf    config.Config // stores the unmarshaled config loaded from Viper, available to all commands in the cmd package
 	rootCmd = &cobra.Command{
-		Use: "cosmos-tax-cli-private",
-		// TODO: Get user-friendly descriptions approved
+		Use:   "cosmos-tax-cli-private",
 		Short: "A CLI tool for indexing and querying on-chain data",
 		Long: `Cosmos Tax CLI is a CLI tool for indexing and querying Cosmos-based blockchains,
 		with a heavy focus on taxable events.`,
@@ -127,7 +126,6 @@ func initConfig() {
 	}
 }
 
-// TODO: Refactor all of this code. Move to config folder, make it work for multiple chains.
 // Separate the DB logic, scheduler logic, and blockchain logic into different functions.
 //
 // setup does pre-run setup configurations.
