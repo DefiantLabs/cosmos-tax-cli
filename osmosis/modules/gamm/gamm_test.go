@@ -7,8 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TODO: Write test to assert that osmosis rewards (aka taxable events) are tagged as deposits and classified as 'liquidity_pool'
-
 func TestGammCalc(t *testing.T) {
 	bignum := big.NewInt(int64(100))
 	nthGamms, remainderGamms := calcNthGams(bignum, 3)

@@ -80,7 +80,6 @@ func dbSetup(addressRegex string, addressPrefix string) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	// TODO: create config values for the prefixes here
 	// Could potentially check Node info at startup and pass in ourselves?
 	core.SetupAddressRegex(addressRegex)
 	core.SetupAddressPrefix(addressPrefix)

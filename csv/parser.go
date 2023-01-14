@@ -48,7 +48,6 @@ func ParseForAddress(addresses []string, startDate, endDate *time.Time, pgSQL *g
 	var headers []string
 	var csvRows []parsers.CsvRow
 	for _, address := range addresses {
-		// TODO: need to pass in chain and date range
 		taxableTxs, err := db.GetTaxableTransactions(address, pgSQL)
 		if err != nil {
 			config.Log.Error("Error getting taxable transaction.", err)

@@ -92,7 +92,6 @@ func IndexOsmoRewards(db *gorm.DB, dryRun bool, chainID string, chainName string
 				Amount:       util.ToNumeric(coin.Amount.BigInt()),
 				EventHash:    fmt.Sprintf("%x", hash.Sum(nil)),
 				Denomination: denom,
-				// FIXME: will this block have the correct time if it hasn't been indexed yet?
 				Block:        Block{Height: curr.EpochBlockHeight, Chain: Chain{ChainID: chainID, Name: chainName}},
 				EventAddress: Address{Address: curr.Address},
 			}

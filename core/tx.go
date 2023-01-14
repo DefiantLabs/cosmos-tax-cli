@@ -278,7 +278,6 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 
 	// non-zero code means the Tx was unsuccessful. We will still need to account for fees in both cases though.
 	if code == 0 {
-		// TODO: Pull this out into its own function for easier reading
 		for messageIndex, message := range tx.Tx.Body.Messages {
 			var currMessage dbTypes.Message
 			var currMessageType dbTypes.MessageType
@@ -393,7 +392,6 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 
 // ProcessFees returns a comma delimited list of fee amount/denoms
 func ProcessFees(db *gorm.DB, authInfo cosmosTx.AuthInfo, signers []types.AccAddress) ([]dbTypes.Fee, error) {
-	// TODO handle granter? Almost nobody uses it.
 	feeCoins := authInfo.Fee.Amount
 	payer := authInfo.Fee.GetPayer()
 	fees := []dbTypes.Fee{}

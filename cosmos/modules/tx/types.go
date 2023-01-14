@@ -12,7 +12,6 @@ type GetTxsEventResponseWrapper struct {
 	Height                    int64
 }
 
-// TODO: Clean up types
 type GetBlockByHeightResponse struct {
 	BlockID BlockID       `json:"block_id"`
 	Block   BlockResponse `json:"block"`
@@ -44,7 +43,7 @@ type GetTxByBlockHeightResponse struct {
 type IndexerTx struct {
 	Body     Body `json:"body"`
 	AuthInfo cosmTx.AuthInfo
-	Signers  []sdk.AccAddress // TODO: We may be able to use this in place of signer info under auth info... not 100% sure
+	Signers  []sdk.AccAddress
 }
 
 type Response struct {

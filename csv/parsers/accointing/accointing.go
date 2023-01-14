@@ -197,7 +197,6 @@ func ParseEvent(event db.TaxableEvent) (rows []Row) {
 	if event.Source == db.OsmosisRewardDistribution {
 		row, err := ParseOsmosisReward(event)
 		if err != nil {
-			// TODO: handle error parsing row. Should be impossible to reach this condition, ideally (once all bugs worked out)
 			config.Log.Fatal("error parsing row. Should be impossible to reach this condition, ideally (once all bugs worked out)", err)
 		}
 		rows = append(rows, row)
