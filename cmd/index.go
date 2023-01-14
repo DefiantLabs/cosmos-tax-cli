@@ -52,7 +52,6 @@ type Indexer struct {
 func setupIndexer() *Indexer {
 	var idxr Indexer
 	var err error
-	// TODO: split out setup methods and only call necessary ones
 	idxr.cfg, idxr.dryRun, idxr.db, idxr.scheduler, err = setup(conf)
 	if err != nil {
 		log.Fatalf("Error during application setup. Err: %v", err)
@@ -64,13 +63,14 @@ func setupIndexer() *Indexer {
 	core.ChainSpecificMessageTypeHandlerBootstrap(idxr.cfg.Lens.ChainID)
 	config.SetChainConfig(idxr.cfg.Lens.AccountPrefix)
 
-	// TODO may need to run this task in setup() so that we have a cold start functionality before the indexer starts
-	_, err = idxr.scheduler.Every(6).Hours().Do(tasks.DenomUpsertTask, idxr.cfg.Base.API, idxr.db)
-	if err != nil {
-		config.Log.Error("Error scheduling denmon upsert task. Err: ", err)
+	// Setup scheduler to periodically update denoms
+	if idxr.cfg.Base.API != "" {
+		_, err = idxr.scheduler.Every(6).Hours().Do(tasks.DenomUpsertTask, idxr.cfg.Base.API, idxr.db)
+		if err != nil {
+			config.Log.Error("Error scheduling denom upsert task. Err: ", err)
+		}
+		idxr.scheduler.StartAsync()
 	}
-
-	idxr.scheduler.StartAsync()
 
 	// Some chains do not have the denom metadata URL available on chain, so we do chain specific downloads instead.
 	tasks.DoChainSpecificUpsertDenoms(idxr.db, idxr.cfg.Lens.ChainID)
@@ -264,7 +264,6 @@ func (idxr *Indexer) enqueueBlocksToProcess(blockChan chan int64, chainID uint) 
 			}
 
 			// Throttling in case of hitting public APIs
-			// TODO: track tx/s downloaded from each RPC endpoint and implement throttling limits per endpoint.
 			if idxr.cfg.Base.Throttling != 0 {
 				time.Sleep(time.Second * time.Duration(idxr.cfg.Base.Throttling))
 			}
@@ -423,8 +422,6 @@ func processBlock(cl *client.ChainClient, dbConn *gorm.DB, failedBlockHandler fu
 	// fmt.Printf("Querying RPC transactions for block %d\n", blockToProcess)
 	newBlock := dbTypes.Block{Height: blockToProcess}
 
-	// TODO: There is currently no pagination implemented!
-	// TODO: Do something smarter than giving up when we encounter an error.
 	txsEventResp, err := rpc.GetTxsByBlockHeight(cl, newBlock.Height)
 	if err != nil {
 		config.Log.Errorf("Error getting transactions by block height (%v). Err: %v. Will reattempt", newBlock.Height, err)
