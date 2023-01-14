@@ -34,7 +34,8 @@ type Label int
 
 const (
 	// outgoing transactions
-	Gift Label = iota
+	None Label = iota
+	Gift
 	Lost
 	Cost
 	MarginFee
@@ -58,7 +59,7 @@ const (
 )
 
 func (at Label) String() string {
-	return [...]string{"gift", "lost", "cost", "margin fee", "realized gain", "stake",
+	return [...]string{"", "gift", "lost", "cost", "margin fee", "realized gain", "stake",
 		"airdrop", "fork", "mining", "reward", "income", "loan interest", "unstake",
 		"swap", "liquidity in", "liquidity out"}[at]
 }

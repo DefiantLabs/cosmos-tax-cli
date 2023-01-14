@@ -7,14 +7,16 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/accointing"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/cointracker"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/koinly"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/taxbit"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
 
 	"gorm.io/gorm"
 )
 
 // Register new parsers by adding them to this list
-var supportedParsers = []string{accointing.ParserKey, koinly.ParserKey}
+var supportedParsers = []string{accointing.ParserKey, koinly.ParserKey, cointracker.ParserKey, taxbit.ParserKey}
 
 func init() {
 	parsers.RegisterParsers(supportedParsers)
@@ -27,6 +29,12 @@ func GetParser(parserKey string) parsers.Parser {
 		return &parser
 	case koinly.ParserKey:
 		parser := koinly.Parser{}
+		return &parser
+	case cointracker.ParserKey:
+		parser := cointracker.Parser{}
+		return &parser
+	case taxbit.ParserKey:
+		parser := taxbit.Parser{}
 		return &parser
 	}
 	return nil
@@ -73,18 +81,12 @@ func ParseForAddress(addresses []string, startDate, endDate *time.Time, pgSQL *g
 	}
 	// re-sort rows if needed
 	if len(addresses) > 1 {
-		SortRows(csvRows, parserKey)
+		SortRows(csvRows, parser.TimeLayout())
 	}
 	return csvRows, headers, nil
 }
 
-// TODO: Figure out a way to make this cleaner by moving it into a function on the parse itself
-func SortRows(csvRows []parsers.CsvRow, parserKey string) {
-	// set the appropriate time format for the parser
-	timeLayout := "2006-01-02 15:04:05"
-	if parserKey == "accointing" {
-		timeLayout = "01/02/2006 15:04:05"
-	}
+func SortRows(csvRows []parsers.CsvRow, timeLayout string) {
 	// Sort by date
 	sort.Slice(csvRows, func(i int, j int) bool {
 		leftDate, err := time.Parse(timeLayout, csvRows[i].GetDate())

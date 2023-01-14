@@ -1,8 +1,7 @@
-package koinly
+package cointracker
 
 import (
 	"fmt"
-	"math"
 	"sort"
 	"strings"
 	"time"
@@ -155,33 +154,36 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parser
 	csvRows := make([]parsers.CsvRow, len(koinlyRows))
 	for i, v := range koinlyRows {
 		// Scale amounts as needed for koinly's limit of 10^15
-		var shiftedCoins []string
+		// var shiftedCoins []string
 		if _, isShifted := coinReplacementMap[v.ReceivedCurrency]; isShifted {
-			shiftedCoins = append(shiftedCoins, v.ReceivedCurrency)
+			// shiftedCoins = append(shiftedCoins, v.ReceivedCurrency)
 			updatedAmount, updatedDenom := adjustUnitsAndDenoms(v.ReceivedAmount, v.ReceivedCurrency)
 			v.ReceivedAmount = updatedAmount
 			v.ReceivedCurrency = updatedDenom
 		}
 		if _, isShifted := coinReplacementMap[v.SentCurrency]; isShifted {
-			shiftedCoins = append(shiftedCoins, v.SentCurrency)
+			// shiftedCoins = append(shiftedCoins, v.SentCurrency)
 			updatedAmount, updatedDenom := adjustUnitsAndDenoms(v.SentAmount, v.SentCurrency)
 			v.SentAmount = updatedAmount
 			v.SentCurrency = updatedDenom
 		}
-		switch len(shiftedCoins) {
-		case 1:
-			coin := shiftedCoins[0]
-			v.Description = fmt.Sprintf("%v [1 %v = %.0f %v]", v.Description,
-				coinReplacementMap[coin], math.Pow(10, float64(coinScalingMap[coin])), coin)
-		case 2:
-			coin1 := shiftedCoins[0]
-			coin2 := shiftedCoins[1]
-			v.Description = fmt.Sprintf("%v [1 %v = %.0f %v and 1 %v = %.0f %v]", v.Description,
-				coinReplacementMap[coin1], math.Pow(10, float64(coinScalingMap[coin1])), coin1,
-				coinReplacementMap[coin2], math.Pow(10, float64(coinScalingMap[coin2])), coin2)
-		}
+		/*
+			switch len(shiftedCoins) {
+			case 1:
+				coin := shiftedCoins[0]
+				v.Description = fmt.Sprintf("%v [1 %v = %.0f %v]", v.Description,
+					coinReplacementMap[coin], math.Pow(10, float64(coinScalingMap[coin])), coin)
+			case 2:
+				coin1 := shiftedCoins[0]
+				coin2 := shiftedCoins[1]
+				v.Description = fmt.Sprintf("%v [1 %v = %.0f %v and 1 %v = %.0f %v]", v.Description,
+					coinReplacementMap[coin1], math.Pow(10, float64(coinScalingMap[coin1])), coin1,
+					coinReplacementMap[coin2], math.Pow(10, float64(coinScalingMap[coin2])), coin2)
+			}
 
-		v.Description = fmt.Sprintf("Address: %s %s", address, v.Description)
+			v.Description = fmt.Sprintf("Address: %s %s", address, v.Description)
+
+		*/
 
 		csvRows[i] = v
 	}
@@ -235,8 +237,7 @@ func adjustUnitsAndDenoms(amount, unit string) (updatedAmount string, updatedUni
 }
 
 func (p Parser) GetHeaders() []string {
-	return []string{"Date", "Sent Amount", "Sent Currency", "Received Amount", "Received Currency", "Fee Amount", "Fee Currency",
-		"Net Worth Amount", "Net Worth Currency", "Label", "Description", "TxHash"}
+	return []string{"Date", "Received Quantity", "Received Currency", "Sent Quantity", "Sent Currency", "Fee Amount", "Fee Currency", "Tag"}
 }
 
 // HandleFees:
@@ -340,7 +341,7 @@ func ParseMsgWithdrawValidatorCommission(address string, event db.TaxableTransac
 	if err != nil {
 		config.Log.Fatal("Error with ParseMsgWithdrawValidatorCommission.", err)
 	}
-	row.Label = Unstake
+	// row.Label = Unstake
 	return *row
 }
 
@@ -352,7 +353,7 @@ func ParseMsgWithdrawDelegatorReward(address string, event db.TaxableTransaction
 	if err != nil {
 		config.Log.Fatal("Error with ParseMsgWithdrawDelegatorReward.", err)
 	}
-	row.Label = Unstake
+	// row.Label = Unstake
 	return *row
 }
 
