@@ -478,6 +478,8 @@ type dbData struct {
 // it will also read rewars data and index that.
 func (idxr *Indexer) doDBUpdates(wg *sync.WaitGroup, txDataChan chan *dbData, rewardsDataChan chan []*osmosis.Rewards) {
 	blocksProcessed := 0
+	dbWrites := 0
+	dbReattempts := 0
 	timeStart := time.Now()
 	defer wg.Done()
 
@@ -495,11 +497,16 @@ func (idxr *Indexer) doDBUpdates(wg *sync.WaitGroup, txDataChan chan *dbData, re
 				rewardsDataChan = nil
 				continue
 			}
-
+			dbWrites++
 			config.Log.Info(fmt.Sprintf("Found %v rewards at epoch %v, sending to DB", len(rewardData), rewardData[0].EpochBlockHeight))
 			err := dbTypes.IndexOsmoRewards(idxr.db, idxr.dryRun, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName, rewardData)
 			if err != nil {
-				config.Log.Fatal("Error storing rewards in DB.", err)
+				// Do a single reattempt on failure
+				dbReattempts++
+				err = dbTypes.IndexOsmoRewards(idxr.db, idxr.dryRun, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName, rewardData)
+				if err != nil {
+					config.Log.Fatal("Error storing rewards in DB.", err)
+				}
 			}
 
 		// read tx data from the data chan
@@ -508,14 +515,19 @@ func (idxr *Indexer) doDBUpdates(wg *sync.WaitGroup, txDataChan chan *dbData, re
 				txDataChan = nil
 				continue
 			}
-
+			dbWrites++
 			// While debugging we'll sometimes want to turn off INSERTS to the DB
 			// Note that this does not turn off certain reads or DB connections.
 			if !idxr.dryRun {
 				config.Log.Info(fmt.Sprintf("Indexing %v TXs from block %d.", len(data.txDBWrappers), data.blockHeight))
 				err := dbTypes.IndexNewBlock(idxr.db, data.blockHeight, data.blockTime, data.txDBWrappers, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
 				if err != nil {
-					config.Log.Fatal(fmt.Sprintf("Error indexing block %v.", data.blockHeight), err)
+					// Do a single reattempt on failure
+					dbReattempts++
+					err = dbTypes.IndexNewBlock(idxr.db, data.blockHeight, data.blockTime, data.txDBWrappers, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
+					if err != nil {
+						config.Log.Fatal(fmt.Sprintf("Error indexing block %v.", data.blockHeight), err)
+					}
 				}
 			} else {
 				config.Log.Info(fmt.Sprintf("Processing block %d (dry run, block data will not be stored in DB).", data.blockHeight))
@@ -528,6 +540,9 @@ func (idxr *Indexer) doDBUpdates(wg *sync.WaitGroup, txDataChan chan *dbData, re
 					totalTime := time.Since(timeStart)
 					config.Log.Info(fmt.Sprintf("Processing %d blocks took %f seconds. %d total blocks have been processed.\n", idxr.cfg.Base.BlockTimer, totalTime.Seconds(), blocksProcessed))
 					timeStart = time.Now()
+				}
+				if float64(dbReattempts)/float64(dbWrites) > .1 {
+					config.Log.Fatalf("More than 10%% of the last %v DB writes have failed.", dbWrites)
 				}
 			}
 		}
