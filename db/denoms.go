@@ -14,7 +14,6 @@ var CachedDenomUnits []DenomUnit
 var denomCacheMutex sync.Mutex
 
 func CacheDenoms(db *gorm.DB) {
-	// TODO need to load aliases as well
 	var denomUnits []DenomUnit
 	db.Preload("Denom").Find(&denomUnits)
 	denomCacheMutex.Lock()
@@ -72,7 +71,6 @@ func GetHighestDenomUnit(denomUnit DenomUnit, denomUnits []DenomUnit) (DenomUnit
 	return highestDenomUnit, nil
 }
 
-// TODO unit test this function
 func ConvertUnits(amount *big.Int, denom Denom) (*big.Float, string, error) {
 	// Try denom unit first
 	// We were originally just using GetDenomUnitForDenom, but since CachedDenoms is an array, it would sometimes

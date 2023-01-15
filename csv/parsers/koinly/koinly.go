@@ -226,7 +226,6 @@ func calculateScaling(rows []Row) {
 // adjustUnitsAndDenoms will adjust amounts and denominations in the following ways
 // - Amounts cannot be greater than 10^15
 // - Some coins are not supported and need to be replaced by "NULL{N}" where N is the index of each unique currency
-// - TODO: Make sure this is up to date
 func adjustUnitsAndDenoms(amount, unit string) (updatedAmount string, updatedUnit string) {
 	idx := len(amount) - coinScalingMap[unit]
 	updatedAmount = amount[:idx] + "." + amount[idx:]
@@ -281,13 +280,11 @@ func ParseEvent(event db.TaxableEvent) (rows []Row) {
 	if event.Source == db.OsmosisRewardDistribution {
 		row, err := ParseOsmosisReward(event)
 		if err != nil {
-			// TODO: handle error parsing row. Should be impossible to reach this condition, ideally (once all bugs worked out)
 			config.Log.Fatal("error parsing row. Should be impossible to reach this condition, ideally (once all bugs worked out)", err)
 		}
 		rows = append(rows, row)
 	}
 
-	// rows = HandleFees(address, events, rows) TODO we have no fee handler for taxable EVENTS right now
 	return rows
 }
 

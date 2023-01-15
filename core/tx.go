@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
-	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/authz"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/bank"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/distribution"
@@ -159,7 +158,6 @@ func toEvents(msgEvents types.StringEvents) (list []txTypes.LogMessageEvent) {
 	return list
 }
 
-// TODO: get rid of some of the unnecessary types like cosmos-tax-cli-private/TxResponse.
 // All those structs were legacy and for REST API support but we no longer really need it.
 // For now I'm keeping it until we have RPC compatibility fully working and tested.
 func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]dbTypes.TxDBWrapper, time.Time, error) {
@@ -178,7 +176,7 @@ func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]db
 
 		// Get the Messages and Message Logs
 		for msgIdx := range currTx.Body.Messages {
-			currMsg := currTx.Body.Messages[msgIdx].GetCachedValue() // FIXME: understand why we use this....
+			currMsg := currTx.Body.Messages[msgIdx].GetCachedValue()
 			if currMsg != nil {
 				msg := currMsg.(types.Msg)
 				currMessages = append(currMessages, msg)
@@ -229,10 +227,6 @@ func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]db
 
 		processedTx.SignerAddress = dbTypes.Address{Address: currTx.FeePayer().String()}
 
-		// TODO: Pass in key type (may be able to split from Type PublicKey)
-		// TODO: Signers is an array, need a many to many for the signers in the model
-		// signerAddress, err := ParseSignerAddress(currTx.AuthInfo.SignerInfos[0].PublicKey, "")
-
 		currTxDbWrappers[txIdx] = processedTx
 	}
 
@@ -280,7 +274,6 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 
 	// non-zero code means the Tx was unsuccessful. We will still need to account for fees in both cases though.
 	if code == 0 {
-		// TODO: Pull this out into its own function for easier reading
 		for messageIndex, message := range tx.Tx.Body.Messages {
 			var currMessage dbTypes.Message
 			var currMessageType dbTypes.MessageType
@@ -314,8 +307,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 				currMessage.MessageType = currMessageType
 				currMessageDBWrapper.Message = currMessage
 
-				// TODO: ParseRelevantData may need the logs to get the relevant information, unless we forever do that on the ParseCosmosMessageJSON side
-				var relevantData []parsingTypes.MessageRelevantInformation = cosmosMessage.ParseRelevantData()
+				var relevantData = cosmosMessage.ParseRelevantData()
 
 				if len(relevantData) > 0 {
 					var taxableTxs = make([]dbTypes.TaxableTxDBWrapper, len(relevantData))
@@ -396,7 +388,6 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 
 // ProcessFees returns a comma delimited list of fee amount/denoms
 func ProcessFees(db *gorm.DB, authInfo cosmosTx.AuthInfo, signers []types.AccAddress) ([]dbTypes.Fee, error) {
-	// TODO handle granter? Almost nobody uses it.
 	feeCoins := authInfo.Fee.Amount
 	payer := authInfo.Fee.GetPayer()
 	fees := []dbTypes.Fee{}

@@ -75,7 +75,7 @@ func (row *Row) ParseBasic(address string, event db.TaxableTransaction) error {
 		row.TransactionType = Buy
 	}
 
-	// TODO: Once we support indexing across multiple chains, we can look if the transaction is from one of the user's
+	// Once we support indexing across multiple chains, we can look if the transaction is from one of the user's
 	// wallets to another one of their wallets, if this is the case this is a "Transfer" "In" or "Out".
 
 	return nil

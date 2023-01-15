@@ -99,8 +99,6 @@ func getTestSwapTXs(t *testing.T, targetAddress db.Address, targetChain db.Chain
 	exitSwapExternAmountOut := mkMsgType(5, gamm.MsgExitSwapExternAmountOut)
 	exitPool := mkMsgType(6, gamm.MsgExitPool)
 
-	// FIXME: add fees
-
 	// create TXs
 	joinPoolTX1 := mkTx(1, "somehash1", 0, block1, randoAddress, nil)
 	joinPoolTX2 := mkTx(2, "somehash2", 0, block1, randoAddress, nil)

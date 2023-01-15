@@ -38,7 +38,6 @@ var queryCmd = &cobra.Command{
 			config.Log.Fatal(fmt.Sprintf("Invalid format %s, valid formats are %s", format, parsers))
 		}
 
-		// TODO: split out setup methods and only call necessary ones
 		cfg, _, db, _, err := setup(conf)
 		if err != nil {
 			config.Log.Fatal("Error setting up query", err)

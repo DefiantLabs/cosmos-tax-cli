@@ -131,7 +131,6 @@ func checkResponseErrorCode(requestEndpoint string, resp *http.Response) error {
 func GetDenomsMetadatas(host string) (result denoms.GetDenomsMetadatasResponse, err error) {
 	requestEndpoint := apiEndpoints["denoms_metadata"]
 
-	// TODO paginate
 	resp, err := http.Get(fmt.Sprintf("%s%s", host, requestEndpoint))
 	if err != nil {
 		return result, err
