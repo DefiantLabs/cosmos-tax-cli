@@ -89,11 +89,16 @@ func main() {
 
 	r.Use(CORSMiddleware())
 
+	r.GET("/gcphealth", Healthcheck)
 	r.POST("/events.csv", GetTaxableEventsCSV)
 	err = r.Run(fmt.Sprintf(":%v", svcPort))
 	if err != nil {
 		config.Log.Fatal("Error starting server.", err)
 	}
+}
+
+func Healthcheck(context *gin.Context) {
+	context.JSON(200, gin.H{"status": "ok"})
 }
 
 func GetClientIP(c *gin.Context) string {
