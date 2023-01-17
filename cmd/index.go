@@ -120,12 +120,14 @@ func index(cmd *cobra.Command, args []string) {
 	var txChanWaitGroup sync.WaitGroup // This group is to ensure we are done getting transactions before we close the TX channel
 	// Spin up a (configurable) number of threads to query RPC endpoints for Transactions.
 	// this is assumed to be the slowest process that allows concurrency and thus has the most dedicated go routines.
-	for i := 0; i < rpcQueryThreads; i++ {
-		txChanWaitGroup.Add(1)
-		go func() {
-			idxr.queryRPC(blockChan, txDataChan, core.HandleFailedBlock)
-			txChanWaitGroup.Done()
-		}()
+	if idxr.cfg.Base.ChainIndexingEnabled {
+		for i := 0; i < rpcQueryThreads; i++ {
+			txChanWaitGroup.Add(1)
+			go func() {
+				idxr.queryRPC(blockChan, txDataChan, core.HandleFailedBlock)
+				txChanWaitGroup.Done()
+			}()
+		}
 	}
 
 	// close the transaction chan once all transactions have been written to it
@@ -146,13 +148,13 @@ func index(cmd *cobra.Command, args []string) {
 	}
 
 	// Start a thread to index the data queried from the chain.
-	if idxr.cfg.Base.IndexingEnabled {
+	if idxr.cfg.Base.ChainIndexingEnabled || idxr.cfg.Base.RewardIndexingEnabled {
 		wg.Add(1)
 		go idxr.doDBUpdates(&wg, txDataChan, rewardsDataChan)
 	}
 
 	// Add jobs to the queue to be processed
-	if idxr.cfg.Base.IndexingEnabled {
+	if idxr.cfg.Base.ChainIndexingEnabled {
 		chain := dbTypes.Chain{
 			ChainID: idxr.cfg.Lens.ChainID,
 			Name:    idxr.cfg.Lens.ChainName,
