@@ -62,9 +62,8 @@ func (conf *Config) Validate() error {
 	// BlockTimer can safely default to 0
 	// WaitForChain can safely default to false
 	// WaitForChainDelay can safely default to 0
-	// IndexingEnabled can safely default to false
+	// ChainIndexingEnabled can safely default to false
 	// ExitWhenCaughtUp can safely default to false
-	// OsmosisRewardsOnly can safely default to false
 
 	// Log
 	// Both level and path can safely be blank
@@ -139,7 +138,7 @@ type base struct {
 	BlockTimer            int64
 	WaitForChain          bool
 	WaitForChainDelay     int64
-	IndexingEnabled       bool
+	ChainIndexingEnabled  bool
 	ExitWhenCaughtUp      bool
 	RewardIndexingEnabled bool
 	Dry                   bool

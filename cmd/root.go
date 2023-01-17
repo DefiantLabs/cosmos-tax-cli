@@ -44,7 +44,7 @@ func init() {
 
 	// Base
 	// chain indexing
-	rootCmd.PersistentFlags().BoolVar(&conf.Base.IndexingEnabled, "base.index", true, "enable indexing?")
+	rootCmd.PersistentFlags().BoolVar(&conf.Base.ChainIndexingEnabled, "base.indexChain", true, "enable chain indexing?")
 	rootCmd.PersistentFlags().Int64Var(&conf.Base.StartBlock, "base.startBlock", 0, "block to start indexing at (use -1 to resume from highest block indexed)")
 	rootCmd.PersistentFlags().Int64Var(&conf.Base.EndBlock, "base.endBlock", -1, "block to stop indexing at (use -1 to index indefinitely")
 	// reward indexing

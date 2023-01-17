@@ -146,13 +146,13 @@ func index(cmd *cobra.Command, args []string) {
 	}
 
 	// Start a thread to index the data queried from the chain.
-	if idxr.cfg.Base.IndexingEnabled {
+	if idxr.cfg.Base.ChainIndexingEnabled || idxr.cfg.Base.RewardIndexingEnabled {
 		wg.Add(1)
 		go idxr.doDBUpdates(&wg, txDataChan, rewardsDataChan)
 	}
 
 	// Add jobs to the queue to be processed
-	if idxr.cfg.Base.IndexingEnabled {
+	if idxr.cfg.Base.ChainIndexingEnabled {
 		chain := dbTypes.Chain{
 			ChainID: idxr.cfg.Lens.ChainID,
 			Name:    idxr.cfg.Lens.ChainName,
