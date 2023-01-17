@@ -47,6 +47,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&conf.Base.IndexingEnabled, "base.index", true, "enable indexing?")
 	rootCmd.PersistentFlags().Int64Var(&conf.Base.StartBlock, "base.startBlock", 0, "block to start indexing at (use -1 to resume from highest block indexed)")
 	rootCmd.PersistentFlags().Int64Var(&conf.Base.EndBlock, "base.endBlock", -1, "block to stop indexing at (use -1 to index indefinitely")
+	rootCmd.PersistentFlags().BoolVar(&conf.Base.PreventReattempts, "base.preventReattempts", false, "prevent reattempts of failed blocks.")
 	// reward indexing
 	rootCmd.PersistentFlags().BoolVar(&conf.Base.RewardIndexingEnabled, "base.indexRewards", true, "enable osmosis reward indexing?")
 	rootCmd.PersistentFlags().Int64Var(&conf.Base.RewardStartBlock, "base.rewardStartBlock", 0, "block to start indexing rewards at")

@@ -43,6 +43,50 @@ is replaced with the path to a local config file used to configure the applicati
 the config file, as well as the CLI flags which can be used to override config settings, please refer to the more
 in-depth [config](#config) section below.
 
+**CMD help text**
+```
+$ go run main.go index --help
+Indexes the Cosmos-based blockchain according to the configurations found on the command line
+        or in the specified config file. Indexes taxable events into a database for easy querying. It is
+        highly recommended to keep this command running as a background service to keep your index up to date.
+
+Usage:
+  cosmos-tax-cli-private index [flags]
+
+Flags:
+  -h, --help                           help for index
+      --re-index-message-type string   If specified, the indexer will reindex only the blocks containing the message type provided.
+
+Global Flags:
+      --base.api string             node api endpoint
+      --base.dry                    index the chain but don't insert data in the DB.
+      --base.endBlock int           block to stop indexing at (use -1 to index indefinitely (default -1)
+      --base.index                  enable indexing? (default true)
+      --base.indexRewards           enable osmosis reward indexing? (default true)
+      --base.preventReattempts      prevent reattempts of failed blocks.
+      --base.rewardEndBlock int     block to stop indexing rewards at (use -1 to index indefinitely
+      --base.rewardStartBlock int   block to start indexing rewards at
+      --base.rpcworkers int         rpc workers (default 1)
+      --base.startBlock int         block to start indexing at (use -1 to resume from highest block indexed)
+      --base.throttling float       throttle delay (default 0.5)
+      --base.waitforchain           wait for chain to be in sync?
+      --config string               config file (default is $HOME/.cosmos-tax-cli-private/config.yaml)
+      --db.database string          database name
+      --db.host string              database host
+      --db.loglevel string          database loglevel
+      --db.password string          database password
+      --db.port string              database port (default "5432")
+      --db.user string              database user
+      --lens.accountPrefix string   lens account prefix
+      --lens.chainID string         lens chain ID
+      --lens.chainName string       lens chain name
+      --lens.rpc string             node rpc endpoint
+      --log.level string            log level (default "info")
+      --log.path string             log path (default is $HOME/.cosmos-tax-cli-private/logs.txt
+      --log.pretty                  pretty logs
+
+```
+
 ### Querying
 Once the chain has been indexed, data can be queried using the `query` command. As with indexing, a config file is provided
 to configure the application. In addition, the addresses you wish to query can be provided as a comma separated list:
