@@ -3,7 +3,6 @@ package taxbit
 import (
 	"fmt"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
@@ -15,14 +14,6 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/gamm"
 )
-
-var unsupportedCoins = []string{
-	"gamm",
-}
-
-var coinReplacementMap = map[string]string{}
-var coinScalingMap = map[string]int{}
-var coinMaxDigitsMap = map[string]int{}
 
 func (p *Parser) TimeLayout() string {
 	return TimeLayout
@@ -88,21 +79,21 @@ func (p *Parser) InitializeParsingGroups() {
 
 func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parsers.CsvRow {
 	// Combine all normal rows and parser group rows into 1
-	koinlyRows := p.Rows // contains TX rows and fees as well as taxable events
+	taxbitRows := p.Rows // contains TX rows and fees as well as taxable events
 	for _, v := range p.ParsingGroups {
 		for _, row := range v.GetRowsForParsingGroup() {
-			koinlyRows = append(koinlyRows, row.(Row))
+			taxbitRows = append(taxbitRows, row.(Row))
 		}
 	}
 
 	// Sort by date
-	sort.Slice(koinlyRows, func(i int, j int) bool {
-		leftDate, err := time.Parse(TimeLayout, koinlyRows[i].Date)
+	sort.Slice(taxbitRows, func(i int, j int) bool {
+		leftDate, err := time.Parse(TimeLayout, taxbitRows[i].Date)
 		if err != nil {
 			config.Log.Error("Error sorting left date.", err)
 			return false
 		}
-		rightDate, err := time.Parse(TimeLayout, koinlyRows[j].Date)
+		rightDate, err := time.Parse(TimeLayout, taxbitRows[j].Date)
 		if err != nil {
 			config.Log.Error("Error sorting right date.", err)
 			return false
@@ -113,9 +104,9 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parser
 	// Now that we are sorted, if we have a start date, drop everything from before it, if end date is set, drop everything after it
 	var firstToKeep *int
 	var lastToKeep *int
-	for i := range koinlyRows {
+	for i := range taxbitRows {
 		if startDate != nil && firstToKeep == nil {
-			rowDate, err := time.Parse(TimeLayout, koinlyRows[i].Date)
+			rowDate, err := time.Parse(TimeLayout, taxbitRows[i].Date)
 			if err != nil {
 				config.Log.Fatal("Error parsing row date.", err)
 			}
@@ -126,7 +117,7 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parser
 				firstToKeep = &startIdx
 			}
 		} else if endDate != nil && lastToKeep == nil {
-			rowDate, err := time.Parse(TimeLayout, koinlyRows[i].Date)
+			rowDate, err := time.Parse(TimeLayout, taxbitRows[i].Date)
 			if err != nil {
 				config.Log.Fatal("Error parsing row date.", err)
 			}
@@ -140,98 +131,20 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parser
 		}
 	}
 	if firstToKeep != nil && lastToKeep != nil { // nolint:gocritic
-		koinlyRows = koinlyRows[*firstToKeep:*lastToKeep]
+		taxbitRows = taxbitRows[*firstToKeep:*lastToKeep]
 	} else if firstToKeep != nil {
-		koinlyRows = koinlyRows[*firstToKeep:]
+		taxbitRows = taxbitRows[*firstToKeep:]
 	} else if lastToKeep != nil {
-		koinlyRows = koinlyRows[:*lastToKeep]
+		taxbitRows = taxbitRows[:*lastToKeep]
 	}
 
-	// Before generating a CSV, we need to do a pass over all the cells to calculate proper scaling
-	calculateScaling(koinlyRows)
-
-	// Copy koinlyRows into csvRows for return val
-	csvRows := make([]parsers.CsvRow, len(koinlyRows))
-	for i, v := range koinlyRows {
-		// Scale amounts as needed for koinly's limit of 10^15
-		// var shiftedCoins []string
-		if _, isShifted := coinReplacementMap[v.ReceivedCurrency]; isShifted {
-			// shiftedCoins = append(shiftedCoins, v.ReceivedCurrency)
-			updatedAmount, updatedDenom := adjustUnitsAndDenoms(v.ReceivedAmount, v.ReceivedCurrency)
-			v.ReceivedAmount = updatedAmount
-			v.ReceivedCurrency = updatedDenom
-		}
-		if _, isShifted := coinReplacementMap[v.SentCurrency]; isShifted {
-			// shiftedCoins = append(shiftedCoins, v.SentCurrency)
-			updatedAmount, updatedDenom := adjustUnitsAndDenoms(v.SentAmount, v.SentCurrency)
-			v.SentAmount = updatedAmount
-			v.SentCurrency = updatedDenom
-		}
-		/*
-			switch len(shiftedCoins) {
-			case 1:
-				coin := shiftedCoins[0]
-				v.Description = fmt.Sprintf("%v [1 %v = %.0f %v]", v.Description,
-					coinReplacementMap[coin], math.Pow(10, float64(coinScalingMap[coin])), coin)
-			case 2:
-				coin1 := shiftedCoins[0]
-				coin2 := shiftedCoins[1]
-				v.Description = fmt.Sprintf("%v [1 %v = %.0f %v and 1 %v = %.0f %v]", v.Description,
-					coinReplacementMap[coin1], math.Pow(10, float64(coinScalingMap[coin1])), coin1,
-					coinReplacementMap[coin2], math.Pow(10, float64(coinScalingMap[coin2])), coin2)
-			}
-
-			v.Description = fmt.Sprintf("Address: %s %s", address, v.Description)
-		*/
-
+	// Copy cointrackerRows into csvRows for return val
+	csvRows := make([]parsers.CsvRow, len(taxbitRows))
+	for i, v := range taxbitRows {
 		csvRows[i] = v
 	}
 
 	return csvRows
-}
-
-// calculateScaling will take a pass through all rows and determine how/which coins to scale
-// if either sent or received coin is in the map of unsupported coins, add it to replacement map
-// for each replaced coin, track max number of digits
-func calculateScaling(rows []Row) {
-	for _, row := range rows {
-		for _, unsupportedCoin := range unsupportedCoins {
-			if strings.Contains(row.ReceivedCurrency, unsupportedCoin) {
-				if _, ok := coinReplacementMap[row.ReceivedCurrency]; !ok {
-					coinReplacementMap[row.ReceivedCurrency] = fmt.Sprintf("NULL%d", len(coinReplacementMap)+1)
-					coinMaxDigitsMap[row.ReceivedCurrency] = len(row.ReceivedAmount)
-				} else if coinMaxDigitsMap[row.ReceivedCurrency] < len(row.ReceivedAmount) {
-					coinMaxDigitsMap[row.ReceivedCurrency] = len(row.ReceivedAmount)
-				}
-			}
-			if strings.Contains(row.SentCurrency, unsupportedCoin) {
-				if _, ok := coinReplacementMap[row.SentCurrency]; !ok {
-					coinReplacementMap[row.SentCurrency] = fmt.Sprintf("NULL%d", len(coinReplacementMap)+1)
-					coinMaxDigitsMap[row.ReceivedCurrency] = len(row.SentAmount)
-				} else if coinMaxDigitsMap[row.ReceivedCurrency] < len(row.SentAmount) {
-					coinMaxDigitsMap[row.ReceivedCurrency] = len(row.SentAmount)
-				}
-			}
-		}
-	}
-	// now that all coins have been mapped, determine scaling
-	for coin, maxDigits := range coinMaxDigitsMap {
-		shift := 0
-		for maxDigits-shift > 15 {
-			shift += 3
-		}
-		coinScalingMap[coin] = shift
-	}
-}
-
-// adjustUnitsAndDenoms will adjust amounts and denominations in the following ways
-// - Amounts cannot be greater than 10^15
-// - Some coins are not supported and need to be replaced by "NULL{N}" where N is the index of each unique currency
-func adjustUnitsAndDenoms(amount, unit string) (updatedAmount string, updatedUnit string) {
-	idx := len(amount) - coinScalingMap[unit]
-	updatedAmount = amount[:idx] + "." + amount[idx:]
-	updatedUnit = coinReplacementMap[unit]
-	return
 }
 
 func (p Parser) GetHeaders() []string {
