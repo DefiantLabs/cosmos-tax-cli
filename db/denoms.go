@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"strings"
 	"sync"
 
 	"gorm.io/gorm"
@@ -72,6 +73,14 @@ func GetHighestDenomUnit(denomUnit DenomUnit, denomUnits []DenomUnit) (DenomUnit
 }
 
 func ConvertUnits(amount *big.Int, denom Denom) (*big.Float, string, error) {
+	convertedAmount := new(big.Float).SetInt(amount)
+
+	// Handle gamm special case
+	if strings.HasPrefix(denom.Base, "gamm/pool/") {
+		power := math.Pow(10, float64(18))
+		return new(big.Float).Quo(convertedAmount, new(big.Float).SetFloat64(power)), denom.Base, nil
+	}
+
 	// Try denom unit first
 	// We were originally just using GetDenomUnitForDenom, but since CachedDenoms is an array, it would sometimes
 	// return the non-Base denom unit (exponent != 0), which would break the power conversion process below i.e.
@@ -92,7 +101,6 @@ func ConvertUnits(amount *big.Int, denom Denom) (*big.Float, string, error) {
 
 	// We were converting the units to big.Int, which would cause a Token to appear 0 if the conversion resulted in an amount < 1
 	power := math.Pow(10, float64(highestDenomUnit.Exponent-denomUnit.Exponent))
-	convertedAmount := new(big.Float).SetInt(amount)
 	dividedAmount := new(big.Float).Quo(convertedAmount, new(big.Float).SetFloat64(power))
 	if symbol == "UNKNOWN" || symbol == "" {
 		symbol = highestDenomUnit.Name
