@@ -111,6 +111,11 @@ func initConfig() {
 		}
 	}
 
+	ignoredKeys := config.CheckSuperfluousConfigKeys(viper.AllKeys())
+	if len(ignoredKeys) > 0 {
+		config.Log.Warnf("Warning, the following invalid keys will be ignored: %v", ignoredKeys)
+	}
+
 	if !noConfig {
 		log.Println("CFG successfully read from: ", cfgFile)
 		// Unmarshal the config into struct

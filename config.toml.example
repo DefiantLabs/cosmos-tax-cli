@@ -6,8 +6,6 @@ pretty = true
 
 #App configuration values
 [base]
-addressRegex = "kujira(valoper)?1[a-z0-9]{38}"
-addressPrefix = "kujira"
 startblock = 1 # start indexing at beginning of the blockchain, -1 to resume from highest block indexed
 endblock = 100 # stop indexing at this block, -1 to never stop indexing
 reindex = false # if true, this will re-attempt to index blocks we have already indexed (defaults to false)
@@ -22,6 +20,8 @@ RewardIndexingEnabled = false #don't index Osmosis rewards, do not start other t
 RewardsStartBlock = 0 # start indexing rewards at beginning of the blockchain (if blank, if not set, it will just use startblock)
 RewardsEndBlock = 0 # stop indexing at this block, -1 to never stop indexing (if blank, if not set, it will just use endblock)
 Dry = false # if true, indexing will occur but data will not be written to the database.
+createCSVFile = true # if false, the csv created by the query will be sent to std out instead of a file.
+CSVFile = "output.csv" # the name of the csv files to create when querying transactions.
 
 #Lens config options
 [lens]
