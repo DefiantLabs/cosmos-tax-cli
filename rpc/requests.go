@@ -32,6 +32,18 @@ func GetBlockByHeight(cl *lensClient.ChainClient, height int64) (*coretypes.Resu
 	return resp, nil
 }
 
+// GetBlockTimestamp
+func GetBlock(cl *lensClient.ChainClient, height int64) (*coretypes.ResultBlock, error) {
+	options := lensQuery.QueryOptions{Height: height}
+	query := lensQuery.Query{Client: cl, Options: &options}
+	resp, err := query.Block()
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
 // GetTxsByBlockHeight makes a request to the Cosmos RPC API and returns all the transactions for a specific block
 func GetTxsByBlockHeight(cl *lensClient.ChainClient, height int64) (*txTypes.GetTxsEventResponse, error) {
 	pg := query.PageRequest{Limit: 100}

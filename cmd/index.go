@@ -454,6 +454,16 @@ func processBlock(cl *client.ChainClient, dbConn *gorm.DB, failedBlockHandler fu
 		failedBlockHandler(blockToProcess, core.UnprocessableTxError, err)
 	}
 
+	// Get the block time if we don't have TXs
+	if len(txsEventResp.Txs) == 0 {
+		result, err := rpc.GetBlock(cl, newBlock.Height)
+		if err != nil {
+			config.Log.Errorf("Error getting block info %v:", err)
+			return err
+		}
+		blockTime = result.Block.Time
+	}
+
 	res := &dbData{
 		txDBWrappers: txDBWrappers,
 		blockTime:    blockTime,
