@@ -2,7 +2,10 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	lg "log"
+	"reflect"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
@@ -167,4 +170,47 @@ func MergeConfigs(def Config, overide Config) Config {
 	}
 
 	return overide
+}
+
+func CheckSuperfluousConfigKeys(keys []string) (ignoredKeys []string) {
+	validKeys := make(map[string]struct{})
+	// add DB keys
+	for _, key := range getValidConfigKeys(database{}) {
+		validKeys[key] = struct{}{}
+	}
+	// add API keys
+	for _, key := range getValidConfigKeys(api{}) {
+		validKeys[key] = struct{}{}
+	}
+	// add base keys
+	for _, key := range getValidConfigKeys(base{}) {
+		validKeys[key] = struct{}{}
+	}
+	// add log keys
+	for _, key := range getValidConfigKeys(log{}) {
+		validKeys[key] = struct{}{}
+	}
+	// add lens keys
+	for _, key := range getValidConfigKeys(lens{}) {
+		validKeys[key] = struct{}{}
+	}
+
+	// Check keys
+	for _, key := range keys {
+		if _, ok := validKeys[key]; !ok {
+			ignoredKeys = append(ignoredKeys, key)
+		}
+	}
+
+	return
+}
+
+func getValidConfigKeys(section any) (keys []string) {
+	v := reflect.ValueOf(section)
+	typeOfS := v.Type()
+	for i := 0; i < v.NumField(); i++ {
+		key := fmt.Sprintf("%v.%v", typeOfS.Name(), strings.ReplaceAll(strings.ToLower(typeOfS.Field(i).Name), " ", ""))
+		keys = append(keys, key)
+	}
+	return
 }
