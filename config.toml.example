@@ -26,6 +26,7 @@ Dry = false # if true, indexing will occur but data will not be written to the d
 #Lens config options
 [lens]
 rpc = "https://rpc.kujira.ccvalidators.com:443" #On Kujira use one of the endpoints from the list https://github.com/Team-Kujira/networks/tree/master/mainnet
+AltRPC = "https://rpc.kujira.anothervalidator.com:443" # An alternate RPC endpoint to try if for some reason the first is missing data for a particular block.
 accountPrefix = "kujira"
 chainID = "kaiyo-1"
 chainName = "Kujira"

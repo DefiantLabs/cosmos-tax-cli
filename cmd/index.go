@@ -46,6 +46,7 @@ type Indexer struct {
 	dryRun    bool
 	db        *gorm.DB
 	cl        *client.ChainClient
+	cl2       *client.ChainClient // This is an alternate client
 	scheduler *gocron.Scheduler
 }
 
@@ -75,6 +76,11 @@ func setupIndexer() *Indexer {
 	// Some chains do not have the denom metadata URL available on chain, so we do chain specific downloads instead.
 	tasks.DoChainSpecificUpsertDenoms(idxr.db, idxr.cfg.Lens.ChainID)
 	idxr.cl = config.GetLensClient(idxr.cfg.Lens)
+	if idxr.cfg.Lens.AltRPC != "" {
+		altConfig := idxr.cfg.Lens
+		altConfig.RPC = idxr.cfg.Lens.AltRPC
+		idxr.cl2 = config.GetLensClient(altConfig)
+	}
 
 	// Depending on the app configuration, wait for the chain to catch up
 	chainCatchingUp, err := rpc.IsCatchingUp(idxr.cl)
@@ -406,21 +412,23 @@ func (idxr *Indexer) queryRPC(blockChan chan int64, dbDataChan chan *dbData, fai
 	for blockToProcess := range blockChan {
 		// attempt to process the block 5 times and then give up
 		var attemptCount int
-		for processBlock(idxr.cl, idxr.db, failedBlockHandler, dbDataChan, blockToProcess) != nil && attemptCount < maxAttempts {
+		err := processBlock(idxr.cl, idxr.cl2, idxr.db, failedBlockHandler, dbDataChan, blockToProcess)
+		for err != nil && attemptCount < maxAttempts {
 			attemptCount++
 			if attemptCount == maxAttempts {
-				config.Log.Error(fmt.Sprintf("Failed to process block %v after %v attempts. Will add to failed blocks table", blockToProcess, maxAttempts))
+				config.Log.Error(fmt.Sprintf("Failed to process block %v after %v attempts (Err: '%v'). Will add to failed blocks table", blockToProcess, maxAttempts, err))
 				err := dbTypes.UpsertFailedBlock(idxr.db, blockToProcess, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
 				if err != nil {
 					config.Log.Fatal(fmt.Sprintf("Failed to store that block %v failed. Not safe to continue.", blockToProcess), err)
 				}
+				break
 			}
+			err = processBlock(idxr.cl, idxr.cl2, idxr.db, failedBlockHandler, dbDataChan, blockToProcess)
 		}
 	}
 }
 
-func processBlock(cl *client.ChainClient, dbConn *gorm.DB, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error), dbDataChan chan *dbData, blockToProcess int64) error {
-	// fmt.Printf("Querying RPC transactions for block %d\n", blockToProcess)
+func processBlock(cl, cl2 *client.ChainClient, dbConn *gorm.DB, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error), dbDataChan chan *dbData, blockToProcess int64) error {
 	newBlock := dbTypes.Block{Height: blockToProcess}
 
 	txsEventResp, err := rpc.GetTxsByBlockHeight(cl, newBlock.Height)
@@ -440,11 +448,23 @@ func processBlock(cl *client.ChainClient, dbConn *gorm.DB, failedBlockHandler fu
 			}
 			return nil
 		} else if len(blockResults.TxsResults) > 0 {
-			// Two queries for the same block got a diff # of TXs. Though it is not guaranteed,
-			// DeliverTx events typically make it into a block so this warrants manual investigation.
-			// In this case, we couldn't look up TXs on the node but the Node's block has DeliverTx events,
-			// so we should log this and manually review the block on e.g. mintscan or another tool.
-			config.Log.Fatalf("Two queries for the same block (%v) got a diff # of TXs.", newBlock.Height)
+			if cl2 != nil {
+				config.Log.Info("No TXs for block height, but block is supposed to have TXs. Will attempt alt RPC.")
+				// We got no TXs for this block height, but the block says it should have TXs. Let's try the alt RPC endpoint
+				txsEventResp, err = rpc.GetTxsByBlockHeight(cl2, newBlock.Height)
+				if err != nil {
+					config.Log.Errorf("Error getting transactions by block height (%v) from alt RPC. Err: %v.", newBlock.Height, err)
+					return err
+				}
+			}
+
+			if len(txsEventResp.Txs) == 0 {
+				// Two queries for the same block got a diff # of TXs. Though it is not guaranteed,
+				// DeliverTx events typically make it into a block so this warrants manual investigation.
+				// In this case, we couldn't look up TXs on the node but the Node's block has DeliverTx events,
+				// so we should log this and manually review the block on e.g. mintscan or another tool.
+				return fmt.Errorf("Two queries for the same block (%v) got a diff # of TXs. Will be added to failed blocks table", newBlock.Height)
+			}
 		}
 	}
 

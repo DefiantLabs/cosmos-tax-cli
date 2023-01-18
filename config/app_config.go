@@ -118,6 +118,7 @@ type database struct {
 
 type lens struct {
 	RPC           string
+	AltRPC        string
 	AccountPrefix string
 	ChainID       string
 	ChainName     string
