@@ -210,8 +210,6 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 			}
 
 			for _, fee := range transaction.Tx.Fees {
-				thisFee := fee
-				thisFee.TxID = thisTX.ID
 				if fee.PayerAddress.Address != "" {
 					if err := dbTransaction.Where(Address{Address: fee.PayerAddress.Address}).
 						FirstOrCreate(&fee.PayerAddress).
@@ -230,82 +228,148 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 					return fmt.Errorf("denom not cached for base %s and symbol %s", fee.Denomination.Base, fee.Denomination.Symbol)
 				}
 
-				// insert fee
-				if err := dbTransaction.Where(Fee{TxID: fee.TxID, Amount: fee.Amount, DenominationID: fee.DenominationID, PayerAddressID: fee.PayerAddressID}).
-					FirstOrCreate(&thisFee).
+				// insert fees //TODO: this assume we only have 1 fee per coin per tx... is this true?
+				if err := dbTransaction.
+					Exec(`INSERT INTO fees (tx_id, amount, denomination_id, payer_address_id)
+						VALUES(?,?,?,?)
+						ON CONFLICT (tx_id,denomination_id)
+						DO
+							UPDATE SET
+								amount = excluded.amount,
+								payer_address_id = excluded.payer_address_id
+					`, thisTX.ID, fee.Amount, fee.Denomination.ID, fee.PayerAddressID).
 					Error; err != nil {
-					config.Log.Error("Error getting/creating fee.", err)
+					config.Log.Errorf("Error upserting fee. Err: %v", err)
 					return err
 				}
 			}
-			/*
-				for _, message := range transaction.Messages {
-					if message.Message.MessageType.MessageType == "" {
-						config.Log.Fatal("Message type not getting to DB")
-					}
-					if err := dbTransaction.Where(&message.Message.MessageType).FirstOrCreate(&message.Message.MessageType).Error; err != nil {
-						config.Log.Error("Error getting/creating message_type.", err)
+
+			for _, message := range transaction.Messages {
+				if message.Message.MessageType.MessageType == "" {
+					config.Log.Fatal("Message type not getting to DB")
+				}
+				if err := dbTransaction.Where(&message.Message.MessageType).FirstOrCreate(&message.Message.MessageType).Error; err != nil {
+					config.Log.Error("Error getting/creating message_type.", err)
+					return err
+				}
+
+				// Check for msg
+				var thisMsg Message
+				if err := dbTransaction.Where(Message{TxID: thisTX.ID, MessageIndex: message.Message.MessageIndex}).First(&thisMsg).Error; err != nil {
+					if !strings.Contains(err.Error(), "record not found") {
+						config.Log.Errorf("Error getting block. Err: %v", err)
 						return err
 					}
+				}
 
-					message.Message.Tx = transaction.Tx
-					message.Message.TxID = transaction.Tx.ID
-					message.Message.MessageTypeID = message.Message.MessageType.ID
+				// if doesn't exist, create it // FIXME: make this work as an upsert
+				if thisMsg.ID == 0 {
+					// Insert Msg
 					if err := dbTransaction.
-						Where(Message{
-							TxID:          message.Message.TxID,
-							MessageTypeID: message.Message.MessageTypeID,
-							MessageIndex:  message.Message.MessageIndex,
-						}).
-						FirstOrCreate(&message.Message).Error; err != nil {
-						config.Log.Error("Error creating message.", err)
+						Exec(`INSERT INTO messages (tx_id, message_type_id, message_index)
+						VALUES(?,?,?)
+					`, thisTX.ID, message.Message.MessageType.ID, message.Message.MessageIndex).
+						Error; err != nil {
+						config.Log.Errorf("Error upserting message. Err: %v", err)
 						return err
 					}
 
-					for _, taxableTx := range message.TaxableTxs {
-						if taxableTx.SenderAddress.Address != "" {
-							if err := dbTransaction.Where(&taxableTx.SenderAddress).FirstOrCreate(&taxableTx.SenderAddress).Error; err != nil {
-								config.Log.Error("Error getting/creating sender address.", err)
+					// Get Msg ID
+					if err := dbTransaction.Where(Message{TxID: thisTX.ID, MessageIndex: message.Message.MessageIndex}).First(&thisMsg).Error; err != nil {
+						config.Log.Errorf("Error getting block. Err: %v", err)
+						return err
+					}
+				} else {
+					// Otherwise, update
+					if err := dbTransaction.
+						Exec(`UPDATE messages
+										SET
+											message_type_id = ?
+										WHERE id = ?
+									`, message.Message.MessageType.ID, thisMsg.ID).
+						Error; err != nil {
+						config.Log.Errorf("Error updating message. Err: %v", err)
+						return err
+					}
+				}
+
+				for _, taxableTx := range message.TaxableTxs {
+					var senderAddressID *uint
+					if taxableTx.SenderAddress.Address != "" {
+						if err := dbTransaction.Where(&taxableTx.SenderAddress).FirstOrCreate(&taxableTx.SenderAddress).Error; err != nil {
+							config.Log.Error("Error getting/creating sender address.", err)
+							return err
+						}
+						senderAddressID = &taxableTx.SenderAddress.ID
+					}
+
+					var receiverAddressID *uint
+					if taxableTx.ReceiverAddress.Address != "" {
+						if err := dbTransaction.Where(&taxableTx.ReceiverAddress).FirstOrCreate(&taxableTx.ReceiverAddress).Error; err != nil {
+							config.Log.Error("Error getting/creating receiver address.", err)
+							return err
+						}
+						receiverAddressID = &taxableTx.ReceiverAddress.ID
+					}
+
+					// It is possible to have more than 1 taxable TX for a single msg. In most cases it should only be 1 or 2, but
+					// more is possible. Keying off of msg ID and amount may be sufficient....
+
+					// Look for taxable TX // FIXME: make this work as an upsert
+					var thisTaxableTx TaxableTransaction
+					if err := dbTransaction.Where(TaxableTransaction{
+						MessageID:      0,
+						AmountSent:     taxableTx.TaxableTx.AmountSent,
+						AmountReceived: taxableTx.TaxableTx.AmountReceived,
+					}).First(&thisTaxableTx).Error; err != nil {
+						if !strings.Contains(err.Error(), "record not found") {
+							if !strings.Contains(err.Error(), "record not found") {
+								config.Log.Errorf("Error getting taxable TX. Err: %v", err)
 								return err
 							}
-							// store created db model in sender address, creates foreign key relation
-							taxableTx.TaxableTx.SenderAddress = taxableTx.SenderAddress
-						} else {
-							// nil creates null foreign key relation
-							taxableTx.TaxableTx.SenderAddressID = nil
 						}
+					}
 
-						if taxableTx.ReceiverAddress.Address != "" {
-							if err := dbTransaction.Where(&taxableTx.ReceiverAddress).FirstOrCreate(&taxableTx.ReceiverAddress).Error; err != nil {
-								config.Log.Error("Error getting/creating receiver address.", err)
-								return err
-							}
-							// store created db model in receiver address, creates foreign key relation
-							taxableTx.TaxableTx.ReceiverAddress = taxableTx.ReceiverAddress
-						} else {
-							// nil creates null foreign key relation
-							taxableTx.TaxableTx.ReceiverAddressID = nil
-						}
+					// insert taxable TX
+					var denomSentID *uint
+					if taxableTx.TaxableTx.DenominationSent.ID != 0 {
+						denomSentID = &taxableTx.TaxableTx.DenominationSent.ID
+					}
+					var denomReceivedID *uint
+					if taxableTx.TaxableTx.DenominationReceived.ID != 0 {
+						denomReceivedID = &taxableTx.TaxableTx.DenominationReceived.ID
+					}
 
-						// It is possible to have more than 1 taxable TX for a single msg. In most cases it should only be 1 or 2, but
-						// more is possible. Keying off of msg ID and amount may be sufficient....
-						taxableTx.TaxableTx.Message = message.Message
+					// Insert if it doesn't exist
+					if thisTaxableTx.ID == 0 {
 						if err := dbTransaction.
-							Where(TaxableTransaction{
-								MessageID:      message.Message.ID,
-								AmountSent:     taxableTx.TaxableTx.AmountSent,
-								AmountReceived: taxableTx.TaxableTx.AmountReceived,
-							}).
-							FirstOrCreate(&taxableTx.TaxableTx).Error; err != nil {
-							config.Log.Error("Error creating taxable transaction.", err)
+							Exec(`INSERT INTO taxable_tx (message_id, amount_sent, amount_received, denomination_sent_id, denomination_received_id, sender_address_id, receiver_address_id)
+										VALUES(?,?,?,?,?,?,?)
+									`, thisMsg.ID, taxableTx.TaxableTx.AmountSent, taxableTx.TaxableTx.AmountReceived,
+								denomSentID, denomReceivedID, senderAddressID, receiverAddressID).
+							Error; err != nil {
+							config.Log.Errorf("Error inserting taxable tx. Err: %v", err)
+							return err
+						}
+					} else {
+						// Otherwise, update
+						if err := dbTransaction.
+							Exec(`UPDATE taxable_tx
+										SET
+											denomination_sent_id = ?,
+											denomination_received_id = ?,
+											sender_address_id = ?,
+											receiver_address_id = ?
+										WHERE id = ?
+									`, denomSentID, denomReceivedID, senderAddressID, receiverAddressID, thisTaxableTx.ID).
+							Error; err != nil {
+							config.Log.Errorf("Error updating taxable tx. Err: %v", err)
 							return err
 						}
 					}
 				}
-
-			*/
+			}
 		}
-
 		return nil
 	})
 }
