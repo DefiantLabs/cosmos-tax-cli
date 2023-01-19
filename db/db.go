@@ -124,37 +124,94 @@ func UpsertFailedBlock(db *gorm.DB, blockHeight int64, chainID string, chainName
 	})
 }
 
-func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []TxDBWrapper, chainID string, chainName string) error {
+func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []TxDBWrapper, dbChainID uint) error {
 	// consider optimizing the transaction, but how? Ordering matters due to foreign key constraints
 	// Order required: Block -> (For each Tx: Signer Address -> Tx -> (For each Message: Message -> Taxable Events))
 	// Also, foreign key relations are struct value based so create needs to be called first to get right foreign key ID
 	return db.Transaction(func(dbTransaction *gorm.DB) error {
-		block := Block{Height: blockHeight, TimeStamp: blockTime, Indexed: true, Chain: Chain{ChainID: chainID, Name: chainName}}
-		if err := dbTransaction.Where(&block.Chain).FirstOrCreate(&block.Chain).Error; err != nil {
-			config.Log.Error("Error getting/creating chain DB object.", err)
-			return err
-		}
-		block.BlockchainID = block.Chain.ID
-
 		// remove from failed blocks if exists
 		if err := dbTransaction.
-			Exec("DELETE FROM failed_blocks WHERE height = ? AND blockchain_id = ?", block.Height, block.BlockchainID).
+			Exec("DELETE FROM failed_blocks WHERE height = ? AND blockchain_id = ?", blockHeight, dbChainID).
 			Error; err != nil {
 			config.Log.Error("Error updating failed block.", err)
 			return err
 		}
 
+		// Insert the block
 		if err := dbTransaction.
-			Where(Block{Height: block.Height, BlockchainID: block.BlockchainID}).
-			Assign(Block{Indexed: true, TimeStamp: blockTime}).
-			FirstOrCreate(&block).Error; err != nil {
-			config.Log.Error("Error getting/creating block DB object.", err)
+			Exec(`INSERT INTO blocks (time_stamp,height,blockchain_id,indexed)
+						VALUES(?,?,?,?)
+						ON CONFLICT (height,blockchain_id)
+						DO
+							UPDATE SET
+								time_stamp = excluded.time_stamp,
+								indexed = excluded.indexed
+					`, blockTime, blockHeight, dbChainID, true).
+			Error; err != nil {
+			config.Log.Errorf("Error upserting block. Err: %v", err)
+			return err
+		}
+
+		// Get Block ID //TODO: We should be able to build this into the query above, but I haven't figured out how
+		var block Block
+		if err := dbTransaction.Where(Block{Height: blockHeight, BlockchainID: dbChainID}).First(&block).Error; err != nil {
+			config.Log.Errorf("Error getting block. Err: %v", err)
 			return err
 		}
 
 		for _, transaction := range txs {
-			fees := []Fee{}
+			// Insert the tx
+			// with signer if exists
+			if transaction.SignerAddress.Address != "" {
+				// viewing gorm logs shows this gets translated into a single ON CONFLICT DO NOTHING RETURNING "id"
+				if err := dbTransaction.Where(Address{Address: transaction.SignerAddress.Address}).
+					FirstOrCreate(&transaction.SignerAddress).
+					Error; err != nil {
+					config.Log.Error("Error getting/creating signer address for tx.", err)
+					return err
+				}
+
+				if err := dbTransaction.
+					Exec(`INSERT INTO txes (hash, code, block_id, signer_address_id)
+						VALUES(?,?,?,?)
+						ON CONFLICT (hash)
+						DO
+							UPDATE SET
+								code = excluded.code,
+								block_id = excluded.block_id,
+								signer_address_id = excluded.signer_address_id
+					`, transaction.Tx.Hash, transaction.Tx.Code, block.ID, transaction.SignerAddress.ID).
+					Error; err != nil {
+					config.Log.Errorf("Error upserting block. Err: %v", err)
+					return err
+				}
+			} else {
+				// without if it doesn't
+				if err := dbTransaction.
+					Exec(`INSERT INTO txes (hash, code, block_id)
+						VALUES(?,?,?)
+						ON CONFLICT (hash)
+						DO
+							UPDATE SET
+								code = excluded.code,
+								block_id = excluded.block_id
+					`, transaction.Tx.Hash, transaction.Tx.Code, block.ID).
+					Error; err != nil {
+					config.Log.Errorf("Error upserting block. Err: %v", err)
+					return err
+				}
+			}
+
+			// Get TX ID //TODO: We should be able to build this into the query above, but I haven't figured out how
+			var thisTX Tx
+			if err := dbTransaction.Where(Tx{Hash: transaction.Tx.Hash}).First(&thisTX).Error; err != nil {
+				config.Log.Errorf("Error getting block. Err: %v", err)
+				return err
+			}
+
 			for _, fee := range transaction.Tx.Fees {
+				thisFee := fee
+				thisFee.TxID = thisTX.ID
 				if fee.PayerAddress.Address != "" {
 					if err := dbTransaction.Where(Address{Address: fee.PayerAddress.Address}).
 						FirstOrCreate(&fee.PayerAddress).
@@ -173,96 +230,80 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 					return fmt.Errorf("denom not cached for base %s and symbol %s", fee.Denomination.Base, fee.Denomination.Symbol)
 				}
 
-				fees = append(fees, fee)
-			}
-
-			if transaction.SignerAddress.Address != "" {
-				// viewing gorm logs shows this gets translated into a single ON CONFLICT DO NOTHING RETURNING "id"
-				if err := dbTransaction.Where(Address{Address: transaction.SignerAddress.Address}).
-					FirstOrCreate(&transaction.SignerAddress).
+				// insert fee
+				if err := dbTransaction.Where(Fee{TxID: fee.TxID, Amount: fee.Amount, DenominationID: fee.DenominationID, PayerAddressID: fee.PayerAddressID}).
+					FirstOrCreate(&thisFee).
 					Error; err != nil {
-					config.Log.Error("Error getting/creating signer address for tx.", err)
+					config.Log.Error("Error getting/creating fee.", err)
 					return err
 				}
-				// store created db model in signer address, creates foreign key relation
-				transaction.Tx.SignerAddress = transaction.SignerAddress
-			} else {
-				// store null foreign key relation in signer address id
-				// This should never happen and indicates an error somewhere in parsing
-				// Consider removing?
-				transaction.Tx.SignerAddressID = nil
 			}
-
-			transaction.Tx.Block = block
-			transaction.Tx.Fees = fees
-			if err := dbTransaction.Where(&transaction.Tx).FirstOrCreate(&transaction.Tx).Error; err != nil {
-				config.Log.Error("Error creating tx.", err)
-				return err
-			}
-
-			for _, message := range transaction.Messages {
-				if message.Message.MessageType.MessageType == "" {
-					config.Log.Fatal("Message type not getting to DB")
-				}
-				if err := dbTransaction.Where(&message.Message.MessageType).FirstOrCreate(&message.Message.MessageType).Error; err != nil {
-					config.Log.Error("Error getting/creating message_type.", err)
-					return err
-				}
-
-				message.Message.Tx = transaction.Tx
-				message.Message.TxID = transaction.Tx.ID
-				message.Message.MessageTypeID = message.Message.MessageType.ID
-				if err := dbTransaction.
-					Where(Message{
-						TxID:          message.Message.TxID,
-						MessageTypeID: message.Message.MessageTypeID,
-						MessageIndex:  message.Message.MessageIndex,
-					}).
-					FirstOrCreate(&message.Message).Error; err != nil {
-					config.Log.Error("Error creating message.", err)
-					return err
-				}
-
-				for _, taxableTx := range message.TaxableTxs {
-					if taxableTx.SenderAddress.Address != "" {
-						if err := dbTransaction.Where(&taxableTx.SenderAddress).FirstOrCreate(&taxableTx.SenderAddress).Error; err != nil {
-							config.Log.Error("Error getting/creating sender address.", err)
-							return err
-						}
-						// store created db model in sender address, creates foreign key relation
-						taxableTx.TaxableTx.SenderAddress = taxableTx.SenderAddress
-					} else {
-						// nil creates null foreign key relation
-						taxableTx.TaxableTx.SenderAddressID = nil
+			/*
+				for _, message := range transaction.Messages {
+					if message.Message.MessageType.MessageType == "" {
+						config.Log.Fatal("Message type not getting to DB")
 					}
-
-					if taxableTx.ReceiverAddress.Address != "" {
-						if err := dbTransaction.Where(&taxableTx.ReceiverAddress).FirstOrCreate(&taxableTx.ReceiverAddress).Error; err != nil {
-							config.Log.Error("Error getting/creating receiver address.", err)
-							return err
-						}
-						// store created db model in receiver address, creates foreign key relation
-						taxableTx.TaxableTx.ReceiverAddress = taxableTx.ReceiverAddress
-					} else {
-						// nil creates null foreign key relation
-						taxableTx.TaxableTx.ReceiverAddressID = nil
-					}
-
-					// It is possible to have more than 1 taxable TX for a single msg. In most cases it should only be 1 or 2, but
-					// more is possible. Keying off of msg ID and amount may be sufficient....
-					taxableTx.TaxableTx.Message = message.Message
-					if err := dbTransaction.
-						Where(TaxableTransaction{
-							MessageID:      message.Message.ID,
-							AmountSent:     taxableTx.TaxableTx.AmountSent,
-							AmountReceived: taxableTx.TaxableTx.AmountReceived,
-						}).
-						FirstOrCreate(&taxableTx.TaxableTx).Error; err != nil {
-						config.Log.Error("Error creating taxable transaction.", err)
+					if err := dbTransaction.Where(&message.Message.MessageType).FirstOrCreate(&message.Message.MessageType).Error; err != nil {
+						config.Log.Error("Error getting/creating message_type.", err)
 						return err
 					}
+
+					message.Message.Tx = transaction.Tx
+					message.Message.TxID = transaction.Tx.ID
+					message.Message.MessageTypeID = message.Message.MessageType.ID
+					if err := dbTransaction.
+						Where(Message{
+							TxID:          message.Message.TxID,
+							MessageTypeID: message.Message.MessageTypeID,
+							MessageIndex:  message.Message.MessageIndex,
+						}).
+						FirstOrCreate(&message.Message).Error; err != nil {
+						config.Log.Error("Error creating message.", err)
+						return err
+					}
+
+					for _, taxableTx := range message.TaxableTxs {
+						if taxableTx.SenderAddress.Address != "" {
+							if err := dbTransaction.Where(&taxableTx.SenderAddress).FirstOrCreate(&taxableTx.SenderAddress).Error; err != nil {
+								config.Log.Error("Error getting/creating sender address.", err)
+								return err
+							}
+							// store created db model in sender address, creates foreign key relation
+							taxableTx.TaxableTx.SenderAddress = taxableTx.SenderAddress
+						} else {
+							// nil creates null foreign key relation
+							taxableTx.TaxableTx.SenderAddressID = nil
+						}
+
+						if taxableTx.ReceiverAddress.Address != "" {
+							if err := dbTransaction.Where(&taxableTx.ReceiverAddress).FirstOrCreate(&taxableTx.ReceiverAddress).Error; err != nil {
+								config.Log.Error("Error getting/creating receiver address.", err)
+								return err
+							}
+							// store created db model in receiver address, creates foreign key relation
+							taxableTx.TaxableTx.ReceiverAddress = taxableTx.ReceiverAddress
+						} else {
+							// nil creates null foreign key relation
+							taxableTx.TaxableTx.ReceiverAddressID = nil
+						}
+
+						// It is possible to have more than 1 taxable TX for a single msg. In most cases it should only be 1 or 2, but
+						// more is possible. Keying off of msg ID and amount may be sufficient....
+						taxableTx.TaxableTx.Message = message.Message
+						if err := dbTransaction.
+							Where(TaxableTransaction{
+								MessageID:      message.Message.ID,
+								AmountSent:     taxableTx.TaxableTx.AmountSent,
+								AmountReceived: taxableTx.TaxableTx.AmountReceived,
+							}).
+							FirstOrCreate(&taxableTx.TaxableTx).Error; err != nil {
+							config.Log.Error("Error creating taxable transaction.", err)
+							return err
+						}
+					}
 				}
-			}
+
+			*/
 		}
 
 		return nil
