@@ -33,9 +33,9 @@ services:
 
   indexer:
     restart: "no"
-    image: ghcr.io/defiantlabs/cosmos-tax-cli-private:sha-766a0e6
+    image: ghcr.io/defiantlabs/cosmos-tax-cli-private:pr-256
     user: defiant
-    stop_grace_period: 1m
+    stop_grace_period: 10s
     volumes:
       # - indexer:/var/lib/cosmos-tax-cli-private-index
       - /etc/localtime:/etc/localtime:ro
@@ -56,14 +56,12 @@ services:
       cosmos-tax-cli-private index \
       --log.pretty = true \
       --log.level = debug \
-      --base.startBlock 2711549 \
-      --base.endBlock 2711549 \
-      --base.index true \
-      --base.throttling 2.0 \
-      --base.api https://api.osmosis.strange.love:443 \
+      --base.startBlock 3565839 \
+      --base.endBlock 7444264 \
+      --base.throttling 0.001 \
+      --base.api http://osmosis-archive.nodes.defiantlabs.net:1317 \
       --lens.rpc https://osmosis-mainnet-archive.allthatnode.com:26657 \
       --lens.accountPrefix osmo \
-      --lens.keyringBackend test \
       --lens.chainID osmosis-1 \
       --lens.chainName osmosis \
       --db.host postgres \

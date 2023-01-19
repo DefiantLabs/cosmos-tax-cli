@@ -10,7 +10,7 @@ ARG BUILD_TAGS=muslc
 ARG LD_FLAGS=-linkmode=external -extldflags '-Wl,-z,muldefs -static'
 
 # Install cli tools for building and final image
-RUN apk add --update --no-cache curl make git libc-dev bash gcc linux-headers eudev-dev ncurses-dev libc6-compat jq
+RUN apk add --update --no-cache curl make git libc-dev bash gcc linux-headers eudev-dev ncurses-dev libc6-compat jq htop atop iotop
 
 # Install build dependencies.
 RUN if [ "${TARGETPLATFORM}" = "linux/amd64" ] ; then \
@@ -62,6 +62,8 @@ COPY --from=build-env /go/bin /bin
 COPY --from=build-env /usr/bin/ldd /bin/ldd
 COPY --from=build-env /usr/bin/curl /bin/curl
 COPY --from=build-env /usr/bin/jq /bin/jq
+COPY --from=build-env /usr/bin/htop /bin/htop
+COPY --from=build-env /usr/bin/atop /bin/atop
 
 # Install Libraries
 # cosmos-tax-cli-private
@@ -79,6 +81,9 @@ COPY --from=build-env /lib/libssl.so.1.1 /lib
 COPY --from=build-env /lib/libcrypto.so.1.1 /lib
 COPY --from=build-env /usr/lib/libbrotlidec.so.1 /lib
 COPY --from=build-env /usr/lib/libbrotlicommon.so.1 /lib
+
+# htop/atop libs
+COPY --from=build-env /usr/lib/libncursesw.so.6 /lib
 
 # Install trusted CA certificates
 COPY --from=build-env /etc/ssl/cert.pem /etc/ssl/cert.pem
