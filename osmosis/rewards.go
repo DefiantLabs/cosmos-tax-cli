@@ -119,7 +119,7 @@ func (client *URIClient) getRewards(height int64) ([]*Rewards, error) {
 					coinsCombined := addCoins(prevRewards.Coins, coins)
 					rewards[receiverAddr].Coins = coinsCombined
 				} else {
-					rewards[receiverAddr] = &Rewards{Address: receiverAddr, Coins: coins, EpochBlockHeight: height}
+					rewards[receiverAddr] = &Rewards{Address: receiverAddr, Coins: coins}
 				}
 			}
 		}

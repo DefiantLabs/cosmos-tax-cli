@@ -64,10 +64,10 @@ func createTaxableEvents(db *gorm.DB, events []TaxableEvent) error {
 	})
 }
 
-func IndexOsmoRewards(db *gorm.DB, dryRun bool, chainID string, chainName string, rewards []*osmosis.Rewards) error {
+func IndexOsmoRewards(db *gorm.DB, dryRun bool, chainID string, chainName string, rewards *osmosis.RewardsInfo) error {
 	dbEvents := []TaxableEvent{}
 
-	for _, curr := range rewards {
+	for _, curr := range rewards.Rewards {
 		for _, coin := range curr.Coins {
 			denom, err := GetDenomForBase(coin.Denom)
 			if err != nil {
@@ -85,14 +85,14 @@ func IndexOsmoRewards(db *gorm.DB, dryRun bool, chainID string, chainName string
 			}
 
 			hash := sha256.New()
-			hash.Write([]byte(fmt.Sprint(curr.Address, curr.EpochBlockHeight, coin)))
+			hash.Write([]byte(fmt.Sprint(curr.Address, rewards.EpochBlockHeight, coin)))
 
 			evt := TaxableEvent{
 				Source:       OsmosisRewardDistribution,
 				Amount:       util.ToNumeric(coin.Amount.BigInt()),
 				EventHash:    fmt.Sprintf("%x", hash.Sum(nil)),
 				Denomination: denom,
-				Block:        Block{Height: curr.EpochBlockHeight, Chain: Chain{ChainID: chainID, Name: chainName}},
+				Block:        Block{Height: rewards.EpochBlockHeight, TimeStamp: rewards.EpochBlockTime, Chain: Chain{ChainID: chainID, Name: chainName}},
 				EventAddress: Address{Address: curr.Address},
 			}
 			dbEvents = append(dbEvents, evt)
