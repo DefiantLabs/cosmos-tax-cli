@@ -198,7 +198,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 					return fmt.Errorf("denom not cached for base %s and symbol %s", fee.Denomination.Base, fee.Denomination.Symbol)
 				}
 
-				// store the Fee //TODO: make sure the denom ID is correct on this....
+				// store the Fee
 				if err := dbTransaction.Where(Fee{TxID: feeOnly.TxID, DenominationID: feeOnly.DenominationID}).FirstOrCreate(&feeOnly).Error; err != nil {
 					config.Log.Error("Error creating fee.", err)
 					return err
@@ -228,11 +228,15 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 
 				for _, taxableTx := range message.TaxableTxs {
 					taxableTxOnly := TaxableTransaction{
-						MessageID:              msgOnly.ID,
-						AmountSent:             taxableTx.TaxableTx.AmountSent,
-						AmountReceived:         taxableTx.TaxableTx.AmountReceived,
-						DenominationSentID:     taxableTx.TaxableTx.DenominationSentID,     // TODO: make sure this is correct
-						DenominationReceivedID: taxableTx.TaxableTx.DenominationReceivedID, // TODO: make sure this is correct
+						MessageID:      msgOnly.ID,
+						AmountSent:     taxableTx.TaxableTx.AmountSent,
+						AmountReceived: taxableTx.TaxableTx.AmountReceived,
+					}
+					if taxableTx.TaxableTx.DenominationSent.ID != 0 {
+						taxableTxOnly.DenominationSentID = &taxableTx.TaxableTx.DenominationSent.ID
+					}
+					if taxableTx.TaxableTx.DenominationReceived.ID != 0 {
+						taxableTxOnly.DenominationReceivedID = &taxableTx.TaxableTx.DenominationReceived.ID
 					}
 					if taxableTx.SenderAddress.Address != "" {
 						if err := dbTransaction.Where(&taxableTx.SenderAddress).FirstOrCreate(&taxableTx.SenderAddress).Error; err != nil {
