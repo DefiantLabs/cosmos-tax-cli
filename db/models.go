@@ -15,14 +15,6 @@ type Block struct {
 	Indexed      bool
 }
 
-type BlockOnly struct {
-	ID           uint
-	TimeStamp    time.Time
-	Height       int64
-	BlockchainID uint
-	Indexed      bool
-}
-
 type FailedBlock struct {
 	ID           uint
 	Height       int64 `gorm:"uniqueIndex:failedchainheight"`
@@ -42,17 +34,9 @@ type Tx struct {
 	Code            uint32
 	BlockID         uint
 	Block           Block
-	SignerAddressID *int // *int allows foreign key to be null
+	SignerAddressID *uint // *int allows foreign key to be null
 	SignerAddress   Address
 	Fees            []Fee
-}
-
-type TxOnly struct {
-	ID              uint
-	Hash            string
-	Code            uint32
-	BlockID         uint
-	SignerAddressID *uint // *int allows foreign key to be null
 }
 
 type Fee struct {
@@ -63,14 +47,6 @@ type Fee struct {
 	Denomination   Denom   `gorm:"foreignKey:DenominationID"`
 	PayerAddressID uint    `gorm:"index:idx_payer_addr"`
 	PayerAddress   Address `gorm:"foreignKey:PayerAddressID"`
-}
-
-type FeeOnly struct {
-	ID             uint
-	TxID           uint
-	Amount         decimal.Decimal
-	DenominationID uint
-	PayerAddressID uint
 }
 
 // dbTypes.Address{Address: currTx.FeePayer().String()}
@@ -91,13 +67,6 @@ type Message struct {
 	Tx            Tx
 	MessageTypeID uint `gorm:"foreignKey:MessageTypeID,index:idx_txid_typeid"`
 	MessageType   MessageType
-	MessageIndex  int
-}
-
-type MessageOnly struct {
-	ID            uint
-	TxID          uint
-	MessageTypeID uint
 	MessageIndex  int
 }
 
@@ -144,17 +113,6 @@ type TaxableTransaction struct {
 	SenderAddress          Address
 	ReceiverAddressID      *uint `gorm:"index:idx_receiver"`
 	ReceiverAddress        Address
-}
-
-type TaxableTransactionOnly struct {
-	ID                     uint
-	MessageID              uint
-	AmountSent             decimal.Decimal
-	AmountReceived         decimal.Decimal
-	DenominationSentID     *uint
-	DenominationReceivedID *uint
-	SenderAddressID        *uint
-	ReceiverAddressID      *uint
 }
 
 func (TaxableTransaction) TableName() string {

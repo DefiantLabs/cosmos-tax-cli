@@ -138,20 +138,20 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 		}
 
 		// create block if it doesn't exist
-		block := BlockOnly{Height: blockHeight, TimeStamp: blockTime, Indexed: true, BlockchainID: dbChainID}
+		blockOnly := Block{Height: blockHeight, TimeStamp: blockTime, Indexed: true, BlockchainID: dbChainID}
 		if err := dbTransaction.
-			Where(Block{Height: block.Height, BlockchainID: block.BlockchainID}).
+			Where(Block{Height: blockHeight, BlockchainID: dbChainID}).
 			Assign(Block{Indexed: true, TimeStamp: blockTime}).
-			FirstOrCreate(&block).Error; err != nil {
+			FirstOrCreate(&blockOnly).Error; err != nil {
 			config.Log.Error("Error getting/creating block DB object.", err)
 			return err
 		}
 
 		for _, transaction := range txs {
-			txOnly := TxOnly{
+			txOnly := Tx{
 				Hash:            transaction.Tx.Hash,
 				Code:            transaction.Tx.Code,
-				BlockID:         block.ID,
+				BlockID:         blockOnly.ID,
 				SignerAddressID: nil,
 			}
 
@@ -175,7 +175,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 			}
 
 			for _, fee := range transaction.Tx.Fees {
-				thisFee := FeeOnly{
+				feeOnly := Fee{
 					TxID:           txOnly.ID,
 					Amount:         fee.Amount,
 					DenominationID: fee.Denomination.ID,
@@ -189,7 +189,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 					}
 
 					// creates foreign key relation.
-					thisFee.PayerAddressID = fee.PayerAddress.ID
+					feeOnly.PayerAddressID = fee.PayerAddress.ID
 				} else if fee.PayerAddress.Address == "" {
 					return errors.New("fee cannot have empty payer address")
 				}
@@ -199,7 +199,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 				}
 
 				// store the Fee //TODO: make sure the denom ID is correct on this....
-				if err := dbTransaction.Where(Fee{TxID: thisFee.TxID, DenominationID: thisFee.DenominationID}).FirstOrCreate(&thisFee).Error; err != nil {
+				if err := dbTransaction.Where(Fee{TxID: feeOnly.TxID, DenominationID: feeOnly.DenominationID}).FirstOrCreate(&feeOnly).Error; err != nil {
 					config.Log.Error("Error creating fee.", err)
 					return err
 				}
@@ -214,21 +214,21 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 					return err
 				}
 
-				msg := MessageOnly{
+				msgOnly := Message{
 					TxID:          txOnly.ID,
 					MessageTypeID: message.Message.MessageType.ID,
 					MessageIndex:  message.Message.MessageIndex,
 				}
 
 				// Store the msg
-				if err := dbTransaction.Where(Message{TxID: msg.TxID, MessageTypeID: msg.MessageTypeID, MessageIndex: msg.MessageIndex}).FirstOrCreate(&msg).Error; err != nil {
+				if err := dbTransaction.Where(Message{TxID: msgOnly.TxID, MessageTypeID: msgOnly.MessageTypeID, MessageIndex: msgOnly.MessageIndex}).FirstOrCreate(&msgOnly).Error; err != nil {
 					config.Log.Error("Error creating message.", err)
 					return err
 				}
 
 				for _, taxableTx := range message.TaxableTxs {
-					thisTaxableTx := TaxableTransactionOnly{
-						MessageID:              msg.ID,
+					taxableTxOnly := TaxableTransaction{
+						MessageID:              msgOnly.ID,
 						AmountSent:             taxableTx.TaxableTx.AmountSent,
 						AmountReceived:         taxableTx.TaxableTx.AmountReceived,
 						DenominationSentID:     taxableTx.TaxableTx.DenominationSentID,     // TODO: make sure this is correct
@@ -240,7 +240,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 							return err
 						}
 						// store created db model in sender address, creates foreign key relation
-						thisTaxableTx.SenderAddressID = &taxableTx.SenderAddress.ID
+						taxableTxOnly.SenderAddressID = &taxableTx.SenderAddress.ID
 					}
 
 					if taxableTx.ReceiverAddress.Address != "" {
@@ -249,18 +249,18 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 							return err
 						}
 						// store created db model in receiver address, creates foreign key relation
-						thisTaxableTx.ReceiverAddressID = &taxableTx.ReceiverAddress.ID
+						taxableTxOnly.ReceiverAddressID = &taxableTx.ReceiverAddress.ID
 					}
 
 					// It is possible to have more than 1 taxable TX for a single msg. In most cases it should only be 1 or 2, but
 					// more is possible. Keying off of msg ID and amount may be sufficient....
 					if err := dbTransaction.
 						Where(TaxableTransaction{
-							MessageID:      thisTaxableTx.MessageID,
-							AmountSent:     thisTaxableTx.AmountSent,
-							AmountReceived: thisTaxableTx.AmountReceived,
+							MessageID:      taxableTxOnly.MessageID,
+							AmountSent:     taxableTxOnly.AmountSent,
+							AmountReceived: taxableTxOnly.AmountReceived,
 						}).
-						FirstOrCreate(&thisTaxableTx).Error; err != nil {
+						FirstOrCreate(&taxableTxOnly).Error; err != nil {
 						config.Log.Error("Error creating taxable transaction.", err)
 						return err
 					}
