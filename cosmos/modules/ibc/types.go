@@ -22,6 +22,7 @@ const (
 	MsgChannelOpenAck     = "/ibc.core.channel.v1.MsgChannelOpenAck"
 	MsgRecvPacket         = "/ibc.core.channel.v1.MsgRecvPacket"
 	MsgTimeout            = "/ibc.core.channel.v1.MsgTimeout"
+	MsgTimeoutOnClose     = "/ibc.core.channel.v1.MsgTimeoutOnClose"
 
 	MsgConnectionOpenTry     = "/ibc.core.connection.v1.MsgConnectionOpenTry"
 	MsgConnectionOpenConfirm = "/ibc.core.connection.v1.MsgConnectionOpenConfirm"
