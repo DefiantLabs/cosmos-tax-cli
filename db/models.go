@@ -40,13 +40,13 @@ type Tx struct {
 }
 
 type Fee struct {
-	ID             uint `gorm:"primaryKey"`
-	TxID           uint
+	ID             uint            `gorm:"primaryKey"`
+	TxID           uint            `gorm:"uniqueIndex:txDenomFee"`
 	Amount         decimal.Decimal `gorm:"type:decimal(78,0);"`
-	DenominationID uint
-	Denomination   Denom   `gorm:"foreignKey:DenominationID"`
-	PayerAddressID uint    `gorm:"index:idx_payer_addr"`
-	PayerAddress   Address `gorm:"foreignKey:PayerAddressID"`
+	DenominationID uint            `gorm:"uniqueIndex:txDenomFee"`
+	Denomination   Denom           `gorm:"foreignKey:DenominationID"`
+	PayerAddressID uint            `gorm:"index:idx_payer_addr"`
+	PayerAddress   Address         `gorm:"foreignKey:PayerAddressID"`
 }
 
 // dbTypes.Address{Address: currTx.FeePayer().String()}
