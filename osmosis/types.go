@@ -18,11 +18,16 @@ type RewardEpoch struct {
 	Error            error
 }
 
+type RewardsInfo struct {
+	EpochBlockHeight int64
+	EpochBlockTime   time.Time
+	Rewards          []*Rewards
+}
+
 // Rewards rewards from osmosis
 type Rewards struct {
-	EpochBlockHeight int64
-	Address          string
-	Coins            sdk.Coins
+	Address string
+	Coins   sdk.Coins
 }
 
 type Result struct {

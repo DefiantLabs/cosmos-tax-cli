@@ -139,7 +139,7 @@ func index(cmd *cobra.Command, args []string) {
 	var wg sync.WaitGroup // This group is to ensure we are done processing transactions (as well as osmo rewards) before returning
 
 	// Osmosis specific indexing requirements. Osmosis distributes rewards to LP holders on a daily basis.
-	rewardsDataChan := make(chan []*osmosis.Rewards, 4*rpcQueryThreads)
+	rewardsDataChan := make(chan *osmosis.RewardsInfo, 4*rpcQueryThreads)
 	if config.IsOsmosis(idxr.cfg) && idxr.cfg.Base.RewardIndexingEnabled {
 		wg.Add(1)
 		go idxr.indexOsmosisRewards(&wg, core.HandleFailedBlock, rewardsDataChan)
@@ -303,7 +303,7 @@ func OsmosisGetRewardsStartIndexHeight(db *gorm.DB, chainID string) int64 {
 // blockAlreadyIndexed will return true if the block is already in the DB
 func blockAlreadyIndexed(blockHeight int64, chainID uint, db *gorm.DB) bool {
 	var exists bool
-	err := db.Raw(`SELECT count(*) > 0 FROM blocks WHERE height = ?::int AND blockchain_id = ?::int AND indexed = true;`, blockHeight, chainID).Row().Scan(&exists)
+	err := db.Raw(`SELECT count(*) > 0 FROM blocks WHERE height = ?::int AND blockchain_id = ?::int AND indexed = true AND time_stamp != '0001-01-01T00:00:00.000Z';`, blockHeight, chainID).Row().Scan(&exists)
 	if err != nil {
 		config.Log.Fatalf("Error checking DB for block. Err: %v", err)
 	}
@@ -343,7 +343,7 @@ func (idxr *Indexer) GetIndexerStartingHeight(chainID uint) int64 {
 	return dbTypes.GetFirstMissingBlockInRange(idxr.db, idxr.cfg.Base.StartBlock, maxStart, chainID)
 }
 
-func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler core.FailedBlockHandler, rewardsDataChan chan []*osmosis.Rewards) {
+func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler core.FailedBlockHandler, rewardsDataChan chan *osmosis.RewardsInfo) {
 	defer wg.Done()
 	defer close(rewardsDataChan)
 
@@ -384,7 +384,7 @@ func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler 
 	}
 }
 
-func (idxr *Indexer) indexOsmosisReward(rpcClient osmosis.URIClient, epoch int64, rewardsDataChan chan []*osmosis.Rewards) (core.BlockProcessingFailure, error) {
+func (idxr *Indexer) indexOsmosisReward(rpcClient osmosis.URIClient, epoch int64, rewardsDataChan chan *osmosis.RewardsInfo) (core.BlockProcessingFailure, error) {
 	config.Log.Debug(fmt.Sprintf("Getting rewards for epoch %v", epoch))
 	rewards, err := rpcClient.GetEpochRewards(epoch)
 	if err != nil {
@@ -393,7 +393,21 @@ func (idxr *Indexer) indexOsmosisReward(rpcClient osmosis.URIClient, epoch int64
 	}
 
 	if len(rewards) > 0 {
-		rewardsDataChan <- rewards
+		// Get the block time
+		var blockTime time.Time
+		result, err := rpc.GetBlock(idxr.cl, epoch)
+		if err != nil {
+			config.Log.Errorf("Error getting block info for block %v. Err: %v", epoch, err)
+		} else {
+			blockTime = result.Block.Time
+		}
+
+		// Send result to data chan to be inserted
+		rewardsDataChan <- &osmosis.RewardsInfo{
+			EpochBlockHeight: epoch,
+			EpochBlockTime:   blockTime,
+			Rewards:          rewards,
+		}
 	}
 	return 0, nil
 }
@@ -454,6 +468,16 @@ func processBlock(cl *client.ChainClient, dbConn *gorm.DB, failedBlockHandler fu
 		failedBlockHandler(blockToProcess, core.UnprocessableTxError, err)
 	}
 
+	// Get the block time if we don't have TXs
+	if len(txsEventResp.Txs) == 0 {
+		result, err := rpc.GetBlock(cl, newBlock.Height)
+		if err != nil {
+			config.Log.Errorf("Error getting block info for block %v. Err: %v", newBlock.Height, err)
+			return err
+		}
+		blockTime = result.Block.Time
+	}
+
 	res := &dbData{
 		txDBWrappers: txDBWrappers,
 		blockTime:    blockTime,
@@ -474,7 +498,7 @@ type dbData struct {
 // if this is a dry run, we will simply empty the channel and track progress
 // otherwise we will index the data in the DB.
 // it will also read rewars data and index that.
-func (idxr *Indexer) doDBUpdates(wg *sync.WaitGroup, txDataChan chan *dbData, rewardsDataChan chan []*osmosis.Rewards) {
+func (idxr *Indexer) doDBUpdates(wg *sync.WaitGroup, txDataChan chan *dbData, rewardsDataChan chan *osmosis.RewardsInfo) {
 	blocksProcessed := 0
 	dbWrites := 0
 	dbReattempts := 0
@@ -496,7 +520,7 @@ func (idxr *Indexer) doDBUpdates(wg *sync.WaitGroup, txDataChan chan *dbData, re
 				continue
 			}
 			dbWrites++
-			config.Log.Info(fmt.Sprintf("Found %v rewards at epoch %v, sending to DB", len(rewardData), rewardData[0].EpochBlockHeight))
+			config.Log.Info(fmt.Sprintf("Found %v rewards at epoch %v, sending to DB", len(rewardData.Rewards), rewardData.EpochBlockHeight))
 			err := dbTypes.IndexOsmoRewards(idxr.db, idxr.dryRun, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName, rewardData)
 			if err != nil {
 				// Do a single reattempt on failure
