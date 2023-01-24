@@ -61,6 +61,16 @@ func (conf *Config) Validate() error {
 	if conf.Base.RewardEndBlock == 0 {
 		conf.Base.RewardEndBlock = conf.Base.EndBlock
 	}
+	// Check if API is provided, and if so, set default ports if not set
+	if conf.Base.API != "" {
+		if strings.Count(conf.Base.API, ":") != 2 {
+			if strings.HasPrefix(conf.Base.API, "https:") {
+				conf.Base.API = fmt.Sprintf("%s:443", conf.Base.API)
+			} else if strings.HasPrefix(conf.Base.API, "http:") {
+				conf.Base.API = fmt.Sprintf("%s:80", conf.Base.API)
+			}
+		}
+	}
 	// Throttling can safely default to 0
 	// BlockTimer can safely default to 0
 	// WaitForChain can safely default to false
@@ -75,6 +85,15 @@ func (conf *Config) Validate() error {
 	if util.StrNotSet(conf.Lens.RPC) {
 		return errors.New("lens rpc must be set")
 	}
+	// add port if not set
+	if strings.Count(conf.Lens.RPC, ":") != 2 {
+		if strings.HasPrefix(conf.Lens.RPC, "https:") {
+			conf.Lens.RPC = fmt.Sprintf("%s:443", conf.Lens.RPC)
+		} else if strings.HasPrefix(conf.Lens.RPC, "http:") {
+			conf.Lens.RPC = fmt.Sprintf("%s:80", conf.Lens.RPC)
+		}
+	}
+
 	if util.StrNotSet(conf.Lens.AccountPrefix) {
 		return errors.New("lens accountPrefix must be set")
 	}
