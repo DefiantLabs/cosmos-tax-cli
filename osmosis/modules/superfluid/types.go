@@ -5,4 +5,5 @@ const (
 	MsgSuperfluidUndelegate      = "/osmosis.superfluid.MsgSuperfluidUndelegate"
 	MsgSuperfluidUnbondLock      = "/osmosis.superfluid.MsgSuperfluidUnbondLock"
 	MsgLockAndSuperfluidDelegate = "/osmosis.superfluid.MsgLockAndSuperfluidDelegate"
+	MsgUnPoolWhitelistedPool     = "/osmosis.superfluid.MsgUnPoolWhitelistedPool"
 )
