@@ -34,7 +34,7 @@ type Tx struct {
 	Code            uint32
 	BlockID         uint
 	Block           Block
-	SignerAddressID *int // *int allows foreign key to be null
+	SignerAddressID *uint // *int allows foreign key to be null
 	SignerAddress   Address
 	Fees            []Fee
 }

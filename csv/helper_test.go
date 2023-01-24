@@ -194,14 +194,13 @@ func mkMsgType(id uint, msgType string) db.MessageType {
 }
 
 func mkTx(id uint, hash string, code uint32, block db.Block, signerAddr db.Address, fees []db.Fee) db.Tx {
-	signerAddrID := int(signerAddr.ID)
 	return db.Tx{
 		ID:              id,
 		Hash:            hash,
 		Code:            code,
 		BlockID:         block.ID,
 		Block:           block,
-		SignerAddressID: &signerAddrID,
+		SignerAddressID: &signerAddr.ID,
 		SignerAddress:   signerAddr,
 		Fees:            fees,
 	}

@@ -124,58 +124,38 @@ func UpsertFailedBlock(db *gorm.DB, blockHeight int64, chainID string, chainName
 	})
 }
 
-func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []TxDBWrapper, chainID string, chainName string) error {
+func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []TxDBWrapper, dbChainID uint) error {
 	// consider optimizing the transaction, but how? Ordering matters due to foreign key constraints
 	// Order required: Block -> (For each Tx: Signer Address -> Tx -> (For each Message: Message -> Taxable Events))
 	// Also, foreign key relations are struct value based so create needs to be called first to get right foreign key ID
 	return db.Transaction(func(dbTransaction *gorm.DB) error {
-		block := Block{Height: blockHeight, TimeStamp: blockTime, Indexed: true, Chain: Chain{ChainID: chainID, Name: chainName}}
-		if err := dbTransaction.Where(&block.Chain).FirstOrCreate(&block.Chain).Error; err != nil {
-			config.Log.Error("Error getting/creating chain DB object.", err)
-			return err
-		}
-		block.BlockchainID = block.Chain.ID
-
 		// remove from failed blocks if exists
 		if err := dbTransaction.
-			Exec("DELETE FROM failed_blocks WHERE height = ? AND blockchain_id = ?", block.Height, block.BlockchainID).
+			Exec("DELETE FROM failed_blocks WHERE height = ? AND blockchain_id = ?", blockHeight, dbChainID).
 			Error; err != nil {
 			config.Log.Error("Error updating failed block.", err)
 			return err
 		}
 
+		// create block if it doesn't exist
+		blockOnly := Block{Height: blockHeight, TimeStamp: blockTime, Indexed: true, BlockchainID: dbChainID}
 		if err := dbTransaction.
-			Where(Block{Height: block.Height, BlockchainID: block.BlockchainID}).
+			Where(Block{Height: blockHeight, BlockchainID: dbChainID}).
 			Assign(Block{Indexed: true, TimeStamp: blockTime}).
-			FirstOrCreate(&block).Error; err != nil {
+			FirstOrCreate(&blockOnly).Error; err != nil {
 			config.Log.Error("Error getting/creating block DB object.", err)
 			return err
 		}
 
 		for _, transaction := range txs {
-			fees := []Fee{}
-			for _, fee := range transaction.Tx.Fees {
-				if fee.PayerAddress.Address != "" {
-					if err := dbTransaction.Where(Address{Address: fee.PayerAddress.Address}).
-						FirstOrCreate(&fee.PayerAddress).
-						Error; err != nil {
-						config.Log.Error("Error getting/creating fee payer address.", err)
-						return err
-					}
-
-					// creates foreign key relation.
-					fee.PayerAddressID = fee.PayerAddress.ID
-				} else if fee.PayerAddress.Address == "" {
-					return errors.New("fee cannot have empty payer address")
-				}
-
-				if fee.Denomination.Base == "" || fee.Denomination.Symbol == "" {
-					return fmt.Errorf("denom not cached for base %s and symbol %s", fee.Denomination.Base, fee.Denomination.Symbol)
-				}
-
-				fees = append(fees, fee)
+			txOnly := Tx{
+				Hash:            transaction.Tx.Hash,
+				Code:            transaction.Tx.Code,
+				BlockID:         blockOnly.ID,
+				SignerAddressID: nil,
 			}
 
+			// store the signer address if there is one
 			if transaction.SignerAddress.Address != "" {
 				// viewing gorm logs shows this gets translated into a single ON CONFLICT DO NOTHING RETURNING "id"
 				if err := dbTransaction.Where(Address{Address: transaction.SignerAddress.Address}).
@@ -185,19 +165,44 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 					return err
 				}
 				// store created db model in signer address, creates foreign key relation
-				transaction.Tx.SignerAddress = transaction.SignerAddress
-			} else {
-				// store null foreign key relation in signer address id
-				// This should never happen and indicates an error somewhere in parsing
-				// Consider removing?
-				transaction.Tx.SignerAddressID = nil
+				txOnly.SignerAddressID = &transaction.SignerAddress.ID
 			}
 
-			transaction.Tx.Block = block
-			transaction.Tx.Fees = fees
-			if err := dbTransaction.Where(&transaction.Tx).FirstOrCreate(&transaction.Tx).Error; err != nil {
+			// store the TX
+			if err := dbTransaction.Where(Tx{Hash: txOnly.Hash}).FirstOrCreate(&txOnly).Error; err != nil {
 				config.Log.Error("Error creating tx.", err)
 				return err
+			}
+
+			for _, fee := range transaction.Tx.Fees {
+				feeOnly := Fee{
+					TxID:           txOnly.ID,
+					Amount:         fee.Amount,
+					DenominationID: fee.Denomination.ID,
+				}
+				if fee.PayerAddress.Address != "" {
+					if err := dbTransaction.Where(Address{Address: fee.PayerAddress.Address}).
+						FirstOrCreate(&fee.PayerAddress).
+						Error; err != nil {
+						config.Log.Error("Error getting/creating fee payer address.", err)
+						return err
+					}
+
+					// creates foreign key relation.
+					feeOnly.PayerAddressID = fee.PayerAddress.ID
+				} else if fee.PayerAddress.Address == "" {
+					return errors.New("fee cannot have empty payer address")
+				}
+
+				if fee.Denomination.Base == "" || fee.Denomination.Symbol == "" {
+					return fmt.Errorf("denom not cached for base %s and symbol %s", fee.Denomination.Base, fee.Denomination.Symbol)
+				}
+
+				// store the Fee //TODO: make sure the denom ID is correct on this....
+				if err := dbTransaction.Where(Fee{TxID: feeOnly.TxID, DenominationID: feeOnly.DenominationID}).FirstOrCreate(&feeOnly).Error; err != nil {
+					config.Log.Error("Error creating fee.", err)
+					return err
+				}
 			}
 
 			for _, message := range transaction.Messages {
@@ -209,31 +214,33 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 					return err
 				}
 
-				message.Message.Tx = transaction.Tx
-				message.Message.TxID = transaction.Tx.ID
-				message.Message.MessageTypeID = message.Message.MessageType.ID
-				if err := dbTransaction.
-					Where(Message{
-						TxID:          message.Message.TxID,
-						MessageTypeID: message.Message.MessageTypeID,
-						MessageIndex:  message.Message.MessageIndex,
-					}).
-					FirstOrCreate(&message.Message).Error; err != nil {
+				msgOnly := Message{
+					TxID:          txOnly.ID,
+					MessageTypeID: message.Message.MessageType.ID,
+					MessageIndex:  message.Message.MessageIndex,
+				}
+
+				// Store the msg
+				if err := dbTransaction.Where(Message{TxID: msgOnly.TxID, MessageTypeID: msgOnly.MessageTypeID, MessageIndex: msgOnly.MessageIndex}).FirstOrCreate(&msgOnly).Error; err != nil {
 					config.Log.Error("Error creating message.", err)
 					return err
 				}
 
 				for _, taxableTx := range message.TaxableTxs {
+					taxableTxOnly := TaxableTransaction{
+						MessageID:              msgOnly.ID,
+						AmountSent:             taxableTx.TaxableTx.AmountSent,
+						AmountReceived:         taxableTx.TaxableTx.AmountReceived,
+						DenominationSentID:     taxableTx.TaxableTx.DenominationSentID,     // TODO: make sure this is correct
+						DenominationReceivedID: taxableTx.TaxableTx.DenominationReceivedID, // TODO: make sure this is correct
+					}
 					if taxableTx.SenderAddress.Address != "" {
 						if err := dbTransaction.Where(&taxableTx.SenderAddress).FirstOrCreate(&taxableTx.SenderAddress).Error; err != nil {
 							config.Log.Error("Error getting/creating sender address.", err)
 							return err
 						}
 						// store created db model in sender address, creates foreign key relation
-						taxableTx.TaxableTx.SenderAddress = taxableTx.SenderAddress
-					} else {
-						// nil creates null foreign key relation
-						taxableTx.TaxableTx.SenderAddressID = nil
+						taxableTxOnly.SenderAddressID = &taxableTx.SenderAddress.ID
 					}
 
 					if taxableTx.ReceiverAddress.Address != "" {
@@ -242,22 +249,18 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 							return err
 						}
 						// store created db model in receiver address, creates foreign key relation
-						taxableTx.TaxableTx.ReceiverAddress = taxableTx.ReceiverAddress
-					} else {
-						// nil creates null foreign key relation
-						taxableTx.TaxableTx.ReceiverAddressID = nil
+						taxableTxOnly.ReceiverAddressID = &taxableTx.ReceiverAddress.ID
 					}
 
 					// It is possible to have more than 1 taxable TX for a single msg. In most cases it should only be 1 or 2, but
 					// more is possible. Keying off of msg ID and amount may be sufficient....
-					taxableTx.TaxableTx.Message = message.Message
 					if err := dbTransaction.
 						Where(TaxableTransaction{
-							MessageID:      message.Message.ID,
-							AmountSent:     taxableTx.TaxableTx.AmountSent,
-							AmountReceived: taxableTx.TaxableTx.AmountReceived,
+							MessageID:      taxableTxOnly.MessageID,
+							AmountSent:     taxableTxOnly.AmountSent,
+							AmountReceived: taxableTxOnly.AmountReceived,
 						}).
-						FirstOrCreate(&taxableTx.TaxableTx).Error; err != nil {
+						FirstOrCreate(&taxableTxOnly).Error; err != nil {
 						config.Log.Error("Error creating taxable transaction.", err)
 						return err
 					}

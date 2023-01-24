@@ -147,26 +147,27 @@ func index(cmd *cobra.Command, args []string) {
 		close(rewardsDataChan)
 	}
 
+	chain := dbTypes.Chain{
+		ChainID: idxr.cfg.Lens.ChainID,
+		Name:    idxr.cfg.Lens.ChainName,
+	}
+	dbChainID, err := dbTypes.GetDBChainID(idxr.db, chain)
+	if err != nil {
+		config.Log.Fatal("Failed to add/create chain in DB", err)
+	}
+
 	// Start a thread to index the data queried from the chain.
 	if idxr.cfg.Base.ChainIndexingEnabled || idxr.cfg.Base.RewardIndexingEnabled {
 		wg.Add(1)
-		go idxr.doDBUpdates(&wg, txDataChan, rewardsDataChan)
+		go idxr.doDBUpdates(&wg, txDataChan, rewardsDataChan, dbChainID)
 	}
 
 	// Add jobs to the queue to be processed
 	if idxr.cfg.Base.ChainIndexingEnabled {
-		chain := dbTypes.Chain{
-			ChainID: idxr.cfg.Lens.ChainID,
-			Name:    idxr.cfg.Lens.ChainName,
-		}
-		chainID, err := dbTypes.GetDBChainID(idxr.db, chain)
-		if err != nil {
-			config.Log.Fatal("Failed to add/create chain in DB", err)
-		}
 		if reindexMsgType != "" {
-			idxr.enqueueBlocksToProcessByMsgType(blockChan, chainID, reindexMsgType)
+			idxr.enqueueBlocksToProcessByMsgType(blockChan, dbChainID, reindexMsgType)
 		} else {
-			idxr.enqueueBlocksToProcess(blockChan, chainID)
+			idxr.enqueueBlocksToProcess(blockChan, dbChainID)
 		}
 		// close the block chan once all blocks have been written to it
 		close(blockChan)
@@ -498,7 +499,7 @@ type dbData struct {
 // if this is a dry run, we will simply empty the channel and track progress
 // otherwise we will index the data in the DB.
 // it will also read rewars data and index that.
-func (idxr *Indexer) doDBUpdates(wg *sync.WaitGroup, txDataChan chan *dbData, rewardsDataChan chan *osmosis.RewardsInfo) {
+func (idxr *Indexer) doDBUpdates(wg *sync.WaitGroup, txDataChan chan *dbData, rewardsDataChan chan *osmosis.RewardsInfo, dbChainID uint) {
 	blocksProcessed := 0
 	dbWrites := 0
 	dbReattempts := 0
@@ -542,11 +543,11 @@ func (idxr *Indexer) doDBUpdates(wg *sync.WaitGroup, txDataChan chan *dbData, re
 			// Note that this does not turn off certain reads or DB connections.
 			if !idxr.dryRun {
 				config.Log.Info(fmt.Sprintf("Indexing %v TXs from block %d.", len(data.txDBWrappers), data.blockHeight))
-				err := dbTypes.IndexNewBlock(idxr.db, data.blockHeight, data.blockTime, data.txDBWrappers, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
+				err := dbTypes.IndexNewBlock(idxr.db, data.blockHeight, data.blockTime, data.txDBWrappers, dbChainID)
 				if err != nil {
 					// Do a single reattempt on failure
 					dbReattempts++
-					err = dbTypes.IndexNewBlock(idxr.db, data.blockHeight, data.blockTime, data.txDBWrappers, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
+					err = dbTypes.IndexNewBlock(idxr.db, data.blockHeight, data.blockTime, data.txDBWrappers, dbChainID)
 					if err != nil {
 						config.Log.Fatal(fmt.Sprintf("Error indexing block %v.", data.blockHeight), err)
 					}
