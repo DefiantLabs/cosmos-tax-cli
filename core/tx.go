@@ -95,6 +95,7 @@ var messageTypeIgnorer = map[string]interface{}{
 	superfluid.MsgSuperfluidUndelegate:      nil,
 	superfluid.MsgSuperfluidUnbondLock:      nil,
 	superfluid.MsgLockAndSuperfluidDelegate: nil,
+	superfluid.MsgUnPoolWhitelistedPool:     nil,
 
 	///////////////////////////////////////////
 	/////// Taxable Events, future work ///////
