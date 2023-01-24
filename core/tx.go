@@ -67,6 +67,7 @@ var messageTypeIgnorer = map[string]interface{}{
 	ibc.MsgAcknowledgement:       nil,
 	ibc.MsgRecvPacket:            nil,
 	ibc.MsgTimeout:               nil,
+	ibc.MsgTimeoutOnClose:        nil,
 	ibc.MsgCreateClient:          nil,
 	ibc.MsgConnectionOpenTry:     nil,
 	ibc.MsgConnectionOpenConfirm: nil,
