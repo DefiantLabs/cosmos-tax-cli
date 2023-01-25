@@ -127,11 +127,21 @@ you can set `Pretty` to true.
 
 ### Database
 The config options for the database are largely self-explanatory.
-`Host`: The address needed to connect to the DB.
-`Port`: The port needed to connect to the DB.
-`Database`: The name of the database to connect to.
-`User`: The DB username
-`Password`: The password for the DB user.
+
+#### Host
+The address needed to connect to the DB.
+
+#### Port
+The port needed to connect to the DB.
+
+#### Database
+The name of the database to connect to.
+
+#### User
+The DB username
+
+#### Password
+The password for the DB user.
 
 #### LogLevel
 This is a feature built into [gorm](https://gorm.io) to allow for logging of query information. This can be helpful for troubleshooting
@@ -154,6 +164,9 @@ The block height to start indexing at.
 
 #### EndBlock
 The block height to stop indexing at. If set to '-1' indexing will keep running and keep pace with the chain.
+
+#### PreventReattempts
+If true, failed blocks are not reattempted. Defaults to false.
 
 #### Throttling
 The minimum number of seconds per block. Higher number, will be slower. A value of 1 will result in approximately
