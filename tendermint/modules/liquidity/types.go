@@ -1,4 +1,4 @@
-package tendermint
+package liquidity
 
 const (
 	MsgCreatePool          = "/tendermint.liquidity.v1beta1.MsgCreatePool"

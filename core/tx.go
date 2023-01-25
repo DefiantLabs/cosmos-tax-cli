@@ -23,7 +23,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/incentives"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/lockup"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/superfluid"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/tendermint/modules/tendermint"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/tendermint/modules/liquidity"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
@@ -101,10 +101,10 @@ var messageTypeIgnorer = map[string]interface{}{
 	/////// Taxable Events, future work ///////
 	///////////////////////////////////////////
 	// We do not currently support the tendermint liquidity pool module
-	tendermint.MsgCreatePool:          nil,
-	tendermint.MsgDepositWithinBatch:  nil,
-	tendermint.MsgWithdrawWithinBatch: nil,
-	tendermint.MsgSwapWithinBatch:     nil,
+	liquidity.MsgCreatePool:          nil,
+	liquidity.MsgDepositWithinBatch:  nil,
+	liquidity.MsgWithdrawWithinBatch: nil,
+	liquidity.MsgSwapWithinBatch:     nil,
 }
 
 // Merge the chain specific message type handlers into the core message type handler map
