@@ -211,3 +211,126 @@ The ID of the chain being indexed
 
 #### ChainName
 The name of the chain being indexed
+
+
+## Supported message types
+When indexing the chain, we need to parse individual messages in order to determine their significance.
+Some messages (transfers for example) have tax implication, whereas other (bonding/unbonding funds) do not.
+While we are constantly adding to our list of supported messages, we do not currently support every possible
+message on every chain.
+
+To view the always up-to-date complete list of supported messages, please consult the code [here](https://github.com/DefiantLabs/cosmos-tax-cli-private/blob/main/core/tx.go)
+
+Here is a list of what we support at the time of this writing.
+
+### Cosmos Modules
+#### Authz
+```go
+	MsgExec   = "/cosmos.authz.v1beta1.MsgExec"
+	MsgGrant  = "/cosmos.authz.v1beta1.MsgGrant"
+	MsgRevoke = "/cosmos.authz.v1beta1.MsgRevoke"
+```
+
+#### Bank
+```go
+	MsgSendV0 = "MsgSend"
+	MsgSend   = "/cosmos.bank.v1beta1.MsgSend"
+	MsgMultiSendV0 = "MsgMultiSend"
+	MsgMultiSend   = "/cosmos.bank.v1beta1.MsgMultiSend"
+```
+
+#### Distribution
+```go
+	MsgFundCommunityPool           = "/cosmos.distribution.v1beta1.MsgFundCommunityPool"
+	MsgWithdrawValidatorCommission = "/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission"
+	MsgWithdrawDelegatorReward     = "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward"
+	MsgWithdrawRewards             = "withdraw-rewards"
+	MsgSetWithdrawAddress          = "/cosmos.distribution.v1beta1.MsgSetWithdrawAddress"
+```
+
+#### Gov
+```go
+	MsgVote           = "/cosmos.gov.v1beta1.MsgVote"
+	MsgDeposit        = "/cosmos.gov.v1beta1.MsgDeposit"        // handle additional deposits to the given proposal
+	MsgSubmitProposal = "/cosmos.gov.v1beta1.MsgSubmitProposal" // handle the initial deposit for the proposer
+	MsgVoteWeighted   = "/cosmos.gov.v1beta1.MsgVoteWeighted"
+```
+
+#### IBC
+```go
+	MsgTransfer = "/ibc.applications.transfer.v1.MsgTransfer"
+	MsgAcknowledgement    = "/ibc.core.channel.v1.MsgAcknowledgement"
+	MsgChannelOpenTry     = "/ibc.core.channel.v1.MsgChannelOpenTry"
+	MsgChannelOpenConfirm = "/ibc.core.channel.v1.MsgChannelOpenConfirm"
+	MsgChannelOpenInit    = "/ibc.core.channel.v1.MsgChannelOpenInit"
+	MsgChannelOpenAck     = "/ibc.core.channel.v1.MsgChannelOpenAck"
+	MsgRecvPacket         = "/ibc.core.channel.v1.MsgRecvPacket"
+	MsgTimeout            = "/ibc.core.channel.v1.MsgTimeout"
+	MsgTimeoutOnClose     = "/ibc.core.channel.v1.MsgTimeoutOnClose"
+	MsgConnectionOpenTry     = "/ibc.core.connection.v1.MsgConnectionOpenTry"
+	MsgConnectionOpenConfirm = "/ibc.core.connection.v1.MsgConnectionOpenConfirm"
+	MsgConnectionOpenInit    = "/ibc.core.connection.v1.MsgConnectionOpenInit"
+	MsgConnectionOpenAck     = "/ibc.core.connection.v1.MsgConnectionOpenAck"
+	MsgCreateClient = "/ibc.core.client.v1.MsgCreateClient"
+	MsgUpdateClient = "/ibc.core.client.v1.MsgUpdateClient"
+```
+
+#### Slashing
+```go
+	MsgUnjail       = "/cosmos.slashing.v1beta1.MsgUnjail"
+	MsgUpdateParams = "/cosmos.slashing.v1beta1.MsgUpdateParams"
+```
+
+#### Staking
+```go
+	MsgDelegate        = "/cosmos.staking.v1beta1.MsgDelegate"
+	MsgUndelegate      = "/cosmos.staking.v1beta1.MsgUndelegate"
+	MsgBeginRedelegate = "/cosmos.staking.v1beta1.MsgBeginRedelegate"
+	MsgCreateValidator = "/cosmos.staking.v1beta1.MsgCreateValidator"
+	MsgEditValidator   = "/cosmos.staking.v1beta1.MsgEditValidator"
+```
+
+### Osmosis Modules
+#### Gamm
+```go
+	MsgSwapExactAmountIn       = "/osmosis.gamm.v1beta1.MsgSwapExactAmountIn"
+	MsgSwapExactAmountOut      = "/osmosis.gamm.v1beta1.MsgSwapExactAmountOut"
+	MsgJoinSwapExternAmountIn  = "/osmosis.gamm.v1beta1.MsgJoinSwapExternAmountIn"
+	MsgJoinSwapShareAmountOut  = "/osmosis.gamm.v1beta1.MsgJoinSwapShareAmountOut"
+	MsgJoinPool                = "/osmosis.gamm.v1beta1.MsgJoinPool"
+	MsgExitSwapShareAmountIn   = "/osmosis.gamm.v1beta1.MsgExitSwapShareAmountIn"
+	MsgExitSwapExternAmountOut = "/osmosis.gamm.v1beta1.MsgExitSwapExternAmountOut"
+	MsgExitPool                = "/osmosis.gamm.v1beta1.MsgExitPool"
+```
+
+#### Incentives
+```go
+	MsgCreateGauge = "/osmosis.incentives.MsgCreateGauge"
+	MsgAddToGauge  = "/osmosis.incentives.MsgAddToGauge"
+
+```
+
+#### Lockup
+```go
+	MsgBeginUnlocking    = "/osmosis.lockup.MsgBeginUnlocking"
+	MsgLockTokens        = "/osmosis.lockup.MsgLockTokens"
+	MsgBeginUnlockingAll = "/osmosis.lockup.MsgBeginUnlockingAll"
+```
+
+#### Superfluid
+```go
+	MsgSuperfluidDelegate        = "/osmosis.superfluid.MsgSuperfluidDelegate"
+	MsgSuperfluidUndelegate      = "/osmosis.superfluid.MsgSuperfluidUndelegate"
+	MsgSuperfluidUnbondLock      = "/osmosis.superfluid.MsgSuperfluidUnbondLock"
+	MsgLockAndSuperfluidDelegate = "/osmosis.superfluid.MsgLockAndSuperfluidDelegate"
+	MsgUnPoolWhitelistedPool     = "/osmosis.superfluid.MsgUnPoolWhitelistedPool"
+```
+
+### Tendermint Modules
+#### Liquidity
+```go
+	MsgCreatePool          = "/tendermint.liquidity.v1beta1.MsgCreatePool"
+	MsgDepositWithinBatch  = "/tendermint.liquidity.v1beta1.MsgDepositWithinBatch"
+	MsgWithdrawWithinBatch = "/tendermint.liquidity.v1beta1.MsgWithdrawWithinBatch"
+	MsgSwapWithinBatch     = "/tendermint.liquidity.v1beta1.MsgSwapWithinBatch"
+```
