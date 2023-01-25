@@ -58,6 +58,7 @@ func init() {
 	rootCmd.PersistentFlags().Float64Var(&conf.Base.Throttling, "base.throttling", 0.5, "throttle delay")
 	rootCmd.PersistentFlags().Int64Var(&conf.Base.RPCWorkers, "base.rpcworkers", 1, "rpc workers")
 	rootCmd.PersistentFlags().BoolVar(&conf.Base.WaitForChain, "base.waitforchain", false, "wait for chain to be in sync?")
+	rootCmd.PersistentFlags().Int64Var(&conf.Base.WaitForChainDelay, "base.waitforchaindelay", 10, "seconds to wait between each check for node to catch up to the chain")
 
 	// Lens
 	rootCmd.PersistentFlags().StringVar(&conf.Lens.RPC, "lens.rpc", "", "node rpc endpoint")

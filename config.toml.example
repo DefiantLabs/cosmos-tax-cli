@@ -22,6 +22,8 @@ RewardsEndBlock = 0 # stop indexing at this block, -1 to never stop indexing (if
 Dry = false # if true, indexing will occur but data will not be written to the database.
 createCSVFile = true # if false, the csv created by the query will be sent to std out instead of a file.
 CSVFile = "output.csv" # the name of the csv files to create when querying transactions.
+api = ""
+rpcworkers = 1
 
 #Lens config options
 [lens]
