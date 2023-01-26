@@ -58,32 +58,36 @@ Flags:
       --re-index-message-type string   If specified, the indexer will reindex only the blocks containing the message type provided.
 
 Global Flags:
-      --base.api string             node api endpoint
-      --base.dry                    index the chain but don't insert data in the DB.
-      --base.endBlock int           block to stop indexing at (use -1 to index indefinitely (default -1)
-      --base.index                  enable indexing? (default true)
-      --base.indexRewards           enable osmosis reward indexing? (default true)
-      --base.preventReattempts      prevent reattempts of failed blocks.
-      --base.rewardEndBlock int     block to stop indexing rewards at (use -1 to index indefinitely
-      --base.rewardStartBlock int   block to start indexing rewards at
-      --base.rpcworkers int         rpc workers (default 1)
-      --base.startBlock int         block to start indexing at (use -1 to resume from highest block indexed)
-      --base.throttling float       throttle delay (default 0.5)
-      --base.waitforchain           wait for chain to be in sync?
-      --config string               config file (default is $HOME/.cosmos-tax-cli-private/config.yaml)
-      --db.database string          database name
-      --db.host string              database host
-      --db.loglevel string          database loglevel
-      --db.password string          database password
-      --db.port string              database port (default "5432")
-      --db.user string              database user
-      --lens.accountPrefix string   lens account prefix
-      --lens.chainID string         lens chain ID
-      --lens.chainName string       lens chain name
-      --lens.rpc string             node rpc endpoint
-      --log.level string            log level (default "info")
-      --log.path string             log path (default is $HOME/.cosmos-tax-cli-private/logs.txt
-      --log.pretty                  pretty logs
+      --base.api string                 node api endpoint
+      --base.block-timer int            print out how long it takes to process this many blocks (default 10000)
+      --base.dry                        index the chain but don't insert data in the DB.
+      --base.end-block int              block to stop indexing at (use -1 to index indefinitely (default -1)
+      --base.exit-when-caught-up        mainly used for Osmosis rewards indexing (default true)
+      --base.index-chain                enable chain indexing? (default true)
+      --base.index-rewards              enable osmosis reward indexing? (default true)
+      --base.prevent-reattempts         prevent reattempts of failed blocks.
+      --base.reindex                    if true, this will re-attempt to index blocks we have already indexed (defaults to false)
+      --base.rewards-end-block int      block to stop indexing rewards at (use -1 to index indefinitely
+      --base.rewards-start-block int    block to start indexing rewards at
+      --base.rpc-workers int            rpc workers (default 1)
+      --base.start-block int            block to start indexing at (use -1 to resume from highest block indexed)
+      --base.throttling float           throttle delay (default 0.5)
+      --base.wait-for-chain             wait for chain to be in sync?
+      --base.wait-for-chain-delay int   seconds to wait between each check for node to catch up to the chain (default 10)
+      --config string                   config file (default is $HOME/.cosmos-tax-cli-private/config.yaml)
+      --database.database string        database name
+      --database.host string            database host
+      --database.log-level string       database loglevel
+      --database.password string        database password
+      --database.port string            database port (default "5432")
+      --database.user string            database user
+      --lens.account-prefix string      lens account prefix
+      --lens.chain-id string            lens chain ID
+      --lens.chain-name string          lens chain name
+      --lens.rpc string                 node rpc endpoint
+      --log.level string                log level (default "info")
+      --log.path string                 log path (default is $HOME/.cosmos-tax-cli-private/logs.txt
+      --log.pretty                      pretty logs
 
 ```
 
@@ -165,6 +169,9 @@ The block height to start indexing at.
 #### end-block
 The block height to stop indexing at. If set to '-1' indexing will keep running and keep pace with the chain.
 
+#### reindex
+If true, this will re-attempt to index blocks we have already indexed (defaults to false)
+
 #### prevent-reattempts
 If true, failed blocks are not reattempted. Defaults to false.
 
@@ -194,10 +201,10 @@ When true, the indexer will exit when it catches up the the RPC server's latest_
 #### index-rewards
 If true, the indexer will attempt to index osmosis rewards.
 
-#### reward-start-block
+#### rewards-start-block
 The block height to start indexing rewards. (will default to start block if not set)
 
-#### reward-end-block
+#### rewards-end-block
 The block height to stop indexing rewards. (will default to end block if not set)
 
 #### dry
