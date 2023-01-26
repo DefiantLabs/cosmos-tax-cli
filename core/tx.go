@@ -17,6 +17,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/staking"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
 	txTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/vesting"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmwasm/modules/wasm"
 	dbTypes "github.com/DefiantLabs/cosmos-tax-cli-private/db"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
@@ -97,6 +98,8 @@ var messageTypeIgnorer = map[string]interface{}{
 	superfluid.MsgSuperfluidUnbondLock:      nil,
 	superfluid.MsgLockAndSuperfluidDelegate: nil,
 	superfluid.MsgUnPoolWhitelistedPool:     nil,
+	// Create account is not taxable
+	vesting.MsgCreateVestingAccount: nil,
 
 	///////////////////////////////////////////
 	/////// Taxable Events, future work ///////
