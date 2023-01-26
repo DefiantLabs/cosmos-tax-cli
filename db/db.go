@@ -124,6 +124,8 @@ func UpsertFailedBlock(db *gorm.DB, blockHeight int64, chainID string, chainName
 	})
 }
 
+var maxAddrLen = 100
+
 func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []TxDBWrapper, dbChainID uint) error {
 	// consider optimizing the transaction, but how? Ordering matters due to foreign key constraints
 	// Order required: Block -> (For each Tx: Signer Address -> Tx -> (For each Message: Message -> Taxable Events))
@@ -227,6 +229,9 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 				}
 
 				for _, taxableTx := range message.TaxableTxs {
+					if len(taxableTx.SenderAddress.Address) > maxAddrLen || len(taxableTx.ReceiverAddress.Address) > maxAddrLen {
+						continue
+					}
 					taxableTxOnly := TaxableTransaction{
 						MessageID:      msgOnly.ID,
 						AmountSent:     taxableTx.TaxableTx.AmountSent,
@@ -249,7 +254,7 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 
 					if taxableTx.ReceiverAddress.Address != "" {
 						if err := dbTransaction.Where(&taxableTx.ReceiverAddress).FirstOrCreate(&taxableTx.ReceiverAddress).Error; err != nil {
-							config.Log.Error("Error getting/creating receiver address.", err)
+							config.Log.Errorf("Error getting/creating receiver address for msg %v of tx hash %v. Err: %v", message.Message.MessageIndex, txOnly.Hash, err)
 							return err
 						}
 						// store created db model in receiver address, creates foreign key relation

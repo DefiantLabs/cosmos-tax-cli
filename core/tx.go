@@ -15,9 +15,10 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/ibc"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/slashing"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/staking"
-	tx "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
 	txTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/vesting"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmwasm/modules/wasm"
 	dbTypes "github.com/DefiantLabs/cosmos-tax-cli-private/db"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/gamm"
@@ -108,6 +109,8 @@ var messageTypeIgnorer = map[string]interface{}{
 	liquidity.MsgDepositWithinBatch:  nil,
 	liquidity.MsgWithdrawWithinBatch: nil,
 	liquidity.MsgSwapWithinBatch:     nil,
+	// CosmWasm
+	wasm.MsgExecuteContract: nil,
 }
 
 // Merge the chain specific message type handlers into the core message type handler map

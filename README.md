@@ -346,3 +346,9 @@ Here is a list of what we support at the time of this writing.
 	MsgWithdrawWithinBatch = "/tendermint.liquidity.v1beta1.MsgWithdrawWithinBatch"
 	MsgSwapWithinBatch     = "/tendermint.liquidity.v1beta1.MsgSwapWithinBatch"
 ```
+
+### CosmWasm Modules
+#### Wasm
+```go
+    MsgExecuteContract = "/cosmwasm.wasm.v1.MsgExecuteContract"
+```
