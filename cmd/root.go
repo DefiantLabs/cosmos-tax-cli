@@ -144,7 +144,10 @@ func bindFlags(cmd *cobra.Command, v *viper.Viper) {
 		if !f.Changed && v.IsSet(configName) {
 			val := v.Get(configName)
 			err := cmd.Flags().Set(f.Name, fmt.Sprintf("%v", val))
-			log.Fatalf("Failed to bind config file value %v. Err: %v", configName, err)
+
+			if err != nil {
+				log.Fatalf("Failed to bind config file value %v. Err: %v", configName, err)
+			}
 		}
 	})
 }
