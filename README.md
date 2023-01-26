@@ -180,16 +180,16 @@ to the indexer.
 The indexer will track how long it takes ot process this number of blocks.
 
 #### wait-for-chain
-// TODO: add details but also improve code behaior here.
+// When true, the indexer will not start until the defined RPC server's catching up status is false.
 
 #### wait-for-chain-delay
-// TODO: add details but also improve code behaior here.
+// Seconds to wait between each check for node to catch up to the chain.
 
 #### index-chain
 If false, the indexer won't actually index the chain. This may be desirable if your goal is only to index rewards.
 
 #### exit-when-caught-up
-// TODO: add details but also improve code behaior here.
+// When true, the indexer will exit when it catches up the the RPC server's latest_block_height
 
 #### index-rewards
 If true, the indexer will attempt to index osmosis rewards.
