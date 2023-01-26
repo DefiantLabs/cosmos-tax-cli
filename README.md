@@ -297,6 +297,11 @@ Here is a list of what we support at the time of this writing.
 	MsgEditValidator   = "/cosmos.staking.v1beta1.MsgEditValidator"
 ```
 
+#### Vesting
+```go
+	MsgCreateVestingAccount = "/cosmos.vesting.v1beta1.MsgCreateVestingAccount"
+```
+
 ### Osmosis Modules
 #### Gamm
 ```go
