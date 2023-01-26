@@ -10,6 +10,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"github.com/go-co-op/gocron"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
 
@@ -44,41 +45,45 @@ func init() {
 
 	// Base
 	// chain indexing
-	rootCmd.PersistentFlags().BoolVar(&conf.Base.ChainIndexingEnabled, "base.indexChain", true, "enable chain indexing?")
-	rootCmd.PersistentFlags().Int64Var(&conf.Base.StartBlock, "base.startBlock", 0, "block to start indexing at (use -1 to resume from highest block indexed)")
-	rootCmd.PersistentFlags().Int64Var(&conf.Base.EndBlock, "base.endBlock", -1, "block to stop indexing at (use -1 to index indefinitely")
-	rootCmd.PersistentFlags().BoolVar(&conf.Base.PreventReattempts, "base.preventReattempts", false, "prevent reattempts of failed blocks.")
+	rootCmd.PersistentFlags().BoolVar(&conf.Base.ChainIndexingEnabled, "base.index-chain", true, "enable chain indexing?")
+	rootCmd.PersistentFlags().Int64Var(&conf.Base.StartBlock, "base.start-block", 0, "block to start indexing at (use -1 to resume from highest block indexed)")
+	rootCmd.PersistentFlags().Int64Var(&conf.Base.EndBlock, "base.end-block", -1, "block to stop indexing at (use -1 to index indefinitely")
+	rootCmd.PersistentFlags().BoolVar(&conf.Base.ReIndex, "base.reindex", false, "if true, this will re-attempt to index blocks we have already indexed (defaults to false)")
+	rootCmd.PersistentFlags().BoolVar(&conf.Base.PreventReattempts, "base.prevent-reattempts", false, "prevent reattempts of failed blocks.")
 	// reward indexing
-	rootCmd.PersistentFlags().BoolVar(&conf.Base.RewardIndexingEnabled, "base.indexRewards", true, "enable osmosis reward indexing?")
-	rootCmd.PersistentFlags().Int64Var(&conf.Base.RewardStartBlock, "base.rewardStartBlock", 0, "block to start indexing rewards at")
-	rootCmd.PersistentFlags().Int64Var(&conf.Base.RewardEndBlock, "base.rewardEndBlock", 0, "block to stop indexing rewards at (use -1 to index indefinitely")
+	rootCmd.PersistentFlags().BoolVar(&conf.Base.RewardIndexingEnabled, "base.index-rewards", true, "enable osmosis reward indexing?")
+	rootCmd.PersistentFlags().Int64Var(&conf.Base.RewardStartBlock, "base.rewards-start-block", 0, "block to start indexing rewards at")
+	rootCmd.PersistentFlags().Int64Var(&conf.Base.RewardEndBlock, "base.rewards-end-block", 0, "block to stop indexing rewards at (use -1 to index indefinitely")
 	// other base setting
 	rootCmd.PersistentFlags().BoolVar(&conf.Base.Dry, "base.dry", false, "index the chain but don't insert data in the DB.")
 	rootCmd.PersistentFlags().StringVar(&conf.Base.API, "base.api", "", "node api endpoint")
 	rootCmd.PersistentFlags().Float64Var(&conf.Base.Throttling, "base.throttling", 0.5, "throttle delay")
-	rootCmd.PersistentFlags().Int64Var(&conf.Base.RPCWorkers, "base.rpcworkers", 1, "rpc workers")
-	rootCmd.PersistentFlags().BoolVar(&conf.Base.WaitForChain, "base.waitforchain", false, "wait for chain to be in sync?")
-	rootCmd.PersistentFlags().Int64Var(&conf.Base.WaitForChainDelay, "base.waitforchaindelay", 10, "seconds to wait between each check for node to catch up to the chain")
+	rootCmd.PersistentFlags().Int64Var(&conf.Base.RPCWorkers, "base.rpc-workers", 1, "rpc workers")
+	rootCmd.PersistentFlags().BoolVar(&conf.Base.WaitForChain, "base.wait-for-chain", false, "wait for chain to be in sync?")
+	rootCmd.PersistentFlags().Int64Var(&conf.Base.WaitForChainDelay, "base.wait-for-chain-delay", 10, "seconds to wait between each check for node to catch up to the chain")
+	rootCmd.PersistentFlags().Int64Var(&conf.Base.BlockTimer, "base.block-timer", 10000, "print out how long it takes to process this many blocks")
+	rootCmd.PersistentFlags().BoolVar(&conf.Base.ExitWhenCaughtUp, "base.exit-when-caught-up", true, "mainly used for Osmosis rewards indexing")
 
 	// Lens
 	rootCmd.PersistentFlags().StringVar(&conf.Lens.RPC, "lens.rpc", "", "node rpc endpoint")
-	rootCmd.PersistentFlags().StringVar(&conf.Lens.AccountPrefix, "lens.accountPrefix", "", "lens account prefix")
-	rootCmd.PersistentFlags().StringVar(&conf.Lens.ChainID, "lens.chainID", "", "lens chain ID")
-	rootCmd.PersistentFlags().StringVar(&conf.Lens.ChainName, "lens.chainName", "", "lens chain name")
+	rootCmd.PersistentFlags().StringVar(&conf.Lens.AccountPrefix, "lens.account-prefix", "", "lens account prefix")
+	rootCmd.PersistentFlags().StringVar(&conf.Lens.ChainID, "lens.chain-id", "", "lens chain ID")
+	rootCmd.PersistentFlags().StringVar(&conf.Lens.ChainName, "lens.chain-name", "", "lens chain name")
 
 	// Database
-	rootCmd.PersistentFlags().StringVar(&conf.Database.Host, "db.host", "", "database host")
-	rootCmd.PersistentFlags().StringVar(&conf.Database.Port, "db.port", "5432", "database port")
-	rootCmd.PersistentFlags().StringVar(&conf.Database.Database, "db.database", "", "database name")
-	rootCmd.PersistentFlags().StringVar(&conf.Database.User, "db.user", "", "database user")
-	rootCmd.PersistentFlags().StringVar(&conf.Database.Password, "db.password", "", "database password")
-	rootCmd.PersistentFlags().StringVar(&conf.Database.LogLevel, "db.loglevel", "", "database loglevel")
+	rootCmd.PersistentFlags().StringVar(&conf.Database.Host, "database.host", "", "database host")
+	rootCmd.PersistentFlags().StringVar(&conf.Database.Port, "database.port", "5432", "database port")
+	rootCmd.PersistentFlags().StringVar(&conf.Database.Database, "database.database", "", "database name")
+	rootCmd.PersistentFlags().StringVar(&conf.Database.User, "database.user", "", "database user")
+	rootCmd.PersistentFlags().StringVar(&conf.Database.Password, "database.password", "", "database password")
+	rootCmd.PersistentFlags().StringVar(&conf.Database.LogLevel, "database.log-level", "", "database loglevel")
 }
 
 func initConfig() {
+	v := viper.New()
 	if cfgFile != "" {
-		viper.SetConfigFile(cfgFile)
-		viper.SetConfigType("toml")
+		v.SetConfigFile(cfgFile)
+		v.SetConfigType("toml")
 	} else {
 		// Check in current working dir
 		pwd, err := os.Getwd()
@@ -96,14 +101,14 @@ func initConfig() {
 			}
 			cfgFile = fmt.Sprintf("%s/.cosmos-tax-cli-private", home)
 		}
-		viper.AddConfigPath(cfgFile)
-		viper.SetConfigType("toml")
-		viper.SetConfigName("config")
+		v.AddConfigPath(cfgFile)
+		v.SetConfigType("toml")
+		v.SetConfigName("config")
 	}
 
 	// Load defaults into a file at $HOME?
 	var noConfig bool
-	err := viper.ReadInConfig()
+	err := v.ReadInConfig()
 	if err != nil {
 		if strings.Contains(err.Error(), "Config File \"config\" Not Found") {
 			noConfig = true
@@ -112,18 +117,15 @@ func initConfig() {
 		}
 	}
 
-	ignoredKeys := config.CheckSuperfluousConfigKeys(viper.AllKeys())
+	ignoredKeys := config.CheckSuperfluousConfigKeys(v.AllKeys())
 	if len(ignoredKeys) > 0 {
 		config.Log.Warnf("Warning, the following invalid keys will be ignored: %v", ignoredKeys)
 	}
 
 	if !noConfig {
 		log.Println("CFG successfully read from: ", cfgFile)
-		// Unmarshal the config into struct
-		err = viper.Unmarshal(&conf)
-		if err != nil {
-			log.Fatalf("Failed to unmarshal config. Err: %v", err)
-		}
+		// Merge config file settings with the command line options.
+		bindFlags(rootCmd, v)
 	}
 
 	// Validate config
@@ -131,6 +133,20 @@ func initConfig() {
 	if err != nil {
 		log.Fatalf("Failed to validate config. Err: %v", err)
 	}
+}
+
+// Set config vars from cpnfig file not already specified on command line.
+func bindFlags(cmd *cobra.Command, v *viper.Viper) {
+	cmd.Flags().VisitAll(func(f *pflag.Flag) {
+		configName := f.Name
+
+		// Apply the viper config value to the flag when the flag is not set and viper has a value
+		if !f.Changed && v.IsSet(configName) {
+			val := v.Get(configName)
+			err := cmd.Flags().Set(f.Name, fmt.Sprintf("%v", val))
+			log.Fatalf("Failed to bind config file value %v. Err: %v", configName, err)
+		}
+	})
 }
 
 // Separate the DB logic, scheduler logic, and blockchain logic into different functions.

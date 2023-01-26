@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"log"
-	"os"
 	"strings"
 	"time"
 
@@ -38,7 +37,7 @@ var queryCmd = &cobra.Command{
 			config.Log.Fatal(fmt.Sprintf("Invalid format %s, valid formats are %s", format, parsers))
 		}
 
-		cfg, _, db, _, err := setup(conf)
+		_, _, db, _, err := setup(conf)
 		if err != nil {
 			config.Log.Fatal("Error setting up query", err)
 		}
@@ -79,22 +78,7 @@ var queryCmd = &cobra.Command{
 		}
 
 		buffer := csv.ToCsv(csvRows, headers)
-
-		if strings.ToLower(createCSVFile) == "false" || (!cfg.Base.CreateCSVFile && strings.ToLower(createCSVFile) != "true") {
-			fmt.Println(buffer.String())
-		} else {
-			output := "./output.csv"
-			if cfg.Base.CSVFile != "" {
-				output = cfg.Base.CSVFile
-			}
-			if csvFile != "" {
-				output = csvFile
-			}
-			err = os.WriteFile(output, buffer.Bytes(), 0600)
-			if err != nil {
-				config.Log.Fatal("Error writing out CSV", err)
-			}
-		}
+		fmt.Println(buffer.String())
 	},
 }
 
@@ -107,12 +91,10 @@ func throwValidationErr(cmd *cobra.Command, cause string) {
 }
 
 var (
-	addresses     []string // flag storage for the addresses to query on
-	createCSVFile string
-	csvFile       string // flag storage for the output file location
-	format        string // flag storage for the output format
-	startDateStr  string
-	endDateStr    string
+	addresses    []string // flag storage for the addresses to query on
+	format       string   // flag storage for the output format
+	startDateStr string
+	endDateStr   string
 )
 
 func init() {
@@ -127,8 +109,6 @@ func init() {
 		config.Log.Fatal("Error marking address field as required during query init. Err: ", err)
 	}
 
-	queryCmd.Flags().StringVar(&createCSVFile, "create-csv-file", "", "Will output the results to standard out if set to 'false'")
-	queryCmd.Flags().StringVar(&csvFile, "csv-file", "", "The name of the CSV file to create (defaults to 'output.csv')")
 	queryCmd.Flags().StringVar(&format, "format", validFormats[0], "The format to output")
 
 	// date range

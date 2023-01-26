@@ -6,31 +6,29 @@ pretty = true
 
 #App configuration values
 [base]
-startblock = 1 # start indexing at beginning of the blockchain, -1 to resume from highest block indexed
-endblock = 100 # stop indexing at this block, -1 to never stop indexing
+start-block = 1 # start indexing at beginning of the blockchain, -1 to resume from highest block indexed
+end-block = 100 # stop indexing at this block, -1 to never stop indexing
 reindex = false # if true, this will re-attempt to index blocks we have already indexed (defaults to false)
-preventReattempts = false # if true, this will prevent us from re-attempting to index failed blocks (defaults to false)
+prevent-reattempts = false # if true, this will prevent us from re-attempting to index failed blocks (defaults to false)
 throttling = 0
-blockTimer = 10000 #print out how long it takes to process this many blocks
-waitForChain = false #if true, indexer will start when the node is caught up to the blockchain
-waitForChainDelay = 10 #seconds to wait between each check for node to catch up to the chain
-ChainIndexingEnabled = true #If false, we won't attempt to index the chain
-exitWhenCaughtUp = true #mainly used for Osmosis rewards indexing
-RewardIndexingEnabled = false #don't index Osmosis rewards, do not start other threads or processes. leave false on any chain except osmosis.
-RewardsStartBlock = 0 # start indexing rewards at beginning of the blockchain (if blank, if not set, it will just use startblock)
-RewardsEndBlock = 0 # stop indexing at this block, -1 to never stop indexing (if blank, if not set, it will just use endblock)
-Dry = false # if true, indexing will occur but data will not be written to the database.
-createCSVFile = true # if false, the csv created by the query will be sent to std out instead of a file.
-CSVFile = "output.csv" # the name of the csv files to create when querying transactions.
-api = ""
-rpcworkers = 1
+block-timer = 10000 #print out how long it takes to process this many blocks
+wait-for-chain = false #if true, indexer will start when the node is caught up to the blockchain
+wait-for-chain-delay = 10 #seconds to wait between each check for node to catch up to the chain
+index-chain = true #If false, we won't attempt to index the chain
+exit-when-caught-up = true #mainly used for Osmosis rewards indexing
+index-rewards = false #don't index Osmosis rewards, do not start other threads or processes. leave false on any chain except osmosis.
+rewards-start-block = 0 # start indexing rewards at beginning of the blockchain (if blank, if not set, it will just use startblock)
+rewards-end-block = 0 # stop indexing at this block, -1 to never stop indexing (if blank, if not set, it will just use endblock)
+dry = false # if true, indexing will occur but data will not be written to the database.
+api = "" # node api endpoint
+rpc-workers = 1
 
 #Lens config options
 [lens]
 rpc = "https://rpc.kujira.ccvalidators.com:443" #On Kujira use one of the endpoints from the list https://github.com/Team-Kujira/networks/tree/master/mainnet
-accountPrefix = "kujira"
-chainID = "kaiyo-1"
-chainName = "Kujira"
+account-prefix = "kujira"
+chain-id = "kaiyo-1"
+chain-name = "Kujira"
 
 #postgresql
 [database]
@@ -39,6 +37,6 @@ port = "5432"
 database = "taxappdb"
 user = "taxapp"
 password = "taxapptest"
-logLevel = "error"
+log-level = "error"
 
 [logger]

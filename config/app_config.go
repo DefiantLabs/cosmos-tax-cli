@@ -31,7 +31,7 @@ func (conf *Config) Validate() error {
 		return errors.New("database port must be set")
 	}
 	if util.StrNotSet(conf.Database.Database) {
-		return errors.New("database name (i.e. Database) must be set")
+		return errors.New("database name (i.e. database) must be set")
 	}
 	if util.StrNotSet(conf.Database.User) {
 		return errors.New("database user must be set")
@@ -42,17 +42,17 @@ func (conf *Config) Validate() error {
 
 	// Base Checks
 	if conf.Base.StartBlock == 0 {
-		return errors.New("base startblock must be set")
+		return errors.New("base start-block must be set")
 	}
 	if conf.Base.EndBlock == 0 {
-		return errors.New("base endblock must be set")
+		return errors.New("base end-block must be set")
 	}
 	// If rewards indexes are not valid, error
 	if conf.Base.RewardStartBlock < 0 {
-		return errors.New("rewards startblock must be valid")
+		return errors.New("rewards-start-block must be valid")
 	}
 	if conf.Base.RewardEndBlock < -1 {
-		return errors.New("rewards endblock must be valid")
+		return errors.New("rewards-end-block must be valid")
 	}
 	// If rewards indexs are not set, use base start/end
 	if conf.Base.RewardStartBlock == 0 {
@@ -95,13 +95,13 @@ func (conf *Config) Validate() error {
 	}
 
 	if util.StrNotSet(conf.Lens.AccountPrefix) {
-		return errors.New("lens accountPrefix must be set")
+		return errors.New("lens account-prefix must be set")
 	}
 	if util.StrNotSet(conf.Lens.ChainID) {
-		return errors.New("lens chainID must be set")
+		return errors.New("lens chain-id must be set")
 	}
 	if util.StrNotSet(conf.Lens.ChainName) {
-		return errors.New("lens chainName must be set")
+		return errors.New("lens chain-name must be set")
 	}
 
 	return nil
@@ -135,14 +135,14 @@ type database struct {
 	Database string
 	User     string
 	Password string
-	LogLevel string
+	LogLevel string `mapstructure:"log-level"`
 }
 
 type lens struct {
 	RPC           string
-	AccountPrefix string
-	ChainID       string
-	ChainName     string
+	AccountPrefix string `mapstructure:"account-prefix"`
+	ChainID       string `mapstructure:"chain-id"`
+	ChainName     string `mapstructure:"chain-name"`
 }
 
 type api struct {
@@ -151,23 +151,21 @@ type api struct {
 
 type base struct {
 	API                   string
-	StartBlock            int64
-	EndBlock              int64
+	StartBlock            int64 `mapstructure:"start-block"`
+	EndBlock              int64 `mapstructure:"end-block"`
 	ReIndex               bool
-	PreventReattempts     bool
+	PreventReattempts     bool `mapstructure:"prevent-reattempts"`
 	Throttling            float64
-	RPCWorkers            int64
-	BlockTimer            int64
-	WaitForChain          bool
-	WaitForChainDelay     int64
-	ChainIndexingEnabled  bool
-	ExitWhenCaughtUp      bool
-	RewardIndexingEnabled bool
+	RPCWorkers            int64 `mapstructure:"rpc-workers"`
+	BlockTimer            int64 `mapstructure:"block-timer"`
+	WaitForChain          bool  `mapstructure:"wait-for-chain"`
+	WaitForChainDelay     int64 `mapstructure:"wait-for-chain-delay"`
+	ChainIndexingEnabled  bool  `mapstructure:"index-chain"`
+	ExitWhenCaughtUp      bool  `mapstructure:"exit-when-caught-up"`
+	RewardIndexingEnabled bool  `mapstructure:"index-rewards"`
 	Dry                   bool
-	RewardStartBlock      int64
-	RewardEndBlock        int64
-	CreateCSVFile         bool
-	CSVFile               string
+	RewardStartBlock      int64 `mapstructure:"rewards-start-block"`
+	RewardEndBlock        int64 `mapstructure:"rewards-end-block"`
 }
 
 type log struct {
@@ -227,8 +225,14 @@ func CheckSuperfluousConfigKeys(keys []string) (ignoredKeys []string) {
 func getValidConfigKeys(section any) (keys []string) {
 	v := reflect.ValueOf(section)
 	typeOfS := v.Type()
+
 	for i := 0; i < v.NumField(); i++ {
-		key := fmt.Sprintf("%v.%v", typeOfS.Name(), strings.ReplaceAll(strings.ToLower(typeOfS.Field(i).Name), " ", ""))
+		name := typeOfS.Field(i).Tag.Get("mapstructure")
+		if name == "" {
+			name = typeOfS.Field(i).Name
+		}
+
+		key := fmt.Sprintf("%v.%v", typeOfS.Name(), strings.ReplaceAll(strings.ToLower(name), " ", ""))
 		keys = append(keys, key)
 	}
 	return

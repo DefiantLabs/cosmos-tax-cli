@@ -25,6 +25,7 @@ require (
 	github.com/cosmos/ibc-go/v3 v3.0.0
 	github.com/preichenberger/go-coinbasepro/v2 v2.1.0
 	github.com/rs/zerolog v1.28.0
+	github.com/spf13/pflag v1.0.5
 )
 
 require (
@@ -134,7 +135,6 @@ require (
 	github.com/spf13/afero v1.8.2 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
-	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.3.0 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20200815110645-5c35d600f0ca // indirect
 	github.com/tendermint/btcd v0.1.1 // indirect
