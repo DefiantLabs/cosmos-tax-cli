@@ -110,7 +110,8 @@ var messageTypeIgnorer = map[string]interface{}{
 	liquidity.MsgWithdrawWithinBatch: nil,
 	liquidity.MsgSwapWithinBatch:     nil,
 	// CosmWasm
-	wasm.MsgExecuteContract: nil,
+	wasm.MsgExecuteContract:     nil,
+	wasm.MsgInstantiateContract: nil,
 }
 
 // Merge the chain specific message type handlers into the core message type handler map
