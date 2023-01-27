@@ -129,9 +129,30 @@ func checkResponseErrorCode(requestEndpoint string, resp *http.Response) error {
 }
 
 func GetDenomsMetadatas(host string) (result denoms.GetDenomsMetadatasResponse, err error) {
-	requestEndpoint := apiEndpoints["denoms_metadata"]
+	result, err = getDenomsMetadatas(host, "")
+	if err != nil {
+		return
+	}
+	allResults := result
+	for result.Pagination.NextKey != "" {
+		result, err = getDenomsMetadatas(host, result.Pagination.NextKey)
+		if err != nil {
+			return
+		}
+		allResults.Metadatas = append(allResults.Metadatas, result.Metadatas...)
+	}
+	result = allResults
+	return
+}
 
-	resp, err := http.Get(fmt.Sprintf("%s%s", host, requestEndpoint))
+func getDenomsMetadatas(host string, paginationKey string) (result denoms.GetDenomsMetadatasResponse, err error) {
+	requestEndpoint := apiEndpoints["denoms_metadata"]
+	url := fmt.Sprintf("%s%s", host, requestEndpoint)
+	if paginationKey != "" {
+		url = fmt.Sprintf("%v?pagination.key=%v", url, paginationKey)
+	}
+
+	resp, err := http.Get(url) //nolint:gosec
 	if err != nil {
 		return result, err
 	}
