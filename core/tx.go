@@ -332,11 +332,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 							denomSent, err = dbTypes.GetDenomForBase(v.DenominationSent)
 							if err != nil {
 								// attempt to add missing denoms to the database
-								if strings.Contains(v.DenominationSent, "gamm") {
-									config.Log.Infof("Denom lookup failed for gamm token. Will be inserted as UNKNOWN. Denom Received: %v. Err: %v", v.DenominationSent, err)
-								} else {
-									config.Log.Warnf("Denom lookup failed. Will be inserted as UNKNOWN. Denom Received: %v. Err: %v", v.DenominationSent, err)
-								}
+								config.Log.Warnf("Denom lookup failed. Will be inserted as UNKNOWN. Denom Received: %v. Err: %v", v.DenominationSent, err)
 								denomSent, err = dbTypes.AddUnknownDenom(db, v.DenominationSent)
 								if err != nil {
 									config.Log.Error(fmt.Sprintf("There was an error adding a missing denom. Denom sent: %v", v.DenominationSent), err)
@@ -352,11 +348,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 							denomReceived, err = dbTypes.GetDenomForBase(v.DenominationReceived)
 							if err != nil {
 								// attempt to add missing denoms to the database
-								if strings.Contains(v.DenominationReceived, "gamm") {
-									config.Log.Infof("Denom lookup failed for gamm token. Will be inserted as UNKNOWN. Denom Received: %v. Err: %v", v.DenominationReceived, err)
-								} else {
-									config.Log.Warnf("Denom lookup failed. Will be inserted as UNKNOWN. Denom Received: %v. Err: %v", v.DenominationReceived, err)
-								}
+								config.Log.Warnf("Denom lookup failed. Will be inserted as UNKNOWN. Denom Received: %v. Err: %v", v.DenominationReceived, err)
 								denomReceived, err = dbTypes.AddUnknownDenom(db, v.DenominationReceived)
 								if err != nil {
 									config.Log.Error(fmt.Sprintf("There was an error adding a missing denom. Denom received: %v", v.DenominationReceived), err)
@@ -409,11 +401,7 @@ func ProcessFees(db *gorm.DB, authInfo cosmosTx.AuthInfo, signers []types.AccAdd
 			denom, err := dbTypes.GetDenomForBase(coin.Denom)
 			if err != nil {
 				// attempt to add missing denoms to the database
-				if strings.Contains(coin.Denom, "gamm") {
-					config.Log.Infof("Denom lookup failed for gamm token. Will be inserted as UNKNOWN. Denom Received: %v. Err: %v", coin.Denom, err)
-				} else {
-					config.Log.Warnf("Denom lookup failed. Will be inserted as UNKNOWN. Denom Received: %v. Err: %v", coin.Denom, err)
-				}
+				config.Log.Warnf("Denom lookup failed. Will be inserted as UNKNOWN. Denom Received: %v. Err: %v", coin.Denom, err)
 				denom, err = dbTypes.AddUnknownDenom(db, coin.Denom)
 				if err != nil {
 					config.Log.Error(fmt.Sprintf("There was an error adding a missing denom. Denom: %v", coin.Denom), err)

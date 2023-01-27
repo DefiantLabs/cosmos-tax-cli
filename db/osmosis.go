@@ -4,11 +4,11 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"sort"
-	"strings"
 
 	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
+
 	"gorm.io/gorm"
 )
 
@@ -72,11 +72,7 @@ func IndexOsmoRewards(db *gorm.DB, dryRun bool, chainID string, chainName string
 			denom, err := GetDenomForBase(coin.Denom)
 			if err != nil {
 				// attempt to add missing denoms to the database
-				if strings.Contains(coin.Denom, "gamm") {
-					config.Log.Infof("Denom lookup failed for gamm token. Will be inserted as UNKNOWN. Denom Received: %v. Err: %v", coin.Denom, err)
-				} else {
-					config.Log.Warnf("Denom lookup failed. Will be inserted as UNKNOWN. Denom Received: %v. Err: %v", coin.Denom, err)
-				}
+				config.Log.Warnf("Denom lookup failed. Will be inserted as UNKNOWN. Denom Received: %v. Err: %v", coin.Denom, err)
 				denom, err = AddUnknownDenom(db, coin.Denom)
 				if err != nil {
 					config.Log.Error(fmt.Sprintf("There was an error adding a missing denom. Denom Received: %v", coin.Denom), err)
