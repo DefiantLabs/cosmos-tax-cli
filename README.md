@@ -358,4 +358,5 @@ Here is a list of what we support at the time of this writing.
 #### Wasm
 ```go
     MsgExecuteContract = "/cosmwasm.wasm.v1.MsgExecuteContract"
+    MsgInstantiateContract = "/cosmwasm.wasm.v1.MsgInstantiateContract"
 ```
