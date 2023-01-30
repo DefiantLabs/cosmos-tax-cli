@@ -2,193 +2,276 @@ package staking
 
 import (
 	"fmt"
+	"strings"
 
-	txModule "github.com/DefiantLabs/cosmos-exporter/cosmos/modules/tx"
-
-	parsingTypes "github.com/DefiantLabs/cosmos-exporter/cosmos/modules"
+	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
+	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 
 	stdTypes "github.com/cosmos/cosmos-sdk/types"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	distTypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
+	stakeTypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
-var IsMsgWithdrawValidatorCommission = map[string]bool{
-	"/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission": true,
-	"withdraw-rewards": true, //NOTE/TODO: not 100% sure if this is only on delegator or validator withdrawal...
-}
+const (
+	MsgDelegate        = "/cosmos.staking.v1beta1.MsgDelegate"
+	MsgUndelegate      = "/cosmos.staking.v1beta1.MsgUndelegate"
+	MsgBeginRedelegate = "/cosmos.staking.v1beta1.MsgBeginRedelegate"
+	MsgCreateValidator = "/cosmos.staking.v1beta1.MsgCreateValidator" // An explicitly ignored msg for tx parsing purposes
+	MsgEditValidator   = "/cosmos.staking.v1beta1.MsgEditValidator"   // An explicitly ignored msg for tx parsing purposes
+)
 
-var IsMsgWithdrawDelegatorReward = map[string]bool{
-	"/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward": true,
-	"withdraw-rewards": true, //NOTE/TODO: not 100% sure if this is only on delegator or validator withdrawal...
-}
-
-type WrapperMsgWithdrawValidatorCommission struct {
+type WrapperMsgDelegate struct {
 	txModule.Message
-	CosmosMsgWithdrawValidatorCommission *distTypes.MsgWithdrawValidatorCommission
-	DelegatorReceiverAddress             string
-	CoinsReceived                        stdTypes.Coin
-	MultiCoinsReceived                   stdTypes.Coins
+	CosmosMsgDelegate     *stakeTypes.MsgDelegate
+	DelegatorAddress      string
+	AutoWithdrawalReward  *stdTypes.Coin
+	AutoWithdrawalRewards stdTypes.Coins
 }
 
-type WrapperMsgWithdrawDelegatorReward struct {
+type WrapperMsgUndelegate struct {
 	txModule.Message
-	CosmosMsgWithdrawDelegatorReward *distTypes.MsgWithdrawDelegatorReward
-	CoinsReceived                    stdTypes.Coin
-	MultiCoinsReceived               stdTypes.Coins
+	CosmosMsgUndelegate   *stakeTypes.MsgUndelegate
+	DelegatorAddress      string
+	AutoWithdrawalReward  *stdTypes.Coin
+	AutoWithdrawalRewards stdTypes.Coins
 }
 
-func (sf *WrapperMsgWithdrawDelegatorReward) String() string {
-	var coinsReceivedString string
-	if !sf.CoinsReceived.IsNil() {
-		coinsReceivedString = sf.CoinsReceived.String()
-	} else {
-		coinsReceivedString = sf.MultiCoinsReceived.String()
-	}
-
-	return fmt.Sprintf("MsgWithdrawDelegatorReward: Delegator %s received %s\n",
-		sf.CosmosMsgWithdrawDelegatorReward.DelegatorAddress, coinsReceivedString)
+type WrapperMsgBeginRedelegate struct {
+	txModule.Message
+	CosmosMsgBeginRedelegate *stakeTypes.MsgBeginRedelegate
+	DelegatorAddress         string
+	AutoWithdrawalRewards    stdTypes.Coins
 }
 
-func (sf *WrapperMsgWithdrawValidatorCommission) String() string {
-
-	var coinsReceivedString string
-	if !sf.CoinsReceived.IsNil() {
-		coinsReceivedString = sf.CoinsReceived.String()
-	} else {
-		coinsReceivedString = sf.MultiCoinsReceived.String()
-	}
-
-	return fmt.Sprintf("WrapperMsgWithdrawValidatorCommission: Validator %s commission withdrawn. Delegator %s received %s\n",
-		sf.CosmosMsgWithdrawValidatorCommission.ValidatorAddress, sf.DelegatorReceiverAddress, coinsReceivedString)
-}
-
-//HandleMsg: Handle type checking for MsgWithdrawDelegatorReward
-func (sf *WrapperMsgWithdrawValidatorCommission) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.TxLogMessage) error {
+// HandleMsg: Handle type checking for MsgFundCommunityPool
+func (sf *WrapperMsgDelegate) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
-	sf.CosmosMsgWithdrawValidatorCommission = msg.(*distTypes.MsgWithdrawValidatorCommission)
+	sf.CosmosMsgDelegate = msg.(*stakeTypes.MsgDelegate)
 
-	//Confirm that the action listed in the message log matches the Message type
-	valid_log := txModule.IsMessageActionEquals(sf.GetType(), log)
-	if !valid_log {
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
 	}
 
-	//The attribute in the log message that shows you the delegator withdrawal address and amount received
+	// The attribute in the log message that shows you the delegator rewards auto-received
+	delegatorReceivedCoinsEvt := txModule.GetEventWithType(bankTypes.EventTypeTransfer, log)
+	if delegatorReceivedCoinsEvt == nil {
+		sf.AutoWithdrawalReward = nil
+		sf.DelegatorAddress = sf.CosmosMsgDelegate.DelegatorAddress
+	} else {
+		sf.DelegatorAddress = txModule.GetValueForAttribute("recipient", delegatorReceivedCoinsEvt)
+		coinsReceived := txModule.GetValueForAttribute("amount", delegatorReceivedCoinsEvt)
+		coin, err := stdTypes.ParseCoinNormalized(coinsReceived)
+		if err != nil {
+			sf.AutoWithdrawalRewards, err = stdTypes.ParseCoinsNormalized(coinsReceived)
+			if err != nil {
+				fmt.Println("Error parsing coins normalized")
+				fmt.Println(err)
+				return err
+			}
+			return nil
+		}
+		sf.AutoWithdrawalReward = &coin
+	}
+
+	return nil
+}
+
+func (sf *WrapperMsgUndelegate) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.CosmosMsgUndelegate = msg.(*stakeTypes.MsgUndelegate)
+
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
+	}
+
+	// The attribute in the log message that shows you the delegator rewards auto-received
+	sf.DelegatorAddress = sf.CosmosMsgUndelegate.DelegatorAddress
 	delegatorReceivedCoinsEvt := txModule.GetEventWithType(bankTypes.EventTypeCoinReceived, log)
 	if delegatorReceivedCoinsEvt == nil {
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
-	}
-
-	sf.DelegatorReceiverAddress = txModule.GetValueForAttribute(bankTypes.AttributeKeyReceiver, delegatorReceivedCoinsEvt)
-	coins_received := txModule.GetValueForAttribute("amount", delegatorReceivedCoinsEvt)
-
-	coin, err := stdTypes.ParseCoinNormalized(coins_received)
-	if err != nil {
-		coins, err := stdTypes.ParseCoinsNormalized(coins_received)
-		if err != nil {
-			fmt.Println("Error parsing coins normalized")
-			fmt.Println(err)
-			return err
-		}
-		sf.MultiCoinsReceived = coins
+		sf.AutoWithdrawalReward = nil
+		sf.DelegatorAddress = sf.CosmosMsgUndelegate.DelegatorAddress
 	} else {
-		sf.CoinsReceived = coin
-	}
+		var receivers []string
+		var amounts []string
 
-	return err
-}
-
-func (sf *WrapperMsgWithdrawValidatorCommission) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
-	if sf.CoinsReceived.IsNil() {
-		var relevantData []parsingTypes.MessageRelevantInformation = make([]parsingTypes.MessageRelevantInformation, len(sf.MultiCoinsReceived))
-
-		for i, v := range sf.MultiCoinsReceived {
-			relevantData[i] = parsingTypes.MessageRelevantInformation{
-				Amount:          float64(v.Amount.Int64()),
-				Denomination:    v.Denom,
-				SenderAddress:   "",
-				ReceiverAddress: sf.DelegatorReceiverAddress,
+		// Pair off amounts and receivers in order
+		for _, v := range delegatorReceivedCoinsEvt.Attributes {
+			if v.Key == "receiver" {
+				receivers = append(receivers, v.Value)
+			} else if v.Key == "amount" {
+				amounts = append(amounts, v.Value)
 			}
 		}
 
-		return relevantData
-	} else {
-		var relevantData []parsingTypes.MessageRelevantInformation = make([]parsingTypes.MessageRelevantInformation, 1)
-		relevantData[0] = parsingTypes.MessageRelevantInformation{
-			Amount:          float64(sf.CoinsReceived.Amount.Int64()),
-			Denomination:    sf.CoinsReceived.Denom,
-			SenderAddress:   "",
-			ReceiverAddress: sf.DelegatorReceiverAddress,
+		// Find delegator address in receivers if its there, find its paired amount and set as the withdrawn rewards
+		for i, v := range receivers {
+			if v == sf.DelegatorAddress {
+				coin, err := stdTypes.ParseCoinNormalized(amounts[i])
+				if err != nil {
+					var coins stdTypes.Coins
+					coins, err = stdTypes.ParseCoinsNormalized(amounts[i])
+					if err != nil {
+						fmt.Println("Error parsing coins normalized")
+						fmt.Println(err)
+						return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+					}
+					sf.AutoWithdrawalRewards = append(sf.AutoWithdrawalRewards, coins...)
+					continue
+				}
+				sf.AutoWithdrawalReward = &coin
+			}
 		}
-		return relevantData
 	}
+
+	return nil
 }
 
-//CosmUnmarshal(): Unmarshal JSON for MsgWithdrawDelegatorReward
-func (sf *WrapperMsgWithdrawDelegatorReward) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.TxLogMessage) error {
+// HandleMsg: Handle type checking for MsgFundCommunityPool
+func (sf *WrapperMsgBeginRedelegate) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
-	sf.CosmosMsgWithdrawDelegatorReward = msg.(*distTypes.MsgWithdrawDelegatorReward)
+	sf.CosmosMsgBeginRedelegate = msg.(*stakeTypes.MsgBeginRedelegate)
 
-	//Confirm that the action listed in the message log matches the Message type
-	valid_log := txModule.IsMessageActionEquals(sf.GetType(), log)
-	if !valid_log {
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
 	}
 
-	//The attribute in the log message that shows you the delegator withdrawal address and amount received
+	// The attribute in the log message that shows you the delegator rewards auto-received
 	delegatorReceivedCoinsEvt := txModule.GetEventWithType(bankTypes.EventTypeCoinReceived, log)
+	sf.DelegatorAddress = sf.CosmosMsgBeginRedelegate.DelegatorAddress
 	if delegatorReceivedCoinsEvt == nil {
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
-	}
-
-	delegator_address := txModule.GetValueForAttribute(bankTypes.AttributeKeyReceiver, delegatorReceivedCoinsEvt)
-	coins_received := txModule.GetValueForAttribute("amount", delegatorReceivedCoinsEvt)
-
-	//This may be able to be optimized by doing one or the other
-	coin, err := stdTypes.ParseCoinNormalized(coins_received)
-	if err != nil {
-		coins, err := stdTypes.ParseCoinsNormalized(coins_received)
-		if err != nil {
-			fmt.Println("Error parsing coins normalized")
-			fmt.Println(err)
-			return err
-		}
-		sf.MultiCoinsReceived = coins
+		sf.AutoWithdrawalRewards = make(stdTypes.Coins, 0)
 	} else {
-		sf.CoinsReceived = coin
-	}
-	if sf.CosmosMsgWithdrawDelegatorReward.DelegatorAddress != delegator_address {
-		return fmt.Errorf("transaction delegator address %s does not match log event '%s' delegator address %s",
-			sf.CosmosMsgWithdrawDelegatorReward.DelegatorAddress, bankTypes.EventTypeCoinReceived, delegator_address)
-	}
+		var receivers []string
+		var amounts []string
 
-	return err
-}
-
-func (sf *WrapperMsgWithdrawDelegatorReward) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
-
-	if sf.CoinsReceived.IsNil() {
-		var relevantData []parsingTypes.MessageRelevantInformation = make([]parsingTypes.MessageRelevantInformation, len(sf.MultiCoinsReceived))
-
-		for i, v := range sf.MultiCoinsReceived {
-			relevantData[i] = parsingTypes.MessageRelevantInformation{
-				Amount:          float64(v.Amount.Int64()),
-				Denomination:    v.Denom,
-				SenderAddress:   "",
-				ReceiverAddress: sf.CosmosMsgWithdrawDelegatorReward.DelegatorAddress,
+		// Pair off amounts and receivers in order
+		for _, v := range delegatorReceivedCoinsEvt.Attributes {
+			if v.Key == "receiver" {
+				receivers = append(receivers, v.Value)
+			} else if v.Key == "amount" {
+				amounts = append(amounts, v.Value)
 			}
 		}
 
-		return relevantData
-	} else {
-		var relevantData []parsingTypes.MessageRelevantInformation = make([]parsingTypes.MessageRelevantInformation, 1)
-		relevantData[0] = parsingTypes.MessageRelevantInformation{
-			Amount:          float64(sf.CoinsReceived.Amount.Int64()),
-			Denomination:    sf.CoinsReceived.Denom,
-			SenderAddress:   "",
-			ReceiverAddress: sf.CosmosMsgWithdrawDelegatorReward.DelegatorAddress,
+		// Find delegator address in receivers if its there, find its paired amount and set as the withdrawn rewards
+		// We use a cosmos.Coins array type for redelegations as redelegating could force withdrawal from both validators
+		for i, v := range receivers {
+			if v == sf.DelegatorAddress {
+				coin, err := stdTypes.ParseCoinNormalized(amounts[i])
+				if err != nil {
+					var coins stdTypes.Coins
+					coins, err = stdTypes.ParseCoinsNormalized(amounts[i])
+					if err != nil {
+						fmt.Println("Error parsing coins normalized")
+						fmt.Println(err)
+						return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+					}
+					sf.AutoWithdrawalRewards = append(sf.AutoWithdrawalRewards, coins...)
+					continue
+				}
+				sf.AutoWithdrawalRewards = append(sf.AutoWithdrawalRewards, coin)
+			}
 		}
-		return relevantData
 	}
 
+	return nil
+}
+
+func (sf *WrapperMsgDelegate) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	var relevantData []parsingTypes.MessageRelevantInformation
+	if sf.AutoWithdrawalReward != nil {
+		data := parsingTypes.MessageRelevantInformation{}
+		data.AmountReceived = sf.AutoWithdrawalReward.Amount.BigInt()
+		data.DenominationReceived = sf.AutoWithdrawalReward.Denom
+		data.ReceiverAddress = sf.DelegatorAddress
+		relevantData = append(relevantData, data)
+	} else if len(sf.AutoWithdrawalRewards) > 0 {
+		for _, coin := range sf.AutoWithdrawalRewards {
+			data := parsingTypes.MessageRelevantInformation{}
+			data.AmountReceived = coin.Amount.BigInt()
+			data.DenominationReceived = coin.Denom
+			data.ReceiverAddress = sf.DelegatorAddress
+			relevantData = append(relevantData, data)
+		}
+	}
+	return relevantData
+}
+
+func (sf *WrapperMsgUndelegate) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	var relevantData []parsingTypes.MessageRelevantInformation
+	if sf.AutoWithdrawalReward != nil {
+		data := parsingTypes.MessageRelevantInformation{}
+		data.AmountReceived = sf.AutoWithdrawalReward.Amount.BigInt()
+		data.DenominationReceived = sf.AutoWithdrawalReward.Denom
+		data.ReceiverAddress = sf.DelegatorAddress
+		relevantData = append(relevantData, data)
+	} else if len(sf.AutoWithdrawalRewards) > 0 {
+		for _, coin := range sf.AutoWithdrawalRewards {
+			data := parsingTypes.MessageRelevantInformation{}
+			data.AmountReceived = coin.Amount.BigInt()
+			data.DenominationReceived = coin.Denom
+			data.ReceiverAddress = sf.DelegatorAddress
+			relevantData = append(relevantData, data)
+		}
+	}
+	return relevantData
+}
+
+func (sf *WrapperMsgBeginRedelegate) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	var relevantData []parsingTypes.MessageRelevantInformation
+	for _, coin := range sf.AutoWithdrawalRewards {
+		data := parsingTypes.MessageRelevantInformation{}
+		data.AmountReceived = coin.Amount.BigInt()
+		data.DenominationReceived = coin.Denom
+		data.ReceiverAddress = sf.DelegatorAddress
+		relevantData = append(relevantData, data)
+	}
+	return relevantData
+}
+
+func (sf *WrapperMsgDelegate) String() string {
+	if sf.AutoWithdrawalReward != nil {
+		return fmt.Sprintf("MsgDelegate: Delegator %s auto-withdrew %s\n", sf.DelegatorAddress, sf.AutoWithdrawalReward)
+	}
+	if len(sf.AutoWithdrawalRewards) > 0 {
+		var coinsRecievedStrings []string
+		for _, coin := range sf.AutoWithdrawalRewards {
+			coinsRecievedStrings = append(coinsRecievedStrings, coin.String())
+			return fmt.Sprintf("MsgDelegate: Delegator %s auto-withdrew %s\n", sf.DelegatorAddress, strings.Join(coinsRecievedStrings, ", "))
+		}
+	}
+	return fmt.Sprintf("MsgDelegate: Delegator %s did not auto-withdrawal rewards\n", sf.DelegatorAddress)
+}
+
+func (sf *WrapperMsgUndelegate) String() string {
+	if sf.AutoWithdrawalReward != nil {
+		return fmt.Sprintf("MsgUndelegate: Delegator %s auto-withdrew %s\n", sf.DelegatorAddress, sf.AutoWithdrawalReward)
+	}
+	if len(sf.AutoWithdrawalRewards) > 0 {
+		var coinsRecievedStrings []string
+		for _, coin := range sf.AutoWithdrawalRewards {
+			coinsRecievedStrings = append(coinsRecievedStrings, coin.String())
+			return fmt.Sprintf("MsgUndelegate: Delegator %s auto-withdrew %s\n", sf.DelegatorAddress, strings.Join(coinsRecievedStrings, ", "))
+		}
+	}
+	return fmt.Sprintf("MsgUndelegate: Delegator %s did not auto-withdrawal rewards\n", sf.DelegatorAddress)
+}
+
+func (sf *WrapperMsgBeginRedelegate) String() string {
+	var coinsRecievedStrings []string
+	for _, coin := range sf.AutoWithdrawalRewards {
+		coinsRecievedStrings = append(coinsRecievedStrings, coin.String())
+	}
+
+	if len(coinsRecievedStrings) > 0 {
+		return fmt.Sprintf("MsgBeginRedelegate: Delegator %s auto-withdrew %s\n", sf.DelegatorAddress, strings.Join(coinsRecievedStrings, ", "))
+	}
+	return fmt.Sprintf("MsgBeginRedelegate: Delegator %s did not auto-withdrawal rewards\n", sf.DelegatorAddress)
 }

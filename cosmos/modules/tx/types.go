@@ -1,8 +1,7 @@
 package tx
 
 import (
-	parsingTypes "github.com/DefiantLabs/cosmos-exporter/cosmos/modules"
-
+	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
 	cosmTx "github.com/cosmos/cosmos-sdk/types/tx"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -13,9 +12,9 @@ type GetTxsEventResponseWrapper struct {
 	Height                    int64
 }
 
-//TODO: Clean up types
+// TODO: Clean up types
 type GetBlockByHeightResponse struct {
-	BlockId BlockId       `json:"block_id"`
+	BlockID BlockID       `json:"block_id"`
 	Block   BlockResponse `json:"block"`
 }
 
@@ -24,7 +23,7 @@ type BlockResponse struct {
 	BlockHeader BlockHeader `json:"header"`
 }
 
-type BlockId struct {
+type BlockID struct {
 	Hash string `json:"hash"`
 }
 
@@ -37,30 +36,31 @@ type BlockHeader struct {
 }
 
 type GetTxByBlockHeightResponse struct {
-	Txs         []IndexerTx  `json:"txs"`
-	TxResponses []TxResponse `json:"tx_responses"`
-	Pagination  Pagination   `json:"pagination"`
+	Txs         []IndexerTx `json:"txs"`
+	TxResponses []Response  `json:"tx_responses"`
+	Pagination  Pagination  `json:"pagination"`
 }
 
 type IndexerTx struct {
-	Body       TxBody     `json:"body"`
-	AuthInfo   TxAuthInfo `json:"auth_info"`
-	Signatures []string   `json:"signatures"`
+	Body     Body `json:"body"`
+	AuthInfo cosmTx.AuthInfo
+	Signers  []sdk.AccAddress // TODO: We may be able to use this in place of signer info under auth info... not 100% sure
 }
 
-type TxResponse struct {
-	TxHash    string         `json:"txhash"`
-	Height    string         `json:"height"`
-	TimeStamp string         `json:"timestamp"`
-	Code      int64          `json:"code"`
-	RawLog    string         `json:"raw_log"`
-	Log       []TxLogMessage `json:"logs"`
+type Response struct {
+	TxHash    string       `json:"txhash"`
+	Height    string       `json:"height"`
+	TimeStamp string       `json:"timestamp"`
+	Code      uint32       `json:"code"`
+	RawLog    string       `json:"raw_log"`
+	Log       []LogMessage `json:"logs"`
 }
 
 // TxLogMessage:
 // Cosmos blockchains return Transactions with an array of "logs" e.g.
 //
 // "logs": [
+//
 //	{
 //		"msg_index": 0,
 //		"events": [
@@ -80,7 +80,7 @@ type TxResponse struct {
 //
 // This struct just parses the KNOWN fields and leaves the other fields as raw JSON.
 // More specific type parsers for each message type can parse those fields if they choose to.
-type TxLogMessage struct {
+type LogMessage struct {
 	MessageIndex int               `json:"msg_index"`
 	Events       []LogMessageEvent `json:"events"`
 }
@@ -95,26 +95,26 @@ type LogMessageEvent struct {
 	Attributes []Attribute `json:"attributes"`
 }
 
-type TxBody struct {
+type Body struct {
 	Messages []sdk.Msg `json:"messages"`
 }
 
-type TxAuthInfo struct {
-	TxFee         TxFee          `json:"fee"`
-	TxSignerInfos []TxSignerInfo `json:"signer_infos"` //this is used in REST but not RPC parsers
+type AuthInfo struct {
+	TxFee         Fee          `json:"fee"`
+	TxSignerInfos []SignerInfo `json:"signer_infos"` // this is used in REST but not RPC parsers
 }
 
-type TxFee struct {
-	TxFeeAmount []TxFeeAmount `json:"amount"`
-	GasLimit    string        `json:"gas_limit"`
+type Fee struct {
+	TxFeeAmount []FeeAmount `json:"amount"`
+	GasLimit    string      `json:"gas_limit"`
 }
 
-type TxFeeAmount struct {
+type FeeAmount struct {
 	Denom  string `json:"denom"`
 	Amount string `json:"amount"`
 }
 
-type TxSignerInfo struct {
+type SignerInfo struct {
 	PublicKey PublicKey `json:"public_key"`
 }
 
@@ -128,14 +128,14 @@ type Pagination struct {
 	Total   string `json:"total"`
 }
 
-//In the json, TX data is split into 2 arrays, used to merge the full dataset
+// In the json, TX data is split into 2 arrays, used to merge the full dataset
 type MergedTx struct {
 	Tx         IndexerTx
-	TxResponse TxResponse
+	TxResponse Response
 }
 
 type GetLatestBlockResponse struct {
-	BlockId BlockId       `json:"block_id"`
+	BlockID BlockID       `json:"block_id"`
 	Block   BlockResponse `json:"block"`
 }
 
@@ -147,11 +147,11 @@ func (sf *Message) GetType() string {
 	return sf.Type
 }
 
-//CosmosMessage represents a Cosmos blockchain Message (part of a transaction).
-//CosmUnmarshal() unmarshals the specific cosmos message type (e.g. MsgSend).
-//First arg must always be the message type itself, as this won't be parsed in CosmUnmarshal.
+// CosmosMessage represents a Cosmos blockchain Message (part of a transaction).
+// CosmUnmarshal() unmarshals the specific cosmos message type (e.g. MsgSend).
+// First arg must always be the message type itself, as this won't be parsed in CosmUnmarshal.
 type CosmosMessage interface {
-	HandleMsg(string, sdk.Msg, *TxLogMessage) error
+	HandleMsg(string, sdk.Msg, *LogMessage) error
 	ParseRelevantData() []parsingTypes.MessageRelevantInformation
 	GetType() string
 	String() string

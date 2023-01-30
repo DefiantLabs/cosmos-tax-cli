@@ -7,9 +7,22 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-type OsmosisRewards struct {
-	Address string
-	Coins   sdk.Coins
+const (
+	ChainID = "osmosis-1"
+	Name    = "osmosis"
+)
+
+type RewardEpoch struct {
+	EpochBlockHeight int64
+	Indexed          bool
+	Error            error
+}
+
+// Rewards rewards from osmosis
+type Rewards struct {
+	EpochBlockHeight int64
+	Address          string
+	Coins            sdk.Coins
 }
 
 type Result struct {

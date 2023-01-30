@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -16,7 +16,7 @@ import (
 	types "github.com/tendermint/tendermint/rpc/jsonrpc/types"
 )
 
-func DoHttpReq(url string, authHeader string) (*http.Response, error) {
+func DoHTTPReq(url string, authHeader string) (*http.Response, error) {
 	// Send req using http Client
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", url, nil)
@@ -62,26 +62,20 @@ func argsToJSON(args map[string]interface{}) error {
 }
 
 // Call issues a POST form HTTP request.
-func (c *URIClient) DoHttpGet(ctx context.Context, method string,
-	params map[string]interface{}, result interface{}) (interface{}, error) {
-
+func (c *URIClient) DoHTTPGet(ctx context.Context, method string, params map[string]interface{}, result interface{}) (interface{}, error) {
 	values, err := argsToURLValues(params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode params: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodGet,
-		c.Address+"/"+method,
-		nil,
-	)
-	req.URL.RawQuery = values.Encode()
-	fmt.Printf("Query string: %s\n", values.Encode())
-
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.Address+"/"+method, nil)
 	if err != nil {
-		return nil, fmt.Errorf("new request: %w", err)
+		return nil, fmt.Errorf("error creating new request: %w", err)
 	}
+
+	req.URL.RawQuery = values.Encode()
+	// fmt.Printf("Query string: %s\n", values.Encode())
+
 	// req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	if c.AuthHeader != "" {
 		req.Header.Add("Authorization", c.AuthHeader)
@@ -93,7 +87,7 @@ func (c *URIClient) DoHttpGet(ctx context.Context, method string,
 	}
 	defer resp.Body.Close()
 
-	responseBytes, err := ioutil.ReadAll(resp.Body)
+	responseBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("read response body: %w", err)
 	}
@@ -124,12 +118,7 @@ func validateResponseID(id interface{}) error {
 	return nil
 }
 
-func unmarshalResponseBytes(
-	responseBytes []byte,
-	expectedID types.JSONRPCIntID,
-	result interface{},
-) (interface{}, error) {
-
+func unmarshalResponseBytes(responseBytes []byte, expectedID types.JSONRPCIntID, result interface{}) (interface{}, error) {
 	// Read response.  If rpc/core/types is imported, the result will unmarshal
 	// into the correct type.
 	response := &types.RPCResponse{}
@@ -152,13 +141,7 @@ func unmarshalResponseBytes(
 
 	return result, nil
 }
-func (c *URIClient) DoBlockSearch(
-	ctx context.Context,
-	query string,
-	page, perPage *int,
-	orderBy string,
-) (*ctypes.ResultBlockSearch, error) {
-
+func (c *URIClient) DoBlockSearch(ctx context.Context, query string, page, perPage *int, orderBy string) (*ctypes.ResultBlockSearch, error) {
 	result := new(ctypes.ResultBlockSearch)
 	params := map[string]interface{}{
 		"query":    query,
@@ -172,7 +155,7 @@ func (c *URIClient) DoBlockSearch(
 		params["per_page"] = perPage
 	}
 
-	_, err := c.DoHttpGet(ctx, "block_search", params, result)
+	_, err := c.DoHTTPGet(ctx, "block_search", params, result)
 	if err != nil {
 		return nil, err
 	}
@@ -180,17 +163,14 @@ func (c *URIClient) DoBlockSearch(
 	return result, nil
 }
 
-func (c *URIClient) DoBlockResults(
-	ctx context.Context,
-	height *int64,
-) (*ctypes.ResultBlockResults, error) {
+func (c *URIClient) DoBlockResults(ctx context.Context, height *int64) (*ctypes.ResultBlockResults, error) {
 	result := new(ctypes.ResultBlockResults)
 	params := make(map[string]interface{})
 	if height != nil {
 		params["height"] = height
 	}
 
-	_, err := c.DoHttpGet(ctx, "block_results", params, result)
+	_, err := c.DoHTTPGet(ctx, "block_results", params, result)
 	if err != nil {
 		return nil, err
 	}
