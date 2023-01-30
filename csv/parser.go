@@ -8,6 +8,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/accointing"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/cointracker"
+	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/cryptotaxcalculator"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/koinly"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/taxbit"
 	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
@@ -16,7 +17,7 @@ import (
 )
 
 // Register new parsers by adding them to this list
-var supportedParsers = []string{accointing.ParserKey, koinly.ParserKey, cointracker.ParserKey, taxbit.ParserKey}
+var supportedParsers = []string{accointing.ParserKey, koinly.ParserKey, cointracker.ParserKey, taxbit.ParserKey, cryptotaxcalculator.ParserKey}
 
 func init() {
 	parsers.RegisterParsers(supportedParsers)
@@ -35,6 +36,9 @@ func GetParser(parserKey string) parsers.Parser {
 		return &parser
 	case taxbit.ParserKey:
 		parser := taxbit.Parser{}
+		return &parser
+	case cryptotaxcalculator.ParserKey:
+		parser := cryptotaxcalculator.Parser{}
 		return &parser
 	}
 	return nil
