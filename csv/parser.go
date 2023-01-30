@@ -1,217 +1,67 @@
 package csv
 
 import (
-	"cosmos-exporter/cosmos/modules/bank"
-	"cosmos-exporter/cosmos/modules/staking"
-	"cosmos-exporter/db"
-	"errors"
-	"strings"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers/koinly"
+	"go.uber.org/zap"
 
-	stdTypes "github.com/cosmos/cosmos-sdk/types"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers/accointing"
+	"github.com/DefiantLabs/cosmos-tax-cli/db"
+
 	"gorm.io/gorm"
 )
 
-type AccointingTransaction int
+// Register new parsers by adding them to this list
+var supportedParsers = []string{accointing.ParserKey, koinly.ParserKey}
 
-const (
-	Deposit AccointingTransaction = iota
-	Withdraw
-	Order
-)
-
-func (at AccointingTransaction) String() string {
-	return [...]string{"deposit", "withdraw", "order"}[at]
+func init() {
+	parsers.RegisterParsers(supportedParsers)
 }
 
-type AccointingClassification int
-
-const (
-	None AccointingClassification = iota
-	Staked
-	Airdrop
-	Payment
-	Fee
-)
-
-func (ac AccointingClassification) String() string {
-	//Note that "None" returns empty string since we're using this for CSV parsing.
-	//Accointing considers 'Classification' an optional field, so empty is a valid value.
-	return [...]string{"", "staked", "airdrop", "payment", "fee"}[ac]
-}
-
-type AccointingRow struct {
-	Date            string
-	InBuyAmount     float64
-	InBuyAsset      string
-	OutSellAmount   float64
-	OutSellAsset    string
-	FeeAmount       float64
-	FeeAsset        string
-	Classification  AccointingClassification
-	TransactionType AccointingTransaction
-	OperationId     string
-}
-
-//ParseBasic: Handles the fields that are shared between most types.
-func (row *AccointingRow) ParseBasic(address string, event db.TaxableEvent) {
-	row.Date = FormatDatetime(event.Message.Tx.TimeStamp)
-	row.OperationId = event.Message.Tx.Hash
-
-	//deposit
-	if event.ReceiverAddress.Address == address {
-
-		conversionAmount, conversionSymbol, err := db.ConvertUnits(int64(event.Amount), event.Denomination)
-		if err == nil {
-			row.InBuyAmount = conversionAmount
-			row.InBuyAsset = conversionSymbol
-		} else {
-			row.InBuyAmount = event.Amount
-			row.InBuyAsset = event.Denomination
-		}
-		row.TransactionType = Deposit
-
-	} else if event.SenderAddress.Address == address { //withdrawal
-
-		conversionAmount, conversionSymbol, err := db.ConvertUnits(int64(event.Amount), event.Denomination)
-		if err == nil {
-			row.OutSellAmount = conversionAmount
-			row.OutSellAsset = conversionSymbol
-		} else {
-			row.OutSellAmount = event.Amount
-			row.OutSellAsset = event.Denomination
-		}
-		row.TransactionType = Withdraw
+func GetParser(parserKey string) parsers.Parser {
+	switch parserKey {
+	case accointing.ParserKey:
+		parser := accointing.Parser{}
+		return &parser
+	case koinly.ParserKey:
+		parser := koinly.Parser{}
+		return &parser
 	}
+	return nil
 }
 
-func ParseForAddress(address string, pgSql *gorm.DB) ([]AccointingRow, error) {
-	events, err := db.GetTaxableEvents(address, pgSql)
+func ParseForAddress(address string, pgSQL *gorm.DB, parserKey string, cfg config.Config) ([]parsers.CsvRow, []string, error) {
+	parser := GetParser(parserKey)
+	parser.InitializeParsingGroups(cfg)
+
+	// TODO: need to pass in chain and date range
+	taxableTxs, err := db.GetTaxableTransactions(address, pgSQL)
 	if err != nil {
-		return nil, err
+		config.Log.Error("Error getting taxable transaction.", zap.Error(err))
+		return nil, nil, err
 	}
 
-	if len(events) == 0 {
-		return nil, errors.New("no events for the given address")
+	err = parser.ProcessTaxableTx(address, taxableTxs)
+	if err != nil {
+		config.Log.Error("Error processing taxable transaction.", zap.Error(err))
+		return nil, nil, err
 	}
 
-	rows := []AccointingRow{}
-	txMap := map[uint][]db.TaxableEvent{} //Map transaction ID to List of events
-
-	//Build a map so we know which TX go with which messages
-	for _, event := range events {
-		if list, ok := txMap[event.Message.Tx.ID]; ok {
-			list = append(list, event)
-			txMap[event.Message.Tx.ID] = list
-		} else {
-			txMap[event.Message.Tx.ID] = []db.TaxableEvent{event}
-		}
+	taxableEvents, err := db.GetTaxableEvents(address, pgSQL)
+	if err != nil {
+		config.Log.Error("Error getting taxable events.", zap.Error(err))
+		return nil, nil, err
 	}
 
-	//Parse all the potentially taxable events (one transaction group at a time)
-	for _, evt := range txMap {
-		//For the current transaction group, generate the rows for the CSV.
-		//Usually (but not always) a transaction will only have a single row in the CSV.
-		rows = append(rows, ParseTx(address, evt)...)
+	err = parser.ProcessTaxableEvent(taxableEvents)
+	if err != nil {
+		config.Log.Error("Error processing taxable events.", zap.Error(err))
+		return nil, nil, err
 	}
 
-	return rows, nil
-}
+	// Get rows once right at the end
+	rows := parser.GetRows()
 
-//HandleFees:
-//If the transaction lists the same amount of fees as there are rows in the CSV,
-//then we spread the fees out one per row. Otherwise we add a line for the fees,
-//where each fee has a separate line.
-func HandleFees(address string, events []db.TaxableEvent, rows []AccointingRow) []AccointingRow {
-	//This address didn't pay any fees
-	if len(events) == 0 || events[0].Message.Tx.SignerAddress.Address != address {
-		return rows
-	}
-
-	fees := strings.Split(events[0].Message.Tx.Fees, ",")
-	feeCoins := []stdTypes.Coin{}
-
-	for _, fee := range fees {
-		coin, err := stdTypes.ParseCoinNormalized(fee)
-		if err == nil {
-			feeCoins = append(feeCoins, coin)
-		}
-	}
-
-	//Stick the fees in the existing rows.
-	if len(rows) >= len(feeCoins) {
-		for i, fee := range feeCoins {
-			conversionAmount, conversionSymbol, err := db.ConvertUnits(fee.Amount.Int64(), fee.GetDenom())
-			if err == nil {
-				rows[i].FeeAmount = conversionAmount
-				rows[i].FeeAsset = conversionSymbol
-			} else {
-				rows[i].FeeAmount = fee.Amount.ToDec().MustFloat64()
-				rows[i].FeeAsset = fee.GetDenom()
-			}
-		}
-
-		return rows
-	}
-
-	tx := events[0].Message.Tx
-	//There's more fees than rows so generate a new row for each fee.
-	for _, fee := range feeCoins {
-		feeUnits, feeSymbol, err := db.ConvertUnits(fee.Amount.Int64(), fee.GetDenom())
-		if err != nil {
-			feeUnits = fee.Amount.ToDec().MustFloat64()
-			feeSymbol = fee.GetDenom()
-		}
-
-		newRow := AccointingRow{Date: FormatDatetime(tx.TimeStamp), FeeAmount: feeUnits,
-			FeeAsset: feeSymbol, Classification: Fee, TransactionType: Withdraw}
-		rows = append(rows, newRow)
-	}
-
-	return rows
-}
-
-//ParseTx: Parse the potentially taxable event
-func ParseTx(address string, events []db.TaxableEvent) []AccointingRow {
-	rows := []AccointingRow{}
-
-	for _, event := range events {
-		//Is this a MsgSend
-		if bank.IsMsgSend[event.Message.MessageType] {
-			rows = append(rows, ParseMsgSend(address, event))
-		} else if staking.IsMsgWithdrawValidatorCommission[event.Message.MessageType] {
-			rows = append(rows, ParseMsgWithdrawValidatorCommission(address, event))
-		} else if staking.IsMsgWithdrawDelegatorReward[event.Message.MessageType] {
-			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
-		}
-	}
-
-	rows = HandleFees(address, events, rows)
-	return rows
-}
-
-//ParseMsgValidatorWithdraw:
-//This transaction is always a withdrawal.
-func ParseMsgWithdrawValidatorCommission(address string, event db.TaxableEvent) AccointingRow {
-	row := &AccointingRow{}
-	row.ParseBasic(address, event)
-	row.Classification = Staked
-	return *row
-}
-
-//ParseMsgValidatorWithdraw:
-//This transaction is always a withdrawal.
-func ParseMsgWithdrawDelegatorReward(address string, event db.TaxableEvent) AccointingRow {
-	row := &AccointingRow{}
-	row.ParseBasic(address, event)
-	row.Classification = Staked
-	return *row
-}
-
-//ParseMsgSend:
-//If the address we searched is the receiver, then this transaction is a deposit.
-//If the address we searched is the sender, then this transaction is a withdrawal.
-func ParseMsgSend(address string, event db.TaxableEvent) AccointingRow {
-	row := &AccointingRow{}
-	row.ParseBasic(address, event)
-	return *row
+	return rows, parser.GetHeaders(), nil
 }
