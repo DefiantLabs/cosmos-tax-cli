@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
-	configUtils "github.com/DefiantLabs/cosmos-tax-cli-private/config"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/csv"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
+	configUtils "github.com/DefiantLabs/cosmos-tax-cli/config"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv"
+	"github.com/DefiantLabs/cosmos-tax-cli/db"
 )
 
 // Example DB query to get TXs for address:

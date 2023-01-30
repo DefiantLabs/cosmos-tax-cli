@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/DefiantLabs/cosmos-tax-cli-private/cmd"
+	"github.com/DefiantLabs/cosmos-tax-cli/cmd"
 )
 
 func main() {

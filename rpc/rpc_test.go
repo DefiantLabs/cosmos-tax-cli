@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/core"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"github.com/DefiantLabs/cosmos-tax-cli/core"
 
 	"github.com/cosmos/cosmos-sdk/types"
 	"github.com/go-co-op/gocron"

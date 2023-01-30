@@ -11,12 +11,12 @@ import (
 
 	"github.com/go-co-op/gocron"
 
-	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/core"
-	dbTypes "github.com/DefiantLabs/cosmos-tax-cli-private/db"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/rpc"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/tasks"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"github.com/DefiantLabs/cosmos-tax-cli/core"
+	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
+	"github.com/DefiantLabs/cosmos-tax-cli/rpc"
+	"github.com/DefiantLabs/cosmos-tax-cli/tasks"
 
 	"github.com/spf13/cobra"
 	"github.com/strangelove-ventures/lens/client"

@@ -1,6 +1,6 @@
 package taxbit
 
-import "github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers"
+import "github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
 
 const (
 	// ParserKey is the key used to identify this parser
