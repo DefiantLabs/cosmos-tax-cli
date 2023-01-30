@@ -12,6 +12,22 @@ This CLI tool for indexing and querying the chain is also accompanied by a webse
 which can allow a frontend UI to request a CSV. Defiant has created its own version of this frontend which can be found
 [here](https://github.com/DefiantLabs/sycamore)
 
+## Quick Start
+Use our docker-compose file to see a quick example of how to run the indexer, db, web client, and ui.
+Edit start-block and end-block to be the osmosis block where you did a swap, or earned LP rewards.
+
+Launch docker compose
+
+```
+docker compose up
+```
+
+Watch the output for the index.
+
+Click the link to the web server
+
+
+
 ## Getting Started
 The typical workflow for using the tax CLI is to index the chain for a given period of time and persist this data
 in a database to allow multiple users to query for their data. This section will cover the end-to-end process of
@@ -229,13 +245,12 @@ The name of the chain being indexed
 
 ## Supported message types
 When indexing the chain, we need to parse individual messages in order to determine their significance.
-Some messages (transfers for example) have tax implication, whereas other (bonding/unbonding funds) do not.
-While we are constantly adding to our list of supported messages, we do not currently support every possible
-message on every chain.
+Some messages (transfers for example) have tax implication, whereas other (bonding/unbonding funds) do not. Furthermore, some messages types only have partial support or are still in progress. This allows the indexer to not error when processing this message type. While we are constantly adding to our list of supported messages, we do not currently support every possible message on every chain. If a message type is missing, or not being handled properly, please open an issue, or submit a PR.
 
 To view the always up-to-date complete list of supported messages, please consult the code [here](https://github.com/DefiantLabs/cosmos-tax-cli-private/blob/main/core/tx.go)
 
-Here is a list of what we support at the time of this writing.
+Here is a list of what we support / handle currently.
+
 
 ### Cosmos Modules
 #### Authz
@@ -265,8 +280,8 @@ Here is a list of what we support at the time of this writing.
 #### Gov
 ```go
 	MsgVote           = "/cosmos.gov.v1beta1.MsgVote"
-	MsgDeposit        = "/cosmos.gov.v1beta1.MsgDeposit"        // handle additional deposits to the given proposal
-	MsgSubmitProposal = "/cosmos.gov.v1beta1.MsgSubmitProposal" // handle the initial deposit for the proposer
+	MsgDeposit        = "/cosmos.gov.v1beta1.MsgDeposit"
+	MsgSubmitProposal = "/cosmos.gov.v1beta1.MsgSubmitProposal"
 	MsgVoteWeighted   = "/cosmos.gov.v1beta1.MsgVoteWeighted"
 ```
 
