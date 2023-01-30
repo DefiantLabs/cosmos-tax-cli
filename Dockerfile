@@ -53,7 +53,7 @@ FROM scratch
 WORKDIR /home/defiant
 
 # Label should match your github repo
-LABEL org.opencontainers.image.source="https://github.com/defiantlabs/cosmos-tax-cli-private"
+LABEL org.opencontainers.image.source="https://github.com/defiantlabs/cosmos-tax-cli"
 
 # Installs all binaries built with go.
 COPY --from=build-env /go/bin /bin
@@ -66,7 +66,7 @@ COPY --from=build-env /usr/bin/htop /bin/htop
 COPY --from=build-env /usr/bin/atop /bin/atop
 
 # Install Libraries
-# cosmos-tax-cli-private
+# cosmos-tax-cli
 COPY --from=build-env /usr/lib/libgcc_s.so.1 /lib/
 COPY --from=build-env /lib/ld-musl*.so.1* /lib
 

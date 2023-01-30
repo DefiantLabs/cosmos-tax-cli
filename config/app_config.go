@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 	"github.com/imdario/mergo"
 )
 

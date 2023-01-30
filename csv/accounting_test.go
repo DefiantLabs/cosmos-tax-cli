@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/ibc"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers/accointing"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/ibc"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers/accointing"
+	"github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 
 	"github.com/stretchr/testify/assert"
 )

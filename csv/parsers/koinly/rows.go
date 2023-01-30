@@ -3,8 +3,8 @@ package koinly
 import (
 	"fmt"
 
-	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
+	"github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 )
 
 func (row Row) GetRowForCsv() []string {

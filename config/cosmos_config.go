@@ -3,7 +3,7 @@ package config
 import (
 	"strings"
 
-	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )

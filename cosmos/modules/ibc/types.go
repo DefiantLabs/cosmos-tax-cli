@@ -3,9 +3,9 @@ package ibc
 import (
 	"fmt"
 
-	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
-	txModule "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
+	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
+	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 	"github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
 
 	stdTypes "github.com/cosmos/cosmos-sdk/types"

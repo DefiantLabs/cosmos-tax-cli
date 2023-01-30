@@ -33,11 +33,11 @@ services:
 
   indexer:
     restart: "no"
-    image: ghcr.io/defiantlabs/cosmos-tax-cli-private:sha-02a725b
+    image: ghcr.io/defiantlabs/cosmos-tax-cli-private:main
     user: defiant
     stop_grace_period: 10s
     volumes:
-      # - indexer:/var/lib/cosmos-tax-cli-private-index
+      # - indexer:/var/lib/cosmos-tax-cli-index
       - /etc/localtime:/etc/localtime:ro
     depends_on:
       postgres:
@@ -53,7 +53,7 @@ services:
     - /bin/sh
     - -c
     - |
-      cosmos-tax-cli-private index \
+      cosmos-tax-cli index \
       --log.pretty = true \
       --log.level = debug \
       --base.start-block 5366162 \
@@ -73,11 +73,11 @@ services:
 
   client:
     restart: "unless-stopped"
-    image: ghcr.io/defiantlabs/cosmos-tax-cli-private:sha-02a725b
+    image: ghcr.io/defiantlabs/cosmos-tax-cli-private:main
     user: defiant
     stop_grace_period: 1m
     volumes:
-      # - client:/var/lib/cosmos-tax-cli-private-client
+      # - client:/var/lib/cosmos-tax-cli-client
       - /etc/localtime:/etc/localtime:ro
     depends_on:
       postgres:

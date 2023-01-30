@@ -1,8 +1,8 @@
 package parsers
 
 import (
-	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/gamm"
+	"github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
 )
 
 var IsOsmosisJoin = map[string]bool{
