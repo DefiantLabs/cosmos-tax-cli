@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/ibc"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis/modules/gamm"
+	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/ibc"
+	"github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
 
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"

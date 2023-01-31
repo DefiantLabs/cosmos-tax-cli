@@ -3,10 +3,10 @@ package distribution
 import (
 	"fmt"
 
-	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
-	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules"
-	txModule "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
+	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 	stdTypes "github.com/cosmos/cosmos-sdk/types"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	distTypes "github.com/cosmos/cosmos-sdk/x/distribution/types"

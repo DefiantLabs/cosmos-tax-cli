@@ -6,8 +6,8 @@ import (
 	"io"
 	"net/http"
 
-	denoms "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/denoms"
-	tx "github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/tx"
+	denoms "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/denoms"
+	tx "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 )
 
 var apiEndpoints = map[string]string{

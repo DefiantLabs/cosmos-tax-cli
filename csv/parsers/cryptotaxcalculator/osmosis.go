@@ -1,9 +1,9 @@
 package cryptotaxcalculator
 
 import (
-	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
+	"github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 )
 
 func ParseGroup(sf *parsers.WrapperLpTxGroup) error {

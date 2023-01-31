@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/csv"
-	dbTypes "github.com/DefiantLabs/cosmos-tax-cli-private/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv"
+	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"

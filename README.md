@@ -12,6 +12,22 @@ This CLI tool for indexing and querying the chain is also accompanied by a webse
 which can allow a frontend UI to request a CSV. Defiant has created its own version of this frontend which can be found
 [here](https://github.com/DefiantLabs/sycamore)
 
+## Osmosis Quick Start
+Use our docker-compose file to see a quick example of how to run the indexer, db, web client, and ui.
+Edit start-block and end-block to be the osmosis block where you did a swap, or earned LP rewards.
+
+Launch docker compose
+
+```
+docker compose up
+```
+
+Watch the output for the index.
+
+Click the link to the web server, and put in your address
+
+
+
 ## Getting Started
 The typical workflow for using the tax CLI is to index the chain for a given period of time and persist this data
 in a database to allow multiple users to query for their data. This section will cover the end-to-end process of
@@ -39,7 +55,7 @@ in order to index all the data that one might want to query.
 
 To run the indexer, simply use the `index` command `go run main.go index --config {{PATH_TO_CONFIG}}` where `{{PATH_TO_CONFIG}}`
 is replaced with the path to a local config file used to configure the application. An example config file can be found
-[here](https://github.com/DefiantLabs/cosmos-tax-cli-private/blob/main/config.toml.example). For more information about
+[here](https://github.com/DefiantLabs/cosmos-tax-cli/blob/main/config.toml.example). For more information about
 the config file, as well as the CLI flags which can be used to override config settings, please refer to the more
 in-depth [config](#config) section below.
 
@@ -51,7 +67,7 @@ Indexes the Cosmos-based blockchain according to the configurations found on the
         highly recommended to keep this command running as a background service to keep your index up to date.
 
 Usage:
-  cosmos-tax-cli-private index [flags]
+  cosmos-tax-cli index [flags]
 
 Flags:
   -h, --help                           help for index
@@ -74,7 +90,7 @@ Global Flags:
       --base.throttling float           throttle delay (default 0.5)
       --base.wait-for-chain             wait for chain to be in sync?
       --base.wait-for-chain-delay int   seconds to wait between each check for node to catch up to the chain (default 10)
-      --config string                   config file (default is $HOME/.cosmos-tax-cli-private/config.yaml)
+      --config string                   config file (default is $HOME/.cosmos-tax-cli/config.yaml)
       --database.database string        database name
       --database.host string            database host
       --database.log-level string       database loglevel
@@ -86,7 +102,7 @@ Global Flags:
       --lens.chain-name string          lens chain name
       --lens.rpc string                 node rpc endpoint
       --log.level string                log level (default "info")
-      --log.path string                 log path (default is $HOME/.cosmos-tax-cli-private/logs.txt
+      --log.path string                 log path (default is $HOME/.cosmos-tax-cli/logs.txt
       --log.pretty                      pretty logs
 
 ```
@@ -229,13 +245,12 @@ The name of the chain being indexed
 
 ## Supported message types
 When indexing the chain, we need to parse individual messages in order to determine their significance.
-Some messages (transfers for example) have tax implication, whereas other (bonding/unbonding funds) do not.
-While we are constantly adding to our list of supported messages, we do not currently support every possible
-message on every chain.
+Some messages (transfers for example) have tax implication, whereas other (bonding/unbonding funds) do not. Furthermore, some messages types only have partial support or are still in progress. This allows the indexer to not error when processing this message type. While we are constantly adding to our list of supported messages, we do not currently support every possible message on every chain. If a message type is missing, or not being handled properly, please open an issue, or submit a PR.
 
-To view the always up-to-date complete list of supported messages, please consult the code [here](https://github.com/DefiantLabs/cosmos-tax-cli-private/blob/main/core/tx.go)
+To view the always up-to-date complete list of supported messages, please consult the code [here](https://github.com/DefiantLabs/cosmos-tax-cli/blob/main/core/tx.go)
 
-Here is a list of what we support at the time of this writing.
+Here is a list of what we support / handle currently.
+
 
 ### Cosmos Modules
 #### Authz
@@ -265,8 +280,8 @@ Here is a list of what we support at the time of this writing.
 #### Gov
 ```go
 	MsgVote           = "/cosmos.gov.v1beta1.MsgVote"
-	MsgDeposit        = "/cosmos.gov.v1beta1.MsgDeposit"        // handle additional deposits to the given proposal
-	MsgSubmitProposal = "/cosmos.gov.v1beta1.MsgSubmitProposal" // handle the initial deposit for the proposer
+	MsgDeposit        = "/cosmos.gov.v1beta1.MsgDeposit"
+	MsgSubmitProposal = "/cosmos.gov.v1beta1.MsgSubmitProposal"
 	MsgVoteWeighted   = "/cosmos.gov.v1beta1.MsgVoteWeighted"
 ```
 

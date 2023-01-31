@@ -5,15 +5,15 @@ import (
 	"sort"
 	"time"
 
-	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/core"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/bank"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/distribution"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/gov"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/ibc"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/cosmos/modules/staking"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/csv/parsers"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"github.com/DefiantLabs/cosmos-tax-cli/core"
+	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/bank"
+	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/distribution"
+	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/gov"
+	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/ibc"
+	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/staking"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
+	"github.com/DefiantLabs/cosmos-tax-cli/db"
 )
 
 func (p *Parser) TimeLayout() string {

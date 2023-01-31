@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/DefiantLabs/cosmos-tax-cli-private/config"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/osmosis"
-	"github.com/DefiantLabs/cosmos-tax-cli-private/util"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 
 	"gorm.io/gorm"
 )

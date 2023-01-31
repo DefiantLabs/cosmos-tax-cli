@@ -20,9 +20,8 @@ on:
         description: 'Environment to run tests against'
         type: environment
         required: false
-  push:
-    branches:
-      - 'releases/**'
+  release:
+    types: [published]
 
 env:
   REGISTRY: ghcr.io
@@ -60,8 +59,8 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           labels: |
             maintainer=danb
-            org.opencontainers.image.source=https://github.com/defiantlabs/cosmos-tax-cli-private
-            org.opencontainers.image.title=cosmos-tax-cli-private
+            org.opencontainers.image.source=https://github.com/defiantlabs/cosmos-tax-cli
+            org.opencontainers.image.title=cosmos-tax-cli
             org.opencontainers.image.description=Opensource Cosmos Tax Tool
             org.opencontainers.image.vendor=Defiant
           tags: |
