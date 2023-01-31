@@ -33,7 +33,7 @@ services:
 
   indexer:
     restart: "no"
-    image: ghcr.io/defiantlabs/cosmos-tax-cli-private:main
+    image: ghcr.io/defiantlabs/cosmos-tax-cli:v1.0.0
     user: defiant
     stop_grace_period: 10s
     volumes:
@@ -73,7 +73,7 @@ services:
 
   client:
     restart: "unless-stopped"
-    image: ghcr.io/defiantlabs/cosmos-tax-cli-private:main
+    image: ghcr.io/defiantlabs/cosmos-tax-cli:v1.0.0
     user: defiant
     stop_grace_period: 1m
     volumes:
@@ -95,7 +95,7 @@ services:
 
   web:
     restart: "unless-stopped"
-    image: ghcr.io/defiantlabs/cosmos-tax-cli-web:sha-c40f082
+    image: ghcr.io/defiantlabs/cosmos-tax-cli-web:v0.1.0
     # user: defiant
     stop_grace_period: 1m
     volumes:

@@ -12,7 +12,7 @@ This CLI tool for indexing and querying the chain is also accompanied by a webse
 which can allow a frontend UI to request a CSV. Defiant has created its own version of this frontend which can be found
 [here](https://github.com/DefiantLabs/sycamore)
 
-## Quick Start
+## Osmosis Quick Start
 Use our docker-compose file to see a quick example of how to run the indexer, db, web client, and ui.
 Edit start-block and end-block to be the osmosis block where you did a swap, or earned LP rewards.
 
@@ -24,7 +24,7 @@ docker compose up
 
 Watch the output for the index.
 
-Click the link to the web server
+Click the link to the web server, and put in your address
 
 
 
