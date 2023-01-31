@@ -88,35 +88,34 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parser
 		return cryptoRows[i].Date.Before(cryptoRows[j].Date)
 	})
 
-	startIdx := 0
-	endIdx := len(cryptoRows)
-
 	// Now that we are sorted, if we have a start date, drop everything from before it, if end date is set, drop everything after it
-	if startDate != nil {
-		startIdx, _ = sort.Find(len(cryptoRows), func(i int) int {
+	var firstToKeep *int
+	var lastToKeep *int
+	for i := range cryptoRows {
+		if startDate != nil && firstToKeep == nil {
 			if cryptoRows[i].Date.Before(*startDate) {
-				return -1
+				continue
+			} else {
+				startIdx := i
+				firstToKeep = &startIdx
 			}
-			if cryptoRows[i].Date.After(*startDate) {
-				return 1
-			}
-			return 0
-		})
-	}
-
-	if endDate != nil {
-		endIdx, _ = sort.Find(len(cryptoRows), func(i int) int {
+		} else if endDate != nil && lastToKeep == nil {
 			if cryptoRows[i].Date.Before(*endDate) {
-				return -1
+				continue
+			} else if i > 0 {
+				endIdx := i - 1
+				lastToKeep = &endIdx
+				break
 			}
-			if cryptoRows[i].Date.After(*endDate) {
-				return 1
-			}
-			return 0
-		})
+		}
 	}
-
-	cryptoRows = cryptoRows[startIdx:endIdx]
+	if firstToKeep != nil && lastToKeep != nil { // nolint:gocritic
+		cryptoRows = cryptoRows[*firstToKeep:*lastToKeep]
+	} else if firstToKeep != nil {
+		cryptoRows = cryptoRows[*firstToKeep:]
+	} else if lastToKeep != nil {
+		cryptoRows = cryptoRows[:*lastToKeep]
+	}
 
 	// Copy AccointingRows into csvRows for return val
 	csvRows := make([]parsers.CsvRow, len(cryptoRows))
