@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
-	"github.com/DefiantLabs/cosmos-tax-cli/core"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/bank"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/distribution"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/gov"
@@ -231,7 +230,7 @@ func ParseMsgWithdrawDelegatorReward(address string, event db.TaxableTransaction
 	if err != nil {
 		config.Log.Fatal("Error with ParseMsgWithdrawDelegatorReward.", err)
 	}
-	//row.Label = Unstake
+	// row.Label = Unstake
 	return *row
 }
 
@@ -265,19 +264,6 @@ func ParseMsgDeposit(address string, event db.TaxableTransaction) Row {
 func ParseMsgTransfer(address string, event db.TaxableTransaction) Row {
 	row := &Row{}
 	err := row.ParseBasic(address, event)
-	selfTransfer := false
-
-	senderAddrPrefix := core.GetAddressPrefix(event.SenderAddress.Address)
-	receiverAddrPrefix := core.GetAddressPrefix(event.ReceiverAddress.Address)
-	if senderAddrPrefix != "" && receiverAddrPrefix != "" {
-		selfTransfer = core.IsAddressEqual(event.SenderAddress.Address, senderAddrPrefix, event.ReceiverAddress.Address, receiverAddrPrefix)
-	}
-
-	// The base bech32 address was the same, so this was a self transfer and is not taxable
-	if selfTransfer {
-		//row.Classification = Ignored
-	}
-
 	if err != nil {
 		config.Log.Fatal("Error with ParseMsgTransfer.", err)
 	}
