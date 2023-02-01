@@ -3,47 +3,48 @@ package cryptotaxcalculator
 import (
 	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
 )
 
 func ParseGroup(sf *parsers.WrapperLpTxGroup) error {
 	for _, txMessages := range sf.GroupedTxes {
 		for _, message := range txMessages {
-			depositRow := Row{}
-			depositRow.Type = FlatDeposit
-			depositRow.ID = message.Message.Tx.Hash
-			depositRow.Date = message.Message.Tx.Block.TimeStamp
+			row := Row{}
+			row.ID = message.Message.Tx.Hash
+			row.Date = message.Message.Tx.Block.TimeStamp
+
+			if message.Message.MessageType.MessageType == gamm.MsgJoinSwapExternAmountIn ||
+				message.Message.MessageType.MessageType == gamm.MsgExitSwapShareAmountIn ||
+				message.Message.MessageType.MessageType == gamm.MsgJoinPool {
+				row.Type = Buy
+			} else {
+				row.Type = Sell
+			}
 
 			denomRecieved := message.DenominationReceived
 			valueRecieved := message.AmountReceived
 			conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(valueRecieved), denomRecieved)
 			if err != nil {
-				depositRow.BaseAmount = util.NumericToString(valueRecieved)
-				depositRow.BaseCurrency = denomRecieved.Base
+				row.BaseAmount = util.NumericToString(valueRecieved)
+				row.BaseCurrency = denomRecieved.Base
 			} else {
-				depositRow.BaseAmount = conversionAmount.Text('f', -1)
-				depositRow.BaseCurrency = conversionSymbol
+				row.BaseAmount = conversionAmount.Text('f', -1)
+				row.BaseCurrency = conversionSymbol
 			}
-
-			sf.Rows = append(sf.Rows, depositRow)
-
-			withdrawalRow := Row{}
-			withdrawalRow.Type = FlatWithdrawal
-			withdrawalRow.ID = message.Message.Tx.Hash
-			withdrawalRow.Date = message.Message.Tx.Block.TimeStamp
 
 			denomSent := message.DenominationSent
 			valueSent := message.AmountSent
 			conversionAmount, conversionSymbol, err = db.ConvertUnits(util.FromNumeric(valueSent), denomSent)
 			if err != nil {
-				withdrawalRow.BaseAmount = util.NumericToString(valueSent)
-				withdrawalRow.BaseCurrency = denomSent.Base
+				row.QuoteAmount = util.NumericToString(valueSent)
+				row.QuoteCurrency = denomSent.Base
 			} else {
-				withdrawalRow.BaseAmount = conversionAmount.Text('f', -1)
-				withdrawalRow.BaseCurrency = conversionSymbol
+				row.QuoteAmount = conversionAmount.Text('f', -1)
+				row.QuoteCurrency = conversionSymbol
 			}
 
-			sf.Rows = append(sf.Rows, withdrawalRow)
+			sf.Rows = append(sf.Rows, row)
 		}
 	}
 	return nil

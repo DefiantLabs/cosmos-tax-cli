@@ -14,6 +14,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/staking"
 	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
 )
 
 func (p *Parser) TimeLayout() string {
@@ -50,16 +51,6 @@ func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransac
 			return err
 		}
 	}
-
-	// Handle fees on all taxableTxs at once, we don't do this in the regular parser or in the parsing groups
-	// This requires HandleFees to process the fees into unique mappings of tx -> fees (since we gather Taxable Messages in the taxableTxs)
-	// If we move it into the ParseTx function or into the ParseGroup function, we may be able to reduce the logic in the HandleFees func
-	feeRows, err := HandleFees(address, taxableTxs)
-	if err != nil {
-		return err
-	}
-
-	p.Rows = append(p.Rows, feeRows...)
 
 	return nil
 }
@@ -146,39 +137,6 @@ func (p Parser) GetHeaders() []string {
 	}
 }
 
-func HandleFees(address string, events []db.TaxableTransaction) (rows []Row, err error) {
-	// No events -- This address didn't pay any fees
-	if len(events) == 0 {
-		return rows, nil
-	}
-
-	// We need to gather all unique fees, but we are receiving Messages not Txes
-	// Make a map from TX hash to fees array to keep unique
-	txToFeesMap := make(map[uint][]db.Fee)
-	txIdsToTx := make(map[uint]db.Tx)
-	for _, event := range events {
-		txID := event.Message.Tx.ID
-		feeStore := event.Message.Tx.Fees
-		txToFeesMap[txID] = feeStore
-		txIdsToTx[txID] = event.Message.Tx
-	}
-
-	for id, txFees := range txToFeesMap {
-		for _, fee := range txFees {
-			if fee.PayerAddress.Address == address {
-				newRow := Row{}
-				err = newRow.ParseFee(txIdsToTx[id], fee)
-				if err != nil {
-					return nil, err
-				}
-				rows = append(rows, newRow)
-			}
-		}
-	}
-
-	return rows, nil
-}
-
 // ParseEvent: Parse the potentially taxable event
 func ParseEvent(event db.TaxableEvent) (rows []Row) {
 	if event.Source == db.OsmosisRewardDistribution {
@@ -217,10 +175,10 @@ func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.Csv
 			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
 		case staking.MsgBeginRedelegate:
 			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
-		// case gamm.MsgSwapExactAmountIn:
-		// 	rows = append(rows, ParseMsgSwapExactAmountIn(event))
-		// case gamm.MsgSwapExactAmountOut:
-		// 	rows = append(rows, ParseMsgSwapExactAmountOut(event))
+		case gamm.MsgSwapExactAmountIn:
+			rows = append(rows, ParseMsgSwapExactAmountIn(address, event))
+		case gamm.MsgSwapExactAmountOut:
+			rows = append(rows, ParseMsgSwapExactAmountOut(address, event))
 		case gov.MsgSubmitProposal:
 			rows = append(rows, ParseMsgSubmitProposal(address, event))
 		case gov.MsgDeposit:
@@ -337,4 +295,22 @@ func ParseOsmosisReward(event db.TaxableEvent) (Row, error) {
 		config.Log.Fatal("Error with ParseOsmosisReward.", err)
 	}
 	return *row, err
+}
+
+func ParseMsgSwapExactAmountIn(address string, event db.TaxableTransaction) Row {
+	row := &Row{}
+	err := row.ParseSwap(event, address, Buy)
+	if err != nil {
+		config.Log.Fatal("Error with ParseMsgSwapExactAmountIn.", err)
+	}
+	return *row
+}
+
+func ParseMsgSwapExactAmountOut(address string, event db.TaxableTransaction) Row {
+	row := &Row{}
+	err := row.ParseSwap(event, address, Sell)
+	if err != nil {
+		config.Log.Fatal("Error with ParseMsgSwapExactAmountOut.", err)
+	}
+	return *row
 }

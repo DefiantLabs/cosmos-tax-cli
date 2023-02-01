@@ -59,7 +59,7 @@ func (row *Row) ParseBasic(address string, event db.TaxableTransaction) error {
 		}
 		row.BaseAmount = conversionAmount.Text('f', -1)
 		row.BaseCurrency = conversionSymbol
-		row.Type = Receive
+		row.Type = FlatDeposit
 	} else if event.SenderAddress.Address == address { // withdrawal
 		conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountSent), event.DenominationSent)
 		if err != nil {
@@ -67,27 +67,58 @@ func (row *Row) ParseBasic(address string, event db.TaxableTransaction) error {
 		}
 		row.BaseAmount = conversionAmount.Text('f', -1)
 		row.BaseCurrency = conversionSymbol
-		row.Type = Sell
+		row.Type = FlatWithdrawal
 	}
 
 	row.From = event.SenderAddress.Address
 	row.To = event.ReceiverAddress.Address
+	for _, fee := range event.Message.Tx.Fees {
+		if fee.PayerAddress.Address == address {
+			sentConversionAmount, sentConversionSymbol, err := db.ConvertUnits(util.FromNumeric(fee.Amount), fee.Denomination)
+			if err != nil {
+				return fmt.Errorf("cannot parse denom units for TX %s (classification: swap sent)", row.ID)
+			}
+
+			row.FeeAmount = sentConversionAmount.Text('f', -1)
+			row.FeeCurrency = sentConversionSymbol
+		}
+	}
 
 	return nil
 }
 
-func (row *Row) ParseFee(tx db.Tx, fee db.Fee) error {
-	row.Date = tx.Block.TimeStamp
-	row.ID = tx.Hash
-	row.Type = FlatWithdrawal
+func (row *Row) ParseSwap(event db.TaxableTransaction, address, eventType string) error {
+	row.Date = event.Message.Tx.Block.TimeStamp
+	row.ID = event.Message.Tx.Hash
+	row.Type = eventType
 
-	sentConversionAmount, sentConversionSymbol, err := db.ConvertUnits(util.FromNumeric(fee.Amount), fee.Denomination)
+	recievedConversionAmount, recievedConversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountReceived), event.DenominationReceived)
+	if err != nil {
+		return fmt.Errorf("cannot parse denom units for TX %s (classification: swap received)", row.ID)
+	}
+
+	row.BaseAmount = recievedConversionAmount.Text('f', -1)
+	row.BaseCurrency = recievedConversionSymbol
+
+	sentConversionAmount, sentConversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountSent), event.DenominationSent)
 	if err != nil {
 		return fmt.Errorf("cannot parse denom units for TX %s (classification: swap sent)", row.ID)
 	}
 
-	row.FeeAmount = sentConversionAmount.Text('f', -1)
-	row.FeeCurrency = sentConversionSymbol
+	row.QuoteAmount = sentConversionAmount.Text('f', -1)
+	row.QuoteCurrency = sentConversionSymbol
+
+	for _, fee := range event.Message.Tx.Fees {
+		if fee.PayerAddress.Address == address {
+			sentConversionAmount, sentConversionSymbol, err := db.ConvertUnits(util.FromNumeric(fee.Amount), fee.Denomination)
+			if err != nil {
+				return fmt.Errorf("cannot parse denom units for TX %s (classification: swap sent)", row.ID)
+			}
+
+			row.FeeAmount = sentConversionAmount.Text('f', -1)
+			row.FeeCurrency = sentConversionSymbol
+		}
+	}
 
 	return nil
 }
