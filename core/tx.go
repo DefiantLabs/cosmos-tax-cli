@@ -35,19 +35,19 @@ import (
 	"gorm.io/gorm"
 )
 
-// Unmarshal JSON to a particular type.
-var messageTypeHandler = map[string]func() txTypes.CosmosMessage{
-	bank.MsgSend:                                func() txTypes.CosmosMessage { return &bank.WrapperMsgSend{} },
-	bank.MsgMultiSend:                           func() txTypes.CosmosMessage { return &bank.WrapperMsgMultiSend{} },
-	distribution.MsgWithdrawDelegatorReward:     func() txTypes.CosmosMessage { return &distribution.WrapperMsgWithdrawDelegatorReward{} },
-	distribution.MsgWithdrawValidatorCommission: func() txTypes.CosmosMessage { return &distribution.WrapperMsgWithdrawValidatorCommission{} },
-	distribution.MsgFundCommunityPool:           func() txTypes.CosmosMessage { return &distribution.WrapperMsgFundCommunityPool{} },
-	gov.MsgDeposit:                              func() txTypes.CosmosMessage { return &gov.WrapperMsgDeposit{} },
-	gov.MsgSubmitProposal:                       func() txTypes.CosmosMessage { return &gov.WrapperMsgSubmitProposal{} },
-	staking.MsgDelegate:                         func() txTypes.CosmosMessage { return &staking.WrapperMsgDelegate{} },
-	staking.MsgUndelegate:                       func() txTypes.CosmosMessage { return &staking.WrapperMsgUndelegate{} },
-	staking.MsgBeginRedelegate:                  func() txTypes.CosmosMessage { return &staking.WrapperMsgBeginRedelegate{} },
-	ibc.MsgTransfer:                             func() txTypes.CosmosMessage { return &ibc.WrapperMsgTransfer{} },
+// Unmarshal JSON to a particular type. There can be more than one handler for each type.
+var messageTypeHandler = map[string][]func() txTypes.CosmosMessage{
+	bank.MsgSend:                                {func() txTypes.CosmosMessage { return &bank.WrapperMsgSend{} }},
+	bank.MsgMultiSend:                           {func() txTypes.CosmosMessage { return &bank.WrapperMsgMultiSend{} }},
+	distribution.MsgWithdrawDelegatorReward:     {func() txTypes.CosmosMessage { return &distribution.WrapperMsgWithdrawDelegatorReward{} }},
+	distribution.MsgWithdrawValidatorCommission: {func() txTypes.CosmosMessage { return &distribution.WrapperMsgWithdrawValidatorCommission{} }},
+	distribution.MsgFundCommunityPool:           {func() txTypes.CosmosMessage { return &distribution.WrapperMsgFundCommunityPool{} }},
+	gov.MsgDeposit:                              {func() txTypes.CosmosMessage { return &gov.WrapperMsgDeposit{} }},
+	gov.MsgSubmitProposal:                       {func() txTypes.CosmosMessage { return &gov.WrapperMsgSubmitProposal{} }},
+	staking.MsgDelegate:                         {func() txTypes.CosmosMessage { return &staking.WrapperMsgDelegate{} }},
+	staking.MsgUndelegate:                       {func() txTypes.CosmosMessage { return &staking.WrapperMsgUndelegate{} }},
+	staking.MsgBeginRedelegate:                  {func() txTypes.CosmosMessage { return &staking.WrapperMsgBeginRedelegate{} }},
+	ibc.MsgTransfer:                             {func() txTypes.CosmosMessage { return &ibc.WrapperMsgTransfer{} }},
 }
 
 // These messages are ignored for tax purposes.
@@ -114,38 +114,52 @@ var messageTypeIgnorer = map[string]interface{}{
 	wasm.MsgInstantiateContract: nil,
 }
 
-// Merge the chain specific message type handlers into the core message type handler map
-// If a core message type is defined in the chain specific, it will overide the value
-// in the core message type handler (useful if a chain has changed the core behavior of a base type and needs to be parsed differently).
+// Merge the chain specific message type handlers into the core message type handler map.
+// Chain specific handlers will be registered BEFORE any generic handlers.
 func ChainSpecificMessageTypeHandlerBootstrap(chainID string) {
-	var chainSpecificMessageTpeHandler map[string]func() txTypes.CosmosMessage
+	var chainSpecificMessageTpeHandler map[string][]func() txTypes.CosmosMessage
 	if chainID == osmosis.ChainID {
 		chainSpecificMessageTpeHandler = osmosis.MessageTypeHandler
 	}
 	for key, value := range chainSpecificMessageTpeHandler {
-		messageTypeHandler[key] = value
+		if list, ok := messageTypeHandler[key]; ok {
+			messageTypeHandler[key] = append(value, list...)
+		} else {
+			messageTypeHandler[key] = value
+		}
 	}
 }
 
 // ParseCosmosMessageJSON - Parse a SINGLE Cosmos Message into the appropriate type.
 func ParseCosmosMessage(message types.Msg, log *txTypes.LogMessage) (txTypes.CosmosMessage, string, error) {
+	var ok bool
+	var err error
+	var msgHandler txTypes.CosmosMessage
+	var handlerList []func() txTypes.CosmosMessage
+
 	// Figure out what type of Message this is based on the '@type' field that is included
 	// in every Cosmos Message (can be seen in raw JSON for any cosmos transaction).
-	var msg txTypes.CosmosMessage
 	cosmosMessage := txTypes.Message{}
 	cosmosMessage.Type = types.MsgTypeURL(message)
 
 	// So far we only parsed the '@type' field. Now we get a struct for that specific type.
-	if msgHandlerFunc, ok := messageTypeHandler[cosmosMessage.Type]; ok {
-		msg = msgHandlerFunc()
-	} else {
+	if handlerList, ok = messageTypeHandler[cosmosMessage.Type]; !ok {
 		return nil, cosmosMessage.Type, txTypes.ErrUnknownMessage
 	}
 
-	// Unmarshal the rest of the JSON now that we know the specific type.
-	// Note that depending on the type, it may or may not care about logs.
-	err := msg.HandleMsg(cosmosMessage.Type, message, log)
-	return msg, cosmosMessage.Type, err
+	for _, handlerFunc := range handlerList {
+		// Unmarshal the rest of the JSON now that we know the specific type.
+		// Note that depending on the type, it may or may not care about logs.
+		msgHandler = handlerFunc()
+		err = msgHandler.HandleMsg(cosmosMessage.Type, message, log)
+
+		// We're finished when a working handler is found
+		if err == nil {
+			break
+		}
+	}
+
+	return msgHandler, cosmosMessage.Type, err
 }
 
 func toAttributes(attrs []types.Attribute) []txTypes.Attribute {
