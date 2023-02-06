@@ -14,5 +14,5 @@ var MessageTypeHandler = map[string][]func() txTypes.CosmosMessage{
 	gamm.MsgJoinPool:                {func() txTypes.CosmosMessage { return &gamm.WrapperMsgJoinPool{} }},
 	gamm.MsgExitSwapShareAmountIn:   {func() txTypes.CosmosMessage { return &gamm.WrapperMsgExitSwapShareAmountIn{} }},
 	gamm.MsgExitSwapExternAmountOut: {func() txTypes.CosmosMessage { return &gamm.WrapperMsgExitSwapExternAmountOut{} }},
-	gamm.MsgExitPool:                {func() txTypes.CosmosMessage { return &gamm.WrapperMsgExitPool{} }},
+	gamm.MsgExitPool:                {func() txTypes.CosmosMessage { return &gamm.WrapperMsgExitPool{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgExitPool2{} }},
 }
