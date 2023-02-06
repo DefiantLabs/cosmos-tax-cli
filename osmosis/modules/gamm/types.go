@@ -26,12 +26,23 @@ const (
 	MsgExitPool                = "/osmosis.gamm.v1beta1.MsgExitPool"
 )
 
+const (
+	EventTypeClaim       = "claim"
+	EventAttributeAmount = "amount"
+)
+
 type WrapperMsgSwapExactAmountIn struct {
 	txModule.Message
 	OsmosisMsgSwapExactAmountIn *gammTypes.MsgSwapExactAmountIn
 	Address                     string
 	TokenOut                    sdk.Coin
 	TokenIn                     sdk.Coin
+}
+
+// Same as WrapperMsgSwapExactAmountIn but with different handlers.
+// This is due to the Osmosis SDK emitting different Events (chain upgrades).
+type WrapperMsgSwapExactAmountIn2 struct {
+	WrapperMsgSwapExactAmountIn
 }
 
 type WrapperMsgSwapExactAmountOut struct {
@@ -103,6 +114,10 @@ func (sf *WrapperMsgSwapExactAmountIn) String() string {
 
 	return fmt.Sprintf("MsgSwapExactAmountIn: %s swapped in %s and received %s\n",
 		sf.Address, tokenSwappedIn, tokenSwappedOut)
+}
+
+func (sf *WrapperMsgSwapExactAmountIn2) String() string {
+	return sf.WrapperMsgSwapExactAmountIn.String()
 }
 
 func (sf *WrapperMsgSwapExactAmountOut) String() string {
@@ -236,6 +251,48 @@ func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, lo
 
 	// This gets the last token swapped out (if there are multiple pools we do not care about intermediates)
 	tokenOutStr := txModule.GetLastValueForAttribute(gammTypes.AttributeKeyTokensOut, tokensSwappedEvt)
+	tokenOut, err := sdk.ParseCoinNormalized(tokenOutStr)
+	if err != nil {
+		fmt.Println("Error parsing coins out. Err: ", err)
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	sf.TokenOut = tokenOut
+
+	return err
+}
+
+// Handles an OLDER (now defunct) swap on Osmosis mainnet (osmosis-1).
+// Example TX hash: EA5C6AB8E3084D933F3E005A952A362DFD13DC79003DC2BC9E247920FCDFDD34
+func (sf *WrapperMsgSwapExactAmountIn2) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.OsmosisMsgSwapExactAmountIn = msg.(*gammTypes.MsgSwapExactAmountIn)
+
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
+	}
+
+	// The attribute in the log message that shows you the tokens swapped
+	tokensSwappedEvt := txModule.GetEventWithType(EventTypeClaim, log)
+	if tokensSwappedEvt == nil {
+		fmt.Println("Error getting event type.")
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	// Address of whoever initiated the swap. Will be both sender/receiver.
+	senderReceiver := txModule.GetValueForAttribute("sender", tokensSwappedEvt)
+	if senderReceiver == "" {
+		fmt.Println("Error getting sender.")
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	sf.Address = senderReceiver
+
+	// First token swapped in (if there are multiple pools we do not care about intermediates)
+	sf.TokenIn = sf.OsmosisMsgSwapExactAmountIn.TokenIn
+
+	// This gets the last token swapped out (if there are multiple pools we do not care about intermediates)
+	tokenOutStr := txModule.GetLastValueForAttribute(EventAttributeAmount, tokensSwappedEvt)
 	tokenOut, err := sdk.ParseCoinNormalized(tokenOutStr)
 	if err != nil {
 		fmt.Println("Error parsing coins out. Err: ", err)
@@ -665,6 +722,10 @@ func (sf *WrapperMsgSwapExactAmountIn) ParseRelevantData() []parsingTypes.Messag
 		ReceiverAddress:      sf.Address,
 	}
 	return relevantData
+}
+
+func (sf *WrapperMsgSwapExactAmountIn2) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	return sf.WrapperMsgSwapExactAmountIn.ParseRelevantData()
 }
 
 func (sf *WrapperMsgSwapExactAmountOut) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
