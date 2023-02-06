@@ -3,6 +3,7 @@ config.osmosis.toml
 cosmos-exporter
 cosmos-exporter-backend
 cosmos-tax-cli
+cosmos-tax-cli-private
 cosmos-tax-cli-backend
 client/client
 env
@@ -10,3 +11,4 @@ vendor/
 **/.DS_Store
 .idea/*
 .vscode/*
+tax.txt
