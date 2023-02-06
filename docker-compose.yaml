@@ -56,8 +56,8 @@ services:
       cosmos-tax-cli index \
       --log.pretty = true \
       --log.level = debug \
-      --base.start-block 5366162 \
-      --base.end-block 5366162 \
+      --base.start-block 4084 \
+      --base.end-block 4084 \
       --base.throttling 1.00 \
       --base.reindex true \
       --base.prevent-reattempts true \
@@ -71,46 +71,46 @@ services:
       --database.user taxuser \
       --database.password password
 
-  client:
-    restart: "unless-stopped"
-    image: ghcr.io/defiantlabs/cosmos-tax-cli:v1.0.0
-    user: defiant
-    stop_grace_period: 1m
-    volumes:
-      # - client:/var/lib/cosmos-tax-cli-client
-      - /etc/localtime:/etc/localtime:ro
-    depends_on:
-      postgres:
-        condition: service_healthy
-    links:
-      - postgres
-    ports:
-      - 8080:8080/tcp
-    networks:
-      default:
-        aliases:
-          - defiant
-    <<: *logging
-    command: /bin/sh -c "client --db.host postgres --db.database postgres --db.user taxuser --db.password password"
+  # client:
+  #   restart: "unless-stopped"
+  #   image: ghcr.io/defiantlabs/cosmos-tax-cli:v1.0.0
+  #   user: defiant
+  #   stop_grace_period: 1m
+  #   volumes:
+  #     # - client:/var/lib/cosmos-tax-cli-client
+  #     - /etc/localtime:/etc/localtime:ro
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   links:
+  #     - postgres
+  #   ports:
+  #     - 8080:8080/tcp
+  #   networks:
+  #     default:
+  #       aliases:
+  #         - defiant
+  #   <<: *logging
+  #   command: /bin/sh -c "client --db.host postgres --db.database postgres --db.user taxuser --db.password password"
 
-  web:
-    restart: "unless-stopped"
-    image: ghcr.io/defiantlabs/cosmos-tax-cli-web:v0.1.0
-    # user: defiant
-    stop_grace_period: 1m
-    volumes:
-      # - web:/var/lib/cosmos-tax-cli-web
-      - /etc/localtime:/etc/localtime:ro
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      - REACT_APP_API_URL=http://localhost:8080
-    ports:
-      - 3000:3000/tcp
-    networks:
-      default:
-        aliases:
-          - defiant
-    <<: *logging
-    command: /bin/sh -c "npm run start"
+  # web:
+  #   restart: "unless-stopped"
+  #   image: ghcr.io/defiantlabs/cosmos-tax-cli-web:v0.1.0
+  #   # user: defiant
+  #   stop_grace_period: 1m
+  #   volumes:
+  #     # - web:/var/lib/cosmos-tax-cli-web
+  #     - /etc/localtime:/etc/localtime:ro
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   environment:
+  #     - REACT_APP_API_URL=http://localhost:8080
+  #   ports:
+  #     - 3000:3000/tcp
+  #   networks:
+  #     default:
+  #       aliases:
+  #         - defiant
+  #   <<: *logging
+  #   command: /bin/sh -c "npm run start"
