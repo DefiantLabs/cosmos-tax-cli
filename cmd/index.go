@@ -448,20 +448,25 @@ func processBlock(cl *client.ChainClient, dbConn *gorm.DB, failedBlockHandler fu
 
 	if len(txsEventResp.Txs) == 0 {
 		// The node might have pruned history resulting in a failed lookup. Recheck to see if the block was supposed to have TX results.
-		blockResults, err := rpc.GetBlockByHeight(cl, newBlock.Height)
-		if err != nil || blockResults == nil {
+		resBlockResults, err := rpc.GetBlockByHeight(cl, newBlock.Height)
+		if err != nil || resBlockResults == nil {
 			if err != nil && strings.Contains(err.Error(), "is not available, lowest height is") {
 				failedBlockHandler(newBlock.Height, core.NodeMissingHistoryForBlock, err)
 			} else {
 				failedBlockHandler(newBlock.Height, core.BlockQueryError, err)
 			}
 			return nil
-		} else if len(blockResults.TxsResults) > 0 {
+		} else if len(resBlockResults.TxsResults) > 0 {
 			// The tx.height=X query said there were 0 TXs, but GetBlockByHeight() found some. When this happens
 			// it is the same on every RPC node. Thus, we defer to the results from GetBlockByHeight.
-			config.Log.Warnf("Two queries for the same block (%v) got a diff # of TXs.", newBlock.Height)
-			txDBWrappers, blockTime, err = core.ProcessRPCBlockByHeightTXs(dbConn, cl, blockResults)
+			config.Log.Warnf("Falling back to secondary queries for block height %d", newBlock.Height)
 
+			blockResults, err := rpc.GetBlock(cl, newBlock.Height)
+			if err != nil {
+				config.Log.Fatalf("Secondary RPC query failed, %d, %s", newBlock.Height, err)
+			}
+
+			txDBWrappers, blockTime, err = core.ProcessRPCBlockByHeightTXs(dbConn, cl, blockResults, resBlockResults)
 			if err != nil {
 				config.Log.Fatalf("Second query parser failed (ProcessRPCBlockByHeightTXs), %d, %s", newBlock.Height, err.Error())
 				return err

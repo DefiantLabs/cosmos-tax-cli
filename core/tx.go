@@ -5,8 +5,10 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"reflect"
 	"strings"
 	"time"
+	"unsafe"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/authz"
@@ -26,7 +28,6 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/incentives"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/lockup"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/superfluid"
-	"github.com/DefiantLabs/cosmos-tax-cli/rpc"
 	"github.com/DefiantLabs/cosmos-tax-cli/tendermint/modules/liquidity"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
@@ -36,7 +37,6 @@ import (
 	"github.com/strangelove-ventures/lens/client"
 	tendermintTypes "github.com/tendermint/tendermint/abci/types"
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
-	tendermintBase "github.com/tendermint/tendermint/types"
 	"gorm.io/gorm"
 )
 
@@ -191,34 +191,39 @@ func abciToEvents(msgEvents []tendermintTypes.Event) (list []txTypes.LogMessageE
 	return list
 }
 
-func ProcessRPCBlockByHeightTXs(db *gorm.DB, cl *client.ChainClient, blockResults *coretypes.ResultBlockResults) ([]dbTypes.TxDBWrapper, *time.Time, error) {
-	var blockTime *time.Time
+func getUnexportedField(field reflect.Value) interface{} {
+	return reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Interface()
+}
 
-	result, err := rpc.GetBlock(cl, blockResults.Height)
-	if err != nil {
-		config.Log.Errorf("Error getting block info for block %v. Err: %v", blockResults.Height, err)
-		return nil, nil, err
+func ProcessRPCBlockByHeightTXs(db *gorm.DB, cl *client.ChainClient, blockResults *coretypes.ResultBlock, resultBlockRes *coretypes.ResultBlockResults) ([]dbTypes.TxDBWrapper, *time.Time, error) {
+	if len(blockResults.Block.Txs) != len(resultBlockRes.TxsResults) {
+		config.Log.Fatalf("blockResults & resultBlockRes: different length")
 	}
 
-	blockTime = &result.Block.Time
+	blockTime := &blockResults.Block.Time
 	blockTimeStr := blockTime.Format(time.RFC3339)
-	var currTxDbWrappers = make([]dbTypes.TxDBWrapper, len(blockResults.TxsResults))
+	var currTxDbWrappers = make([]dbTypes.TxDBWrapper, len(blockResults.Block.Txs))
 
-	for txIdx, txResult := range blockResults.TxsResults {
+	for txIdx, tendermintTx := range blockResults.Block.Txs {
+		txResult := resultBlockRes.TxsResults[txIdx]
+
 		// Indexer types only used by the indexer app (similar to the cosmos types)
 		var indexerMergedTx txTypes.MergedTx
 		var indexerTx txTypes.IndexerTx
 		var txBody txTypes.Body
 		var currMessages []types.Msg
 		var currLogMsgs []tx.LogMessage
-		cl.Codec.TxConfig.TxDecoder()
+
 		txDecoder := cl.Codec.TxConfig.TxDecoder()
-		txBasic, err := txDecoder(txResult.Data)
+		txBasic, err := txDecoder(tendermintTx)
 		if err != nil {
-			config.Log.Fatalf("ProcessRPCBlockByHeightTXs: TX cannot be parsed from block %v. Err: %v", blockResults.Height, err)
-			return nil, nil, err
+			config.Log.Fatalf("ProcessRPCBlockByHeightTXs: TX cannot be parsed from block %v. Err: %v", blockResults.Block.Height, err)
 		}
-		txFull := txBasic.(*cosmosTx.Tx)
+
+		// This is a hack, but as far as I can tell necessary. "wrapper" struct is private in Cosmos SDK.
+		field := reflect.ValueOf(txBasic).Elem().FieldByName("tx")
+		iTx := getUnexportedField(field)
+		txFull := iTx.(*cosmosTx.Tx)
 
 		// Get the Messages and Message Logs
 		for msgIdx, currMsg := range txFull.GetMsgs() {
@@ -237,11 +242,10 @@ func ProcessRPCBlockByHeightTXs(db *gorm.DB, cl *client.ChainClient, blockResult
 
 		txBody.Messages = currMessages
 		indexerTx.Body = txBody
-		txHash := tendermintBase.Tx(txResult.Data).Hash()
-
+		txHash := tendermintTx.Hash()
 		indexerTxResp := tx.Response{
 			TxHash:    b64.StdEncoding.EncodeToString(txHash),
-			Height:    fmt.Sprintf("%d", blockResults.Height),
+			Height:    fmt.Sprintf("%d", blockResults.Block.Height),
 			TimeStamp: blockTimeStr,
 			RawLog:    txResult.Log,
 			Log:       currLogMsgs,
