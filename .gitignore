@@ -10,3 +10,4 @@ vendor/
 **/.DS_Store
 .idea/*
 .vscode/*
+cosmos-tax-cli-private

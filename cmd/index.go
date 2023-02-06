@@ -17,7 +17,6 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 	"github.com/DefiantLabs/cosmos-tax-cli/rpc"
 	"github.com/DefiantLabs/cosmos-tax-cli/tasks"
-
 	"github.com/spf13/cobra"
 	"github.com/strangelove-ventures/lens/client"
 	"gorm.io/gorm"
@@ -437,6 +436,9 @@ func (idxr *Indexer) queryRPC(blockChan chan int64, dbDataChan chan *dbData, fai
 func processBlock(cl *client.ChainClient, dbConn *gorm.DB, failedBlockHandler func(height int64, code core.BlockProcessingFailure, err error), dbDataChan chan *dbData, blockToProcess int64) error {
 	// fmt.Printf("Querying RPC transactions for block %d\n", blockToProcess)
 	newBlock := dbTypes.Block{Height: blockToProcess}
+	var txDBWrappers []dbTypes.TxDBWrapper
+	var blockTime *time.Time
+	var err error
 
 	txsEventResp, err := rpc.GetTxsByBlockHeight(cl, newBlock.Height)
 	if err != nil {
@@ -455,33 +457,37 @@ func processBlock(cl *client.ChainClient, dbConn *gorm.DB, failedBlockHandler fu
 			}
 			return nil
 		} else if len(blockResults.TxsResults) > 0 {
-			// Two queries for the same block got a diff # of TXs. Though it is not guaranteed,
-			// DeliverTx events typically make it into a block so this warrants manual investigation.
-			// In this case, we couldn't look up TXs on the node but the Node's block has DeliverTx events,
-			// so we should log this and manually review the block on e.g. mintscan or another tool.
-			config.Log.Fatalf("Two queries for the same block (%v) got a diff # of TXs.", newBlock.Height)
+			// The tx.height=X query said there were 0 TXs, but GetBlockByHeight() found some. When this happens
+			// it is the same on every RPC node. Thus, we defer to the results from GetBlockByHeight.
+			config.Log.Warnf("Two queries for the same block (%v) got a diff # of TXs.", newBlock.Height)
+			txDBWrappers, blockTime, err = core.ProcessRPCBlockByHeightTXs(dbConn, cl, blockResults)
+
+			if err != nil {
+				config.Log.Fatalf("Second query parser failed (ProcessRPCBlockByHeightTXs), %d, %s", newBlock.Height, err.Error())
+				return err
+			}
+		}
+	} else {
+		txDBWrappers, blockTime, err = core.ProcessRPCTXs(dbConn, txsEventResp)
+		if err != nil {
+			config.Log.Error("ProcessRpcTxs: unhandled error", err)
+			failedBlockHandler(blockToProcess, core.UnprocessableTxError, err)
 		}
 	}
 
-	txDBWrappers, blockTime, err := core.ProcessRPCTXs(dbConn, txsEventResp)
-	if err != nil {
-		config.Log.Error("ProcessRpcTxs: unhandled error", err)
-		failedBlockHandler(blockToProcess, core.UnprocessableTxError, err)
-	}
-
 	// Get the block time if we don't have TXs
-	if len(txsEventResp.Txs) == 0 {
+	if blockTime == nil {
 		result, err := rpc.GetBlock(cl, newBlock.Height)
 		if err != nil {
 			config.Log.Errorf("Error getting block info for block %v. Err: %v", newBlock.Height, err)
 			return err
 		}
-		blockTime = result.Block.Time
+		blockTime = &result.Block.Time
 	}
 
 	res := &dbData{
 		txDBWrappers: txDBWrappers,
-		blockTime:    blockTime,
+		blockTime:    *blockTime,
 		blockHeight:  blockToProcess,
 	}
 	dbDataChan <- res

@@ -7,13 +7,10 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
-	"github.com/DefiantLabs/cosmos-tax-cli/core"
 
 	"github.com/cosmos/cosmos-sdk/types"
-	"github.com/go-co-op/gocron"
 	"github.com/strangelove-ventures/lens/client"
 	lensClient "github.com/strangelove-ventures/lens/client"
 	lensQuery "github.com/strangelove-ventures/lens/client/query"
@@ -57,25 +54,6 @@ func setupConfig(t *testing.T) {
 		cfg.Base.StartBlock = 1
 	}
 	testConfig = &cfg
-}
-
-// setup does pre-run setup configurations.
-//   - Loads the application config from config.tml, cli args and parses/merges
-//   - Connects to the database and returns the db object
-//   - Returns various values used throughout the application
-//
-// nolint:unused
-func setupRPC(t *testing.T) *gocron.Scheduler {
-	if testConfig == nil {
-		setupConfig(t)
-	}
-
-	// Could potentially check Node info at startup and pass in ourselves?
-	core.SetupAddressRegex(testConfig.Lens.AccountPrefix + "(valoper)?1[a-z0-9]{38}")
-	core.SetupAddressPrefix(testConfig.Lens.AccountPrefix)
-
-	scheduler := gocron.NewScheduler(time.UTC)
-	return scheduler
 }
 
 func TestRPC(t *testing.T) {
