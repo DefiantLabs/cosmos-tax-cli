@@ -1,11 +1,14 @@
 package core
 
 import (
+	b64 "encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"reflect"
 	"strings"
 	"time"
+	"unsafe"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/authz"
@@ -27,11 +30,13 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/superfluid"
 	"github.com/DefiantLabs/cosmos-tax-cli/tendermint/modules/liquidity"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
-
 	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
 	cryptoTypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types"
 	cosmosTx "github.com/cosmos/cosmos-sdk/types/tx"
+	"github.com/strangelove-ventures/lens/client"
+	tendermintTypes "github.com/tendermint/tendermint/abci/types"
+	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 	"gorm.io/gorm"
 )
 
@@ -172,6 +177,16 @@ func toAttributes(attrs []types.Attribute) []txTypes.Attribute {
 	return list
 }
 
+func abciToAttributes(attrs []tendermintTypes.EventAttribute) []txTypes.Attribute {
+	list := []txTypes.Attribute{}
+	for _, attr := range attrs {
+		lma := txTypes.Attribute{Key: string(attr.Key), Value: string(attr.Value)}
+		list = append(list, lma)
+	}
+
+	return list
+}
+
 func toEvents(msgEvents types.StringEvents) (list []txTypes.LogMessageEvent) {
 	for _, evt := range msgEvents {
 		lme := tx.LogMessageEvent{Type: evt.Type, Attributes: toAttributes(evt.Attributes)}
@@ -181,12 +196,99 @@ func toEvents(msgEvents types.StringEvents) (list []txTypes.LogMessageEvent) {
 	return list
 }
 
-// All those structs were legacy and for REST API support but we no longer really need it.
-// For now I'm keeping it until we have RPC compatibility fully working and tested.
-func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]dbTypes.TxDBWrapper, time.Time, error) {
+func abciToEvents(msgEvents []tendermintTypes.Event) (list []txTypes.LogMessageEvent) {
+	for _, evt := range msgEvents {
+		lme := tx.LogMessageEvent{Type: evt.Type, Attributes: abciToAttributes(evt.Attributes)}
+		list = append(list, lme)
+	}
+
+	return list
+}
+
+func getUnexportedField(field reflect.Value) interface{} {
+	return reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Interface()
+}
+
+func ProcessRPCBlockByHeightTXs(db *gorm.DB, cl *client.ChainClient, blockResults *coretypes.ResultBlock, resultBlockRes *coretypes.ResultBlockResults) ([]dbTypes.TxDBWrapper, *time.Time, error) {
+	if len(blockResults.Block.Txs) != len(resultBlockRes.TxsResults) {
+		config.Log.Fatalf("blockResults & resultBlockRes: different length")
+	}
+
+	blockTime := &blockResults.Block.Time
+	blockTimeStr := blockTime.Format(time.RFC3339)
+	var currTxDbWrappers = make([]dbTypes.TxDBWrapper, len(blockResults.Block.Txs))
+
+	for txIdx, tendermintTx := range blockResults.Block.Txs {
+		txResult := resultBlockRes.TxsResults[txIdx]
+
+		// Indexer types only used by the indexer app (similar to the cosmos types)
+		var indexerMergedTx txTypes.MergedTx
+		var indexerTx txTypes.IndexerTx
+		var txBody txTypes.Body
+		var currMessages []types.Msg
+		var currLogMsgs []tx.LogMessage
+
+		txDecoder := cl.Codec.TxConfig.TxDecoder()
+		txBasic, err := txDecoder(tendermintTx)
+		if err != nil {
+			config.Log.Fatalf("ProcessRPCBlockByHeightTXs: TX cannot be parsed from block %v. Err: %v", blockResults.Block.Height, err)
+		}
+
+		// This is a hack, but as far as I can tell necessary. "wrapper" struct is private in Cosmos SDK.
+		field := reflect.ValueOf(txBasic).Elem().FieldByName("tx")
+		iTx := getUnexportedField(field)
+		txFull := iTx.(*cosmosTx.Tx)
+
+		// Get the Messages and Message Logs
+		for msgIdx, currMsg := range txFull.GetMsgs() {
+			if currMsg != nil {
+				currMessages = append(currMessages, currMsg)
+
+				currTxLog := tx.LogMessage{
+					MessageIndex: msgIdx,
+					Events:       abciToEvents(txResult.Events),
+				}
+				currLogMsgs = append(currLogMsgs, currTxLog)
+			} else {
+				return nil, blockTime, fmt.Errorf("tx message could not be processed")
+			}
+		}
+
+		txBody.Messages = currMessages
+		indexerTx.Body = txBody
+		txHash := tendermintTx.Hash()
+		indexerTxResp := tx.Response{
+			TxHash:    b64.StdEncoding.EncodeToString(txHash),
+			Height:    fmt.Sprintf("%d", blockResults.Block.Height),
+			TimeStamp: blockTimeStr,
+			RawLog:    txResult.Log,
+			Log:       currLogMsgs,
+			Code:      txResult.Code,
+		}
+
+		indexerTx.AuthInfo = *txFull.AuthInfo
+		indexerTx.Signers = txFull.GetSigners()
+		indexerMergedTx.TxResponse = indexerTxResp
+		indexerMergedTx.Tx = indexerTx
+		indexerMergedTx.Tx.AuthInfo = *txFull.AuthInfo
+
+		processedTx, _, err := ProcessTx(db, indexerMergedTx)
+		if err != nil {
+			return currTxDbWrappers, blockTime, err
+		}
+
+		processedTx.SignerAddress = dbTypes.Address{Address: txFull.FeePayer().String()}
+		currTxDbWrappers[txIdx] = processedTx
+	}
+
+	return currTxDbWrappers, blockTime, nil
+}
+
+// ProcessRPCTXs - Given an RPC response, build out the more specific data used by the parser.
+func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]dbTypes.TxDBWrapper, *time.Time, error) {
 	var currTxDbWrappers = make([]dbTypes.TxDBWrapper, len(txEventResp.Txs))
-	var blockTime time.Time
-	var blockTimeFound bool
+	var blockTime *time.Time
+
 	for txIdx := range txEventResp.Txs {
 		// Indexer types only used by the indexer app (similar to the cosmos types)
 		var indexerMergedTx txTypes.MergedTx
@@ -244,12 +346,11 @@ func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]db
 			return currTxDbWrappers, blockTime, err
 		}
 
-		if !blockTimeFound {
-			blockTime = txTime
+		if blockTime == nil {
+			blockTime = &txTime
 		}
 
 		processedTx.SignerAddress = dbTypes.Address{Address: currTx.FeePayer().String()}
-
 		currTxDbWrappers[txIdx] = processedTx
 	}
 
