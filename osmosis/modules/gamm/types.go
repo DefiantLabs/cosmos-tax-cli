@@ -45,6 +45,12 @@ type WrapperMsgSwapExactAmountIn2 struct {
 	WrapperMsgSwapExactAmountIn
 }
 
+// Same as WrapperMsgExitPool but with different handlers.
+// This is due to the Osmosis SDK emitting different Events (chain upgrades).
+type WrapperMsgExitPool2 struct {
+	WrapperMsgExitPool
+}
+
 type WrapperMsgSwapExactAmountOut struct {
 	txModule.Message
 	OsmosisMsgSwapExactAmountOut *gammTypes.MsgSwapExactAmountOut
@@ -213,6 +219,10 @@ func (sf *WrapperMsgExitPool) String() string {
 	}
 	return fmt.Sprintf("MsgExitPool: %s exited pool with %s and received %s\n",
 		sf.Address, tokenIn, strings.Join(tokensOut, ", "))
+}
+
+func (sf *WrapperMsgExitPool2) String() string {
+	return sf.WrapperMsgExitPool.String()
 }
 
 func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
@@ -650,6 +660,59 @@ func (sf *WrapperMsgExitSwapExternAmountOut) HandleMsg(msgType string, msg sdk.M
 	return err
 }
 
+func (sf *WrapperMsgExitPool2) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.OsmosisMsgExitPool = msg.(*gammTypes.MsgExitPool)
+
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
+	}
+
+	// The attribute in the log message that shows you the sent GAMM tokens during the exit
+	transferEvt := txModule.GetEventWithType(bankTypes.EventTypeTransfer, log)
+	if transferEvt == nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	// This gets the amount of GAMM tokens sent
+	gammTokenOutStr := txModule.GetLastValueForAttribute("amount", transferEvt)
+	if !strings.Contains(gammTokenOutStr, "gamm") {
+		fmt.Println("Gamm token out string must contain gamm")
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	gammTokenOut, err := sdk.ParseCoinNormalized(gammTokenOutStr)
+	if err != nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	sf.TokenIntoPool = gammTokenOut
+
+	if sf.OsmosisMsgExitPool.Sender == "" {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	sf.Address = sf.OsmosisMsgExitPool.Sender
+
+	// The first attribute in the event should have a key 'recipient', and a value with the Msg sender's address (whoever is exiting the pool)
+	senderAddr := txModule.GetNthValueForAttribute("recipient", 1, transferEvt)
+	if senderAddr != sf.Address {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v, senderAddr != sf.Address", log)}
+	}
+
+	// String value for the tokens out, which can be multiple
+	tokensOutString := txModule.GetNthValueForAttribute("amount", 1, transferEvt)
+	if tokensOutString == "" {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	sf.TokensOutOfPool, err = sdk.ParseCoinsNormalized(tokensOutString)
+	if err != nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	return err
+}
+
 func (sf *WrapperMsgExitPool) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
 	sf.OsmosisMsgExitPool = msg.(*gammTypes.MsgExitPool)
@@ -865,6 +928,10 @@ func (sf *WrapperMsgExitPool) ParseRelevantData() []parsingTypes.MessageRelevant
 	}
 
 	return relevantData
+}
+
+func (sf *WrapperMsgExitPool2) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	return sf.WrapperMsgExitPool.ParseRelevantData()
 }
 
 func calcNthGams(totalGamms *big.Int, numSwaps int) (*big.Int, *big.Int) {
