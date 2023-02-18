@@ -33,7 +33,7 @@ services:
 
   indexer:
     restart: "no"
-    image: ghcr.io/defiantlabs/cosmos-tax-cli:v1.0.0
+    image: ghcr.io/defiantlabs/cosmos-tax-cli:sha-56866e1
     user: defiant
     stop_grace_period: 10s
     volumes:
@@ -57,7 +57,7 @@ services:
       --log.pretty = true \
       --log.level = debug \
       --base.start-block 4084 \
-      --base.end-block 4084 \
+      --base.end-block 100000 \
       --base.throttling 1.00 \
       --base.reindex true \
       --base.prevent-reattempts true \
@@ -73,7 +73,7 @@ services:
 
   # client:
   #   restart: "unless-stopped"
-  #   image: ghcr.io/defiantlabs/cosmos-tax-cli:v1.0.0
+  #   image: ghcr.io/defiantlabs/cosmos-tax-cli:sha-56866e1
   #   user: defiant
   #   stop_grace_period: 1m
   #   volumes:
