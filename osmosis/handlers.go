@@ -7,7 +7,7 @@ import (
 
 // Unmarshal JSON to a particular type.
 var MessageTypeHandler = map[string][]func() txTypes.CosmosMessage{
-	gamm.MsgSwapExactAmountIn:       {func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn2{} }},
+	gamm.MsgSwapExactAmountIn:       {func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn2{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn3{} }},
 	gamm.MsgSwapExactAmountOut:      {func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountOut{} }},
 	gamm.MsgJoinSwapExternAmountIn:  {func() txTypes.CosmosMessage { return &gamm.WrapperMsgJoinSwapExternAmountIn{} }},
 	gamm.MsgJoinSwapShareAmountOut:  {func() txTypes.CosmosMessage { return &gamm.WrapperMsgJoinSwapShareAmountOut{} }},
