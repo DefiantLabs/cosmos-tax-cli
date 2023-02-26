@@ -5,3 +5,6 @@ port = "5432"
 database = ""
 user = ""
 password = ""
+
+[environment]
+model = ""
