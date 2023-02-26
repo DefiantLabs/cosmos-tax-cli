@@ -41,5 +41,5 @@ log-level = "error"
 
 [logger]
 
-[environment]
+[client]
 model = ""

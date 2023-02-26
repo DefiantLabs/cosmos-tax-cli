@@ -6,5 +6,5 @@ database = ""
 user = ""
 password = ""
 
-[environment]
+[client]
 model = ""

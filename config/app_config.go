@@ -19,7 +19,7 @@ type Config struct {
 	Base               base
 	Log                log
 	Lens               lens
-	Environment        environment
+	Client             client
 }
 
 // Validate will validate the config for required fields
@@ -150,7 +150,7 @@ type api struct {
 	Host string
 }
 
-type environment struct {
+type client struct {
 	Model string
 }
 

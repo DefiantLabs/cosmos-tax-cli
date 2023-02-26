@@ -33,7 +33,7 @@ func setup() (*gorm.DB, *config.Config, int, string, error) {
 			os.Exit(0)
 		}
 		config.Log.Panicf("Error parsing args. Err: %v", err)
-		return nil, nil, svcPort, argConfig.Environment.Model, err
+		return nil, nil, svcPort, argConfig.Client.Model, err
 	}
 
 	var location string
@@ -47,7 +47,7 @@ func setup() (*gorm.DB, *config.Config, int, string, error) {
 	if err != nil {
 		if !strings.Contains(err.Error(), "no such file or directory") {
 			config.Log.Panicf("Error opening configuration file. Err: %v", err)
-			return nil, nil, svcPort, argConfig.Environment.Model, err
+			return nil, nil, svcPort, argConfig.Client.Model, err
 		}
 	}
 
@@ -69,12 +69,12 @@ func setup() (*gorm.DB, *config.Config, int, string, error) {
 	db, err := dbTypes.PostgresDbConnect(cfg.Database.Host, cfg.Database.Port, cfg.Database.Database, cfg.Database.User, cfg.Database.Password, strings.ToLower(cfg.Database.LogLevel))
 	if err != nil {
 		config.Log.Error("Could not establish connection to the database", err)
-		return nil, nil, svcPort, cfg.Environment.Model, err
+		return nil, nil, svcPort, cfg.Client.Model, err
 	}
 
 	dbTypes.CacheDenoms(db)
 
-	return db, &cfg, svcPort, cfg.Environment.Model, nil
+	return db, &cfg, svcPort, cfg.Client.Model, nil
 }
 
 // @title Cosmos Tax CLI
