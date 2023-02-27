@@ -95,7 +95,7 @@ func main() {
 	DB = db
 	GlobalCfg = cfg
 
-	//Have to keep this here so that import of docs subfolder (which contains proper init()) stays
+	// Have to keep this here so that import of docs subfolder (which contains proper init()) stays
 	docs.SwaggerInfo.Title = "Cosmos Tax CLI"
 
 	r := gin.New()
