@@ -40,3 +40,6 @@ password = "taxapptest"
 log-level = "error"
 
 [logger]
+
+[client]
+model = ""

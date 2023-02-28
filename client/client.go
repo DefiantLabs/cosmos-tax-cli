@@ -8,18 +8,21 @@ import (
 	"strings"
 	"time"
 
+	"github.com/DefiantLabs/cosmos-tax-cli/client/docs"
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	"github.com/DefiantLabs/cosmos-tax-cli/csv"
+	csvParsers "github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
 	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
-
 	"github.com/gin-gonic/gin"
+	swaggerfiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/gorm"
 )
 
 var DB *gorm.DB
 var GlobalCfg *config.Config
 
-func setup() (*gorm.DB, *config.Config, int, error) {
+func setup() (*gorm.DB, *config.Config, int, string, error) {
 	argConfig, flagSet, svcPort, err := config.ParseArgs(os.Stderr, os.Args[1:])
 	if err != nil {
 		if strings.Contains(err.Error(), "help requested") {
@@ -30,7 +33,7 @@ func setup() (*gorm.DB, *config.Config, int, error) {
 			os.Exit(0)
 		}
 		config.Log.Panicf("Error parsing args. Err: %v", err)
-		return nil, nil, svcPort, err
+		return nil, nil, svcPort, argConfig.Client.Model, err
 	}
 
 	var location string
@@ -44,7 +47,7 @@ func setup() (*gorm.DB, *config.Config, int, error) {
 	if err != nil {
 		if !strings.Contains(err.Error(), "no such file or directory") {
 			config.Log.Panicf("Error opening configuration file. Err: %v", err)
-			return nil, nil, svcPort, err
+			return nil, nil, svcPort, argConfig.Client.Model, err
 		}
 	}
 
@@ -66,22 +69,34 @@ func setup() (*gorm.DB, *config.Config, int, error) {
 	db, err := dbTypes.PostgresDbConnect(cfg.Database.Host, cfg.Database.Port, cfg.Database.Database, cfg.Database.User, cfg.Database.Password, strings.ToLower(cfg.Database.LogLevel))
 	if err != nil {
 		config.Log.Error("Could not establish connection to the database", err)
-		return nil, nil, svcPort, err
+		return nil, nil, svcPort, cfg.Client.Model, err
 	}
 
 	dbTypes.CacheDenoms(db)
 
-	return db, &cfg, svcPort, nil
+	return db, &cfg, svcPort, cfg.Client.Model, nil
 }
 
+// @title Cosmos Tax CLI
+// @version         1.0
+// @description     An API to interact with the Cosmos Tax CLI backend.
+// @contact.name   Defiant Labs
+// @contact.url    https://defiantlabs.net/
+// @contact.email  info@defiantlabs.net
+// @BasePath  /
+// @externalDocs.description  OpenAPI
+// @externalDocs.url          https://swagger.io/resources/open-api/
 func main() {
-	db, cfg, svcPort, err := setup()
+	db, cfg, svcPort, model, err := setup()
 	if err != nil {
 		log.Fatalf("Error setting up. Err: %v", err)
 	}
 
 	DB = db
 	GlobalCfg = cfg
+
+	// Have to keep this here so that import of docs subfolder (which contains proper init()) stays
+	docs.SwaggerInfo.Title = "Cosmos Tax CLI"
 
 	r := gin.New()
 	r.Use(gin.Recovery())
@@ -90,6 +105,12 @@ func main() {
 	r.Use(CORSMiddleware())
 
 	r.GET("/gcphealth", Healthcheck)
+
+	if model == "commercial" {
+		r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
+		r.POST("/events.json", GetTaxableEventsJSON)
+	}
+
 	r.POST("/events.csv", GetTaxableEventsCSV)
 	err = r.Run(fmt.Sprintf(":%v", svcPort))
 	if err != nil {
@@ -97,6 +118,7 @@ func main() {
 	}
 }
 
+// @Router /gcphealth [get]
 func Healthcheck(context *gin.Context) {
 	context.JSON(200, gin.H{"status": "ok"})
 }
@@ -178,53 +200,75 @@ type TaxableEventsCSVRequest struct {
 
 var jsTimeFmt = "2006-01-02T15:04:05Z07:00"
 
+// @Accept json
+// @Produce text/csv
+// @Param data body TaxableEventsCSVRequest true "The options for the POST body"
+// @Router /events.csv [post]
 func GetTaxableEventsCSV(c *gin.Context) {
-	var requestBody TaxableEventsCSVRequest
-	err := c.BindJSON(&requestBody)
+	addresses, format, startDate, endDate, err := ParseTaxableEventsBody(c)
+
+	if err != nil {
+		return
+	}
+
+	parserKeys := csvParsers.GetParserKeys()
+	formatFound := false
+	for _, b := range parserKeys {
+		if format == b {
+			formatFound = true
+			break
+		}
+	}
+
+	if !formatFound {
+		c.JSON(422, gin.H{"message": fmt.Sprintf("Unsupported format %s, supported values are %s", format, parserKeys)})
+		return
+	}
+
+	accountRows, headers, err := csv.ParseForAddress(addresses, startDate, endDate, DB, format, *GlobalCfg)
 	if err != nil {
 		// the error returned here has already been pushed to the context... I think.
-		c.AbortWithError(500, errors.New("Error processing request body")) // nolint:staticcheck,errcheck
+		config.Log.Errorf("Error getting rows for addresses: %v", addresses)
+		fmt.Println(err)
+		c.AbortWithError(500, errors.New("Error getting rows for address")) // nolint:staticcheck,errcheck
 		return
 	}
 
-	// We expect ISO 8601 dates in UTC
-	var startDate *time.Time
-	if requestBody.StartDate != nil {
-		startTime, err := time.Parse(jsTimeFmt, *requestBody.StartDate)
-		if err != nil {
-			c.AbortWithError(500, fmt.Errorf("invalid start time. Err %v", err)) // nolint:errcheck
+	if len(accountRows) == 0 {
+		c.JSON(404, gin.H{"message": "No transactions for given address"})
+		return
+	}
+
+	buffer := csv.ToCsv(accountRows, headers)
+	c.Data(200, "text/csv", buffer.Bytes())
+}
+
+// @Accept json
+// @Produce json
+// @Param data body TaxableEventsCSVRequest true "The options for the POST body"
+// @Router /events.json [post]
+func GetTaxableEventsJSON(c *gin.Context) {
+	addresses, format, startDate, endDate, err := ParseTaxableEventsBody(c)
+
+	if err != nil {
+		return
+	}
+
+	parserKeys := csvParsers.GetParserKeys()
+	formatFound := false
+	for _, b := range parserKeys {
+		if format == b {
+			formatFound = true
+			break
 		}
-		startDate = &startTime
 	}
 
-	var endDate *time.Time
-	if requestBody.EndDate != nil {
-		endTime, err := time.Parse(jsTimeFmt, *requestBody.EndDate)
-		if err != nil {
-			c.AbortWithError(500, fmt.Errorf("invalid end time. Err %v", err)) // nolint:errcheck
-		}
-		endDate = &endTime
-	}
-	config.Log.Infof("Start: %s End: %s\n", startDate, endDate)
-
-	if requestBody.Addresses == "" {
-		c.JSON(422, gin.H{"message": "Address is required"})
+	if !formatFound {
+		c.JSON(422, gin.H{"message": fmt.Sprintf("Unsupported format \"%s\", supported values are %s", format, parserKeys)})
 		return
 	}
 
-	// parse addresses
-	var addresses []string
-	// strip spaces
-	requestBody.Addresses = strings.ReplaceAll(requestBody.Addresses, " ", "")
-	// split on commas
-	addresses = strings.Split(requestBody.Addresses, ",")
-
-	if requestBody.Format == "" {
-		c.JSON(422, gin.H{"message": "Format is required"})
-		return
-	}
-
-	accountRows, headers, err := csv.ParseForAddress(addresses, startDate, endDate, DB, requestBody.Format, *GlobalCfg)
+	accountRows, _, err := csv.ParseForAddress(addresses, startDate, endDate, DB, format, *GlobalCfg)
 	if err != nil {
 		// the error returned here has already been pushed to the context... I think.
 		config.Log.Errorf("Error getting rows for addresses: %v", addresses)
@@ -237,6 +281,59 @@ func GetTaxableEventsCSV(c *gin.Context) {
 		return
 	}
 
-	buffer := csv.ToCsv(accountRows, headers)
-	c.Data(200, "text/csv", buffer.Bytes())
+	c.JSON(200, accountRows)
+}
+
+func ParseTaxableEventsBody(c *gin.Context) ([]string, string, *time.Time, *time.Time, error) {
+	var requestBody TaxableEventsCSVRequest
+	err := c.BindJSON(&requestBody)
+
+	if err != nil {
+		// the error returned here has already been pushed to the context... I think.
+		c.AbortWithError(500, errors.New("Error processing request body")) // nolint:staticcheck,errcheck
+		return nil, "", nil, nil, err
+	}
+
+	// We expect ISO 8601 dates in UTC
+	var startDate *time.Time
+	if requestBody.StartDate != nil {
+		startTime, err := time.Parse(jsTimeFmt, *requestBody.StartDate)
+		if err != nil {
+			c.AbortWithError(500, fmt.Errorf("invalid start time. Err %v", err)) // nolint:errcheck
+			return nil, "", nil, nil, err
+		}
+		startDate = &startTime
+	}
+
+	var endDate *time.Time
+	if requestBody.EndDate != nil {
+		endTime, err := time.Parse(jsTimeFmt, *requestBody.EndDate)
+		if err != nil {
+			c.AbortWithError(500, fmt.Errorf("invalid end time. Err %v", err)) // nolint:errcheck
+			return nil, "", nil, nil, err
+		}
+		endDate = &endTime
+	}
+	config.Log.Infof("Start: %s End: %s\n", startDate, endDate)
+
+	if requestBody.Addresses == "" {
+		c.JSON(422, gin.H{"message": "Address is required"})
+		return nil, "", nil, nil, err
+	}
+
+	// parse addresses
+	var addresses []string
+	// strip spaces
+	requestBody.Addresses = strings.ReplaceAll(requestBody.Addresses, " ", "")
+	// split on commas
+	addresses = strings.Split(requestBody.Addresses, ",")
+
+	format := requestBody.Format
+
+	if format == "" {
+		c.JSON(422, gin.H{"message": "Format is required"})
+		return nil, "", nil, nil, errors.New("Format is required")
+	}
+
+	return addresses, format, startDate, endDate, nil
 }

@@ -19,6 +19,9 @@ func ParseArgs(w io.Writer, args []string) (Config, *flag.FlagSet, int, error) {
 	fs.StringVar(&c.Database.Password, "db.password", "", "The PostgreSQL user password for the indexer db")
 	fs.StringVar(&c.Database.User, "db.user", "", "The PostgreSQL user for the indexer db")
 
+	// Client
+	fs.StringVar(&c.Client.Model, "client.model", "", "The client deployment model (commercial or not)")
+
 	// Service
 	var svcPort int
 	fs.IntVar(&svcPort, "port", 8080, "the port the UI client will be served from")
