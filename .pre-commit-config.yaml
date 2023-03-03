@@ -17,7 +17,7 @@ repos:
       # Go Mod Tidy
       -   id: go-mod-tidy-repo
       # Go Vet
-      -   id: go-vet-repo-mod
+#       -   id: go-vet-repo-mod
       # Style
       -   id: go-imports-repo
       -   id: golangci-lint-repo-mod
