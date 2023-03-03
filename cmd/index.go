@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/DefiantLabs/lens/client"
 	"github.com/go-co-op/gocron"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
@@ -18,7 +19,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/rpc"
 	"github.com/DefiantLabs/cosmos-tax-cli/tasks"
 	"github.com/spf13/cobra"
-	"github.com/strangelove-ventures/lens/client"
+
 	"gorm.io/gorm"
 )
 

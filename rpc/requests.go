@@ -3,10 +3,10 @@ package rpc
 import (
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 
+	lensClient "github.com/DefiantLabs/lens/client"
+	lensQuery "github.com/DefiantLabs/lens/client/query"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	txTypes "github.com/cosmos/cosmos-sdk/types/tx"
-	lensClient "github.com/strangelove-ventures/lens/client"
-	lensQuery "github.com/strangelove-ventures/lens/client/query"
 )
 
 var apiEndpoints = map[string]string{

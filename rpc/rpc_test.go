@@ -10,10 +10,10 @@ import (
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 
+	"github.com/DefiantLabs/lens/client"
+	lensClient "github.com/DefiantLabs/lens/client"
+	lensQuery "github.com/DefiantLabs/lens/client/query"
 	"github.com/cosmos/cosmos-sdk/types"
-	"github.com/strangelove-ventures/lens/client"
-	lensClient "github.com/strangelove-ventures/lens/client"
-	lensQuery "github.com/strangelove-ventures/lens/client/query"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -1,8 +1,8 @@
 package config
 
 import (
+	lensClient "github.com/DefiantLabs/lens/client"
 	ibcTypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
-	lensClient "github.com/strangelove-ventures/lens/client"
 )
 
 func GetLensClient(conf lens) *lensClient.ChainClient {
