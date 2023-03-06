@@ -62,8 +62,8 @@ github.com/CosmWasm/wasmvm v1.1.1/go.mod h1:ei0xpvomwSdONsxDuONzV7bL1jSET1M8brEx
 github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
 github.com/DataDog/zstd v1.4.1/go.mod h1:1jcaCB/ufaK+sKp1NBhlGmpz41jOoPQ35bpF36t7BBo=
 github.com/DataDog/zstd v1.4.5/go.mod h1:1jcaCB/ufaK+sKp1NBhlGmpz41jOoPQ35bpF36t7BBo=
-github.com/DefiantLabs/lens v0.0.9-dl h1:05YYRBjGIWg28yJV+9G8aPmCJVou58OCIPZaKEyHjwg=
-github.com/DefiantLabs/lens v0.0.9-dl/go.mod h1:VEjuK8u1zbnJTRcjvAP6t9S1f4DZKIjzicEG1QQXTD4=
+github.com/DefiantLabs/lens v0.3.1-0.20230306030022-1f6f34841280 h1:kZH9Q431D7sCKi5IgWxamYSx8xS7Bdae3TzTKNgapYI=
+github.com/DefiantLabs/lens v0.3.1-0.20230306030022-1f6f34841280/go.mod h1:Kw6wTyAe3wHZ+CaRfmv5APzPT4m57yECfKV8jVMU6vQ=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
 github.com/KyleBanks/depth v1.2.1 h1:5h8fQADFrWtarTdtDudMmGsC7GPbOAu6RVB3ffsVFHc=
 github.com/KyleBanks/depth v1.2.1/go.mod h1:jzSb9d0L43HxTQfT+oSA1EEp2q+ne2uh6XgeJcm8brE=
@@ -190,8 +190,6 @@ github.com/cosmos/gogoproto v1.4.3 h1:RP3yyVREh9snv/lsOvmsAPQt8f44LgL281X0IOIhhc
 github.com/cosmos/gogoproto v1.4.3/go.mod h1:0hLIG5TR7IvV1fme1HCFKjfzW9X2x0Mo+RooWXCnOWU=
 github.com/cosmos/iavl v0.19.4 h1:t82sN+Y0WeqxDLJRSpNd8YFX5URIrT+p8n6oJbJ2Dok=
 github.com/cosmos/iavl v0.19.4/go.mod h1:X9PKD3J0iFxdmgNLa7b2LYWdsGd90ToV5cAONApkEPw=
-github.com/cosmos/ibc-go/v3 v3.0.0 h1:XUNplHVS51Q2gMnTFsFsH9QJ7flsovMamnltKbEgPQ4=
-github.com/cosmos/ibc-go/v3 v3.0.0/go.mod h1:Mb+1NXiPOLd+CPFlOC6BKeAUaxXlhuWenMmRiUiSmwY=
 github.com/cosmos/ibc-go/v4 v4.2.0 h1:Fx/kKq/uvawrAxk6ZrQ6sEIgffLRU5Cs/AUnvpPBrHI=
 github.com/cosmos/ibc-go/v4 v4.2.0/go.mod h1:57qWScDtfCx3FOMLYmBIKPbOLE6xiVhrgxHAQmbWYXM=
 github.com/cosmos/interchain-accounts v0.2.4 h1:7UrroFQsCRSp17980mk6anx4YteveIJVkU+a0wlsHQI=

@@ -9,7 +9,7 @@ import (
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
 	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
-
+	osmosisOldTypes "github.com/DefiantLabs/lens/extra-codecs/osmosis/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	gammTypes "github.com/osmosis-labs/osmosis/v14/x/gamm/types"
@@ -24,6 +24,7 @@ const (
 	MsgExitSwapShareAmountIn   = "/osmosis.gamm.v1beta1.MsgExitSwapShareAmountIn"
 	MsgExitSwapExternAmountOut = "/osmosis.gamm.v1beta1.MsgExitSwapExternAmountOut"
 	MsgExitPool                = "/osmosis.gamm.v1beta1.MsgExitPool"
+	MsgCreatePool              = "/osmosis.gamm.v1beta1.MsgCreatePool"
 )
 
 const (
@@ -115,6 +116,14 @@ type WrapperMsgExitPool struct {
 	TokenIntoPool      sdk.Coin
 }
 
+type WrapperMsgCreatePool struct {
+	txModule.Message
+	OsmosisMsgCreatePool *osmosisOldTypes.MsgCreatePool
+	// Address              string
+	// TokensOutOfPool      []sdk.Coin // exits can received multiple tokens out
+	// TokenIntoPool        sdk.Coin
+}
+
 func (sf *WrapperMsgSwapExactAmountIn) String() string {
 	var tokenSwappedOut string
 	var tokenSwappedIn string
@@ -189,6 +198,17 @@ func (sf *WrapperMsgJoinPool) String() string {
 	}
 	return fmt.Sprintf("MsgJoinPool: %s joined pool with %s and received %s\n",
 		sf.Address, strings.Join(tokensIn, ", "), tokenOut)
+}
+
+func (sf *WrapperMsgCreatePool) String() string {
+	var tokensIn []string
+	if !(len(sf.OsmosisMsgCreatePool.PoolAssets) == 0) {
+		for _, v := range sf.OsmosisMsgCreatePool.PoolAssets {
+			tokensIn = append(tokensIn, v.Token.String())
+		}
+	}
+	return fmt.Sprintf("MsgCreatePool: %s created pool with %s\n",
+		sf.OsmosisMsgCreatePool.Sender, strings.Join(tokensIn, ", "))
 }
 
 func (sf *WrapperMsgExitSwapShareAmountIn) String() string {
@@ -628,6 +648,19 @@ func (sf *WrapperMsgJoinPool) HandleMsg(msgType string, msg sdk.Msg, log *txModu
 	return err
 }
 
+func (sf *WrapperMsgCreatePool) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.OsmosisMsgCreatePool = msg.(*osmosisOldTypes.MsgCreatePool)
+
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
+	}
+
+	return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+}
+
 func (sf *WrapperMsgExitSwapShareAmountIn) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
 	sf.OsmosisMsgExitSwapShareAmountIn = msg.(*gammTypes.MsgExitSwapShareAmountIn)
@@ -943,6 +976,23 @@ func (sf *WrapperMsgJoinPool) ParseRelevantData() []parsingTypes.MessageRelevant
 			AmountReceived:       sf.Claim.Amount.BigInt(),
 			DenominationReceived: sf.Claim.Denom,
 		})
+	}
+
+	return relevantData
+}
+
+func (sf *WrapperMsgCreatePool) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	// need to make a relevant data block for all Tokens sent to the pool since JoinPool can use 1 or both tokens used in the pool
+	var relevantData = make([]parsingTypes.MessageRelevantInformation, len(sf.OsmosisMsgCreatePool.PoolAssets))
+
+	// figure out how many gams per token
+	for i, v := range sf.OsmosisMsgCreatePool.PoolAssets {
+		relevantData[i] = parsingTypes.MessageRelevantInformation{
+			AmountSent:       v.Token.Amount.BigInt(),
+			DenominationSent: v.Token.Denom,
+			SenderAddress:    sf.OsmosisMsgCreatePool.Sender,
+			//ReceiverAddress:      sf.Address,
+		}
 	}
 
 	return relevantData

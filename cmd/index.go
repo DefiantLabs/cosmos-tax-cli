@@ -440,14 +440,22 @@ func processBlock(cl *client.ChainClient, dbConn *gorm.DB, failedBlockHandler fu
 	var txDBWrappers []dbTypes.TxDBWrapper
 	var blockTime *time.Time
 	var err error
+	errTypeURL := false
 
 	txsEventResp, err := rpc.GetTxsByBlockHeight(cl, newBlock.Height)
 	if err != nil {
-		config.Log.Errorf("Error getting transactions by block height (%v). Err: %v. Will reattempt", newBlock.Height, err)
-		return err
+		if strings.Contains(err.Error(), "unable to resolve type URL") {
+			errTypeURL = true
+		} else {
+			config.Log.Errorf("Error getting transactions by block height (%v). Err: %v. Will reattempt", newBlock.Height, err)
+			return err
+		}
 	}
 
-	if len(txsEventResp.Txs) == 0 {
+	// There are two reasons this block would be hit
+	// 1) The node might have pruned history resulting in a failed lookup. Recheck to see if the block was supposed to have TX results.
+	// 2) The RPC endpoint (node we queried) doesn't recognize the type URL anymore, for an older type (e.g. on an archive node).
+	if errTypeURL || len(txsEventResp.Txs) == 0 {
 		// The node might have pruned history resulting in a failed lookup. Recheck to see if the block was supposed to have TX results.
 		resBlockResults, err := rpc.GetBlockByHeight(cl, newBlock.Height)
 		if err != nil || resBlockResults == nil {

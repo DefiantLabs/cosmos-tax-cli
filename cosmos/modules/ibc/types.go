@@ -6,7 +6,7 @@ import (
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
 	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
-	"github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
+	"github.com/cosmos/ibc-go/v4/modules/apps/transfer/types"
 
 	stdTypes "github.com/cosmos/cosmos-sdk/types"
 )
