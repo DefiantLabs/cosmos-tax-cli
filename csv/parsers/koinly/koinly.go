@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/DefiantLabs/cosmos-tax-cli/assetlists"
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/bank"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/distribution"
@@ -22,6 +23,23 @@ var unsupportedCoins = []string{
 }
 
 var coinReplacementMap = map[string]string{}
+
+var symbolsToKoinlyIds = map[string]string{}
+
+// Probably not the best place for this, but its only used in Koinly for now
+// May want to consider adding the asset list URL as a config value and passing the AssetList value down to parsers if needed
+func init() {
+	assetList, err := assetlists.GetAssetList("https://raw.githubusercontent.com/DefiantLabs/assetlists/main/osmosis-1/osmosis-1.assetlist.json")
+	if err != nil {
+		fmt.Println(err)
+		panic("Could not load Koinly Symbols to IDs map")
+	}
+
+	for _, asset := range assetList.Assets {
+		// Required format for koinly IDs is ID:<val>
+		symbolsToKoinlyIds[asset.Symbol] = fmt.Sprintf("ID:%s", asset.KoinlyId)
+	}
+}
 
 func (p *Parser) TimeLayout() string {
 	return TimeLayout
@@ -91,6 +109,25 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parser
 	for _, v := range p.ParsingGroups {
 		for _, row := range v.GetRowsForParsingGroup() {
 			koinlyRows = append(koinlyRows, row.(Row))
+		}
+	}
+
+	for i, row := range koinlyRows {
+
+		if row.FeeCurrency != "" {
+			if _, ok := symbolsToKoinlyIds[row.FeeCurrency]; ok {
+				koinlyRows[i].FeeCurrency = symbolsToKoinlyIds[row.FeeCurrency]
+			}
+		}
+		if row.ReceivedCurrency != "" {
+			if _, ok := symbolsToKoinlyIds[row.ReceivedCurrency]; ok {
+				koinlyRows[i].ReceivedCurrency = symbolsToKoinlyIds[row.ReceivedCurrency]
+			}
+		}
+		if row.SentCurrency != "" {
+			if _, ok := symbolsToKoinlyIds[row.SentCurrency]; ok {
+				koinlyRows[i].SentCurrency = symbolsToKoinlyIds[row.SentCurrency]
+			}
 		}
 	}
 
