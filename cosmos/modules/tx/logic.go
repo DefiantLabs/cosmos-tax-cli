@@ -46,6 +46,64 @@ func GetValueForAttribute(key string, evt *LogMessageEvent) string {
 	return ""
 }
 
+func GetCoinsSpent(spender string, evt *LogMessageEvent) []string {
+	coinsSpent := []string{}
+
+	if evt == nil || evt.Attributes == nil {
+		return coinsSpent
+	}
+
+	for i := 0; i < len(evt.Attributes); i++ {
+		attr := evt.Attributes[i]
+		if attr.Key == "spender" && attr.Value == spender {
+			attrAmountIdx := i + 1
+			if attrAmountIdx < len(evt.Attributes) {
+				attrNext := evt.Attributes[attrAmountIdx]
+				if attrNext.Key == "amount" {
+					commaSeperatedCoins := attrNext.Value
+					currentCoins := strings.Split(commaSeperatedCoins, ",")
+					for _, coin := range currentCoins {
+						if coin != "" {
+							coinsSpent = append(coinsSpent, coin)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return coinsSpent
+}
+
+func GetCoinsReceived(receiver string, evt *LogMessageEvent) []string {
+	coinsReceived := []string{}
+
+	if evt == nil || evt.Attributes == nil {
+		return coinsReceived
+	}
+
+	for i := 0; i < len(evt.Attributes); i++ {
+		attr := evt.Attributes[i]
+		if attr.Key == "receiver" && attr.Value == receiver {
+			attrAmountIdx := i + 1
+			if attrAmountIdx < len(evt.Attributes) {
+				attrNext := evt.Attributes[attrAmountIdx]
+				if attrNext.Key == "amount" {
+					commaSeperatedCoins := attrNext.Value
+					currentCoins := strings.Split(commaSeperatedCoins, ",")
+					for _, coin := range currentCoins {
+						if coin != "" {
+							coinsReceived = append(coinsReceived, coin)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return coinsReceived
+}
+
 // Get the Nth value for the given key (starting at 1)
 func GetNthValueForAttribute(key string, n int, evt *LogMessageEvent) string {
 	if evt == nil || evt.Attributes == nil {

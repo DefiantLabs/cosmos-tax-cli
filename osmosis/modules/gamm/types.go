@@ -119,9 +119,8 @@ type WrapperMsgExitPool struct {
 type WrapperMsgCreatePool struct {
 	txModule.Message
 	OsmosisMsgCreatePool *osmosisOldTypes.MsgCreatePool
-	// Address              string
-	// TokensOutOfPool      []sdk.Coin // exits can received multiple tokens out
-	// TokenIntoPool        sdk.Coin
+	CoinsSpent           []sdk.Coin
+	CoinsReceived        sdk.Coin
 }
 
 func (sf *WrapperMsgSwapExactAmountIn) String() string {
@@ -658,7 +657,45 @@ func (sf *WrapperMsgCreatePool) HandleMsg(msgType string, msg sdk.Msg, log *txMo
 		return util.ReturnInvalidLog(msgType, log)
 	}
 
-	return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	coinSpentEvent := txModule.GetEventWithType(bankTypes.EventTypeCoinSpent, log)
+	if coinSpentEvent == nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	coinsSpent := txModule.GetCoinsSpent(sf.OsmosisMsgCreatePool.Sender, coinSpentEvent)
+
+	if len(coinsSpent) < 2 {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("invalid number of coins spent: %+v", log)}
+	}
+
+	sf.CoinsSpent = []sdk.Coin{}
+	for _, coin := range coinsSpent {
+		t, err := sdk.ParseCoinNormalized(coin)
+		if err != nil {
+			return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		}
+
+		sf.CoinsSpent = append(sf.CoinsSpent, t)
+	}
+
+	coinReceivedEvent := txModule.GetEventWithType(bankTypes.EventTypeCoinReceived, log)
+	if coinReceivedEvent == nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	coinsReceived := txModule.GetCoinsReceived(sf.OsmosisMsgCreatePool.Sender, coinReceivedEvent)
+
+	if len(coinsReceived) != 1 {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("invalid number of coins received: %+v", log)}
+	}
+
+	var err error
+	sf.CoinsReceived, err = sdk.ParseCoinNormalized(coinsReceived[0])
+	if err != nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	return err
 }
 
 func (sf *WrapperMsgExitSwapShareAmountIn) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
@@ -982,16 +1019,32 @@ func (sf *WrapperMsgJoinPool) ParseRelevantData() []parsingTypes.MessageRelevant
 }
 
 func (sf *WrapperMsgCreatePool) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
-	// need to make a relevant data block for all Tokens sent to the pool since JoinPool can use 1 or both tokens used in the pool
-	var relevantData = make([]parsingTypes.MessageRelevantInformation, len(sf.OsmosisMsgCreatePool.PoolAssets))
+	// need to make a relevant data block for all Tokens sent to the pool on creation
+	var relevantData = make([]parsingTypes.MessageRelevantInformation, len(sf.CoinsSpent))
 
 	// figure out how many gams per token
-	for i, v := range sf.OsmosisMsgCreatePool.PoolAssets {
-		relevantData[i] = parsingTypes.MessageRelevantInformation{
-			AmountSent:       v.Token.Amount.BigInt(),
-			DenominationSent: v.Token.Denom,
-			SenderAddress:    sf.OsmosisMsgCreatePool.Sender,
-			//ReceiverAddress:      sf.Address,
+	nthGamms, remainderGamms := calcNthGams(sf.CoinsReceived.Amount.BigInt(), len(sf.CoinsSpent))
+	for i, v := range sf.CoinsSpent {
+		// split received tokens across entry so we receive GAMM tokens for both exchanges
+		// each swap will get 1 nth of the gams until the last one which will get the remainder
+		if i != len(sf.CoinsSpent)-1 {
+			relevantData[i] = parsingTypes.MessageRelevantInformation{
+				AmountSent:           v.Amount.BigInt(),
+				DenominationSent:     v.Denom,
+				AmountReceived:       nthGamms,
+				DenominationReceived: sf.CoinsReceived.Denom,
+				SenderAddress:        sf.OsmosisMsgCreatePool.Sender,
+				ReceiverAddress:      sf.OsmosisMsgCreatePool.Sender,
+			}
+		} else {
+			relevantData[i] = parsingTypes.MessageRelevantInformation{
+				AmountSent:           v.Amount.BigInt(),
+				DenominationSent:     v.Denom,
+				AmountReceived:       remainderGamms,
+				DenominationReceived: sf.CoinsReceived.Denom,
+				SenderAddress:        sf.OsmosisMsgCreatePool.Sender,
+				ReceiverAddress:      sf.OsmosisMsgCreatePool.Sender,
+			}
 		}
 	}
 
