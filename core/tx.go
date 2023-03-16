@@ -136,7 +136,7 @@ func ChainSpecificMessageTypeHandlerBootstrap(chainID string) {
 }
 
 // ParseCosmosMessageJSON - Parse a SINGLE Cosmos Message into the appropriate type.
-func ParseCosmosMessage(message types.Msg, log *txTypes.LogMessage) (txTypes.CosmosMessage, string, error) {
+func ParseCosmosMessage(message types.Msg, log txTypes.LogMessage) (txTypes.CosmosMessage, string, error) {
 	var ok bool
 	var err error
 	var msgHandler txTypes.CosmosMessage
@@ -156,7 +156,7 @@ func ParseCosmosMessage(message types.Msg, log *txTypes.LogMessage) (txTypes.Cos
 		// Unmarshal the rest of the JSON now that we know the specific type.
 		// Note that depending on the type, it may or may not care about logs.
 		msgHandler = handlerFunc()
-		err = msgHandler.HandleMsg(cosmosMessage.Type, message, log)
+		err = msgHandler.HandleMsg(cosmosMessage.Type, message, &log)
 
 		// We're finished when a working handler is found
 		if err == nil {
@@ -406,7 +406,7 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 			// Get the message log that corresponds to the current message
 			var currMessageDBWrapper dbTypes.MessageDBWrapper
 			messageLog := txTypes.GetMessageLogForIndex(tx.TxResponse.Log, messageIndex)
-			cosmosMessage, msgType, err := ParseCosmosMessage(message, messageLog)
+			cosmosMessage, msgType, err := ParseCosmosMessage(message, *messageLog)
 			if err != nil {
 				currMessageType.MessageType = msgType
 				currMessage.MessageType = currMessageType
