@@ -56,10 +56,11 @@ services:
       cosmos-tax-cli index \
       --log.pretty = true \
       --log.level = debug \
-      --base.start-block 4084 \
-      --base.end-block 100000 \
+      --base.start-block 7619641 \
+      --base.end-block 7619641 \
       --base.throttling 1.00 \
       --base.reindex true \
+      --base.index-rewards false \
       --base.prevent-reattempts true \
       --base.api https://osmosis-mainnet-archive.allthatnode.com:1317 \
       --lens.rpc https://osmosis-mainnet-archive.allthatnode.com:26657 \
