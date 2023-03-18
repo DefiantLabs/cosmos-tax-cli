@@ -100,6 +100,22 @@ type WrapperMsgExitSwapShareAmountIn struct {
 	TokenIn                         sdk.Coin
 }
 
+// Same as WrapperMsgExitSwapShareAmountIn but with different handlers.
+// This is due to the Osmosis SDK emitting different Events (chain upgrades).
+type WrapperMsgExitSwapShareAmountIn2 struct {
+	txModule.Message
+	OsmosisMsgExitSwapShareAmountIn *gammTypes.MsgExitSwapShareAmountIn
+	Address                         string
+	TokensOut                       sdk.Coins
+	TokenSwaps                      []tokenSwap
+	TokenIn                         sdk.Coin
+}
+
+type tokenSwap struct {
+	TokenSwappedIn  sdk.Coin
+	TokenSwappedOut sdk.Coin
+}
+
 type WrapperMsgExitSwapExternAmountOut struct {
 	txModule.Message
 	OsmosisMsgExitSwapExternAmountOut *gammTypes.MsgExitSwapExternAmountOut
@@ -222,6 +238,32 @@ func (sf *WrapperMsgExitSwapShareAmountIn) String() string {
 	}
 	return fmt.Sprintf("MsgMsgExitSwapShareAmountIn: %s exited with %s and received %s\n",
 		sf.Address, tokenSwappedIn, tokenSwappedOut)
+}
+
+func (sf *WrapperMsgExitSwapShareAmountIn2) String() string {
+	var tokenSwappedOut string
+	var tokenSwappedIn string
+
+	var postExitTokenSwaps []string
+	var postExitTokenSwapsRepr string
+
+	if !sf.TokensOut.Empty() {
+		tokenSwappedOut = sf.TokensOut.String()
+	}
+	if !sf.TokenIn.IsNil() {
+		tokenSwappedIn = sf.TokenIn.String()
+	}
+
+	if !(len(sf.TokenSwaps) == 0) {
+		for _, swap := range sf.TokenSwaps {
+			postExitTokenSwaps = append(postExitTokenSwaps, fmt.Sprintf("%s for %s", swap.TokenSwappedIn.String(), swap.TokenSwappedOut.String()))
+		}
+
+		postExitTokenSwapsRepr = strings.Join(postExitTokenSwaps, ", ")
+	}
+
+	return fmt.Sprintf("MsgMsgExitSwapShareAmountIn: %s exited with %s and received %s, then swapped %s\n",
+		sf.Address, tokenSwappedIn, tokenSwappedOut, postExitTokenSwapsRepr)
 }
 
 func (sf *WrapperMsgExitSwapExternAmountOut) String() string {
@@ -715,6 +757,85 @@ func (sf *WrapperMsgExitSwapShareAmountIn) HandleMsg(msgType string, msg sdk.Msg
 	return err
 }
 
+func (sf *WrapperMsgExitSwapShareAmountIn2) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.OsmosisMsgExitSwapShareAmountIn = msg.(*gammTypes.MsgExitSwapShareAmountIn)
+
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
+	}
+
+	// The attribute in the log message that shows you the burned GAMM tokens sent to the pool
+	burnEvt := txModule.GetEventWithType("burn", log)
+	if burnEvt == nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	// This gets the amount of GAMM exited with
+	gammTokenInStr := txModule.GetValueForAttribute("amount", burnEvt)
+	if !strings.Contains(gammTokenInStr, "gamm") {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	gammTokenIn, err := sdk.ParseCoinNormalized(gammTokenInStr)
+	if err != nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	sf.TokenIn = gammTokenIn
+
+	// Address of whoever initiated the exit
+	poolExitedEvent := txModule.GetEventWithType(gammTypes.TypeEvtPoolExited, log)
+	if poolExitedEvent == nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	// Address of whoever initiated the exit.
+	senderAddress := txModule.GetValueForAttribute("sender", poolExitedEvent)
+	if senderAddress == "" {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	sf.Address = senderAddress
+
+	tokensOut := txModule.GetValueForAttribute(gammTypes.AttributeKeyTokensOut, poolExitedEvent)
+	if tokensOut == "" {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	multiTokensOut, err := sdk.ParseCoinsNormalized(tokensOut)
+
+	if err != nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	sf.TokensOut = multiTokensOut
+
+	// The token swapped events contain the final amount of tokens out in this tx
+	tokenSwappedEvents := txModule.GetAllEventsWithType(gammTypes.TypeEvtTokenSwapped, log)
+
+	// This is to handle multi-token pool exit swaps
+	for _, tokenSwappedEvent := range tokenSwappedEvents {
+		tokenSwappedIn := txModule.GetValueForAttribute(gammTypes.AttributeKeyTokensIn, &tokenSwappedEvent)
+		tokenSwappedOut := txModule.GetValueForAttribute(gammTypes.AttributeKeyTokensOut, &tokenSwappedEvent)
+		parsedTokensSwappedIn, err := sdk.ParseCoinNormalized(tokenSwappedIn)
+
+		if err != nil {
+			return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		}
+
+		parsedTokensSwappedOut, err := sdk.ParseCoinNormalized(tokenSwappedOut)
+
+		if err != nil {
+			return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		}
+
+		tokenSwap := tokenSwap{TokenSwappedIn: parsedTokensSwappedIn, TokenSwappedOut: parsedTokensSwappedOut}
+
+		sf.TokenSwaps = append(sf.TokenSwaps, tokenSwap)
+	}
+
+	return err
+}
+
 func (sf *WrapperMsgExitSwapExternAmountOut) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
 	sf.OsmosisMsgExitSwapExternAmountOut = msg.(*gammTypes.MsgExitSwapExternAmountOut)
@@ -1008,6 +1129,52 @@ func (sf *WrapperMsgExitSwapShareAmountIn) ParseRelevantData() []parsingTypes.Me
 		SenderAddress:        sf.Address,
 		ReceiverAddress:      sf.Address,
 	}
+	return relevantData
+}
+
+func (sf *WrapperMsgExitSwapShareAmountIn2) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	var relevantData = make([]parsingTypes.MessageRelevantInformation, len(sf.TokensOut))
+
+	// figure out how many gams per token
+	nthGamms, remainderGamms := calcNthGams(sf.TokenIn.Amount.BigInt(), len(sf.TokensOut))
+
+	//Handle the pool exit
+	for i, v := range sf.TokensOut {
+		// split received tokens across entry so we receive GAMM tokens for both exchanges
+		// each swap will get 1 nth of the gams until the last one which will get the remainder
+		if i != len(sf.TokensOut)-1 {
+			relevantData[i] = parsingTypes.MessageRelevantInformation{
+				AmountSent:           nthGamms,
+				DenominationSent:     sf.TokenIn.Denom,
+				AmountReceived:       v.Amount.BigInt(),
+				DenominationReceived: v.Denom,
+				SenderAddress:        sf.Address,
+				ReceiverAddress:      sf.Address,
+			}
+		} else {
+			relevantData[i] = parsingTypes.MessageRelevantInformation{
+				AmountSent:           remainderGamms,
+				DenominationSent:     sf.TokenIn.Denom,
+				AmountReceived:       v.Amount.BigInt(),
+				DenominationReceived: v.Denom,
+				SenderAddress:        sf.Address,
+				ReceiverAddress:      sf.Address,
+			}
+		}
+	}
+
+	//Handle the post exit swap event
+	for _, tokensSwapped := range sf.TokenSwaps {
+		relevantData = append(relevantData, parsingTypes.MessageRelevantInformation{
+			AmountSent:           tokensSwapped.TokenSwappedIn.Amount.BigInt(),
+			DenominationSent:     tokensSwapped.TokenSwappedIn.Denom,
+			AmountReceived:       tokensSwapped.TokenSwappedOut.Amount.BigInt(),
+			DenominationReceived: tokensSwapped.TokenSwappedOut.Denom,
+			SenderAddress:        sf.Address,
+			ReceiverAddress:      sf.Address,
+		})
+	}
+
 	return relevantData
 }
 
