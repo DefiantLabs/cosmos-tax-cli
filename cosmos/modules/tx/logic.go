@@ -30,6 +30,23 @@ func GetEventWithType(eventType string, msg *LogMessage) *LogMessageEvent {
 	return nil
 }
 
+func GetAllEventsWithType(eventType string, msg *LogMessage) []LogMessageEvent {
+
+	var logEventMessages []LogMessageEvent
+
+	if msg == nil || msg.Events == nil {
+		return logEventMessages
+	}
+
+	for _, logEvent := range msg.Events {
+		if logEvent.Type == eventType {
+			logEventMessages = append(logEventMessages, logEvent)
+		}
+	}
+
+	return logEventMessages
+}
+
 // If order is reversed, the last attribute containing the given key will be returned
 // otherwise the first attribute will be returned
 func GetValueForAttribute(key string, evt *LogMessageEvent) string {
