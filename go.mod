@@ -170,9 +170,9 @@ require (
 	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
 	golang.org/x/net v0.4.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.3.0 // indirect
-	golang.org/x/term v0.3.0 // indirect
-	golang.org/x/text v0.5.0 // indirect
+	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/term v0.5.0 // indirect
+	golang.org/x/text v0.7.0 // indirect
 	golang.org/x/tools v0.2.0 // indirect
 	google.golang.org/genproto v0.0.0-20221227171554-f9683d7f8bef // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
@@ -197,5 +197,6 @@ replace (
 	github.com/tendermint/go-amino => github.com/tendermint/go-amino v0.16.0
 	github.com/tendermint/tendermint => github.com/informalsystems/tendermint v0.34.24
 	github.com/tendermint/tm-db => github.com/osmosis-labs/tm-db v0.6.5-0.20210911033928-ba9154613417
+	golang.org/x/net => golang.org/x/net v0.7.0
 	google.golang.org/grpc => google.golang.org/grpc v1.33.2
 )
