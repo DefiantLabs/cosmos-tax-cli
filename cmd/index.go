@@ -349,7 +349,7 @@ func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler 
 	defer close(rewardsDataChan)
 
 	startHeight := idxr.cfg.Base.RewardStartBlock
-	if startHeight == -1 {
+	if startHeight <= 0 {
 		startHeight = OsmosisGetRewardsStartIndexHeight(idxr.db, idxr.cfg.Lens.ChainID)
 	}
 
