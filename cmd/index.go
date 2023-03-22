@@ -348,12 +348,24 @@ func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler 
 	defer wg.Done()
 	defer close(rewardsDataChan)
 
-	averageOsmosisBlocksPerDay := int64(14440)
+	averageOsmosisBlocksPerDay := int64(14000)
+	reindex := idxr.cfg.Base.ReIndex
 	startHeight := idxr.cfg.Base.RewardStartBlock
-	if startHeight <= 0 {
-		startHeight = OsmosisGetRewardsStartIndexHeight(idxr.db, idxr.cfg.Lens.ChainID)
+	intervalWidth := int64(14000)
+	lastKnownRewardsHeight := int64(-1)
+
+	if startHeight <= 0 || !reindex {
+		dbLastIndexedReward := OsmosisGetRewardsStartIndexHeight(idxr.db, idxr.cfg.Lens.ChainID)
+		if dbLastIndexedReward > 0 {
+			startHeight = dbLastIndexedReward
+		}
+	}
+
+	if startHeight > 0 {
 		//the next plausible block that might contain osmosis rewards is a day later
 		startHeight = startHeight + averageOsmosisBlocksPerDay
+	} else {
+		startHeight = 1
 	}
 
 	lastKnownBlockHeight, errBh := rpc.GetLatestBlockHeight(idxr.cl)
@@ -373,56 +385,77 @@ func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler 
 		Client:  &http.Client{},
 	}
 
-	epochForwards := startHeight
-	epochBackwards := startHeight - 1
+	delta := int64(1)
 
 	//Rewards will stop being calculated if we cannot find an epoch "close enough" to the estimated block height.
-	for (math.Abs(float64(epochBackwards-startHeight)) <= 100 &&
-		math.Abs(float64(epochForwards-startHeight)) <= 100 &&
-		(endHeight == -1 || startHeight < endHeight)) ||
-		(math.Abs(float64(epochForwards-lastKnownBlockHeight)) <= 100) {
+	for delta <= intervalWidth &&
+		(endHeight == -1 || startHeight < endHeight) {
 
-		if epochForwards%1000 == 0 || math.Abs(float64(epochForwards-lastKnownBlockHeight)) <= 100 {
+		if math.Abs(float64((startHeight+delta)-lastKnownBlockHeight)) <= 100 {
+			time.Sleep(1 * time.Hour)
+
+			lastKnownBlockHeight, errBh = rpc.GetLatestBlockHeight(idxr.cl)
+			if errBh != nil {
+				config.Log.Fatal("Error getting blockchain latest height.", errBh)
+			}
+		} else if delta%1000 == 0 {
 			lastKnownBlockHeight, errBh = rpc.GetLatestBlockHeight(idxr.cl)
 			if errBh != nil {
 				config.Log.Fatal("Error getting blockchain latest height.", errBh)
 			}
 		}
 
-		// Search in the forwards direction
-		hasRewards, err := idxr.processRewardEpoch(epochForwards, rewardsDataChan, rpcClient, failedBlockHandler)
-
-		if err != nil {
-			config.Log.Fatalf("Error getting rewards info for block %v. Err: %v", epochForwards, err)
+		if idxr.cfg.Base.Throttling != 0 {
+			time.Sleep(time.Second * time.Duration(idxr.cfg.Base.Throttling))
 		}
 
-		if !hasRewards {
-			epochForwards++
-		} else {
-			blocksBetweenRewards := math.Abs(float64(epochForwards - startHeight))
-			startHeight = epochForwards + int64(blocksBetweenRewards)
-			epochBackwards = startHeight - 1
+		// Search in the forwards direction
+		hasRewards, err := idxr.processRewardEpoch(startHeight+delta, rewardsDataChan, rpcClient, failedBlockHandler)
+
+		if err != nil {
+			config.Log.Fatalf("Error getting rewards info for block %v. Err: %v", startHeight+delta, err)
+		}
+
+		if hasRewards {
+			blocksBetweenRewards := averageOsmosisBlocksPerDay
+			if lastKnownRewardsHeight != -1 {
+				blocksBetweenRewards = int64(math.Abs(float64((startHeight + delta) - lastKnownRewardsHeight)))
+			}
+
+			lastKnownRewardsHeight = startHeight + delta
+			startHeight = lastKnownRewardsHeight + blocksBetweenRewards
+			delta = 1
+			intervalWidth = 1000
 			continue
 		}
 
 		// Search in the backwards direction as well, as long as we're not close to the current chain height
-		if math.Abs(float64(epochForwards-lastKnownBlockHeight)) > 100 {
-			hasRewards, err := idxr.processRewardEpoch(epochBackwards, rewardsDataChan, rpcClient, failedBlockHandler)
+		if math.Abs(float64(startHeight+delta-lastKnownBlockHeight)) > 100 && startHeight-delta >= 1 {
+			hasRewards, err := idxr.processRewardEpoch(startHeight-delta, rewardsDataChan, rpcClient, failedBlockHandler)
 
 			if err != nil {
-				config.Log.Fatalf("Error getting rewards info for block %v. Err: %v", epochForwards, err)
+				config.Log.Fatalf("Error getting rewards info for block %v. Err: %v", startHeight-delta, err)
 			}
 
-			if !hasRewards {
-				epochBackwards--
-			} else {
-				blocksBetweenRewards := math.Abs(float64(epochBackwards - startHeight))
-				startHeight = epochBackwards + int64(blocksBetweenRewards)
-				epochBackwards = startHeight - 1
+			if hasRewards {
+				blocksBetweenRewards := averageOsmosisBlocksPerDay
+				if lastKnownRewardsHeight != -1 {
+					blocksBetweenRewards = int64(math.Abs(float64((startHeight - delta) - lastKnownRewardsHeight)))
+				}
+
+				lastKnownRewardsHeight = startHeight - delta
+				startHeight = lastKnownRewardsHeight + blocksBetweenRewards
+				delta = 0
+				intervalWidth = 1000
 			}
 
 		}
+
+		delta++
 	}
+
+	config.Log.Info("Finished rewards processing loop")
+
 }
 
 func (idxr *Indexer) processRewardEpoch(
