@@ -348,7 +348,7 @@ func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler 
 	defer wg.Done()
 	defer close(rewardsDataChan)
 
-	averageOsmosisBlocksPerDay := int64(14000)
+	averageOsmosisBlocksPerDay := int64(13362)
 	reindex := idxr.cfg.Base.ReIndex
 	startHeight := idxr.cfg.Base.RewardStartBlock
 	intervalWidth := int64(14000)
@@ -385,7 +385,7 @@ func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler 
 		Client:  &http.Client{},
 	}
 
-	delta := int64(1)
+	delta := int64(0)
 
 	//Rewards will stop being calculated if we cannot find an epoch "close enough" to the estimated block height.
 	for delta <= intervalWidth &&
@@ -424,13 +424,13 @@ func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler 
 
 			lastKnownRewardsHeight = startHeight + delta
 			startHeight = lastKnownRewardsHeight + blocksBetweenRewards
-			delta = 1
+			delta = 0
 			intervalWidth = 1000
 			continue
 		}
 
 		// Search in the backwards direction as well, as long as we're not close to the current chain height
-		if math.Abs(float64(startHeight+delta-lastKnownBlockHeight)) > 100 && startHeight-delta >= 1 {
+		if delta >= 1 && math.Abs(float64(startHeight+delta-lastKnownBlockHeight)) > 100 && startHeight-delta >= 1 {
 			hasRewards, err := idxr.processRewardEpoch(startHeight-delta, rewardsDataChan, rpcClient, failedBlockHandler)
 
 			if err != nil {
