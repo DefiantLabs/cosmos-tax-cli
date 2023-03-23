@@ -348,18 +348,34 @@ func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler 
 	defer wg.Done()
 	defer close(rewardsDataChan)
 
+	averageOsmosisBlocksPerDay := int64(13362)
+	reindex := idxr.cfg.Base.ReIndex
 	startHeight := idxr.cfg.Base.RewardStartBlock
-	if startHeight == -1 {
-		startHeight = OsmosisGetRewardsStartIndexHeight(idxr.db, idxr.cfg.Lens.ChainID)
+	intervalWidth := int64(14000)
+	lastKnownRewardsHeight := int64(-1)
+
+	if startHeight <= 0 || !reindex {
+		dbLastIndexedReward := OsmosisGetRewardsStartIndexHeight(idxr.db, idxr.cfg.Lens.ChainID)
+		if dbLastIndexedReward > 0 {
+			startHeight = dbLastIndexedReward
+		}
+	}
+
+	if startHeight > 0 {
+		//the next plausible block that might contain osmosis rewards is a day later
+		startHeight = startHeight + averageOsmosisBlocksPerDay
+	} else {
+		startHeight = 1
+	}
+
+	lastKnownBlockHeight, errBh := rpc.GetLatestBlockHeight(idxr.cl)
+	if errBh != nil {
+		config.Log.Fatal("Error getting blockchain latest height.", errBh)
 	}
 
 	endHeight := idxr.cfg.Base.RewardEndBlock
 	if endHeight == -1 {
-		var err error
-		endHeight, err = rpc.GetLatestBlockHeight(idxr.cl)
-		if err != nil {
-			config.Log.Fatal("Error getting blockchain latest height.", err)
-		}
+		endHeight = lastKnownBlockHeight
 	}
 
 	config.Log.Infof("Indexing Rewards from block: %v to %v", idxr.cfg.Base.RewardStartBlock, endHeight)
@@ -369,31 +385,116 @@ func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler 
 		Client:  &http.Client{},
 	}
 
-	maxAttempts := 5
-	for epoch := startHeight; epoch <= endHeight; epoch++ {
-		attempts := 1
-		_, err := idxr.indexOsmosisReward(rpcClient, epoch, rewardsDataChan)
-		for err != nil && attempts < maxAttempts {
-			attempts++
-			// for some reason these need an exponential backoff....
-			time.Sleep(time.Second * time.Duration(math.Pow(2, float64(attempts))))
-			code, err := idxr.indexOsmosisReward(rpcClient, epoch, rewardsDataChan)
-			if err != nil && attempts == maxAttempts {
-				failedBlockHandler(epoch, code, err)
+	delta := int64(0)
+
+	//Rewards will stop being calculated if we cannot find an epoch "close enough" to the estimated block height.
+	for delta <= intervalWidth &&
+		(endHeight == -1 || startHeight < endHeight) {
+
+		if math.Abs(float64((startHeight+delta)-lastKnownBlockHeight)) <= 100 {
+			time.Sleep(1 * time.Hour)
+
+			lastKnownBlockHeight, errBh = rpc.GetLatestBlockHeight(idxr.cl)
+			if errBh != nil {
+				config.Log.Fatal("Error getting blockchain latest height.", errBh)
+			}
+		} else if delta%1000 == 0 {
+			lastKnownBlockHeight, errBh = rpc.GetLatestBlockHeight(idxr.cl)
+			if errBh != nil {
+				config.Log.Fatal("Error getting blockchain latest height.", errBh)
 			}
 		}
+
+		if idxr.cfg.Base.Throttling != 0 {
+			time.Sleep(time.Second * time.Duration(idxr.cfg.Base.Throttling))
+		}
+
+		// Search in the forwards direction
+		hasRewards, err := idxr.processRewardEpoch(startHeight+delta, rewardsDataChan, rpcClient, failedBlockHandler)
+
+		if err != nil {
+			config.Log.Fatalf("Error getting rewards info for block %v. Err: %v", startHeight+delta, err)
+		}
+
+		if hasRewards {
+			blocksBetweenRewards := averageOsmosisBlocksPerDay
+			if lastKnownRewardsHeight != -1 {
+				blocksBetweenRewards = int64(math.Abs(float64((startHeight + delta) - lastKnownRewardsHeight)))
+			}
+
+			lastKnownRewardsHeight = startHeight + delta
+			startHeight = lastKnownRewardsHeight + blocksBetweenRewards
+			delta = 0
+			intervalWidth = 1000
+			continue
+		}
+
+		// Search in the backwards direction as well, as long as we're not close to the current chain height
+		if delta >= 1 && math.Abs(float64(startHeight+delta-lastKnownBlockHeight)) > 100 && startHeight-delta >= 1 {
+			hasRewards, err := idxr.processRewardEpoch(startHeight-delta, rewardsDataChan, rpcClient, failedBlockHandler)
+
+			if err != nil {
+				config.Log.Fatalf("Error getting rewards info for block %v. Err: %v", startHeight-delta, err)
+			}
+
+			if hasRewards {
+				blocksBetweenRewards := averageOsmosisBlocksPerDay
+				if lastKnownRewardsHeight != -1 {
+					blocksBetweenRewards = int64(math.Abs(float64((startHeight - delta) - lastKnownRewardsHeight)))
+				}
+
+				lastKnownRewardsHeight = startHeight - delta
+				startHeight = lastKnownRewardsHeight + blocksBetweenRewards
+				delta = 0
+				intervalWidth = 1000
+			}
+
+		}
+
+		delta++
 	}
+
+	config.Log.Info("Finished rewards processing loop")
+
 }
 
-func (idxr *Indexer) indexOsmosisReward(rpcClient osmosis.URIClient, epoch int64, rewardsDataChan chan *osmosis.RewardsInfo) (core.BlockProcessingFailure, error) {
-	config.Log.Debug(fmt.Sprintf("Getting rewards for epoch %v", epoch))
+func (idxr *Indexer) processRewardEpoch(
+	epoch int64,
+	rewardsDataChan chan *osmosis.RewardsInfo,
+	rpcClient osmosis.URIClient,
+	failedBlockHandler core.FailedBlockHandler,
+) (bool, error) {
+	attempts := 1
+	maxAttempts := 5
+
+	_, hasRewards, err := idxr.indexOsmosisReward(rpcClient, epoch, rewardsDataChan)
+	for err != nil && attempts < maxAttempts {
+		attempts++
+		// for some reason these need an exponential backoff....
+		time.Sleep(time.Second * time.Duration(math.Pow(2, float64(attempts))))
+		code, hasRewards, err := idxr.indexOsmosisReward(rpcClient, epoch, rewardsDataChan)
+		if err != nil && attempts == maxAttempts {
+			failedBlockHandler(epoch, code, err)
+			return false, err
+		} else if err == nil {
+			return hasRewards, nil
+		}
+	}
+
+	return hasRewards, err
+}
+
+// indexOsmosisReward returns true if rewards were found and sent to the channel for processing
+func (idxr *Indexer) indexOsmosisReward(rpcClient osmosis.URIClient, epoch int64, rewardsDataChan chan *osmosis.RewardsInfo) (core.BlockProcessingFailure, bool, error) {
 	rewards, err := rpcClient.GetEpochRewards(epoch)
 	if err != nil {
 		config.Log.Error(fmt.Sprintf("Error getting rewards for epoch %d\n", epoch), err)
-		return core.OsmosisNodeRewardLookupError, err
+		return core.OsmosisNodeRewardLookupError, false, err
 	}
 
 	if len(rewards) > 0 {
+		config.Log.Debug(fmt.Sprintf("Found Osmosis rewards at epoch %v", epoch))
+
 		// Get the block time
 		var blockTime time.Time
 		result, err := rpc.GetBlock(idxr.cl, epoch)
@@ -409,8 +510,12 @@ func (idxr *Indexer) indexOsmosisReward(rpcClient osmosis.URIClient, epoch int64
 			EpochBlockTime:   blockTime,
 			Rewards:          rewards,
 		}
+
+		return 0, true, nil
+	} else {
+		config.Log.Debug(fmt.Sprintf("No Osmosis rewards at block height %v", epoch))
 	}
-	return 0, nil
+	return 0, false, nil
 }
 
 // queryRPC will query the RPC endpoint

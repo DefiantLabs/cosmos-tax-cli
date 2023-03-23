@@ -12,3 +12,4 @@ vendor/
 .idea/*
 .vscode/*
 tax.txt
+tax-db-pwd.txt

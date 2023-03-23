@@ -47,6 +47,21 @@ func GetAllEventsWithType(eventType string, msg *LogMessage) []LogMessageEvent {
 	return logEventMessages
 }
 
+func GetEventsWithType(eventType string, msg *LogMessage) []LogMessageEvent {
+	events := []LogMessageEvent{}
+	if msg == nil || msg.Events == nil {
+		return nil
+	}
+
+	for _, logEvent := range msg.Events {
+		if logEvent.Type == eventType {
+			events = append(events, logEvent)
+		}
+	}
+
+	return events
+}
+
 // If order is reversed, the last attribute containing the given key will be returned
 // otherwise the first attribute will be returned
 func GetValueForAttribute(key string, evt *LogMessageEvent) string {
@@ -61,6 +76,68 @@ func GetValueForAttribute(key string, evt *LogMessageEvent) string {
 	}
 
 	return ""
+}
+
+func GetCoinsSpent(spender string, evts []LogMessageEvent) []string {
+	coinsSpent := []string{}
+
+	if len(evts) == 0 {
+		return coinsSpent
+	}
+
+	for _, evt := range evts {
+		for i := 0; i < len(evt.Attributes); i++ {
+			attr := evt.Attributes[i]
+			if attr.Key == "spender" && attr.Value == spender {
+				attrAmountIdx := i + 1
+				if attrAmountIdx < len(evt.Attributes) {
+					attrNext := evt.Attributes[attrAmountIdx]
+					if attrNext.Key == "amount" {
+						commaSeperatedCoins := attrNext.Value
+						currentCoins := strings.Split(commaSeperatedCoins, ",")
+						for _, coin := range currentCoins {
+							if coin != "" {
+								coinsSpent = append(coinsSpent, coin)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return coinsSpent
+}
+
+func GetCoinsReceived(receiver string, evts []LogMessageEvent) []string {
+	coinsReceived := []string{}
+
+	if len(evts) == 0 {
+		return coinsReceived
+	}
+
+	for _, evt := range evts {
+		for i := 0; i < len(evt.Attributes); i++ {
+			attr := evt.Attributes[i]
+			if attr.Key == "receiver" && attr.Value == receiver {
+				attrAmountIdx := i + 1
+				if attrAmountIdx < len(evt.Attributes) {
+					attrNext := evt.Attributes[attrAmountIdx]
+					if attrNext.Key == "amount" {
+						commaSeperatedCoins := attrNext.Value
+						currentCoins := strings.Split(commaSeperatedCoins, ",")
+						for _, coin := range currentCoins {
+							if coin != "" {
+								coinsReceived = append(coinsReceived, coin)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return coinsReceived
 }
 
 // Get the Nth value for the given key (starting at 1)

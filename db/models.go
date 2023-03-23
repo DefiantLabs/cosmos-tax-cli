@@ -85,7 +85,7 @@ type TaxableEvent struct {
 	AddressID      uint    `gorm:"index:idx_addr"`
 	EventAddress   Address `gorm:"foreignKey:AddressID"`
 	EventHash      string
-	BlockID        uint
+	BlockID        uint  `gorm:"index:idx_teblkid"`
 	Block          Block `gorm:"foreignKey:BlockID"`
 }
 
