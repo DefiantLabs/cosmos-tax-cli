@@ -105,7 +105,7 @@ func DenomUpsertTask(apiHost string, db *gorm.DB) {
 	config.Log.Info(fmt.Sprintf("Updating Denom Metadata from %s", apiHost))
 	denomsMetadata, err := rest.GetDenomsMetadatas(apiHost)
 	if err != nil {
-		config.Log.Error("Error in Denom Metadata Update task when reaching out to the API. ", err)
+		config.Log.Error(fmt.Sprintf("Error in Denom Metadata Update task when reaching out to the API at %s ", apiHost), err)
 		return
 	}
 
@@ -135,7 +135,7 @@ func DenomUpsertTask(apiHost string, db *gorm.DB) {
 
 	err = dbTypes.UpsertDenoms(db, denoms)
 	if err != nil {
-		config.Log.Error("Error updating in Denom Metadata Update task", err)
+		config.Log.Error("Error updating database in Denom Metadata Update task", err)
 		return
 	}
 	config.Log.Info("Denom Metadata Update Complete")
