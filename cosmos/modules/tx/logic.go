@@ -1,6 +1,7 @@
 package tx
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"unicode"
@@ -31,8 +32,7 @@ func GetEventWithType(eventType string, msg *LogMessage) *LogMessageEvent {
 }
 
 func GetAllEventsWithType(eventType string, msg *LogMessage) []LogMessageEvent {
-
-	var logEventMessages []LogMessageEvent
+	logEventMessages := []LogMessageEvent{}
 
 	if msg == nil || msg.Events == nil {
 		return logEventMessages
@@ -60,6 +60,48 @@ func GetEventsWithType(eventType string, msg *LogMessage) []LogMessageEvent {
 	}
 
 	return events
+}
+
+type TransferEvent struct {
+	Recipient string
+	Sender    string
+	Amount    string
+}
+
+// Transfer events should have attributes in the order recipient, sender, amount.
+func ParseTransferEvent(evt LogMessageEvent) ([]TransferEvent, error) {
+	errInvalidTransfer := errors.New("not a valid transfer event")
+	transfers := []TransferEvent{}
+	if evt.Type != "transfer" {
+		return nil, errInvalidTransfer
+	}
+
+	for i := 0; i < len(evt.Attributes); i++ {
+		attrRecipient := evt.Attributes[i]
+		if attrRecipient.Key == "recipient" {
+			attrSenderIdx := i + 1
+			attrAmountIdx := i + 2
+			if attrAmountIdx < len(evt.Attributes) {
+				attrSender := evt.Attributes[attrSenderIdx]
+				attrAmount := evt.Attributes[attrAmountIdx]
+				if attrSender.Key == "sender" && attrAmount.Key == "amount" {
+					transfers = append(transfers, TransferEvent{
+						Recipient: attrRecipient.Value,
+						Sender:    attrSender.Value,
+						Amount:    attrAmount.Value,
+					})
+				} else {
+					return nil, errInvalidTransfer
+				}
+			} else {
+				return nil, errInvalidTransfer
+			}
+		} else if i%3 == 0 { //every third attr should be "recipient"
+			return nil, errInvalidTransfer
+		}
+	}
+
+	return transfers, nil
 }
 
 // If order is reversed, the last attribute containing the given key will be returned
