@@ -699,12 +699,12 @@ func (sf *WrapperMsgCreatePool) HandleMsg(msgType string, msg sdk.Msg, log *txMo
 		return util.ReturnInvalidLog(msgType, log)
 	}
 
-	coinSpentEvent := txModule.GetEventWithType(bankTypes.EventTypeCoinSpent, log)
-	if coinSpentEvent == nil {
+	coinSpentEvents := txModule.GetEventsWithType(bankTypes.EventTypeCoinSpent, log)
+	if len(coinSpentEvents) == 0 {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
-	coinsSpent := txModule.GetCoinsSpent(sf.OsmosisMsgCreatePool.Sender, coinSpentEvent)
+	coinsSpent := txModule.GetCoinsSpent(sf.OsmosisMsgCreatePool.Sender, coinSpentEvents)
 
 	if len(coinsSpent) < 2 {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("invalid number of coins spent: %+v", log)}
@@ -720,12 +720,12 @@ func (sf *WrapperMsgCreatePool) HandleMsg(msgType string, msg sdk.Msg, log *txMo
 		sf.CoinsSpent = append(sf.CoinsSpent, t)
 	}
 
-	coinReceivedEvent := txModule.GetEventWithType(bankTypes.EventTypeCoinReceived, log)
-	if coinReceivedEvent == nil {
+	coinReceivedEvents := txModule.GetEventsWithType(bankTypes.EventTypeCoinReceived, log)
+	if len(coinReceivedEvents) == 0 {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
-	coinsReceived := txModule.GetCoinsReceived(sf.OsmosisMsgCreatePool.Sender, coinReceivedEvent)
+	coinsReceived := txModule.GetCoinsReceived(sf.OsmosisMsgCreatePool.Sender, coinReceivedEvents)
 
 	if len(coinsReceived) != 1 {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("invalid number of coins received: %+v", log)}

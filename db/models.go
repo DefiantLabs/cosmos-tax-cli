@@ -84,9 +84,9 @@ type TaxableEvent struct {
 	Denomination   Denom   `gorm:"foreignKey:DenominationID"`
 	AddressID      uint    `gorm:"index:idx_addr"`
 	EventAddress   Address `gorm:"foreignKey:AddressID"`
-	EventHash      string
-	BlockID        uint
-	Block          Block `gorm:"foreignKey:BlockID"`
+	EventHash      string  `gorm:"uniqueIndex:idx_teevthash"`
+	BlockID        uint    `gorm:"index:idx_teblkid"`
+	Block          Block   `gorm:"foreignKey:BlockID"`
 }
 
 // type SimpleDenom struct {

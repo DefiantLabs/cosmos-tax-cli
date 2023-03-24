@@ -2,6 +2,7 @@ package db
 
 import (
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"sort"
 
@@ -21,25 +22,40 @@ func GetHighestTaxableEventBlock(db *gorm.DB, chainID string) (Block, error) {
 	return block, result.Error
 }
 
-func eventExists(db *gorm.DB, event TaxableEvent) bool {
-	var count int64
-	db.Model(&TaxableEvent{}).Where("event_hash = ?", event.EventHash).Count(&count)
-	return count > 0
-}
-
 func createTaxableEvents(db *gorm.DB, events []TaxableEvent) error {
 	// Ordering matters due to foreign key constraints. Call Create() first to get right foreign key ID
 	return db.Transaction(func(dbTransaction *gorm.DB) error {
+		if len(events) == 0 {
+			return errors.New("no events to insert")
+		}
+
+		var chainPrev Chain
+		var blockPrev Block
+
 		for _, event := range events {
-			if chainErr := dbTransaction.Where(&event.Block.Chain).FirstOrCreate(&event.Block.Chain).Error; chainErr != nil {
-				fmt.Printf("Error %s creating chain DB object.\n", chainErr)
-				return chainErr
+			//whereCond := Chain{ChainID: event.Block.Chain.ChainID, Name: event.Block.Chain.Name}
+			if chainPrev.ChainID != event.Block.Chain.ChainID || event.Block.Chain.Name != chainPrev.Name {
+				if chainErr := dbTransaction.Where(&event.Block.Chain).FirstOrCreate(&event.Block.Chain).Error; chainErr != nil {
+					fmt.Printf("Error %s creating chain DB object.\n", chainErr)
+					return chainErr
+				}
+
+				chainPrev = event.Block.Chain
 			}
 
-			if blockErr := dbTransaction.Where(&event.Block).FirstOrCreate(&event.Block).Error; blockErr != nil {
-				fmt.Printf("Error %s creating block DB object.\n", blockErr)
-				return blockErr
+			event.Block.Chain = chainPrev
+
+			if blockPrev.Height != event.Block.Height {
+				whereCond := Block{Chain: event.Block.Chain, Height: event.Block.Height}
+				if blockErr := dbTransaction.Where(whereCond).FirstOrCreate(&event.Block).Error; blockErr != nil {
+					fmt.Printf("Error %s creating block DB object.\n", blockErr)
+					return blockErr
+				}
+
+				blockPrev = event.Block
 			}
+
+			event.Block = blockPrev
 
 			if event.EventAddress.Address != "" {
 				// viewing gorm logs shows this gets translated into a single ON CONFLICT DO NOTHING RETURNING "id"
@@ -54,7 +70,7 @@ func createTaxableEvents(db *gorm.DB, events []TaxableEvent) error {
 			}
 
 			thisEvent := event // This is redundant but required for the picky gosec linter
-			if err := dbTransaction.Create(&thisEvent).Error; err != nil {
+			if err := dbTransaction.Where(TaxableEvent{EventHash: event.EventHash}).FirstOrCreate(&thisEvent).Error; err != nil {
 				fmt.Printf("Error %s creating tx.\n", err)
 				return err
 			}
@@ -101,16 +117,11 @@ func IndexOsmoRewards(db *gorm.DB, dryRun bool, chainID string, chainName string
 	})
 
 	// insert rewards into DB in batches of batchSize
-	batchSize := 500
-	config.Log.Debug(fmt.Sprintf("Rewards ready to insert in DB. Will insert in batches of %v", batchSize))
+	batchSize := 10000
 	for i := 0; i < len(dbEvents); i += batchSize {
 		batchEnd := i + batchSize
 		if batchEnd > len(dbEvents) {
 			batchEnd = len(dbEvents) - 1
-		}
-		// if this batch has already been inserted, we can skip it
-		if eventExists(db, dbEvents[i]) {
-			continue
 		}
 
 		if !dryRun {
