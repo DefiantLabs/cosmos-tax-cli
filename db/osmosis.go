@@ -33,9 +33,8 @@ func createTaxableEvents(db *gorm.DB, events []TaxableEvent) error {
 		var blockPrev Block
 
 		for _, event := range events {
-			//whereCond := Chain{ChainID: event.Block.Chain.ChainID, Name: event.Block.Chain.Name}
 			if chainPrev.ChainID != event.Block.Chain.ChainID || event.Block.Chain.Name != chainPrev.Name {
-				if chainErr := dbTransaction.Where(&event.Block.Chain).FirstOrCreate(&event.Block.Chain).Error; chainErr != nil {
+				if chainErr := dbTransaction.Where("chain_id = ?", event.Block.Chain.ChainID).FirstOrCreate(&event.Block.Chain).Error; chainErr != nil {
 					fmt.Printf("Error %s creating chain DB object.\n", chainErr)
 					return chainErr
 				}
