@@ -35,7 +35,6 @@ import (
 	cryptoTypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types"
 	cosmosTx "github.com/cosmos/cosmos-sdk/types/tx"
-	tendermintTypes "github.com/tendermint/tendermint/abci/types"
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 	"gorm.io/gorm"
 )
@@ -177,28 +176,9 @@ func toAttributes(attrs []types.Attribute) []txTypes.Attribute {
 	return list
 }
 
-func abciToAttributes(attrs []tendermintTypes.EventAttribute) []txTypes.Attribute {
-	list := []txTypes.Attribute{}
-	for _, attr := range attrs {
-		lma := txTypes.Attribute{Key: string(attr.Key), Value: string(attr.Value)}
-		list = append(list, lma)
-	}
-
-	return list
-}
-
 func toEvents(msgEvents types.StringEvents) (list []txTypes.LogMessageEvent) {
 	for _, evt := range msgEvents {
 		lme := tx.LogMessageEvent{Type: evt.Type, Attributes: toAttributes(evt.Attributes)}
-		list = append(list, lme)
-	}
-
-	return list
-}
-
-func abciToEvents(msgEvents []tendermintTypes.Event) (list []txTypes.LogMessageEvent) {
-	for _, evt := range msgEvents {
-		lme := tx.LogMessageEvent{Type: evt.Type, Attributes: abciToAttributes(evt.Attributes)}
 		list = append(list, lme)
 	}
 
@@ -238,15 +218,20 @@ func ProcessRPCBlockByHeightTXs(db *gorm.DB, cl *client.ChainClient, blockResult
 		field := reflect.ValueOf(txBasic).Elem().FieldByName("tx")
 		iTx := getUnexportedField(field)
 		txFull := iTx.(*cosmosTx.Tx)
+		logs, err := types.ParseABCILogs(txResult.Log)
+		if err != nil {
+			return nil, blockTime, fmt.Errorf("logs could not be parsed")
+		}
 
 		// Get the Messages and Message Logs
 		for msgIdx, currMsg := range txFull.GetMsgs() {
 			if currMsg != nil {
 				currMessages = append(currMessages, currMsg)
+				msgEvents := logs[msgIdx].Events
 
 				currTxLog := tx.LogMessage{
 					MessageIndex: msgIdx,
-					Events:       abciToEvents(txResult.Events),
+					Events:       toEvents(msgEvents),
 				}
 				currLogMsgs = append(currLogMsgs, currTxLog)
 			} else {

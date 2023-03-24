@@ -100,6 +100,22 @@ type WrapperMsgExitSwapShareAmountIn struct {
 	TokenIn                         sdk.Coin
 }
 
+// Same as WrapperMsgExitSwapShareAmountIn but with different handlers.
+// This is due to the Osmosis SDK emitting different Events (chain upgrades).
+type WrapperMsgExitSwapShareAmountIn2 struct {
+	txModule.Message
+	OsmosisMsgExitSwapShareAmountIn *gammTypes.MsgExitSwapShareAmountIn
+	Address                         string
+	TokensOut                       sdk.Coins
+	TokenSwaps                      []tokenSwap
+	TokenIn                         sdk.Coin
+}
+
+type tokenSwap struct {
+	TokenSwappedIn  sdk.Coin
+	TokenSwappedOut sdk.Coin
+}
+
 type WrapperMsgExitSwapExternAmountOut struct {
 	txModule.Message
 	OsmosisMsgExitSwapExternAmountOut *gammTypes.MsgExitSwapExternAmountOut
@@ -120,7 +136,17 @@ type WrapperMsgCreatePool struct {
 	txModule.Message
 	OsmosisMsgCreatePool *osmosisOldTypes.MsgCreatePool
 	CoinsSpent           []sdk.Coin
-	CoinsReceived        sdk.Coin
+	GammCoinsReceived    sdk.Coin
+	OtherCoinsReceived   []coinReceived //e.g. from claims module (airdrops)
+}
+
+type coinReceived struct {
+	sender       string
+	coinReceived sdk.Coin
+}
+
+type WrapperMsgCreatePool2 struct {
+	WrapperMsgCreatePool
 }
 
 func (sf *WrapperMsgSwapExactAmountIn) String() string {
@@ -210,6 +236,10 @@ func (sf *WrapperMsgCreatePool) String() string {
 		sf.OsmosisMsgCreatePool.Sender, strings.Join(tokensIn, ", "))
 }
 
+func (sf *WrapperMsgCreatePool2) String() string {
+	return sf.WrapperMsgCreatePool.String()
+}
+
 func (sf *WrapperMsgExitSwapShareAmountIn) String() string {
 	var tokenSwappedOut string
 	var tokenSwappedIn string
@@ -221,6 +251,32 @@ func (sf *WrapperMsgExitSwapShareAmountIn) String() string {
 	}
 	return fmt.Sprintf("MsgMsgExitSwapShareAmountIn: %s exited with %s and received %s\n",
 		sf.Address, tokenSwappedIn, tokenSwappedOut)
+}
+
+func (sf *WrapperMsgExitSwapShareAmountIn2) String() string {
+	var tokenSwappedOut string
+	var tokenSwappedIn string
+
+	var postExitTokenSwaps []string
+	var postExitTokenSwapsRepr string
+
+	if !sf.TokensOut.Empty() {
+		tokenSwappedOut = sf.TokensOut.String()
+	}
+	if !sf.TokenIn.IsNil() {
+		tokenSwappedIn = sf.TokenIn.String()
+	}
+
+	if !(len(sf.TokenSwaps) == 0) {
+		for _, swap := range sf.TokenSwaps {
+			postExitTokenSwaps = append(postExitTokenSwaps, fmt.Sprintf("%s for %s", swap.TokenSwappedIn.String(), swap.TokenSwappedOut.String()))
+		}
+
+		postExitTokenSwapsRepr = strings.Join(postExitTokenSwaps, ", ")
+	}
+
+	return fmt.Sprintf("MsgMsgExitSwapShareAmountIn: %s exited with %s and received %s, then swapped %s\n",
+		sf.Address, tokenSwappedIn, tokenSwappedOut, postExitTokenSwapsRepr)
 }
 
 func (sf *WrapperMsgExitSwapExternAmountOut) String() string {
@@ -685,17 +741,105 @@ func (sf *WrapperMsgCreatePool) HandleMsg(msgType string, msg sdk.Msg, log *txMo
 
 	coinsReceived := txModule.GetCoinsReceived(sf.OsmosisMsgCreatePool.Sender, coinReceivedEvents)
 
-	if len(coinsReceived) != 1 {
+	gammCoinsReceived := []string{}
+
+	for _, coin := range coinsReceived {
+		if strings.Contains(coin, "gamm/pool") {
+			gammCoinsReceived = append(gammCoinsReceived, coin)
+		} else {
+			return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("unexpected non-gamm/pool coin received: %+v", log)}
+		}
+	}
+
+	if len(gammCoinsReceived) != 1 {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("invalid number of coins received: %+v", log)}
 	}
 
 	var err error
-	sf.CoinsReceived, err = sdk.ParseCoinNormalized(coinsReceived[0])
+	sf.GammCoinsReceived, err = sdk.ParseCoinNormalized(gammCoinsReceived[0])
 	if err != nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
 	return err
+}
+
+func (sf *WrapperMsgCreatePool2) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.OsmosisMsgCreatePool = msg.(*osmosisOldTypes.MsgCreatePool)
+
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
+	}
+
+	transferEvents := txModule.GetEventsWithType(bankTypes.EventTypeTransfer, log)
+	if len(transferEvents) == 0 {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	coinsSpent := []string{}
+	coinsReceived := []coinReceived{}
+
+	for _, transfer := range transferEvents {
+		parsedTransfer, err := txModule.ParseTransferEvent(transfer)
+		if err != nil {
+			return err
+		}
+
+		for _, curr := range parsedTransfer {
+			coins := strings.Split(curr.Amount, ",")
+			if curr.Recipient == sf.OsmosisMsgCreatePool.Sender {
+				for _, coin := range coins {
+					t, err := sdk.ParseCoinNormalized(coin)
+					if err != nil {
+						return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+					}
+
+					coinsReceived = append(coinsReceived, coinReceived{
+						sender:       curr.Sender,
+						coinReceived: t,
+					})
+				}
+			} else if curr.Sender == sf.OsmosisMsgCreatePool.Sender {
+				coinsSpent = append(coinsSpent, coins...)
+			}
+		}
+	}
+
+	if len(coinsSpent) < 2 {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("invalid number of coins spent: %+v", log)}
+	}
+
+	sf.CoinsSpent = []sdk.Coin{}
+	for _, coin := range coinsSpent {
+		t, err := sdk.ParseCoinNormalized(coin)
+		if err != nil {
+			return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		}
+
+		sf.CoinsSpent = append(sf.CoinsSpent, t)
+	}
+
+	gammCoinsReceived := []sdk.Coin{}
+	sf.OtherCoinsReceived = []coinReceived{}
+
+	for _, coin := range coinsReceived {
+		if strings.Contains(coin.coinReceived.Denom, "gamm/pool") {
+			gammCoinsReceived = append(gammCoinsReceived, coin.coinReceived)
+		} else {
+			sf.OtherCoinsReceived = append(sf.OtherCoinsReceived, coin)
+		}
+	}
+
+	if len(gammCoinsReceived) != 1 {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("invalid number of coins received: %+v", log)}
+	}
+
+	sf.GammCoinsReceived = gammCoinsReceived[0]
+
+	return nil
 }
 
 func (sf *WrapperMsgExitSwapShareAmountIn) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
@@ -747,6 +891,85 @@ func (sf *WrapperMsgExitSwapShareAmountIn) HandleMsg(msgType string, msg sdk.Msg
 
 	if err != nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	return err
+}
+
+func (sf *WrapperMsgExitSwapShareAmountIn2) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.OsmosisMsgExitSwapShareAmountIn = msg.(*gammTypes.MsgExitSwapShareAmountIn)
+
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
+	}
+
+	// The attribute in the log message that shows you the burned GAMM tokens sent to the pool
+	burnEvt := txModule.GetEventWithType("burn", log)
+	if burnEvt == nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	// This gets the amount of GAMM exited with
+	gammTokenInStr := txModule.GetValueForAttribute("amount", burnEvt)
+	if !strings.Contains(gammTokenInStr, "gamm") {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	gammTokenIn, err := sdk.ParseCoinNormalized(gammTokenInStr)
+	if err != nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	sf.TokenIn = gammTokenIn
+
+	// Address of whoever initiated the exit
+	poolExitedEvent := txModule.GetEventWithType(gammTypes.TypeEvtPoolExited, log)
+	if poolExitedEvent == nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	// Address of whoever initiated the exit.
+	senderAddress := txModule.GetValueForAttribute("sender", poolExitedEvent)
+	if senderAddress == "" {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	sf.Address = senderAddress
+
+	tokensOut := txModule.GetValueForAttribute(gammTypes.AttributeKeyTokensOut, poolExitedEvent)
+	if tokensOut == "" {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	multiTokensOut, err := sdk.ParseCoinsNormalized(tokensOut)
+
+	if err != nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	sf.TokensOut = multiTokensOut
+
+	// The token swapped events contain the final amount of tokens out in this tx
+	tokenSwappedEvents := txModule.GetAllEventsWithType(gammTypes.TypeEvtTokenSwapped, log)
+
+	// This is to handle multi-token pool exit swaps
+	for _, tokenSwappedEvent := range tokenSwappedEvents {
+		tokenSwappedIn := txModule.GetValueForAttribute(gammTypes.AttributeKeyTokensIn, &tokenSwappedEvent)
+		tokenSwappedOut := txModule.GetValueForAttribute(gammTypes.AttributeKeyTokensOut, &tokenSwappedEvent)
+		parsedTokensSwappedIn, err := sdk.ParseCoinNormalized(tokenSwappedIn)
+
+		if err != nil {
+			return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		}
+
+		parsedTokensSwappedOut, err := sdk.ParseCoinNormalized(tokenSwappedOut)
+
+		if err != nil {
+			return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		}
+
+		tokenSwap := tokenSwap{TokenSwappedIn: parsedTokensSwappedIn, TokenSwappedOut: parsedTokensSwappedOut}
+
+		sf.TokenSwaps = append(sf.TokenSwaps, tokenSwap)
 	}
 
 	return err
@@ -1018,12 +1241,16 @@ func (sf *WrapperMsgJoinPool) ParseRelevantData() []parsingTypes.MessageRelevant
 	return relevantData
 }
 
+func (sf *WrapperMsgCreatePool2) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	return sf.WrapperMsgCreatePool.ParseRelevantData()
+}
+
 func (sf *WrapperMsgCreatePool) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
 	// need to make a relevant data block for all Tokens sent to the pool on creation
-	var relevantData = make([]parsingTypes.MessageRelevantInformation, len(sf.CoinsSpent))
+	var relevantData = make([]parsingTypes.MessageRelevantInformation, len(sf.CoinsSpent)+len(sf.OtherCoinsReceived))
 
 	// figure out how many gams per token
-	nthGamms, remainderGamms := calcNthGams(sf.CoinsReceived.Amount.BigInt(), len(sf.CoinsSpent))
+	nthGamms, remainderGamms := calcNthGams(sf.GammCoinsReceived.Amount.BigInt(), len(sf.CoinsSpent))
 	for i, v := range sf.CoinsSpent {
 		// split received tokens across entry so we receive GAMM tokens for both exchanges
 		// each swap will get 1 nth of the gams until the last one which will get the remainder
@@ -1032,7 +1259,7 @@ func (sf *WrapperMsgCreatePool) ParseRelevantData() []parsingTypes.MessageReleva
 				AmountSent:           v.Amount.BigInt(),
 				DenominationSent:     v.Denom,
 				AmountReceived:       nthGamms,
-				DenominationReceived: sf.CoinsReceived.Denom,
+				DenominationReceived: sf.GammCoinsReceived.Denom,
 				SenderAddress:        sf.OsmosisMsgCreatePool.Sender,
 				ReceiverAddress:      sf.OsmosisMsgCreatePool.Sender,
 			}
@@ -1041,11 +1268,24 @@ func (sf *WrapperMsgCreatePool) ParseRelevantData() []parsingTypes.MessageReleva
 				AmountSent:           v.Amount.BigInt(),
 				DenominationSent:     v.Denom,
 				AmountReceived:       remainderGamms,
-				DenominationReceived: sf.CoinsReceived.Denom,
+				DenominationReceived: sf.GammCoinsReceived.Denom,
 				SenderAddress:        sf.OsmosisMsgCreatePool.Sender,
 				ReceiverAddress:      sf.OsmosisMsgCreatePool.Sender,
 			}
 		}
+	}
+
+	i := len(sf.CoinsSpent)
+	for _, c := range sf.OtherCoinsReceived {
+		relevantData[i] = parsingTypes.MessageRelevantInformation{
+			AmountSent:           c.coinReceived.Amount.BigInt(),
+			DenominationSent:     c.coinReceived.Denom,
+			AmountReceived:       c.coinReceived.Amount.BigInt(),
+			DenominationReceived: c.coinReceived.Denom,
+			SenderAddress:        c.sender,
+			ReceiverAddress:      sf.OsmosisMsgCreatePool.Sender,
+		}
+		i++
 	}
 
 	return relevantData
@@ -1061,6 +1301,52 @@ func (sf *WrapperMsgExitSwapShareAmountIn) ParseRelevantData() []parsingTypes.Me
 		SenderAddress:        sf.Address,
 		ReceiverAddress:      sf.Address,
 	}
+	return relevantData
+}
+
+func (sf *WrapperMsgExitSwapShareAmountIn2) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	var relevantData = make([]parsingTypes.MessageRelevantInformation, len(sf.TokensOut))
+
+	// figure out how many gams per token
+	nthGamms, remainderGamms := calcNthGams(sf.TokenIn.Amount.BigInt(), len(sf.TokensOut))
+
+	//Handle the pool exit
+	for i, v := range sf.TokensOut {
+		// split received tokens across entry so we receive GAMM tokens for both exchanges
+		// each swap will get 1 nth of the gams until the last one which will get the remainder
+		if i != len(sf.TokensOut)-1 {
+			relevantData[i] = parsingTypes.MessageRelevantInformation{
+				AmountSent:           nthGamms,
+				DenominationSent:     sf.TokenIn.Denom,
+				AmountReceived:       v.Amount.BigInt(),
+				DenominationReceived: v.Denom,
+				SenderAddress:        sf.Address,
+				ReceiverAddress:      sf.Address,
+			}
+		} else {
+			relevantData[i] = parsingTypes.MessageRelevantInformation{
+				AmountSent:           remainderGamms,
+				DenominationSent:     sf.TokenIn.Denom,
+				AmountReceived:       v.Amount.BigInt(),
+				DenominationReceived: v.Denom,
+				SenderAddress:        sf.Address,
+				ReceiverAddress:      sf.Address,
+			}
+		}
+	}
+
+	//Handle the post exit swap event
+	for _, tokensSwapped := range sf.TokenSwaps {
+		relevantData = append(relevantData, parsingTypes.MessageRelevantInformation{
+			AmountSent:           tokensSwapped.TokenSwappedIn.Amount.BigInt(),
+			DenominationSent:     tokensSwapped.TokenSwappedIn.Denom,
+			AmountReceived:       tokensSwapped.TokenSwappedOut.Amount.BigInt(),
+			DenominationReceived: tokensSwapped.TokenSwappedOut.Denom,
+			SenderAddress:        sf.Address,
+			ReceiverAddress:      sf.Address,
+		})
+	}
+
 	return relevantData
 }
 

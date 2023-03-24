@@ -93,7 +93,7 @@ func GetFirstMissingBlockInRange(db *gorm.DB, start, end int64, chainID uint) in
 }
 
 func GetDBChainID(db *gorm.DB, chain Chain) (uint, error) {
-	if err := db.Where(&chain).FirstOrCreate(&chain).Error; err != nil {
+	if err := db.Where("chain_id = ?", chain.ChainID).FirstOrCreate(&chain).Error; err != nil {
 		config.Log.Error("Error getting/creating chain DB object.", err)
 		return chain.ID, err
 	}
