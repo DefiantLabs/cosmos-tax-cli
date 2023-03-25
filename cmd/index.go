@@ -357,14 +357,13 @@ func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler 
 	if startHeight <= 0 || !reindex {
 		dbLastIndexedReward := OsmosisGetRewardsStartIndexHeight(idxr.db, idxr.cfg.Lens.ChainID)
 		if dbLastIndexedReward > 0 {
-			startHeight = dbLastIndexedReward
+			//the next plausible block that might contain osmosis rewards is a day later
+			startHeight = dbLastIndexedReward + averageOsmosisBlocksPerDay
 		}
 	}
 
-	if startHeight > 0 {
-		//the next plausible block that might contain osmosis rewards is a day later
-		startHeight = startHeight + averageOsmosisBlocksPerDay
-	} else {
+	// 0 isn't a valid starting block
+	if startHeight <= 0 {
 		startHeight = 1
 	}
 
@@ -389,7 +388,7 @@ func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler 
 
 	//Rewards will stop being calculated if we cannot find an epoch "close enough" to the estimated block height.
 	for delta <= intervalWidth &&
-		(endHeight == -1 || startHeight < endHeight) {
+		(endHeight == -1 || startHeight+delta <= endHeight) {
 
 		if math.Abs(float64((startHeight+delta)-lastKnownBlockHeight)) <= 100 {
 			time.Sleep(1 * time.Hour)
