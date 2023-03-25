@@ -33,7 +33,7 @@ services:
 
   indexer:
     restart: "no"
-    image: ghcr.io/defiantlabs/cosmos-tax-cli:sha-56866e1
+    image: ghcr.io/defiantlabs/cosmos-tax-cli:main
     user: defiant
     stop_grace_period: 10s
     volumes:
@@ -56,13 +56,18 @@ services:
       cosmos-tax-cli index \
       --log.pretty = true \
       --log.level = debug \
-      --base.start-block 4084 \
-      --base.end-block 100000 \
-      --base.throttling 1.00 \
+      --base.index-chain = false \
+      --base.start-block 2723462 \
+      --base.end-block 2723464 \
+      --base.index-rewards = true \
+      --base.rewards-start-block 4535620 \
+      --base.rewards-end-block 4535650 \
+      --base.throttling 0.005 \
+      --base.rpc-workers 4 \
       --base.reindex true \
       --base.prevent-reattempts true \
-      --base.api https://osmosis-mainnet-archive.allthatnode.com:1317 \
-      --lens.rpc https://osmosis-mainnet-archive.allthatnode.com:26657 \
+      --base.api http://34.168.39.1:1317 \
+      --lens.rpc http://34.168.39.1:26657 \
       --lens.account-prefix osmo \
       --lens.chain-id osmosis-1 \
       --lens.chain-name osmosis \
