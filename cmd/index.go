@@ -353,12 +353,14 @@ func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler 
 	startHeight := idxr.cfg.Base.RewardStartBlock
 	intervalWidth := int64(14000)
 	lastKnownRewardsHeight := int64(-1)
+	ignoreIntervalWidth := true
 
 	if startHeight <= 0 || !reindex {
 		dbLastIndexedReward := OsmosisGetRewardsStartIndexHeight(idxr.db, idxr.cfg.Lens.ChainID)
 		if dbLastIndexedReward > 0 {
 			//the next plausible block that might contain osmosis rewards is a day later
 			startHeight = dbLastIndexedReward + averageOsmosisBlocksPerDay
+			ignoreIntervalWidth = false
 		}
 	}
 
@@ -386,8 +388,10 @@ func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler 
 
 	delta := int64(0)
 
-	//Rewards will stop being calculated if we cannot find an epoch "close enough" to the estimated block height.
-	for delta <= intervalWidth &&
+	// If we've never found a rewards epoch before, we will search sequentially until one is found.
+	// From that point on, we assume the next epoch is roughly the same number of blocks away as the previous one.
+	// We will give up if we cannot find an epoch "close enough" to the estimated block height (intervalWidth).
+	for (delta <= intervalWidth || ignoreIntervalWidth) &&
 		(endHeight == -1 || startHeight+delta <= endHeight) {
 
 		if math.Abs(float64((startHeight+delta)-lastKnownBlockHeight)) <= 100 {
@@ -416,6 +420,7 @@ func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler 
 		}
 
 		if hasRewards {
+			ignoreIntervalWidth = false
 			blocksBetweenRewards := averageOsmosisBlocksPerDay
 			if lastKnownRewardsHeight != -1 {
 				blocksBetweenRewards = int64(math.Abs(float64((startHeight + delta) - lastKnownRewardsHeight)))
@@ -437,6 +442,7 @@ func (idxr *Indexer) indexOsmosisRewards(wg *sync.WaitGroup, failedBlockHandler 
 			}
 
 			if hasRewards {
+				ignoreIntervalWidth = false
 				blocksBetweenRewards := averageOsmosisBlocksPerDay
 				if lastKnownRewardsHeight != -1 {
 					blocksBetweenRewards = int64(math.Abs(float64((startHeight - delta) - lastKnownRewardsHeight)))
