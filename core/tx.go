@@ -218,7 +218,16 @@ func ProcessRPCBlockByHeightTXs(db *gorm.DB, cl *client.ChainClient, blockResult
 		field := reflect.ValueOf(txBasic).Elem().FieldByName("tx")
 		iTx := getUnexportedField(field)
 		txFull := iTx.(*cosmosTx.Tx)
-		logs, err := types.ParseABCILogs(txResult.Log)
+		logs := types.ABCIMessageLogs{}
+
+		// Failed TXs do not have proper JSON in the .Log field, causing ParseABCILogs to fail to unmarshal the logs
+		// We can entirely ignore failed TXs in downstream parsers, because according to the Cosmos specification, a single failed message in a TX fails the whole TX
+		if txResult.Code == 0 {
+			logs, err = types.ParseABCILogs(txResult.Log)
+		} else {
+			err = nil
+		}
+
 		if err != nil {
 			return nil, blockTime, fmt.Errorf("logs could not be parsed")
 		}
@@ -227,7 +236,10 @@ func ProcessRPCBlockByHeightTXs(db *gorm.DB, cl *client.ChainClient, blockResult
 		for msgIdx, currMsg := range txFull.GetMsgs() {
 			if currMsg != nil {
 				currMessages = append(currMessages, currMsg)
-				msgEvents := logs[msgIdx].Events
+				msgEvents := types.StringEvents{}
+				if txResult.Code == 0 {
+					msgEvents = logs[msgIdx].Events
+				}
 
 				currTxLog := tx.LogMessage{
 					MessageIndex: msgIdx,
