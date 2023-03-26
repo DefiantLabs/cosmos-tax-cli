@@ -334,7 +334,6 @@ func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, lo
 	// The attribute in the log message that shows you the tokens swapped
 	tokensSwappedEvt := txModule.GetEventWithType(gammTypes.TypeEvtTokenSwapped, log)
 	if tokensSwappedEvt == nil {
-		fmt.Println("Error getting event type.")
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
@@ -382,7 +381,6 @@ func (sf *WrapperMsgSwapExactAmountIn2) HandleMsg(msgType string, msg sdk.Msg, l
 	// The attribute in the log message that shows you the tokens swapped
 	tokensSwappedEvt := txModule.GetEventWithType(EventTypeClaim, log)
 	if tokensSwappedEvt == nil {
-		fmt.Println("Error getting event type.")
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
@@ -424,7 +422,6 @@ func (sf *WrapperMsgSwapExactAmountIn3) HandleMsg(msgType string, msg sdk.Msg, l
 	// The attribute in the log message that shows you the tokens transferred
 	tokensTransferredEvt := txModule.GetEventWithType(EventTypeTransfer, log)
 	if tokensTransferredEvt == nil {
-		fmt.Println("Error getting event type.")
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
@@ -489,7 +486,6 @@ func (sf *WrapperMsgSwapExactAmountIn4) HandleMsg(msgType string, msg sdk.Msg, l
 	// The attribute in the log message that shows you the tokens transferred
 	tokensTransferredEvt := txModule.GetEventWithType(EventTypeTransfer, log)
 	if tokensTransferredEvt == nil {
-		fmt.Println("Error getting event type.")
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
@@ -506,25 +502,22 @@ func (sf *WrapperMsgSwapExactAmountIn4) HandleMsg(msgType string, msg sdk.Msg, l
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
-	fmt.Println(firstSender, firstAmount)
-
 	sf.Address = msgSender
 
-	fourthReceiver := txModule.GetNthValueForAttribute("recipient", 4, tokensTransferredEvt)
-	fourthAmount := txModule.GetNthValueForAttribute("amount", 4, tokensTransferredEvt)
+	lastReceiver := txModule.GetLastValueForAttribute("recipient", tokensTransferredEvt)
+	lastAmount := txModule.GetLastValueForAttribute("amount", tokensTransferredEvt)
 
-	if fourthReceiver != msgSender {
+	if lastReceiver != msgSender {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
-	amountReceived, err := sdk.ParseCoinNormalized(fourthAmount)
+	amountReceived, err := sdk.ParseCoinNormalized(lastAmount)
 	if err != nil {
 		return err
 	}
 
 	outDenom := sf.OsmosisMsgSwapExactAmountIn.Routes[len(sf.OsmosisMsgSwapExactAmountIn.Routes)-1].TokenOutDenom
 	if amountReceived.Denom != outDenom {
-		fmt.Println(amountReceived.Denom, outDenom)
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("amountReceived.Denom != outDenom. Log: %+v", log)}
 	}
 
