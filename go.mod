@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.2.1
 	// FYI, you can do go get github.com/DefiantLabs/lens@1f6f34841280df179c6e098f040bd584ced43a4c
 	// (using the commit hash from github) to pin to a specific commit.
-	github.com/DefiantLabs/lens v0.3.1-0.20230306030022-1f6f34841280
+	github.com/DefiantLabs/lens v0.3.1-0.20230326160437-65b383c74a1a
 	github.com/cosmos/cosmos-sdk v0.46.7
 	github.com/gin-gonic/gin v1.9.0
 	github.com/go-co-op/gocron v1.13.0
@@ -93,6 +93,8 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/btree v1.1.2 // indirect
+	github.com/google/go-github v17.0.0+incompatible // indirect
+	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/orderedcode v0.0.1 // indirect
 	github.com/gorilla/handlers v1.5.1 // indirect

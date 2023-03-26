@@ -9,7 +9,7 @@ import (
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
 	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
-	osmosisOldTypes "github.com/DefiantLabs/lens/extra-codecs/osmosis/types"
+	osmosisOldTypes "github.com/DefiantLabs/lens/extra-codecs/osmosis/gamm/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	gammTypes "github.com/osmosis-labs/osmosis/v14/x/gamm/types"
