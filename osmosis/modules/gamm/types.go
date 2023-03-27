@@ -730,10 +730,10 @@ func (sf *WrapperMsgJoinPool) HandleMsg(msgType string, msg sdk.Msg, log *txModu
 		var tokensIn string
 		var sender string
 		for i, attr := range transferEvt.Attributes {
-			if attr.Key == "amount" && !strings.Contains(attr.Value, "gamm/pool") && strings.Contains(attr.Value, ",") {
+			if attr.Key == "amount" && strings.Contains(attr.Value, ",") {
 				tokensIn = attr.Value
 				// If we haven't found the sender yet, it will be the address that sent this non-gamm token
-				if i > 0 && transferEvt.Attributes[i-1].Key == "sender" {
+				if i > 0 && transferEvt.Attributes[i-1].Key == "sender" && sf.OsmosisMsgJoinPool.Sender == transferEvt.Attributes[i-1].Value {
 					sender = transferEvt.Attributes[i-1].Value
 				}
 				break
