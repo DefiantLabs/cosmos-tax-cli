@@ -9,7 +9,7 @@ import (
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
 	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
-	osmosisOldTypes "github.com/DefiantLabs/lens/extra-codecs/osmosis/types"
+	osmosisOldTypes "github.com/DefiantLabs/lens/extra-codecs/osmosis/gamm/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	gammTypes "github.com/osmosis-labs/osmosis/v14/x/gamm/types"
@@ -50,6 +50,12 @@ type WrapperMsgSwapExactAmountIn2 struct {
 // Same as WrapperMsgSwapExactAmountIn but with different handlers.
 // This is due to the Osmosis SDK emitting different Events (chain upgrades).
 type WrapperMsgSwapExactAmountIn3 struct {
+	WrapperMsgSwapExactAmountIn
+}
+
+// Same as WrapperMsgSwapExactAmountIn but with different handlers.
+// This is due to the Osmosis SDK emitting different Events (chain upgrades).
+type WrapperMsgSwapExactAmountIn4 struct {
 	WrapperMsgSwapExactAmountIn
 }
 
@@ -168,6 +174,10 @@ func (sf *WrapperMsgSwapExactAmountIn2) String() string {
 }
 
 func (sf *WrapperMsgSwapExactAmountIn3) String() string {
+	return sf.WrapperMsgSwapExactAmountIn.String()
+}
+
+func (sf *WrapperMsgSwapExactAmountIn4) String() string {
 	return sf.WrapperMsgSwapExactAmountIn.String()
 }
 
@@ -324,7 +334,6 @@ func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, lo
 	// The attribute in the log message that shows you the tokens swapped
 	tokensSwappedEvt := txModule.GetEventWithType(gammTypes.TypeEvtTokenSwapped, log)
 	if tokensSwappedEvt == nil {
-		fmt.Println("Error getting event type.")
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
@@ -372,7 +381,6 @@ func (sf *WrapperMsgSwapExactAmountIn2) HandleMsg(msgType string, msg sdk.Msg, l
 	// The attribute in the log message that shows you the tokens swapped
 	tokensSwappedEvt := txModule.GetEventWithType(EventTypeClaim, log)
 	if tokensSwappedEvt == nil {
-		fmt.Println("Error getting event type.")
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
@@ -414,7 +422,6 @@ func (sf *WrapperMsgSwapExactAmountIn3) HandleMsg(msgType string, msg sdk.Msg, l
 	// The attribute in the log message that shows you the tokens transferred
 	tokensTransferredEvt := txModule.GetEventWithType(EventTypeTransfer, log)
 	if tokensTransferredEvt == nil {
-		fmt.Println("Error getting event type.")
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
@@ -441,6 +448,70 @@ func (sf *WrapperMsgSwapExactAmountIn3) HandleMsg(msgType string, msg sdk.Msg, l
 	}
 
 	amountReceived, err := sdk.ParseCoinNormalized(secondAmount)
+	if err != nil {
+		return err
+	}
+
+	outDenom := sf.OsmosisMsgSwapExactAmountIn.Routes[len(sf.OsmosisMsgSwapExactAmountIn.Routes)-1].TokenOutDenom
+	if amountReceived.Denom != outDenom {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("amountReceived.Denom != outDenom. Log: %+v", log)}
+	}
+
+	// Address of whoever initiated the swap. Will be both sender/receiver.
+	senderReceiver := txModule.GetValueForAttribute("sender", tokensTransferredEvt)
+	if senderReceiver == "" {
+		fmt.Println("Error getting sender.")
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	// First token swapped in (if there are multiple pools we do not care about intermediates)
+	sf.TokenIn = sf.OsmosisMsgSwapExactAmountIn.TokenIn
+	sf.TokenOut = amountReceived
+
+	return err
+}
+
+// Handles an OLDER (now defunct) swap on Osmosis mainnet (osmosis-1).
+// Example TX hash: BB954377AB50F8EF204123DC8B101B7CB597153C0B8372166BC28ABDAA262516
+func (sf *WrapperMsgSwapExactAmountIn4) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.OsmosisMsgSwapExactAmountIn = msg.(*gammTypes.MsgSwapExactAmountIn)
+
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
+	}
+
+	// The attribute in the log message that shows you the tokens transferred
+	tokensTransferredEvt := txModule.GetEventWithType(EventTypeTransfer, log)
+	if tokensTransferredEvt == nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	msgSender := sf.OsmosisMsgSwapExactAmountIn.Sender
+	msgTokensIn := sf.OsmosisMsgSwapExactAmountIn.TokenIn
+
+	// First sender should be the address that conducted the swap
+	firstSender := txModule.GetNthValueForAttribute("sender", 1, tokensTransferredEvt)
+	firstAmount := txModule.GetNthValueForAttribute("amount", 1, tokensTransferredEvt)
+
+	if firstSender != msgSender {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	} else if firstAmount != msgTokensIn.String() {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	sf.Address = msgSender
+
+	lastReceiver := txModule.GetLastValueForAttribute("recipient", tokensTransferredEvt)
+	lastAmount := txModule.GetLastValueForAttribute("amount", tokensTransferredEvt)
+
+	if lastReceiver != msgSender {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	amountReceived, err := sdk.ParseCoinNormalized(lastAmount)
 	if err != nil {
 		return err
 	}
