@@ -81,6 +81,10 @@ type WrapperMsgJoinSwapExternAmountIn struct {
 	TokenIn                          sdk.Coin
 }
 
+type WrapperMsgJoinSwapExternAmountIn2 struct {
+	WrapperMsgJoinSwapExternAmountIn
+}
+
 type WrapperMsgJoinSwapShareAmountOut struct {
 	txModule.Message
 	OsmosisMsgJoinSwapShareAmountOut *gammTypes.MsgJoinSwapShareAmountOut
@@ -205,6 +209,10 @@ func (sf *WrapperMsgJoinSwapExternAmountIn) String() string {
 	}
 	return fmt.Sprintf("MsgJoinSwapExternAmountIn: %s joined with %s and received %s\n",
 		sf.Address, tokenSwappedIn, tokenSwappedOut)
+}
+
+func (sf *WrapperMsgJoinSwapExternAmountIn2) String() string {
+	return sf.WrapperMsgJoinSwapExternAmountIn.String()
 }
 
 func (sf *WrapperMsgJoinSwapShareAmountOut) String() string {
@@ -660,6 +668,46 @@ func (sf *WrapperMsgJoinSwapExternAmountIn) HandleMsg(msgType string, msg sdk.Ms
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 	sf.Address = senderAddress
+
+	return err
+}
+
+func (sf *WrapperMsgJoinSwapExternAmountIn2) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.OsmosisMsgJoinSwapExternAmountIn = msg.(*gammTypes.MsgJoinSwapExternAmountIn)
+
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
+	}
+
+	// we can pull the token and sender in directly from the Osmosis Message
+	sf.TokenIn = sf.OsmosisMsgJoinSwapExternAmountIn.TokenIn
+	sf.Address = sf.OsmosisMsgJoinSwapExternAmountIn.Sender
+
+	transferEvt := txModule.GetEventWithType("transfer", log)
+	gammOutString := ""
+	// Loop backwards to find the GAMM out string
+	for i := len(transferEvt.Attributes) - 1; i >= 0; i-- {
+		attr := transferEvt.Attributes[i]
+		if attr.Key == "amount" && strings.Contains(attr.Value, "gamm") && strings.HasSuffix(attr.Value, fmt.Sprintf("/%d", sf.OsmosisMsgJoinSwapExternAmountIn.PoolId)) {
+			// Verify the recipient of the gamm output is the sender of the message
+			if i-2 > -1 && transferEvt.Attributes[i-2].Key == "recipient" && transferEvt.Attributes[i-2].Value == sf.Address {
+				gammOutString = attr.Value
+			}
+		}
+	}
+
+	if gammOutString == "" {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	gammTokenOut, err := sdk.ParseCoinNormalized(gammOutString)
+	if err != nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	sf.TokenOut = gammTokenOut
 
 	return err
 }
