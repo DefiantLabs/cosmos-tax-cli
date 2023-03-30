@@ -667,7 +667,7 @@ func (idxr *Indexer) doDBUpdates(wg *sync.WaitGroup, txDataChan chan *dbData, re
 				dbReattempts++
 				err = dbTypes.IndexOsmoRewards(idxr.db, idxr.dryRun, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName, rewardData)
 				if err != nil {
-					config.Log.Fatal("Error storing rewards in DB.", err)
+					config.Log.Fatal(fmt.Sprintf("Error storing rewards in DB at epoch %d", rewardData.EpochBlockHeight), err)
 				}
 			}
 
