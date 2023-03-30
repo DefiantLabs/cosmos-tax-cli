@@ -123,8 +123,15 @@ func IndexOsmoRewards(db *gorm.DB, dryRun bool, chainID string, chainName string
 			batchEnd = len(dbEvents) - 1
 		}
 
+		awaitingInsert := dbEvents[i:batchEnd]
+
+		//Only way this can happen is if i == batchEnd
+		if len(awaitingInsert) == 0 {
+			awaitingInsert = []TaxableEvent{dbEvents[i]}
+		}
+
 		if !dryRun {
-			err := createTaxableEvents(db, dbEvents[i:batchEnd])
+			err := createTaxableEvents(db, awaitingInsert)
 			if err != nil {
 				config.Log.Error("Error storing DB events.", err)
 				return err
