@@ -91,6 +91,7 @@ var messageTypeIgnorer = map[string]interface{}{
 	lockup.MsgLockTokens:        nil,
 	lockup.MsgBeginUnlockingAll: nil,
 	lockup.MsgUnlockPeriodLock:  nil,
+	lockup.MsgUnlockTokens:      nil,
 	// Unjailing and updating params is not taxable
 	slashing.MsgUnjail:       nil,
 	slashing.MsgUpdateParams: nil,

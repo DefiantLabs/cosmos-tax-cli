@@ -93,6 +93,12 @@ type WrapperMsgJoinSwapShareAmountOut struct {
 	TokenIn                          sdk.Coin
 }
 
+// Same as WrapperMsgJoinSwapShareAmountOut but with different handlers.
+// This is due to the Osmosis SDK emitting different Events (chain upgrades).
+type WrapperMsgJoinSwapShareAmountOut2 struct {
+	WrapperMsgJoinSwapShareAmountOut
+}
+
 type WrapperMsgJoinPool struct {
 	txModule.Message
 	OsmosisMsgJoinPool *gammTypes.MsgJoinPool
@@ -739,6 +745,69 @@ func (sf *WrapperMsgJoinSwapShareAmountOut) HandleMsg(msgType string, msg sdk.Ms
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 	sf.TokenOut = gammTokenIn
+
+	// Address of whoever initiated the join
+	poolJoinedEvent := txModule.GetEventWithType(gammTypes.TypeEvtPoolJoined, log)
+	if poolJoinedEvent == nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	// Address of whoever initiated the join.
+	senderAddress := txModule.GetValueForAttribute("sender", poolJoinedEvent)
+	if senderAddress == "" {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	sf.Address = senderAddress
+
+	tokenIn := txModule.GetValueForAttribute(gammTypes.AttributeKeyTokensIn, poolJoinedEvent)
+	if tokenIn == "" {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	sf.TokenIn, err = sdk.ParseCoinNormalized(tokenIn)
+	if err != nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	return err
+}
+
+func (sf *WrapperMsgJoinSwapShareAmountOut2) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.OsmosisMsgJoinSwapShareAmountOut = msg.(*gammTypes.MsgJoinSwapShareAmountOut)
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
+	}
+
+	// The attribute in the log message that shows you the received GAMM tokens from the pool
+	transferEvt := txModule.GetEventWithType("transfer", log)
+	if transferEvt == nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	gammOutString := ""
+	// Loop backwards to find the GAMM out string
+	for i := len(transferEvt.Attributes) - 1; i >= 0; i-- {
+		attr := transferEvt.Attributes[i]
+		if attr.Key == "amount" && strings.Contains(attr.Value, "gamm") && strings.HasSuffix(attr.Value, fmt.Sprintf("/%d", sf.OsmosisMsgJoinSwapShareAmountOut.PoolId)) {
+			// Verify the recipient of the gamm output is the sender of the message
+			if i-2 > -1 && transferEvt.Attributes[i-2].Key == "recipient" && transferEvt.Attributes[i-2].Value == sf.OsmosisMsgJoinSwapShareAmountOut.Sender {
+				gammOutString = attr.Value
+			}
+		}
+	}
+
+	if gammOutString == "" {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	// This gets the amount of GAMM tokens received
+	gammTokenOut, err := sdk.ParseCoinNormalized(gammOutString)
+	if err != nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	sf.TokenOut = gammTokenOut
 
 	// Address of whoever initiated the join
 	poolJoinedEvent := txModule.GetEventWithType(gammTypes.TypeEvtPoolJoined, log)
