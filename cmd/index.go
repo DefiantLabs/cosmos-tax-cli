@@ -588,7 +588,7 @@ func processBlock(cl *client.ChainClient, dbConn *gorm.DB, failedBlockHandler fu
 		} else if len(resBlockResults.TxsResults) > 0 {
 			// The tx.height=X query said there were 0 TXs, but GetBlockByHeight() found some. When this happens
 			// it is the same on every RPC node. Thus, we defer to the results from GetBlockByHeight.
-			config.Log.Warnf("Falling back to secondary queries for block height %d", newBlock.Height)
+			config.Log.Debugf("Falling back to secondary queries for block height %d", newBlock.Height)
 
 			blockResults, err := rpc.GetBlock(cl, newBlock.Height)
 			if err != nil {
@@ -649,7 +649,8 @@ func (idxr *Indexer) doDBUpdates(wg *sync.WaitGroup, txDataChan chan *dbData, re
 	for {
 		// break out of loop once both channels are fully consumed
 		if rewardsDataChan == nil && txDataChan == nil {
-			config.Log.Fatalf("DB updates complete")
+			config.Log.Info("DB updates complete")
+			break
 		}
 
 		select {
