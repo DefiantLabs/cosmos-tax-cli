@@ -498,7 +498,7 @@ func (idxr *Indexer) indexOsmosisReward(rpcClient osmosis.URIClient, epoch int64
 	}
 
 	if len(rewards) > 0 {
-		config.Log.Debug(fmt.Sprintf("Found %d Osmosis rewards at epoch %v", len(rewards), epoch))
+		config.Log.Info(fmt.Sprintf("Found %d Osmosis rewards at epoch %v", len(rewards), epoch))
 
 		// Get the block time
 		var blockTime time.Time
@@ -682,7 +682,7 @@ func (idxr *Indexer) doDBUpdates(wg *sync.WaitGroup, txDataChan chan *dbData, re
 			// While debugging we'll sometimes want to turn off INSERTS to the DB
 			// Note that this does not turn off certain reads or DB connections.
 			if !idxr.dryRun {
-				config.Log.Info(fmt.Sprintf("Indexing %v TXs from block %d.", len(data.txDBWrappers), data.blockHeight))
+				config.Log.Info(fmt.Sprintf("Indexing %v TXs from block %d", len(data.txDBWrappers), data.blockHeight))
 				err := dbTypes.IndexNewBlock(idxr.db, data.blockHeight, data.blockTime, data.txDBWrappers, dbChainID)
 				if err != nil {
 					// Do a single reattempt on failure
