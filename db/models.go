@@ -170,3 +170,10 @@ type DenomUnitDBWrapper struct {
 	DenomUnit DenomUnit
 	Aliases   []DenomUnitAlias
 }
+
+type IBCDenom struct {
+	ID        uint
+	Hash      string `gorm:"uniqueIndex"`
+	Path      string
+	BaseDenom string
+}

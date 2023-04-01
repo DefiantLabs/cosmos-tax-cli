@@ -59,6 +59,7 @@ func MigrateModels(db *gorm.DB) error {
 		&Denom{},
 		&DenomUnit{},
 		&DenomUnitAlias{},
+		&IBCDenom{},
 	)
 }
 
@@ -310,6 +311,20 @@ func UpsertDenoms(db *gorm.DB, denoms []DenomDBWrapper) error {
 						return err
 					}
 				}
+			}
+		}
+		return nil
+	})
+}
+
+func UpsertIBCDenoms(db *gorm.DB, denoms []IBCDenom) error {
+	return db.Transaction(func(dbTransaction *gorm.DB) error {
+		for _, denom := range denoms {
+			if err := dbTransaction.Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "hash"}},
+				DoUpdates: clause.AssignmentColumns([]string{"path", "base_denom"}),
+			}).Create(&denom).Error; err != nil {
+				return err
 			}
 		}
 		return nil

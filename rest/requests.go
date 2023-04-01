@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 
-	denoms "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/denoms"
-	tx "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/denoms"
+	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 )
 
 var apiEndpoints = map[string]string{
@@ -15,6 +16,7 @@ var apiEndpoints = map[string]string{
 	"latest_block_endpoint":        "/blocks/latest",
 	"txs_by_block_height_endpoint": "/cosmos/tx/v1beta1/txs?events=tx.height=%d&pagination.limit=100&order_by=ORDER_BY_UNSPECIFIED",
 	"denoms_metadata":              "/cosmos/bank/v1beta1/denoms_metadata",
+	"denom-traces":                 "/ibc/apps/transfer/v1/denom_traces",
 }
 
 func GetEndpoint(key string) string {
@@ -153,6 +155,55 @@ func getDenomsMetadatas(host string, paginationKey string) (result denoms.GetDen
 	}
 
 	resp, err := http.Get(url) //nolint:gosec
+	if err != nil {
+		return result, err
+	}
+
+	defer resp.Body.Close()
+
+	err = checkResponseErrorCode(requestEndpoint, resp)
+	if err != nil {
+		return result, err
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return result, err
+	}
+
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return result, err
+	}
+
+	return result, nil
+}
+
+func GetIBCDenomTraces(host string) (result denoms.GetDenomTracesResponse, err error) {
+	result, err = getDenomTraces(host, "")
+	if err != nil {
+		return
+	}
+	allResults := result
+	for result.Pagination.NextKey != "" {
+		result, err = getDenomTraces(host, result.Pagination.NextKey)
+		if err != nil {
+			return
+		}
+		allResults.DenomTraces = append(allResults.DenomTraces, result.DenomTraces...)
+	}
+	result = allResults
+	return
+}
+
+func getDenomTraces(host string, paginationKey string) (result denoms.GetDenomTracesResponse, err error) {
+	requestEndpoint := apiEndpoints["denom-traces"]
+	u := fmt.Sprintf("%s%s", host, requestEndpoint)
+	if paginationKey != "" {
+		u = fmt.Sprintf("%v?pagination.key=%v", u, url.QueryEscape(paginationKey))
+	}
+
+	resp, err := http.Get(u) //nolint:gosec
 	if err != nil {
 		return result, err
 	}
