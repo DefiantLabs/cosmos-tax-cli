@@ -238,6 +238,8 @@ func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.Csv
 			rows = append(rows, ParseMsgSwapExactAmountIn(event))
 		case gamm.MsgSwapExactAmountOut:
 			rows = append(rows, ParseMsgSwapExactAmountOut(event))
+		case gov.MsgDeposit:
+			rows = append(rows, ParseMsgDeposit(address, event))
 		case ibc.MsgTransfer:
 			rows = append(rows, ParseMsgTransfer(address, event))
 		default:
@@ -333,6 +335,15 @@ func ParseMsgSubmitProposal(address string, event db.TaxableTransaction) Row {
 	err := row.ParseBasic(address, event)
 	if err != nil {
 		config.Log.Fatal("Error with ParseMsgSubmitProposal.", err)
+	}
+	return *row
+}
+
+func ParseMsgDeposit(address string, event db.TaxableTransaction) Row {
+	row := &Row{}
+	err := row.ParseBasic(address, event)
+	if err != nil {
+		config.Log.Fatal("Error with ParseMsgDeposit.", err)
 	}
 	return *row
 }
