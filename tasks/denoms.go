@@ -140,3 +140,28 @@ func DenomUpsertTask(apiHost string, db *gorm.DB) {
 	}
 	config.Log.Info("Denom Metadata Update Complete")
 }
+
+func IBCDenomUpsertTask(apiHost string, db *gorm.DB) {
+	config.Log.Info(fmt.Sprintf("Updating IBC Denom Metadata from %s", apiHost))
+	ibcDenomsMetadata, err := rest.GetIBCDenomTraces(apiHost)
+	if err != nil {
+		config.Log.Error(fmt.Sprintf("Error in IBC Denom Metadata Update task when reaching out to the API at %s ", apiHost), err)
+		return
+	}
+
+	denoms := make([]dbTypes.IBCDenom, len(ibcDenomsMetadata.DenomTraces))
+	for i, t := range ibcDenomsMetadata.DenomTraces {
+		denoms[i] = dbTypes.IBCDenom{
+			Hash:      t.IBCDenom(),
+			Path:      t.Path,
+			BaseDenom: t.BaseDenom,
+		}
+	}
+
+	err = dbTypes.UpsertIBCDenoms(db, denoms)
+	if err != nil {
+		config.Log.Error("Error updating database in IBC Denom Metadata Update task", err)
+		return
+	}
+	config.Log.Info("IBC Denom Metadata Update Complete")
+}
