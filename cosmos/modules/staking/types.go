@@ -44,6 +44,12 @@ type WrapperMsgBeginRedelegate struct {
 	AutoWithdrawalRewards    stdTypes.Coins
 }
 
+type WrapperMsgCreateValidator struct {
+	txModule.Message
+	CosmosMsgCreateValidator *stakeTypes.MsgCreateValidator
+	DelegatorAddress         string
+}
+
 // HandleMsg: Handle type checking for MsgFundCommunityPool
 func (sf *WrapperMsgDelegate) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
