@@ -84,11 +84,19 @@ func setupIndexer() *Indexer {
 
 	// Depending on the app configuration, wait for the chain to catch up
 	chainCatchingUp, err := rpc.IsCatchingUp(idxr.cl)
-	for (idxr.cfg.Base.WaitForChain || idxr.cfg.Base.ExitWhenCaughtUp) && chainCatchingUp && err == nil {
+	for idxr.cfg.Base.WaitForChain && chainCatchingUp && err == nil {
 		// Wait between status checks, don't spam the node with requests
 		config.Log.Debug("Chain is still catching up, please wait or disable check in config.")
 		time.Sleep(time.Second * time.Duration(idxr.cfg.Base.WaitForChainDelay))
 		chainCatchingUp, err = rpc.IsCatchingUp(idxr.cl)
+
+		// This EOF error pops up from time to time and is unpredictable
+		// It is most likely an error on the node, we would need to see any error logs on the node side
+		// Try one more time
+		if err != nil && strings.HasSuffix(err.Error(), "EOF") {
+			time.Sleep(time.Second * time.Duration(idxr.cfg.Base.WaitForChainDelay))
+			chainCatchingUp, err = rpc.IsCatchingUp(idxr.cl)
+		}
 	}
 	if err != nil {
 		config.Log.Fatal("Error querying chain status.", err)
