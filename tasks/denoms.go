@@ -8,6 +8,7 @@ import (
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/juno"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 	"github.com/DefiantLabs/cosmos-tax-cli/rest"
 
@@ -15,6 +16,10 @@ import (
 )
 
 type OsmosisAssets struct {
+	Assets []Asset
+}
+
+type AssetList struct {
 	Assets []Asset
 }
 
@@ -33,7 +38,13 @@ type DenomUnit struct {
 
 func DoChainSpecificUpsertDenoms(db *gorm.DB, chain string) {
 	if chain == osmosis.ChainID {
+		config.Log.Info("Updating Omsosis specific denoms")
 		UpsertOsmosisDenoms(db)
+	}
+
+	if chain == juno.ChainID {
+		config.Log.Info("Updating Juno specific denoms")
+		UpsertJunoDenoms(db)
 	}
 	// may want to move this elsewhere, or eliminate entirely
 	// I would prefer we just grab the denoms when needed always
@@ -44,11 +55,11 @@ func DoChainSpecificUpsertDenoms(db *gorm.DB, chain string) {
 func UpsertOsmosisDenoms(db *gorm.DB) {
 	url := "https://raw.githubusercontent.com/osmosis-labs/assetlists/main/osmosis-1/osmosis-1.assetlist.json"
 
-	denomAssets, err := getOsmosisAssetsList(url)
+	denomAssets, err := getAssetsList(url)
 	if err != nil {
 		config.Log.Fatal("Download Osmosis Denom Metadata", err)
 	} else {
-		denoms := toDenoms(denomAssets)
+		denoms := assetListToDenoms(denomAssets)
 		err = dbTypes.UpsertDenoms(db, denoms)
 		if err != nil {
 			config.Log.Fatal("Upsert Osmosis Denom Metadata", err)
@@ -56,7 +67,22 @@ func UpsertOsmosisDenoms(db *gorm.DB) {
 	}
 }
 
-func toDenoms(assets *OsmosisAssets) []dbTypes.DenomDBWrapper {
+func UpsertJunoDenoms(db *gorm.DB) {
+	url := "https://raw.githubusercontent.com/cosmos/chain-registry/master/juno/assetlist.json"
+
+	denomAssets, err := getAssetsList(url)
+	if err != nil {
+		config.Log.Fatal("Error downloading Juno Denom Metadata", err)
+	} else {
+		denoms := assetListToDenoms(denomAssets)
+		err = dbTypes.UpsertDenoms(db, denoms)
+		if err != nil {
+			config.Log.Fatal("Error upserting Juno Denom Metadata", err)
+		}
+	}
+}
+
+func assetListToDenoms(assets *AssetList) []dbTypes.DenomDBWrapper {
 	var denoms []dbTypes.DenomDBWrapper = make([]dbTypes.DenomDBWrapper, len(assets.Assets))
 	for i, asset := range assets.Assets {
 		denoms[i].Denom = dbTypes.Denom{Base: asset.Base, Name: asset.Name, Symbol: asset.Symbol}
@@ -75,8 +101,8 @@ func toDenoms(assets *OsmosisAssets) []dbTypes.DenomDBWrapper {
 	return denoms
 }
 
-func getOsmosisAssetsList(assetsURL string) (*OsmosisAssets, error) {
-	assets := &OsmosisAssets{}
+func getAssetsList(assetsURL string) (*AssetList, error) {
+	assets := &AssetList{}
 	err := getJSON(assetsURL, assets)
 	if err != nil {
 		return nil, err
