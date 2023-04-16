@@ -551,18 +551,14 @@ func (idxr *Indexer) indexOsmosisReward(rpcClient osmosis.URIClient, epoch int64
 // this information will be parsed and converted into the domain objects we use for indexing this data.
 // data is then passed to a channel to be consumed and inserted into the DB
 func (idxr *Indexer) queryRPC(blockChan chan int64, dbDataChan chan *dbData, failedBlockHandler core.FailedBlockHandler) {
-	maxAttempts := 5
 	for blockToProcess := range blockChan {
 		// attempt to process the block 5 times and then give up
-		var attemptCount int
-		for processBlock(idxr.cl, idxr.db, failedBlockHandler, dbDataChan, blockToProcess) != nil && attemptCount < maxAttempts {
-			attemptCount++
-			if attemptCount == maxAttempts {
-				config.Log.Error(fmt.Sprintf("Failed to process block %v after %v attempts. Will add to failed blocks table", blockToProcess, maxAttempts))
-				err := dbTypes.UpsertFailedBlock(idxr.db, blockToProcess, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
-				if err != nil {
-					config.Log.Fatal(fmt.Sprintf("Failed to store that block %v failed. Not safe to continue.", blockToProcess), err)
-				}
+		err := processBlock(idxr.cl, idxr.db, failedBlockHandler, dbDataChan, blockToProcess)
+		if err != nil {
+			config.Log.Error(fmt.Sprintf("Failed to process block %v. Will add to failed blocks table", blockToProcess))
+			err := dbTypes.UpsertFailedBlock(idxr.db, blockToProcess, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
+			if err != nil {
+				config.Log.Fatal(fmt.Sprintf("Failed to store that block %v failed. Not safe to continue.", blockToProcess), err)
 			}
 		}
 	}
@@ -598,7 +594,7 @@ func processBlock(cl *client.ChainClient, dbConn *gorm.DB, failedBlockHandler fu
 			} else {
 				failedBlockHandler(newBlock.Height, core.BlockQueryError, err)
 			}
-			return nil
+			return err
 		} else if len(resBlockResults.TxsResults) > 0 {
 			// The tx.height=X query said there were 0 TXs, but GetBlockByHeight() found some. When this happens
 			// it is the same on every RPC node. Thus, we defer to the results from GetBlockByHeight.
@@ -606,12 +602,13 @@ func processBlock(cl *client.ChainClient, dbConn *gorm.DB, failedBlockHandler fu
 
 			blockResults, err := rpc.GetBlock(cl, newBlock.Height)
 			if err != nil {
-				config.Log.Fatalf("Secondary RPC query failed, %d, %s", newBlock.Height, err)
+				config.Log.Errorf("Secondary RPC query failed, %d, %s", newBlock.Height, err)
+				return err
 			}
 
 			txDBWrappers, blockTime, err = core.ProcessRPCBlockByHeightTXs(dbConn, cl, blockResults, resBlockResults)
 			if err != nil {
-				config.Log.Fatalf("Second query parser failed (ProcessRPCBlockByHeightTXs), %d, %s", newBlock.Height, err.Error())
+				config.Log.Errorf("Second query parser failed (ProcessRPCBlockByHeightTXs), %d, %s", newBlock.Height, err.Error())
 				return err
 			}
 		}
@@ -620,6 +617,7 @@ func processBlock(cl *client.ChainClient, dbConn *gorm.DB, failedBlockHandler fu
 		if err != nil {
 			config.Log.Error("ProcessRpcTxs: unhandled error", err)
 			failedBlockHandler(blockToProcess, core.UnprocessableTxError, err)
+			return err
 		}
 	}
 

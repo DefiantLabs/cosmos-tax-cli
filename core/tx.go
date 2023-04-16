@@ -213,7 +213,7 @@ func ProcessRPCBlockByHeightTXs(db *gorm.DB, cl *client.ChainClient, blockResult
 		txDecoder := cl.Codec.TxConfig.TxDecoder()
 		txBasic, err := txDecoder(tendermintTx)
 		if err != nil {
-			config.Log.Fatalf("ProcessRPCBlockByHeightTXs: TX cannot be parsed from block %v. Err: %v", blockResults.Block.Height, err)
+			return nil, blockTime, fmt.Errorf("ProcessRPCBlockByHeightTXs: TX cannot be parsed from block %v. Err: %v", blockResults.Block.Height, err)
 		}
 
 		// This is a hack, but as far as I can tell necessary. "wrapper" struct is private in Cosmos SDK.
