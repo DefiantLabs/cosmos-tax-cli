@@ -21,6 +21,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 	txTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/vesting"
+	"github.com/DefiantLabs/cosmos-tax-cli/cosmoshub"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmwasm/modules/wasm"
 	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
@@ -28,7 +29,6 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/incentives"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/lockup"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/superfluid"
-	"github.com/DefiantLabs/cosmos-tax-cli/tendermint/modules/liquidity"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
 	"github.com/DefiantLabs/lens/client"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
@@ -110,11 +110,6 @@ var messageTypeIgnorer = map[string]interface{}{
 	///////////////////////////////////////////
 	/////// Taxable Events, future work ///////
 	///////////////////////////////////////////
-	// We do not currently support the tendermint liquidity pool module
-	liquidity.MsgCreatePool:          nil,
-	liquidity.MsgDepositWithinBatch:  nil,
-	liquidity.MsgWithdrawWithinBatch: nil,
-	liquidity.MsgSwapWithinBatch:     nil,
 	// CosmWasm
 	wasm.MsgExecuteContract:     nil,
 	wasm.MsgInstantiateContract: nil,
@@ -126,7 +121,10 @@ func ChainSpecificMessageTypeHandlerBootstrap(chainID string) {
 	var chainSpecificMessageTpeHandler map[string][]func() txTypes.CosmosMessage
 	if chainID == osmosis.ChainID {
 		chainSpecificMessageTpeHandler = osmosis.MessageTypeHandler
+	} else if chainID == cosmoshub.ChainID {
+		chainSpecificMessageTpeHandler = cosmoshub.MessageTypeHandler
 	}
+
 	for key, value := range chainSpecificMessageTpeHandler {
 		if list, ok := messageTypeHandler[key]; ok {
 			messageTypeHandler[key] = append(value, list...)
