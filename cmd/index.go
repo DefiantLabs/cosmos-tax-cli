@@ -161,6 +161,15 @@ func index(cmd *cobra.Command, args []string) {
 		close(rewardsDataChan)
 	}
 
+	// Block BeginBlocker and EndBlocker indexing requirements. Indexes block events that took place in the BeginBlock and EndBlock state transitions
+	blockEventsDataChain := make(chan *blockEventsDBData, 4*rpcQueryThreads)
+	if idxr.cfg.Base.BlockEventIndexingEnabled {
+		wg.Add(1)
+		go idxr.indexBlockEvents(&wg, core.HandleFailedBlock, blockEventsDataChain)
+	} else {
+		close(blockEventsDataChain)
+	}
+
 	chain := dbTypes.Chain{
 		ChainID: idxr.cfg.Lens.ChainID,
 		Name:    idxr.cfg.Lens.ChainName,
@@ -645,6 +654,21 @@ type dbData struct {
 	txDBWrappers []dbTypes.TxDBWrapper
 	blockTime    time.Time
 	blockHeight  int64
+}
+
+type blockEventsDBData struct {
+	blockTime   time.Time
+	blockHeight int64
+}
+
+func (idxr *Indexer) indexBlockEvents(wg *sync.WaitGroup, failedBlockHandler core.FailedBlockHandler, blockEventsDataChan chan *blockEventsDBData) {
+	defer close(blockEventsDataChan)
+	defer wg.Done()
+
+	startHeight := idxr.cfg.Base.BlockEventsStartBlock
+	endHeight := idxr.cfg.Base.BlockEventsEndBlock
+	fmt.Printf("%+v\n", idxr.cfg.Base)
+	fmt.Println("Indexing block BeginBlock and EndBlock events", startHeight, endHeight)
 }
 
 // doDBUpdates will read the data out of the db data chan that had been processed by the workers

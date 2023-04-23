@@ -54,6 +54,10 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&conf.Base.RewardIndexingEnabled, "base.index-rewards", true, "enable osmosis reward indexing?")
 	rootCmd.PersistentFlags().Int64Var(&conf.Base.RewardStartBlock, "base.rewards-start-block", 0, "block to start indexing rewards at")
 	rootCmd.PersistentFlags().Int64Var(&conf.Base.RewardEndBlock, "base.rewards-end-block", 0, "block to stop indexing rewards at (use -1 to index indefinitely")
+	//block event indexing
+	rootCmd.PersistentFlags().BoolVar(&conf.Base.BlockEventIndexingEnabled, "base.index-block-events", true, "enable block beginblocker and endblocker event indexing?")
+	rootCmd.PersistentFlags().Int64Var(&conf.Base.BlockEventsStartBlock, "base.block-events-start-block", 0, "block to start indexing block events at")
+	rootCmd.PersistentFlags().Int64Var(&conf.Base.BlockEventsEndBlock, "base.block-events-end-block", 0, "block to stop indexing block events at (use -1 to index indefinitely")
 	// other base setting
 	rootCmd.PersistentFlags().BoolVar(&conf.Base.Dry, "base.dry", false, "index the chain but don't insert data in the DB.")
 	rootCmd.PersistentFlags().StringVar(&conf.Base.API, "base.api", "", "node api endpoint")
