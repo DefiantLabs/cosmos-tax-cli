@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"math"
@@ -19,6 +20,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/rpc"
 	"github.com/DefiantLabs/cosmos-tax-cli/tasks"
 	"github.com/spf13/cobra"
+	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	"gorm.io/gorm"
 )
@@ -61,6 +63,7 @@ func setupIndexer() *Indexer {
 	core.SetupAddressRegex(idxr.cfg.Lens.AccountPrefix + "(valoper)?1[a-z0-9]{38}")
 	core.SetupAddressPrefix(idxr.cfg.Lens.AccountPrefix)
 	core.ChainSpecificMessageTypeHandlerBootstrap(idxr.cfg.Lens.ChainID)
+	core.ChainSpecificEndBlockerEventTypeHandlerBootstrap(idxr.cfg.Lens.ChainID)
 	config.SetChainConfig(idxr.cfg.Lens.AccountPrefix)
 
 	// Setup scheduler to periodically update denoms
@@ -319,6 +322,15 @@ func OsmosisGetRewardsStartIndexHeight(db *gorm.DB, chainID string) int64 {
 	block, err := dbTypes.GetHighestTaxableEventBlock(db, chainID)
 	if err != nil && err.Error() != "record not found" {
 		log.Fatalf("Cannot retrieve highest indexed Osmosis rewards block. Err: %v", err)
+	}
+
+	return block.Height
+}
+
+func GetBlockEventsStartIndexHeight(db *gorm.DB, chainID string) int64 {
+	block, err := dbTypes.GetHighestTaxableEventBlock(db, chainID)
+	if err != nil && err.Error() != "record not found" {
+		log.Fatalf("Cannot retrieve highest indexed block event. Err: %v", err)
 	}
 
 	return block.Height
@@ -667,8 +679,61 @@ func (idxr *Indexer) indexBlockEvents(wg *sync.WaitGroup, failedBlockHandler cor
 
 	startHeight := idxr.cfg.Base.BlockEventsStartBlock
 	endHeight := idxr.cfg.Base.BlockEventsEndBlock
-	fmt.Printf("%+v\n", idxr.cfg.Base)
-	fmt.Println("Indexing block BeginBlock and EndBlock events", startHeight, endHeight)
+
+	if startHeight <= 0 {
+		dbLastIndexedBlockEvent := GetBlockEventsStartIndexHeight(idxr.db, idxr.cfg.Lens.ChainID)
+		if dbLastIndexedBlockEvent > 0 {
+			startHeight = dbLastIndexedBlockEvent + 1
+		}
+	}
+
+	// 0 isn't a valid starting block
+	if startHeight <= 0 {
+		startHeight = 1
+	}
+
+	// lastKnownBlockHeight, errBh := rpc.GetLatestBlockHeight(idxr.cl)
+	// if errBh != nil {
+	// 	config.Log.Fatal("Error getting blockchain latest height in block event indexer.", errBh)
+	// }
+
+	config.Log.Infof("Indexing block events from block: %v to %v", startHeight, endHeight)
+
+	//TODO: Strip this out of the Osmosis module and make it generalized
+	rpcClient := osmosis.URIClient{
+		Address: idxr.cl.Config.RPCAddr,
+		Client:  &http.Client{},
+	}
+
+	currentHeight := startHeight
+
+	for endHeight == -1 || currentHeight <= endHeight {
+		bresults, err := getBlockResult(rpcClient, currentHeight)
+		if err != nil {
+			config.Log.Error(fmt.Sprintf("Error receiving block result for block %d", currentHeight), err)
+		} else {
+			config.Log.Infof("Received block results for block %d", currentHeight)
+		}
+
+		core.ProcessRPCBlockByHeightEvents(bresults)
+
+		currentHeight += 1
+		if idxr.cfg.Base.Throttling != 0 {
+			time.Sleep(time.Second * time.Duration(idxr.cfg.Base.Throttling))
+		}
+	}
+}
+
+func getBlockResult(client osmosis.URIClient, height int64) (*ctypes.ResultBlockResults, error) {
+	brctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+	defer cancel()
+
+	bresults, err := client.DoBlockResults(brctx, &height)
+	if err != nil {
+		return nil, err
+	}
+
+	return bresults, nil
 }
 
 // doDBUpdates will read the data out of the db data chan that had been processed by the workers
