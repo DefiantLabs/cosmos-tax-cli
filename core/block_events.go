@@ -32,9 +32,9 @@ func ProcessRPCBlockEvents(blockResults *ctypes.ResultBlockResults) ([]eventType
 	var taxableEvents []eventTypes.EventRelevantInformation
 	if len(endBlockerEventTypeHandlers) != 0 {
 		for _, event := range blockResults.EndBlockEvents {
-			handlers, ok := endBlockerEventTypeHandlers[event.Type]
+			handlers, handlersFound := endBlockerEventTypeHandlers[event.Type]
 
-			if !ok {
+			if !handlersFound {
 				continue
 			}
 

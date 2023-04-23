@@ -184,9 +184,9 @@ func index(cmd *cobra.Command, args []string) {
 	}
 
 	// Start a thread to index the data queried from the chain.
-	if idxr.cfg.Base.ChainIndexingEnabled || idxr.cfg.Base.RewardIndexingEnabled {
+	if idxr.cfg.Base.ChainIndexingEnabled || idxr.cfg.Base.RewardIndexingEnabled || idxr.cfg.Base.BlockEventIndexingEnabled {
 		wg.Add(1)
-		go idxr.doDBUpdates(&wg, txDataChan, rewardsDataChan, dbChainID)
+		go idxr.doDBUpdates(&wg, txDataChan, rewardsDataChan, blockEventsDataChain, dbChainID)
 	}
 
 	// Add jobs to the queue to be processed
@@ -694,6 +694,7 @@ func (idxr *Indexer) indexBlockEvents(wg *sync.WaitGroup, failedBlockHandler cor
 		startHeight = 1
 	}
 
+	//TODO: Implement sleeping when lastKnownBlockHeight is reached in the loop below
 	// lastKnownBlockHeight, errBh := rpc.GetLatestBlockHeight(idxr.cl)
 	// if errBh != nil {
 	// 	config.Log.Fatal("Error getting blockchain latest height in block event indexer.", errBh)
@@ -712,29 +713,35 @@ func (idxr *Indexer) indexBlockEvents(wg *sync.WaitGroup, failedBlockHandler cor
 	for endHeight == -1 || currentHeight <= endHeight {
 		bresults, err := getBlockResult(rpcClient, currentHeight)
 		if err != nil {
+			//TODO: Add to a new failed blocks table for events
 			config.Log.Error(fmt.Sprintf("Error receiving block result for block %d", currentHeight), err)
-		} else {
-			config.Log.Infof("Received block results for block %d", currentHeight)
+			currentHeight += 1
+			if idxr.cfg.Base.Throttling != 0 {
+				time.Sleep(time.Second * time.Duration(idxr.cfg.Base.Throttling))
+			}
+			continue
 		}
 
 		blockRelevantEvents, err := core.ProcessRPCBlockEvents(bresults)
 
 		if err != nil {
-			failedBlockHandler(currentHeight, 0, err)
+			failedBlockHandler(currentHeight, core.FailedBlockEventHandling, err)
 			//TODO: Add to a new failed blocks table for events
-		} else {
+		} else if len(blockRelevantEvents) != 0 {
 			result, err := rpc.GetBlock(idxr.cl, bresults.Height)
 			if err != nil {
-				failedBlockHandler(currentHeight, 0, err)
+				failedBlockHandler(currentHeight, core.FailedBlockEventHandling, err)
 				//TODO: Add to a new failed blocks table for events
 			} else {
-
 				blockEventsDataChan <- &blockEventsDBData{
 					blockHeight:         bresults.Height,
 					blockTime:           result.Block.Time,
 					blockRelevantEvents: blockRelevantEvents,
 				}
 			}
+		} else {
+			config.Log.Infof("Block %d has no relevant block events", bresults.Height)
+
 		}
 
 		currentHeight += 1
@@ -760,7 +767,7 @@ func getBlockResult(client osmosis.URIClient, height int64) (*ctypes.ResultBlock
 // if this is a dry run, we will simply empty the channel and track progress
 // otherwise we will index the data in the DB.
 // it will also read rewars data and index that.
-func (idxr *Indexer) doDBUpdates(wg *sync.WaitGroup, txDataChan chan *dbData, rewardsDataChan chan *osmosis.RewardsInfo, dbChainID uint) {
+func (idxr *Indexer) doDBUpdates(wg *sync.WaitGroup, txDataChan chan *dbData, rewardsDataChan chan *osmosis.RewardsInfo, blockEventsDataChan chan *blockEventsDBData, dbChainID uint) {
 	blocksProcessed := 0
 	dbWrites := 0
 	dbReattempts := 0
@@ -768,8 +775,8 @@ func (idxr *Indexer) doDBUpdates(wg *sync.WaitGroup, txDataChan chan *dbData, re
 	defer wg.Done()
 
 	for {
-		// break out of loop once both channels are fully consumed
-		if rewardsDataChan == nil && txDataChan == nil {
+		// break out of loop once all channels are fully consumed
+		if rewardsDataChan == nil && txDataChan == nil && blockEventsDataChan == nil {
 			config.Log.Info("DB updates complete")
 			break
 		}
@@ -827,6 +834,23 @@ func (idxr *Indexer) doDBUpdates(wg *sync.WaitGroup, txDataChan chan *dbData, re
 				}
 				if float64(dbReattempts)/float64(dbWrites) > .1 {
 					config.Log.Fatalf("More than 10%% of the last %v DB writes have failed.", dbWrites)
+				}
+			}
+		case eventData, ok := <-blockEventsDataChan:
+			if !ok {
+				blockEventsDataChan = nil
+				continue
+			}
+			dbWrites++
+			config.Log.Info(fmt.Sprintf("Indexing %v Block Events from block %d", len(eventData.blockRelevantEvents), eventData.blockHeight))
+
+			err := dbTypes.IndexBlockEvents(idxr.db, idxr.dryRun, eventData.blockHeight, eventData.blockTime, eventData.blockRelevantEvents, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
+			if err != nil {
+				// Do a single reattempt on failure
+				dbReattempts++
+				err = dbTypes.IndexBlockEvents(idxr.db, idxr.dryRun, eventData.blockHeight, eventData.blockTime, eventData.blockRelevantEvents, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
+				if err != nil {
+					config.Log.Fatal(fmt.Sprintf("Error indexing block events for block %v.", eventData.blockHeight), err)
 				}
 			}
 		}

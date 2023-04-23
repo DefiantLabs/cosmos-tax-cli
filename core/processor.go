@@ -15,6 +15,7 @@ const (
 	OsmosisNodeRewardLookupError
 	OsmosisNodeRewardIndexError
 	NodeMissingHistoryForBlock
+	FailedBlockEventHandling
 )
 
 type FailedBlockHandler func(height int64, code BlockProcessingFailure, err error)
@@ -33,6 +34,8 @@ func HandleFailedBlock(height int64, code BlockProcessingFailure, err error) {
 		reason = "Failed Osmosis rewards indexing for block"
 	case NodeMissingHistoryForBlock:
 		reason = "Node has no TX history for block"
+	case FailedBlockEventHandling:
+		reason = "Failed to process block event"
 	}
 
 	config.Log.Error(fmt.Sprintf("Block %v failed. Reason: %v", height, reason), err)
