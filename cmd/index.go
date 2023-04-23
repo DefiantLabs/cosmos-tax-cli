@@ -715,7 +715,7 @@ func (idxr *Indexer) indexBlockEvents(wg *sync.WaitGroup, failedBlockHandler cor
 			config.Log.Infof("Received block results for block %d", currentHeight)
 		}
 
-		core.ProcessRPCBlockByHeightEvents(bresults)
+		core.ProcessRPCBlockEvents(bresults)
 
 		currentHeight += 1
 		if idxr.cfg.Base.Throttling != 0 {

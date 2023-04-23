@@ -1,12 +1,12 @@
 package events
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/tendermint/tendermint/abci/types"
 )
 
 type CosmosEvent interface {
-	HandleEvent(string, sdk.Event) error
-	ParseRelevantData()
+	HandleEvent(string, types.Event) error
+	ParseRelevantData() []EventRelevantInformation
 	GetType() string
 	String() string
 }
