@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/events"
+	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
 	tendermintEvents "github.com/DefiantLabs/cosmos-tax-cli/tendermint/events"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
@@ -58,8 +59,24 @@ func (sf *WrapperBlockEventDepositToPool) HandleEvent(eventType string, event ab
 }
 
 func (sf *WrapperBlockEventDepositToPool) ParseRelevantData() []events.EventRelevantInformation {
-	//TODO: Implement Parsing of relevant data
-	return nil
+	relevantData := make([]events.EventRelevantInformation, len(sf.AcceptedCoins)+1)
+
+	for i, coin := range sf.AcceptedCoins {
+		relevantData[i] = events.EventRelevantInformation{
+			EventSource:  dbTypes.TendermintLiquidityDepositCoinsToPool,
+			Amount:       coin.Amount.BigInt(),
+			Denomination: coin.Denom,
+			Address:      sf.Address,
+		}
+	}
+
+	relevantData[len(relevantData)-1] = events.EventRelevantInformation{
+		EventSource:  dbTypes.TendermintLiquidityDepositPoolCoinReceived,
+		Amount:       sf.PoolCoinReceived.Amount.BigInt(),
+		Denomination: sf.PoolCoinReceived.Denom,
+		Address:      sf.Address,
+	}
+	return relevantData
 }
 
 func (sf *WrapperBlockEventDepositToPool) String() string {

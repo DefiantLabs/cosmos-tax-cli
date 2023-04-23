@@ -15,6 +15,7 @@ import (
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	"github.com/DefiantLabs/cosmos-tax-cli/core"
+	eventTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/events"
 	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 	"github.com/DefiantLabs/cosmos-tax-cli/rpc"
@@ -669,8 +670,9 @@ type dbData struct {
 }
 
 type blockEventsDBData struct {
-	blockTime   time.Time
-	blockHeight int64
+	blockRelevantEvents []eventTypes.EventRelevantInformation
+	blockTime           time.Time
+	blockHeight         int64
 }
 
 func (idxr *Indexer) indexBlockEvents(wg *sync.WaitGroup, failedBlockHandler core.FailedBlockHandler, blockEventsDataChan chan *blockEventsDBData) {
@@ -715,7 +717,25 @@ func (idxr *Indexer) indexBlockEvents(wg *sync.WaitGroup, failedBlockHandler cor
 			config.Log.Infof("Received block results for block %d", currentHeight)
 		}
 
-		core.ProcessRPCBlockEvents(bresults)
+		blockRelevantEvents, err := core.ProcessRPCBlockEvents(bresults)
+
+		if err != nil {
+			failedBlockHandler(currentHeight, 0, err)
+			//TODO: Add to a new failed blocks table for events
+		} else {
+			result, err := rpc.GetBlock(idxr.cl, bresults.Height)
+			if err != nil {
+				failedBlockHandler(currentHeight, 0, err)
+				//TODO: Add to a new failed blocks table for events
+			} else {
+
+				blockEventsDataChan <- &blockEventsDBData{
+					blockHeight:         bresults.Height,
+					blockTime:           result.Block.Time,
+					blockRelevantEvents: blockRelevantEvents,
+				}
+			}
+		}
 
 		currentHeight += 1
 		if idxr.cfg.Base.Throttling != 0 {

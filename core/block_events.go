@@ -1,13 +1,13 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	eventTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/events"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmoshub"
 	cosmoshubTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmoshub"
-	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
@@ -28,7 +28,8 @@ func ChainSpecificEndBlockerEventTypeHandlerBootstrap(chainID string) {
 	}
 }
 
-func ProcessRPCBlockEvents(blockResults *ctypes.ResultBlockResults) []dbTypes.TaxableEvent {
+func ProcessRPCBlockEvents(blockResults *ctypes.ResultBlockResults) ([]eventTypes.EventRelevantInformation, error) {
+	var taxableEvents []eventTypes.EventRelevantInformation
 	if len(endBlockerEventTypeHandlers) != 0 {
 		for _, event := range blockResults.EndBlockEvents {
 			handlers, ok := endBlockerEventTypeHandlers[event.Type]
@@ -37,19 +38,27 @@ func ProcessRPCBlockEvents(blockResults *ctypes.ResultBlockResults) []dbTypes.Ta
 				continue
 			}
 
+			var err error = nil
 			for _, handler := range handlers {
 				cosmosEventHandler := handler()
-				cosmosEventHandler.HandleEvent(event.Type, event)
+				err = cosmosEventHandler.HandleEvent(event.Type, event)
+				if err != nil {
+					continue
+				}
 				var relevantData = cosmosEventHandler.ParseRelevantData()
 
-				for _, data := range relevantData {
-					fmt.Println(data)
-				}
+				taxableEvents = append(taxableEvents, relevantData...)
 
-				config.Log.Debug(fmt.Sprintf("[Block: %v] Cosmos event of known type: %s", blockResults.Height, cosmosEventHandler))
+				config.Log.Debug(fmt.Sprintf("[Block: %v] Cosmos Block EndBlocker event of known type: %s", blockResults.Height, cosmosEventHandler))
+				break
+			}
+
+			// If err is not nil here, all handlers failed
+			if err != nil {
+				return nil, errors.New(fmt.Sprintf("Could not handle event type %s, all handlers failed", event.Type))
 			}
 		}
 	}
 
-	return nil
+	return taxableEvents, nil
 }
