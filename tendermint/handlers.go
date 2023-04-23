@@ -7,5 +7,6 @@ import (
 )
 
 var EndBlockerEventTypeHandlers = map[string][]func() eventTypes.CosmosEvent{
-	events.BlockEventDepositToPool: {func() eventTypes.CosmosEvent { return &liquidityEventTypes.WrapperBlockEventDepositToPool{} }},
+	events.BlockEventDepositToPool:  {func() eventTypes.CosmosEvent { return &liquidityEventTypes.WrapperBlockEventDepositToPool{} }},
+	events.BlockEventSwapTransacted: {func() eventTypes.CosmosEvent { return &liquidityEventTypes.WrapperBlockEventSwapTransacted{} }},
 }

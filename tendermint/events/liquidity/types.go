@@ -2,6 +2,9 @@ package liquidity
 
 import (
 	"fmt"
+	"strings"
+
+	"errors"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/events"
 	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
@@ -19,8 +22,22 @@ type WrapperBlockEventDepositToPool struct {
 	PoolCoinReceived sdk.Coin
 }
 
+type WrapperBlockEventSwapTransacted struct {
+	Event          abciTypes.Event
+	CoinSwappedIn  sdk.Coin
+	CoinSwappedOut sdk.Coin
+	Fees           sdk.Coins
+	Address        string
+	PoolId         string
+	Success        string
+}
+
 func (sf *WrapperBlockEventDepositToPool) GetType() string {
 	return tendermintEvents.BlockEventDepositToPool
+}
+
+func (sf *WrapperBlockEventSwapTransacted) GetType() string {
+	return tendermintEvents.BlockEventSwapTransacted
 }
 
 func (sf *WrapperBlockEventDepositToPool) HandleEvent(eventType string, event abciTypes.Event) error {
@@ -58,6 +75,79 @@ func (sf *WrapperBlockEventDepositToPool) HandleEvent(eventType string, event ab
 	return nil
 }
 
+func (sf *WrapperBlockEventSwapTransacted) HandleEvent(eventType string, event abciTypes.Event) error {
+	sf.Event = event
+
+	// Swap transaction storage
+	var offerCoinAmount string
+	var offerCoinDenom string
+	var demandCoinAmount string
+	var demandCoinDenom string
+
+	// Fee storage
+	var offerCoinFeeAmount string
+	var demandCoinFeeAmount string
+
+	for _, attribute := range event.Attributes {
+		switch string(attribute.Key) {
+		case "swap_requester":
+			sf.Address = string(attribute.Value)
+		case "exchanged_offer_coin_amount":
+			offerCoinAmount = string(attribute.Value)
+		case "offer_coin_denom":
+			offerCoinDenom = string(attribute.Value)
+		case "exchanged_demand_coin_amount":
+			demandCoinAmount = string(attribute.Value)
+		case "demand_coin_denom":
+			demandCoinDenom = string(attribute.Value)
+		case "offer_coin_fee_amount":
+			offerCoinFeeAmount = string(attribute.Value)
+		case "exchanged_coin_fee_amount":
+			demandCoinFeeAmount = string(attribute.Value)
+		case "success":
+			sf.Success = string(attribute.Value)
+		case "pool_id":
+			sf.PoolId = string(attribute.Value)
+		}
+	}
+
+	offerAmount, ok := sdk.NewIntFromString(offerCoinAmount)
+	if !ok {
+		return errors.New(fmt.Sprintf("Error parsing coin amount for offerCoinAmount %s", offerCoinAmount))
+	}
+	sf.CoinSwappedIn = sdk.NewCoin(offerCoinDenom, offerAmount)
+
+	demandAmount, ok := sdk.NewIntFromString(demandCoinAmount)
+	if !ok {
+		return errors.New(fmt.Sprintf("Error parsing coin amount for demandCoinAmount %s", demandCoinAmount))
+	}
+	sf.CoinSwappedOut = sdk.NewCoin(demandCoinDenom, demandAmount)
+
+	// Here we are throwing out the decimal value. Why does it have a decimal in the first place and should we care?
+	if strings.Contains(offerCoinFeeAmount, ".") {
+		offerCoinFeeAmount = strings.Split(offerCoinFeeAmount, ".")[0]
+	}
+	offerFeeAmount, ok := sdk.NewIntFromString(offerCoinFeeAmount)
+	if !ok {
+		return errors.New(fmt.Sprintf("Error parsing coin amount for offerCoinFeeAmount %s", offerCoinFeeAmount))
+	}
+	firstFee := sdk.NewCoin(offerCoinDenom, offerFeeAmount)
+
+	// Here we are throwing out the decimal value. Why does it have a decimal in the first place and should we care?
+	if strings.Contains(demandCoinFeeAmount, ".") {
+		demandCoinFeeAmount = strings.Split(demandCoinFeeAmount, ".")[0]
+	}
+	demandFeeAmount, ok := sdk.NewIntFromString(demandCoinFeeAmount)
+	if !ok {
+		return errors.New(fmt.Sprintf("Error parsing coin amount for demandCoinFeeAmount %s", demandCoinFeeAmount))
+	}
+	secondFee := sdk.NewCoin(demandCoinDenom, demandFeeAmount)
+
+	sf.Fees = sdk.NewCoins(firstFee, secondFee)
+
+	return nil
+}
+
 func (sf *WrapperBlockEventDepositToPool) ParseRelevantData() []events.EventRelevantInformation {
 	relevantData := make([]events.EventRelevantInformation, len(sf.AcceptedCoins)+1)
 
@@ -79,6 +169,39 @@ func (sf *WrapperBlockEventDepositToPool) ParseRelevantData() []events.EventRele
 	return relevantData
 }
 
+func (sf *WrapperBlockEventSwapTransacted) ParseRelevantData() []events.EventRelevantInformation {
+	relevantData := make([]events.EventRelevantInformation, len(sf.Fees)+2)
+
+	for i, coin := range sf.Fees {
+		relevantData[i] = events.EventRelevantInformation{
+			EventSource:  dbTypes.TendermintLiquiditySwapTransactedFee,
+			Amount:       coin.Amount.BigInt(),
+			Denomination: coin.Denom,
+			Address:      sf.Address,
+		}
+	}
+
+	relevantData[len(relevantData)-2] = events.EventRelevantInformation{
+		EventSource:  dbTypes.TendermintLiquiditySwapTransactedCoinIn,
+		Amount:       sf.CoinSwappedIn.Amount.BigInt(),
+		Denomination: sf.CoinSwappedIn.Denom,
+		Address:      sf.Address,
+	}
+
+	relevantData[len(relevantData)-1] = events.EventRelevantInformation{
+		EventSource:  dbTypes.TendermintLiquiditySwapTransactedCoinOut,
+		Amount:       sf.CoinSwappedOut.Amount.BigInt(),
+		Denomination: sf.CoinSwappedOut.Denom,
+		Address:      sf.Address,
+	}
+
+	return relevantData
+}
+
 func (sf *WrapperBlockEventDepositToPool) String() string {
 	return fmt.Sprintf("Tendermint Liquidity event %s: Address %s deposited %s into pool %s and received %s with status %s", sf.GetType(), sf.Address, sf.AcceptedCoins, sf.PoolId, sf.PoolCoinReceived, sf.Success)
+}
+
+func (sf *WrapperBlockEventSwapTransacted) String() string {
+	return fmt.Sprintf("Tendermint Liquidity event %s: Address %s swapped %s into pool %s and received %s with status %s. Fees paid were %s", sf.GetType(), sf.Address, sf.CoinSwappedIn, sf.PoolId, sf.CoinSwappedOut, sf.Success, sf.Fees)
 }
