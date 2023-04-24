@@ -715,6 +715,13 @@ func (idxr *Indexer) indexBlockEvents(wg *sync.WaitGroup, failedBlockHandler cor
 		if err != nil {
 			//TODO: Add to a new failed blocks table for events
 			config.Log.Error(fmt.Sprintf("Error receiving block result for block %d", currentHeight), err)
+			failedBlockHandler(currentHeight, core.FailedBlockEventHandling, err)
+
+			err := dbTypes.UpsertFailedEventBlock(idxr.db, currentHeight, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
+			if err != nil {
+				config.Log.Fatal("Failed to insert failed block event", err)
+			}
+
 			currentHeight += 1
 			if idxr.cfg.Base.Throttling != 0 {
 				time.Sleep(time.Second * time.Duration(idxr.cfg.Base.Throttling))
@@ -726,12 +733,21 @@ func (idxr *Indexer) indexBlockEvents(wg *sync.WaitGroup, failedBlockHandler cor
 
 		if err != nil {
 			failedBlockHandler(currentHeight, core.FailedBlockEventHandling, err)
+
+			err := dbTypes.UpsertFailedEventBlock(idxr.db, currentHeight, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
+			if err != nil {
+				config.Log.Fatal("Failed to insert failed block event", err)
+			}
 			//TODO: Add to a new failed blocks table for events
 		} else if len(blockRelevantEvents) != 0 {
 			result, err := rpc.GetBlock(idxr.cl, bresults.Height)
 			if err != nil {
 				failedBlockHandler(currentHeight, core.FailedBlockEventHandling, err)
-				//TODO: Add to a new failed blocks table for events
+
+				err := dbTypes.UpsertFailedEventBlock(idxr.db, currentHeight, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
+				if err != nil {
+					config.Log.Fatal("Failed to insert failed block event", err)
+				}
 			} else {
 				blockEventsDataChan <- &blockEventsDBData{
 					blockHeight:         bresults.Height,
@@ -741,7 +757,6 @@ func (idxr *Indexer) indexBlockEvents(wg *sync.WaitGroup, failedBlockHandler cor
 			}
 		} else {
 			config.Log.Infof("Block %d has no relevant block events", bresults.Height)
-
 		}
 
 		currentHeight += 1

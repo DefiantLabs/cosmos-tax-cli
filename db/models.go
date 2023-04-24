@@ -22,6 +22,13 @@ type FailedBlock struct {
 	Chain        Chain `gorm:"foreignKey:BlockchainID"`
 }
 
+type FailedEventBlock struct {
+	ID           uint
+	Height       int64 `gorm:"uniqueIndex:failedchaineventheight"`
+	BlockchainID uint  `gorm:"uniqueIndex:failedchaineventheight"`
+	Chain        Chain `gorm:"foreignKey:BlockchainID"`
+}
+
 type Chain struct {
 	ID      uint   `gorm:"primaryKey"`
 	ChainID string `gorm:"uniqueIndex"` // e.g. osmosis-1

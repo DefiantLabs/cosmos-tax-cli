@@ -48,6 +48,7 @@ func MigrateModels(db *gorm.DB) error {
 	return db.AutoMigrate(
 		&Block{},
 		&FailedBlock{},
+		&FailedEventBlock{},
 		&Chain{},
 		&Tx{},
 		&Fee{},
@@ -119,6 +120,23 @@ func UpsertFailedBlock(db *gorm.DB, blockHeight int64, chainID string, chainName
 
 		if err := dbTransaction.Where(&failedBlock).FirstOrCreate(&failedBlock).Error; err != nil {
 			config.Log.Error("Error creating failed block DB object.", err)
+			return err
+		}
+		return nil
+	})
+}
+
+func UpsertFailedEventBlock(db *gorm.DB, blockHeight int64, chainID string, chainName string) error {
+	return db.Transaction(func(dbTransaction *gorm.DB) error {
+		failedEventBlock := FailedEventBlock{Height: blockHeight, Chain: Chain{ChainID: chainID, Name: chainName}}
+
+		if err := dbTransaction.Where(&failedEventBlock.Chain).FirstOrCreate(&failedEventBlock.Chain).Error; err != nil {
+			config.Log.Error("Error creating chain DB object.", err)
+			return err
+		}
+
+		if err := dbTransaction.Where(&failedEventBlock).FirstOrCreate(&failedEventBlock).Error; err != nil {
+			config.Log.Error("Error creating failed event block DB object.", err)
 			return err
 		}
 		return nil
