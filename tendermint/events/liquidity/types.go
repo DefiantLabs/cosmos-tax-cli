@@ -32,12 +32,26 @@ type WrapperBlockEventSwapTransacted struct {
 	Success        string
 }
 
+type WrapperBlockWithdrawFromPool struct {
+	Event         abciTypes.Event
+	Address       string
+	PoolCoinSent  sdk.Coin
+	WithdrawCoins sdk.Coins
+	WithdrawFees  sdk.Coins
+	PoolId        string
+	Success       string
+}
+
 func (sf *WrapperBlockEventDepositToPool) GetType() string {
 	return tendermintEvents.BlockEventDepositToPool
 }
 
 func (sf *WrapperBlockEventSwapTransacted) GetType() string {
 	return tendermintEvents.BlockEventSwapTransacted
+}
+
+func (sf *WrapperBlockWithdrawFromPool) GetType() string {
+	return tendermintEvents.BlockEventWithdrawFromPool
 }
 
 func (sf *WrapperBlockEventDepositToPool) HandleEvent(eventType string, event abciTypes.Event) error {
@@ -148,6 +162,54 @@ func (sf *WrapperBlockEventSwapTransacted) HandleEvent(eventType string, event a
 	return nil
 }
 
+func (sf *WrapperBlockWithdrawFromPool) HandleEvent(eventType string, event abciTypes.Event) error {
+	sf.Event = event
+
+	var poolCoinAmount string
+	var poolCoinDenom string
+	var withdrawCoinsString string
+	var withdrawFeesString string
+
+	for _, attribute := range event.Attributes {
+		switch string(attribute.Key) {
+		case "withdrawer":
+			sf.Address = string(attribute.Value)
+		case "pool_coin_amount":
+			poolCoinAmount = string(attribute.Value)
+		case "pool_coin_denom":
+			poolCoinDenom = string(attribute.Value)
+		case "withdraw_coins":
+			withdrawCoinsString = string(attribute.Value)
+		case "withdraw_fee_coins":
+			withdrawFeesString = string(attribute.Value)
+		case "pool_id":
+			sf.PoolId = string(attribute.Value)
+		case "success":
+			sf.Success = string(attribute.Value)
+		}
+	}
+
+	poolCoin, err := sdk.ParseCoinNormalized(poolCoinAmount + poolCoinDenom)
+	if err != nil {
+		return err
+	}
+	sf.PoolCoinSent = poolCoin
+
+	withdrawCoins, err := sdk.ParseCoinsNormalized(withdrawCoinsString)
+	if err != nil {
+		return err
+	}
+	sf.WithdrawCoins = withdrawCoins
+
+	withdrawFees, err := sdk.ParseCoinsNormalized(withdrawFeesString)
+	if err != nil {
+		return err
+	}
+	sf.WithdrawFees = withdrawFees
+
+	return nil
+}
+
 func (sf *WrapperBlockEventDepositToPool) ParseRelevantData() []events.EventRelevantInformation {
 	relevantData := make([]events.EventRelevantInformation, len(sf.AcceptedCoins)+1)
 
@@ -198,10 +260,53 @@ func (sf *WrapperBlockEventSwapTransacted) ParseRelevantData() []events.EventRel
 	return relevantData
 }
 
+func (sf *WrapperBlockWithdrawFromPool) ParseRelevantData() []events.EventRelevantInformation {
+	relevantData := make([]events.EventRelevantInformation, len(sf.WithdrawFees)+len(sf.WithdrawCoins)+1)
+
+	for i, coin := range sf.WithdrawFees {
+		relevantData[i] = events.EventRelevantInformation{
+			EventSource:  dbTypes.TendermintLiquidityWithdrawFee,
+			Amount:       coin.Amount.BigInt(),
+			Denomination: coin.Denom,
+			Address:      sf.Address,
+		}
+	}
+
+	i := len(sf.WithdrawFees)
+
+	for _, coin := range sf.WithdrawCoins {
+		relevantData[i] = events.EventRelevantInformation{
+			EventSource:  dbTypes.TendermintLiquidityWithdrawCoinReceived,
+			Amount:       coin.Amount.BigInt(),
+			Denomination: coin.Denom,
+			Address:      sf.Address,
+		}
+		i++
+	}
+
+	relevantData[len(relevantData)-1] = events.EventRelevantInformation{
+		EventSource:  dbTypes.TendermintLiquidityWithdrawPoolCoinSent,
+		Amount:       sf.PoolCoinSent.Amount.BigInt(),
+		Denomination: sf.PoolCoinSent.Denom,
+		Address:      sf.Address,
+	}
+
+	return relevantData
+}
+
 func (sf *WrapperBlockEventDepositToPool) String() string {
 	return fmt.Sprintf("Tendermint Liquidity event %s: Address %s deposited %s into pool %s and received %s with status %s", sf.GetType(), sf.Address, sf.AcceptedCoins, sf.PoolId, sf.PoolCoinReceived, sf.Success)
 }
 
 func (sf *WrapperBlockEventSwapTransacted) String() string {
 	return fmt.Sprintf("Tendermint Liquidity event %s: Address %s swapped %s into pool %s and received %s with status %s. Fees paid were %s", sf.GetType(), sf.Address, sf.CoinSwappedIn, sf.PoolId, sf.CoinSwappedOut, sf.Success, sf.Fees)
+}
+
+func (sf *WrapperBlockWithdrawFromPool) String() string {
+
+	feesPaidString := "No fees were paid"
+	if len(sf.WithdrawFees) != 0 {
+		feesPaidString = fmt.Sprintf("Fees paid were %s", sf.WithdrawFees)
+	}
+	return fmt.Sprintf("Tendermint Liquidity event %s: Address %s sent %s into pool %s and received %s with status %s. %s.", sf.GetType(), sf.Address, sf.PoolCoinSent, sf.PoolId, sf.WithdrawCoins, sf.Success, feesPaidString)
 }

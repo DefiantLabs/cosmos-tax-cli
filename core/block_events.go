@@ -44,7 +44,6 @@ func ProcessRPCBlockEvents(blockResults *ctypes.ResultBlockResults) ([]eventType
 				err = cosmosEventHandler.HandleEvent(event.Type, event)
 				if err != nil {
 					config.Log.Debug(fmt.Sprintf("[Block: %v] Cosmos Block EndBlocker event of known type: %s. Handler failed", blockResults.Height, cosmosEventHandler), err)
-
 					continue
 				}
 				var relevantData = cosmosEventHandler.ParseRelevantData()

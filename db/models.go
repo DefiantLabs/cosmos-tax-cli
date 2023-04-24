@@ -77,6 +77,9 @@ const (
 	TendermintLiquiditySwapTransactedCoinIn
 	TendermintLiquiditySwapTransactedCoinOut
 	TendermintLiquiditySwapTransactedFee
+	TendermintLiquidityWithdrawPoolCoinSent
+	TendermintLiquidityWithdrawCoinReceived
+	TendermintLiquidityWithdrawFee
 )
 
 // An event does not necessarily need to be part of a Transaction. For example, Osmosis rewards.
