@@ -694,11 +694,12 @@ func (idxr *Indexer) indexBlockEvents(wg *sync.WaitGroup, failedBlockHandler cor
 		startHeight = 1
 	}
 
-	//TODO: Implement sleeping when lastKnownBlockHeight is reached in the loop below
-	// lastKnownBlockHeight, errBh := rpc.GetLatestBlockHeight(idxr.cl)
-	// if errBh != nil {
-	// 	config.Log.Fatal("Error getting blockchain latest height in block event indexer.", errBh)
-	// }
+	lastKnownBlockHeight, errBh := rpc.GetLatestBlockHeight(idxr.cl)
+	if errBh != nil {
+		config.Log.Fatal("Error getting blockchain latest height in block event indexer.", errBh)
+	}
+
+	fmt.Println("Last known block height", lastKnownBlockHeight)
 
 	config.Log.Infof("Indexing block events from block: %v to %v", startHeight, endHeight)
 
@@ -760,7 +761,29 @@ func (idxr *Indexer) indexBlockEvents(wg *sync.WaitGroup, failedBlockHandler cor
 		}
 
 		currentHeight += 1
-		if idxr.cfg.Base.Throttling != 0 {
+
+		// Sleep for a bit to allow new blocks to be written to the chain, this allows us to continue the indexer run indefinitely
+		if currentHeight > lastKnownBlockHeight {
+			config.Log.Infof("Block %d has passed lastKnownBlockHeight, checking again", currentHeight)
+			//For loop catches both of the following
+			//whether we are going too fast and need to do multiple sleeps
+			//whether the lastKnownHeight was set a long time ago (as in at app start) and we just need to reset the value
+			for {
+				lastKnownBlockHeight, err = rpc.GetLatestBlockHeight(idxr.cl)
+				if err != nil {
+					config.Log.Fatal("Error getting blockchain latest height in block event indexer.", errBh)
+				}
+
+				if currentHeight > lastKnownBlockHeight {
+					config.Log.Infof("Sleeping...")
+					time.Sleep(time.Second * 20)
+				} else {
+					config.Log.Infof("Continuing until block %d", lastKnownBlockHeight)
+					time.Sleep(time.Second * time.Duration(idxr.cfg.Base.Throttling))
+					break
+				}
+			}
+		} else if idxr.cfg.Base.Throttling != 0 {
 			time.Sleep(time.Second * time.Duration(idxr.cfg.Base.Throttling))
 		}
 	}
