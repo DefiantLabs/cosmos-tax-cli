@@ -699,8 +699,6 @@ func (idxr *Indexer) indexBlockEvents(wg *sync.WaitGroup, failedBlockHandler cor
 		config.Log.Fatal("Error getting blockchain latest height in block event indexer.", errBh)
 	}
 
-	fmt.Println("Last known block height", lastKnownBlockHeight)
-
 	config.Log.Infof("Indexing block events from block: %v to %v", startHeight, endHeight)
 
 	//TODO: Strip this out of the Osmosis module and make it generalized
@@ -714,7 +712,6 @@ func (idxr *Indexer) indexBlockEvents(wg *sync.WaitGroup, failedBlockHandler cor
 	for endHeight == -1 || currentHeight <= endHeight {
 		bresults, err := getBlockResult(rpcClient, currentHeight)
 		if err != nil {
-			//TODO: Add to a new failed blocks table for events
 			config.Log.Error(fmt.Sprintf("Error receiving block result for block %d", currentHeight), err)
 			failedBlockHandler(currentHeight, core.FailedBlockEventHandling, err)
 
@@ -739,7 +736,6 @@ func (idxr *Indexer) indexBlockEvents(wg *sync.WaitGroup, failedBlockHandler cor
 			if err != nil {
 				config.Log.Fatal("Failed to insert failed block event", err)
 			}
-			//TODO: Add to a new failed blocks table for events
 		} else if len(blockRelevantEvents) != 0 {
 			result, err := rpc.GetBlock(idxr.cl, bresults.Height)
 			if err != nil {

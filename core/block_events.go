@@ -1,7 +1,6 @@
 package core
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
@@ -56,7 +55,7 @@ func ProcessRPCBlockEvents(blockResults *ctypes.ResultBlockResults) ([]eventType
 
 			// If err is not nil here, all handlers failed
 			if err != nil {
-				return nil, errors.New(fmt.Sprintf("Could not handle event type %s, all handlers failed", event.Type))
+				return nil, fmt.Errorf("Could not handle event type %s, all handlers failed", event.Type)
 			}
 		}
 	}
