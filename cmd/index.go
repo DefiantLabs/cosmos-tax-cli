@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"math"
@@ -14,11 +15,13 @@ import (
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	"github.com/DefiantLabs/cosmos-tax-cli/core"
+	eventTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/events"
 	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 	"github.com/DefiantLabs/cosmos-tax-cli/rpc"
 	"github.com/DefiantLabs/cosmos-tax-cli/tasks"
 	"github.com/spf13/cobra"
+	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	"gorm.io/gorm"
 )
@@ -61,6 +64,7 @@ func setupIndexer() *Indexer {
 	core.SetupAddressRegex(idxr.cfg.Lens.AccountPrefix + "(valoper)?1[a-z0-9]{38}")
 	core.SetupAddressPrefix(idxr.cfg.Lens.AccountPrefix)
 	core.ChainSpecificMessageTypeHandlerBootstrap(idxr.cfg.Lens.ChainID)
+	core.ChainSpecificEndBlockerEventTypeHandlerBootstrap(idxr.cfg.Lens.ChainID)
 	config.SetChainConfig(idxr.cfg.Lens.AccountPrefix)
 
 	// Setup scheduler to periodically update denoms
@@ -161,6 +165,15 @@ func index(cmd *cobra.Command, args []string) {
 		close(rewardsDataChan)
 	}
 
+	// Block BeginBlocker and EndBlocker indexing requirements. Indexes block events that took place in the BeginBlock and EndBlock state transitions
+	blockEventsDataChain := make(chan *blockEventsDBData, 4*rpcQueryThreads)
+	if idxr.cfg.Base.BlockEventIndexingEnabled {
+		wg.Add(1)
+		go idxr.indexBlockEvents(&wg, core.HandleFailedBlock, blockEventsDataChain)
+	} else {
+		close(blockEventsDataChain)
+	}
+
 	chain := dbTypes.Chain{
 		ChainID: idxr.cfg.Lens.ChainID,
 		Name:    idxr.cfg.Lens.ChainName,
@@ -171,9 +184,9 @@ func index(cmd *cobra.Command, args []string) {
 	}
 
 	// Start a thread to index the data queried from the chain.
-	if idxr.cfg.Base.ChainIndexingEnabled || idxr.cfg.Base.RewardIndexingEnabled {
+	if idxr.cfg.Base.ChainIndexingEnabled || idxr.cfg.Base.RewardIndexingEnabled || idxr.cfg.Base.BlockEventIndexingEnabled {
 		wg.Add(1)
-		go idxr.doDBUpdates(&wg, txDataChan, rewardsDataChan, dbChainID)
+		go idxr.doDBUpdates(&wg, txDataChan, rewardsDataChan, blockEventsDataChain, dbChainID)
 	}
 
 	// Add jobs to the queue to be processed
@@ -310,6 +323,15 @@ func OsmosisGetRewardsStartIndexHeight(db *gorm.DB, chainID string) int64 {
 	block, err := dbTypes.GetHighestTaxableEventBlock(db, chainID)
 	if err != nil && err.Error() != "record not found" {
 		log.Fatalf("Cannot retrieve highest indexed Osmosis rewards block. Err: %v", err)
+	}
+
+	return block.Height
+}
+
+func GetBlockEventsStartIndexHeight(db *gorm.DB, chainID string) int64 {
+	block, err := dbTypes.GetHighestTaxableEventBlock(db, chainID)
+	if err != nil && err.Error() != "record not found" {
+		log.Fatalf("Cannot retrieve highest indexed block event. Err: %v", err)
 	}
 
 	return block.Height
@@ -647,11 +669,139 @@ type dbData struct {
 	blockHeight  int64
 }
 
+type blockEventsDBData struct {
+	blockRelevantEvents []eventTypes.EventRelevantInformation
+	blockTime           time.Time
+	blockHeight         int64
+}
+
+func (idxr *Indexer) indexBlockEvents(wg *sync.WaitGroup, failedBlockHandler core.FailedBlockHandler, blockEventsDataChan chan *blockEventsDBData) {
+	defer close(blockEventsDataChan)
+	defer wg.Done()
+
+	startHeight := idxr.cfg.Base.BlockEventsStartBlock
+	endHeight := idxr.cfg.Base.BlockEventsEndBlock
+
+	if startHeight <= 0 {
+		dbLastIndexedBlockEvent := GetBlockEventsStartIndexHeight(idxr.db, idxr.cfg.Lens.ChainID)
+		if dbLastIndexedBlockEvent > 0 {
+			startHeight = dbLastIndexedBlockEvent + 1
+		}
+	}
+
+	// 0 isn't a valid starting block
+	if startHeight <= 0 {
+		startHeight = 1
+	}
+
+	lastKnownBlockHeight, errBh := rpc.GetLatestBlockHeight(idxr.cl)
+	if errBh != nil {
+		config.Log.Fatal("Error getting blockchain latest height in block event indexer.", errBh)
+	}
+
+	config.Log.Infof("Indexing block events from block: %v to %v", startHeight, endHeight)
+
+	//TODO: Strip this out of the Osmosis module and make it generalized
+	rpcClient := osmosis.URIClient{
+		Address: idxr.cl.Config.RPCAddr,
+		Client:  &http.Client{},
+	}
+
+	currentHeight := startHeight
+
+	for endHeight == -1 || currentHeight <= endHeight {
+		bresults, err := getBlockResult(rpcClient, currentHeight)
+		if err != nil {
+			config.Log.Error(fmt.Sprintf("Error receiving block result for block %d", currentHeight), err)
+			failedBlockHandler(currentHeight, core.FailedBlockEventHandling, err)
+
+			err := dbTypes.UpsertFailedEventBlock(idxr.db, currentHeight, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
+			if err != nil {
+				config.Log.Fatal("Failed to insert failed block event", err)
+			}
+
+			currentHeight += 1
+			if idxr.cfg.Base.Throttling != 0 {
+				time.Sleep(time.Second * time.Duration(idxr.cfg.Base.Throttling))
+			}
+			continue
+		}
+
+		blockRelevantEvents, err := core.ProcessRPCBlockEvents(bresults)
+
+		if err != nil {
+			failedBlockHandler(currentHeight, core.FailedBlockEventHandling, err)
+
+			err := dbTypes.UpsertFailedEventBlock(idxr.db, currentHeight, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
+			if err != nil {
+				config.Log.Fatal("Failed to insert failed block event", err)
+			}
+		} else if len(blockRelevantEvents) != 0 {
+			result, err := rpc.GetBlock(idxr.cl, bresults.Height)
+			if err != nil {
+				failedBlockHandler(currentHeight, core.FailedBlockEventHandling, err)
+
+				err := dbTypes.UpsertFailedEventBlock(idxr.db, currentHeight, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
+				if err != nil {
+					config.Log.Fatal("Failed to insert failed block event", err)
+				}
+			} else {
+				blockEventsDataChan <- &blockEventsDBData{
+					blockHeight:         bresults.Height,
+					blockTime:           result.Block.Time,
+					blockRelevantEvents: blockRelevantEvents,
+				}
+			}
+		} else {
+			config.Log.Infof("Block %d has no relevant block events", bresults.Height)
+		}
+
+		currentHeight += 1
+
+		// Sleep for a bit to allow new blocks to be written to the chain, this allows us to continue the indexer run indefinitely
+		if currentHeight > lastKnownBlockHeight {
+			config.Log.Infof("Block %d has passed lastKnownBlockHeight, checking again", currentHeight)
+			//For loop catches both of the following
+			//whether we are going too fast and need to do multiple sleeps
+			//whether the lastKnownHeight was set a long time ago (as in at app start) and we just need to reset the value
+			for {
+				lastKnownBlockHeight, err = rpc.GetLatestBlockHeight(idxr.cl)
+				if err != nil {
+					config.Log.Fatal("Error getting blockchain latest height in block event indexer.", errBh)
+				}
+
+				if currentHeight > lastKnownBlockHeight {
+					config.Log.Infof("Sleeping...")
+					time.Sleep(time.Second * 20)
+				} else {
+					config.Log.Infof("Continuing until block %d", lastKnownBlockHeight)
+					time.Sleep(time.Second * time.Duration(idxr.cfg.Base.Throttling))
+					break
+				}
+			}
+		} else if idxr.cfg.Base.Throttling != 0 {
+			time.Sleep(time.Second * time.Duration(idxr.cfg.Base.Throttling))
+		}
+	}
+}
+
+func getBlockResult(client osmosis.URIClient, height int64) (*ctypes.ResultBlockResults, error) {
+	brctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+	defer cancel()
+
+	bresults, err := client.DoBlockResults(brctx, &height)
+	if err != nil {
+		return nil, err
+	}
+
+	return bresults, nil
+}
+
 // doDBUpdates will read the data out of the db data chan that had been processed by the workers
 // if this is a dry run, we will simply empty the channel and track progress
 // otherwise we will index the data in the DB.
 // it will also read rewars data and index that.
-func (idxr *Indexer) doDBUpdates(wg *sync.WaitGroup, txDataChan chan *dbData, rewardsDataChan chan *osmosis.RewardsInfo, dbChainID uint) {
+func (idxr *Indexer) doDBUpdates(wg *sync.WaitGroup, txDataChan chan *dbData, rewardsDataChan chan *osmosis.RewardsInfo, blockEventsDataChan chan *blockEventsDBData, dbChainID uint) {
 	blocksProcessed := 0
 	dbWrites := 0
 	dbReattempts := 0
@@ -659,8 +809,8 @@ func (idxr *Indexer) doDBUpdates(wg *sync.WaitGroup, txDataChan chan *dbData, re
 	defer wg.Done()
 
 	for {
-		// break out of loop once both channels are fully consumed
-		if rewardsDataChan == nil && txDataChan == nil {
+		// break out of loop once all channels are fully consumed
+		if rewardsDataChan == nil && txDataChan == nil && blockEventsDataChan == nil {
 			config.Log.Info("DB updates complete")
 			break
 		}
@@ -718,6 +868,23 @@ func (idxr *Indexer) doDBUpdates(wg *sync.WaitGroup, txDataChan chan *dbData, re
 				}
 				if float64(dbReattempts)/float64(dbWrites) > .1 {
 					config.Log.Fatalf("More than 10%% of the last %v DB writes have failed.", dbWrites)
+				}
+			}
+		case eventData, ok := <-blockEventsDataChan:
+			if !ok {
+				blockEventsDataChan = nil
+				continue
+			}
+			dbWrites++
+			config.Log.Info(fmt.Sprintf("Indexing %v Block Events from block %d", len(eventData.blockRelevantEvents), eventData.blockHeight))
+
+			err := dbTypes.IndexBlockEvents(idxr.db, idxr.dryRun, eventData.blockHeight, eventData.blockTime, eventData.blockRelevantEvents, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
+			if err != nil {
+				// Do a single reattempt on failure
+				dbReattempts++
+				err = dbTypes.IndexBlockEvents(idxr.db, idxr.dryRun, eventData.blockHeight, eventData.blockTime, eventData.blockRelevantEvents, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
+				if err != nil {
+					config.Log.Fatal(fmt.Sprintf("Error indexing block events for block %v.", eventData.blockHeight), err)
 				}
 			}
 		}

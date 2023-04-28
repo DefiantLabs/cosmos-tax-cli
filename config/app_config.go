@@ -155,22 +155,25 @@ type client struct {
 }
 
 type base struct {
-	API                   string
-	StartBlock            int64 `mapstructure:"start-block"`
-	EndBlock              int64 `mapstructure:"end-block"`
-	ReIndex               bool
-	PreventReattempts     bool `mapstructure:"prevent-reattempts"`
-	Throttling            float64
-	RPCWorkers            int64 `mapstructure:"rpc-workers"`
-	BlockTimer            int64 `mapstructure:"block-timer"`
-	WaitForChain          bool  `mapstructure:"wait-for-chain"`
-	WaitForChainDelay     int64 `mapstructure:"wait-for-chain-delay"`
-	ChainIndexingEnabled  bool  `mapstructure:"index-chain"`
-	ExitWhenCaughtUp      bool  `mapstructure:"exit-when-caught-up"`
-	RewardIndexingEnabled bool  `mapstructure:"index-rewards"`
-	Dry                   bool
-	RewardStartBlock      int64 `mapstructure:"rewards-start-block"`
-	RewardEndBlock        int64 `mapstructure:"rewards-end-block"`
+	API                       string
+	StartBlock                int64 `mapstructure:"start-block"`
+	EndBlock                  int64 `mapstructure:"end-block"`
+	ReIndex                   bool
+	PreventReattempts         bool `mapstructure:"prevent-reattempts"`
+	Throttling                float64
+	RPCWorkers                int64 `mapstructure:"rpc-workers"`
+	BlockTimer                int64 `mapstructure:"block-timer"`
+	WaitForChain              bool  `mapstructure:"wait-for-chain"`
+	WaitForChainDelay         int64 `mapstructure:"wait-for-chain-delay"`
+	ChainIndexingEnabled      bool  `mapstructure:"index-chain"`
+	ExitWhenCaughtUp          bool  `mapstructure:"exit-when-caught-up"`
+	RewardIndexingEnabled     bool  `mapstructure:"index-rewards"`
+	BlockEventIndexingEnabled bool  `mapstructure:"index-block-events"`
+	Dry                       bool
+	RewardStartBlock          int64 `mapstructure:"rewards-start-block"`
+	RewardEndBlock            int64 `mapstructure:"rewards-end-block"`
+	BlockEventsStartBlock     int64 `mapstructure:"block-events-start-block"`
+	BlockEventsEndBlock       int64 `mapstructure:"block-events-end-block"`
 }
 
 type log struct {
