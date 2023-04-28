@@ -107,14 +107,16 @@ var messageTypeIgnorer = map[string]interface{}{
 	// Create account is not taxable
 	vesting.MsgCreateVestingAccount: nil,
 
-	///////////////////////////////////////////
-	/////// Taxable Events, future work ///////
-	///////////////////////////////////////////
-	// We do not currently support the tendermint liquidity pool module
+	// Tendermint Liquidity messages are actually executed in batches during periodic EndBlocker events
+	// We ignore the Message types since the actual taxable events happen later, and the messages can fail/be refunded
 	liquidity.MsgCreatePool:          nil,
 	liquidity.MsgDepositWithinBatch:  nil,
 	liquidity.MsgWithdrawWithinBatch: nil,
 	liquidity.MsgSwapWithinBatch:     nil,
+
+	///////////////////////////////////////////
+	/////// Taxable Events, future work ///////
+	///////////////////////////////////////////
 	// CosmWasm
 	wasm.MsgExecuteContract:     nil,
 	wasm.MsgInstantiateContract: nil,
