@@ -2,6 +2,7 @@ package db
 
 import (
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"sort"
 	"time"
@@ -74,4 +75,71 @@ func IndexBlockEvents(db *gorm.DB, dryRun bool, blockHeight int64, blockTime tim
 	}
 
 	return nil
+}
+
+func createTaxableEvents(db *gorm.DB, events []TaxableEvent) error {
+	// Ordering matters due to foreign key constraints. Call Create() first to get right foreign key ID
+	return db.Transaction(func(dbTransaction *gorm.DB) error {
+		if len(events) == 0 {
+			return errors.New("no events to insert")
+		}
+
+		var chainPrev Chain
+		var blockPrev Block
+
+		for _, event := range events {
+			if chainPrev.ChainID != event.Block.Chain.ChainID || event.Block.Chain.Name != chainPrev.Name {
+				if chainErr := dbTransaction.Where("chain_id = ?", event.Block.Chain.ChainID).FirstOrCreate(&event.Block.Chain).Error; chainErr != nil {
+					fmt.Printf("Error %s creating chain DB object.\n", chainErr)
+					return chainErr
+				}
+
+				chainPrev = event.Block.Chain
+			}
+
+			event.Block.Chain = chainPrev
+
+			if blockPrev.Height != event.Block.Height {
+				whereCond := Block{Chain: event.Block.Chain, Height: event.Block.Height}
+
+				if blockErr := dbTransaction.Where(whereCond).FirstOrCreate(&event.Block).Error; blockErr != nil {
+					fmt.Printf("Error %s creating block DB object.\n", blockErr)
+					return blockErr
+				}
+
+				blockPrev = event.Block
+			}
+
+			event.Block = blockPrev
+
+			if event.EventAddress.Address != "" {
+				// viewing gorm logs shows this gets translated into a single ON CONFLICT DO NOTHING RETURNING "id"
+				if err := dbTransaction.Where(&event.EventAddress).FirstOrCreate(&event.EventAddress).Error; err != nil {
+					fmt.Printf("Error %s creating address for TaxableEvent.\n", err)
+					return err
+				}
+			}
+
+			if event.Denomination.Base == "" || event.Denomination.Symbol == "" {
+				return fmt.Errorf("denom not cached for base %s and symbol %s", event.Denomination.Base, event.Denomination.Symbol)
+			}
+
+			thisEvent := event // This is redundant but required for the picky gosec linter
+			if err := dbTransaction.Where(TaxableEvent{EventHash: event.EventHash}).FirstOrCreate(&thisEvent).Error; err != nil {
+				fmt.Printf("Error %s creating tx.\n", err)
+				return err
+			}
+		}
+
+		return nil
+	})
+}
+
+func GetHighestTaxableEventBlock(db *gorm.DB, chainID string) (Block, error) {
+	var block Block
+
+	result := db.Joins("JOIN taxable_event ON blocks.id = taxable_event.block_id").
+		Joins("JOIN chains ON blocks.blockchain_id = chains.id AND chains.chain_id = ?", chainID).Order("height desc").First(&block)
+
+	return block, result.Error
 }

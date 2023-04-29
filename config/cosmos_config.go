@@ -1,10 +1,6 @@
 package config
 
 import (
-	"strings"
-
-	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -27,11 +23,4 @@ func setPrefixes(accountAddressPrefix string) {
 // SetChainConfig Set the chain prefix e.g. juno (prefix for account addresses).
 func SetChainConfig(prefix string) {
 	setPrefixes(prefix)
-}
-
-func IsOsmosis(conf *Config) bool {
-	return strings.Contains(
-		strings.ToLower(conf.Lens.ChainID),
-		osmosis.Name,
-	)
 }
