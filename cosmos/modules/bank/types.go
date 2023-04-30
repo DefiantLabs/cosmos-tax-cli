@@ -93,7 +93,7 @@ func (sf *WrapperMsgMultiSend) HandleMsg(msgType string, msg sdk.Msg, log *txMod
 }
 
 func (sf *WrapperMsgSend) String() string {
-	return fmt.Sprintf("MsgSend: Address %s received %s from %s \n",
+	return fmt.Sprintf("MsgSend: Address %s received %s from %s",
 		sf.CosmosMsgSend.ToAddress, sf.CosmosMsgSend.Amount, sf.CosmosMsgSend.FromAddress)
 }
 
@@ -102,7 +102,7 @@ func (sf *WrapperMsgMultiSend) String() string {
 	for _, v := range sf.SenderReceiverAmounts {
 		sendsAndReceives = append(sendsAndReceives, fmt.Sprintf("%s %s -> %s", v.Amount, v.Sender, v.Receiver))
 	}
-	return fmt.Sprintf("MsgMultiSend: %s\n", strings.Join(sendsAndReceives, ", "))
+	return fmt.Sprintf("MsgMultiSend: %s", strings.Join(sendsAndReceives, ", "))
 }
 
 func (sf *WrapperMsgSend) ParseRelevantData() []parsingTypes.MessageRelevantInformation {

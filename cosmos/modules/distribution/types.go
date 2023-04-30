@@ -200,7 +200,7 @@ func (sf *WrapperMsgWithdrawDelegatorReward) String() string {
 		coinsReceivedString = sf.MultiCoinsReceived.String()
 	}
 
-	return fmt.Sprintf("MsgWithdrawDelegatorReward: Delegator %s received %s\n",
+	return fmt.Sprintf("MsgWithdrawDelegatorReward: Delegator %s received %s",
 		sf.CosmosMsgWithdrawDelegatorReward.DelegatorAddress, coinsReceivedString)
 }
 
@@ -212,7 +212,7 @@ func (sf *WrapperMsgWithdrawValidatorCommission) String() string {
 		coinsReceivedString = sf.MultiCoinsReceived.String()
 	}
 
-	return fmt.Sprintf("WrapperMsgWithdrawValidatorCommission: Validator %s commission withdrawn. Delegator %s received %s\n",
+	return fmt.Sprintf("WrapperMsgWithdrawValidatorCommission: Validator %s commission withdrawn. Delegator %s received %s",
 		sf.CosmosMsgWithdrawValidatorCommission.ValidatorAddress, sf.DelegatorReceiverAddress, coinsReceivedString)
 }
 
@@ -220,6 +220,6 @@ func (sf *WrapperMsgFundCommunityPool) String() string {
 	coinsReceivedString := sf.CosmosMsgFundCommunityPool.Amount.String()
 	depositorAddress := sf.CosmosMsgFundCommunityPool.Depositor
 
-	return fmt.Sprintf("MsgFundCommunityPool: Depositor %s gave %s\n",
+	return fmt.Sprintf("MsgFundCommunityPool: Depositor %s gave %s",
 		depositorAddress, coinsReceivedString)
 }
