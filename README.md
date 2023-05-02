@@ -103,7 +103,7 @@ Global Flags:
       --lens.rpc string                     node rpc endpoint
       --log.level string                    log level (default "info")
       --log.path string                     log path (default is $HOME/.cosmos-tax-cli/logs.txt
-      --log.pretty 
+      --log.pretty
 
 ```
 
