@@ -31,7 +31,10 @@ func IndexBlockEvents(db *gorm.DB, dryRun bool, blockHeight int64, blockTime tim
 
 		// Create unique hash for each event to ensure idempotency
 		hash := sha256.New()
-		hash.Write([]byte(fmt.Sprint(blockEvent.Address, blockHeight, fmt.Sprintf("%v%s", blockEvent.Amount, blockEvent.Denomination), blockEvent.EventSource)))
+		// WARN: The space in the amount/denom hash part is deliberate, it matches an old version of the hash to maintain backwards
+		// compatibility with an old version of the indexer and old indexed data
+		hashParts := fmt.Sprint(blockEvent.Address, blockHeight, fmt.Sprintf(" %v%s", blockEvent.Amount, blockEvent.Denomination))
+		hash.Write([]byte(hashParts))
 
 		evt := TaxableEvent{
 			Source:       blockEvent.EventSource,
