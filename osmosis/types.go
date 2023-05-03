@@ -3,32 +3,12 @@ package osmosis
 import (
 	"net/http"
 	"time"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 const (
 	ChainID = "osmosis-1"
 	Name    = "osmosis"
 )
-
-type RewardEpoch struct {
-	EpochBlockHeight int64
-	Indexed          bool
-	Error            error
-}
-
-type RewardsInfo struct {
-	EpochBlockHeight int64
-	EpochBlockTime   time.Time
-	Rewards          []*Rewards
-}
-
-// Rewards rewards from osmosis
-type Rewards struct {
-	Address string
-	Coins   sdk.Coins
-}
 
 type Result struct {
 	Data Data

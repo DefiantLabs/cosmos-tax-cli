@@ -48,20 +48,14 @@ func (conf *Config) Validate() error {
 	if conf.Base.EndBlock == 0 {
 		return errors.New("base end-block must be set")
 	}
-	// If rewards indexes are not valid, error
-	if conf.Base.RewardStartBlock < 0 {
-		return errors.New("rewards-start-block must be valid")
+	// If block event indexes are not valid, error
+	if conf.Base.BlockEventsStartBlock < 0 {
+		return errors.New("block-events-start-block must be valid")
 	}
-	if conf.Base.RewardEndBlock < -1 {
-		return errors.New("rewards-end-block must be valid")
+	if conf.Base.BlockEventsEndBlock < -1 {
+		return errors.New("block-events-end-block must be valid")
 	}
-	// If rewards indexs are not set, use base start/end
-	if conf.Base.RewardStartBlock == 0 {
-		conf.Base.RewardStartBlock = conf.Base.StartBlock
-	}
-	if conf.Base.RewardEndBlock == 0 {
-		conf.Base.RewardEndBlock = conf.Base.EndBlock
-	}
+
 	// Check if API is provided, and if so, set default ports if not set
 	if conf.Base.API != "" {
 		if strings.Count(conf.Base.API, ":") != 2 {
@@ -167,11 +161,8 @@ type base struct {
 	WaitForChainDelay         int64 `mapstructure:"wait-for-chain-delay"`
 	ChainIndexingEnabled      bool  `mapstructure:"index-chain"`
 	ExitWhenCaughtUp          bool  `mapstructure:"exit-when-caught-up"`
-	RewardIndexingEnabled     bool  `mapstructure:"index-rewards"`
 	BlockEventIndexingEnabled bool  `mapstructure:"index-block-events"`
 	Dry                       bool
-	RewardStartBlock          int64 `mapstructure:"rewards-start-block"`
-	RewardEndBlock            int64 `mapstructure:"rewards-end-block"`
 	BlockEventsStartBlock     int64 `mapstructure:"block-events-start-block"`
 	BlockEventsEndBlock       int64 `mapstructure:"block-events-end-block"`
 }

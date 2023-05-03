@@ -50,10 +50,6 @@ func init() {
 	rootCmd.PersistentFlags().Int64Var(&conf.Base.EndBlock, "base.end-block", -1, "block to stop indexing at (use -1 to index indefinitely")
 	rootCmd.PersistentFlags().BoolVar(&conf.Base.ReIndex, "base.reindex", false, "if true, this will re-attempt to index blocks we have already indexed (defaults to false)")
 	rootCmd.PersistentFlags().BoolVar(&conf.Base.PreventReattempts, "base.prevent-reattempts", false, "prevent reattempts of failed blocks.")
-	// reward indexing
-	rootCmd.PersistentFlags().BoolVar(&conf.Base.RewardIndexingEnabled, "base.index-rewards", true, "enable osmosis reward indexing?")
-	rootCmd.PersistentFlags().Int64Var(&conf.Base.RewardStartBlock, "base.rewards-start-block", 0, "block to start indexing rewards at")
-	rootCmd.PersistentFlags().Int64Var(&conf.Base.RewardEndBlock, "base.rewards-end-block", 0, "block to stop indexing rewards at (use -1 to index indefinitely")
 	//block event indexing
 	rootCmd.PersistentFlags().BoolVar(&conf.Base.BlockEventIndexingEnabled, "base.index-block-events", true, "enable block beginblocker and endblocker event indexing?")
 	rootCmd.PersistentFlags().Int64Var(&conf.Base.BlockEventsStartBlock, "base.block-events-start-block", 0, "block to start indexing block events at")

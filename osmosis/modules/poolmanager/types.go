@@ -42,7 +42,7 @@ func (sf *WrapperMsgSwapExactAmountIn) String() string {
 		tokenSwappedIn = sf.TokenIn.String()
 	}
 
-	return fmt.Sprintf("MsgSwapExactAmountIn (pool-manager): %s swapped in %s and received %s\n",
+	return fmt.Sprintf("MsgSwapExactAmountIn (pool-manager): %s swapped in %s and received %s",
 		sf.Address, tokenSwappedIn, tokenSwappedOut)
 }
 
@@ -55,7 +55,7 @@ func (sf *WrapperMsgSwapExactAmountOut) String() string {
 	if !sf.TokenIn.IsNil() {
 		tokenSwappedIn = sf.TokenIn.String()
 	}
-	return fmt.Sprintf("MsgSwapExactAmountOut (pool-manager): %s swapped in %s and received %s\n",
+	return fmt.Sprintf("MsgSwapExactAmountOut (pool-manager): %s swapped in %s and received %s",
 		sf.Address, tokenSwappedIn, tokenSwappedOut)
 }
 

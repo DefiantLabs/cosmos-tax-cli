@@ -76,7 +76,7 @@ func (sf *WrapperMsgTransfer) ParseRelevantData() []parsingTypes.MessageRelevant
 
 func (sf *WrapperMsgTransfer) String() string {
 	if sf.Amount == nil {
-		return fmt.Sprintf("MsgTransfer: IBC transfer from %s to %s did not include an amount\n", sf.SenderAddress, sf.ReceiverAddress)
+		return fmt.Sprintf("MsgTransfer: IBC transfer from %s to %s did not include an amount", sf.SenderAddress, sf.ReceiverAddress)
 	}
-	return fmt.Sprintf("MsgTransfer: IBC transfer of %s from %s to %s\n", sf.CosmosMsgTransfer.Token, sf.SenderAddress, sf.ReceiverAddress)
+	return fmt.Sprintf("MsgTransfer: IBC transfer of %s from %s to %s", sf.CosmosMsgTransfer.Token, sf.SenderAddress, sf.ReceiverAddress)
 }
