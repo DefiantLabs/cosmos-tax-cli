@@ -143,17 +143,10 @@ type Denom struct {
 
 type DenomUnit struct {
 	ID       uint
-	DenomID  uint
+	DenomID  uint `gorm:"uniqueIndex:,composite:denom_id_name"`
 	Denom    Denom
 	Exponent uint
-	Name     string `gorm:"unique"`
-}
-
-type DenomUnitAlias struct {
-	ID          uint
-	DenomUnitID uint
-	DenomUnit   DenomUnit
-	Alias       string `gorm:"unique"`
+	Name     string `gorm:"uniqueIndex:,composite:denom_id_name"`
 }
 
 // Store transactions with their messages for easy database creation
@@ -183,7 +176,6 @@ type DenomDBWrapper struct {
 
 type DenomUnitDBWrapper struct {
 	DenomUnit DenomUnit
-	Aliases   []DenomUnitAlias
 }
 
 type IBCDenom struct {

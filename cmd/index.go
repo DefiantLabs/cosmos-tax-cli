@@ -69,11 +69,6 @@ func setupIndexer() *Indexer {
 
 	// Setup scheduler to periodically update denoms
 	if idxr.cfg.Base.API != "" {
-		_, err = idxr.scheduler.Every(6).Hours().Do(tasks.DenomUpsertTask, idxr.cfg.Base.API, idxr.db)
-		if err != nil {
-			config.Log.Error("Error scheduling denom upsert task. Err: ", err)
-		}
-
 		_, err = idxr.scheduler.Every(6).Hours().Do(tasks.IBCDenomUpsertTask, idxr.cfg.Base.API, idxr.db)
 		if err != nil {
 			config.Log.Error("Error scheduling ibc denom upsert task. Err: ", err)
