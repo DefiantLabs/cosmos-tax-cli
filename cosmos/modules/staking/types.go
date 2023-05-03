@@ -238,30 +238,30 @@ func (sf *WrapperMsgBeginRedelegate) ParseRelevantData() []parsingTypes.MessageR
 
 func (sf *WrapperMsgDelegate) String() string {
 	if sf.AutoWithdrawalReward != nil {
-		return fmt.Sprintf("MsgDelegate: Delegator %s auto-withdrew %s\n", sf.DelegatorAddress, sf.AutoWithdrawalReward)
+		return fmt.Sprintf("MsgDelegate: Delegator %s auto-withdrew %s", sf.DelegatorAddress, sf.AutoWithdrawalReward)
 	}
 	if len(sf.AutoWithdrawalRewards) > 0 {
 		var coinsRecievedStrings []string
 		for _, coin := range sf.AutoWithdrawalRewards {
 			coinsRecievedStrings = append(coinsRecievedStrings, coin.String())
-			return fmt.Sprintf("MsgDelegate: Delegator %s auto-withdrew %s\n", sf.DelegatorAddress, strings.Join(coinsRecievedStrings, ", "))
+			return fmt.Sprintf("MsgDelegate: Delegator %s auto-withdrew %s", sf.DelegatorAddress, strings.Join(coinsRecievedStrings, ", "))
 		}
 	}
-	return fmt.Sprintf("MsgDelegate: Delegator %s did not auto-withdrawal rewards\n", sf.DelegatorAddress)
+	return fmt.Sprintf("MsgDelegate: Delegator %s did not auto-withdrawal rewards", sf.DelegatorAddress)
 }
 
 func (sf *WrapperMsgUndelegate) String() string {
 	if sf.AutoWithdrawalReward != nil {
-		return fmt.Sprintf("MsgUndelegate: Delegator %s auto-withdrew %s\n", sf.DelegatorAddress, sf.AutoWithdrawalReward)
+		return fmt.Sprintf("MsgUndelegate: Delegator %s auto-withdrew %s", sf.DelegatorAddress, sf.AutoWithdrawalReward)
 	}
 	if len(sf.AutoWithdrawalRewards) > 0 {
 		var coinsRecievedStrings []string
 		for _, coin := range sf.AutoWithdrawalRewards {
 			coinsRecievedStrings = append(coinsRecievedStrings, coin.String())
-			return fmt.Sprintf("MsgUndelegate: Delegator %s auto-withdrew %s\n", sf.DelegatorAddress, strings.Join(coinsRecievedStrings, ", "))
+			return fmt.Sprintf("MsgUndelegate: Delegator %s auto-withdrew %s", sf.DelegatorAddress, strings.Join(coinsRecievedStrings, ", "))
 		}
 	}
-	return fmt.Sprintf("MsgUndelegate: Delegator %s did not auto-withdrawal rewards\n", sf.DelegatorAddress)
+	return fmt.Sprintf("MsgUndelegate: Delegator %s did not auto-withdrawal rewards", sf.DelegatorAddress)
 }
 
 func (sf *WrapperMsgBeginRedelegate) String() string {
@@ -271,7 +271,7 @@ func (sf *WrapperMsgBeginRedelegate) String() string {
 	}
 
 	if len(coinsRecievedStrings) > 0 {
-		return fmt.Sprintf("MsgBeginRedelegate: Delegator %s auto-withdrew %s\n", sf.DelegatorAddress, strings.Join(coinsRecievedStrings, ", "))
+		return fmt.Sprintf("MsgBeginRedelegate: Delegator %s auto-withdrew %s", sf.DelegatorAddress, strings.Join(coinsRecievedStrings, ", "))
 	}
-	return fmt.Sprintf("MsgBeginRedelegate: Delegator %s did not auto-withdrawal rewards\n", sf.DelegatorAddress)
+	return fmt.Sprintf("MsgBeginRedelegate: Delegator %s did not auto-withdrawal rewards", sf.DelegatorAddress)
 }
