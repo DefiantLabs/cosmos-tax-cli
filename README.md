@@ -83,11 +83,8 @@ Global Flags:
       --base.exit-when-caught-up            mainly used for Osmosis rewards indexing (default true)
       --base.index-block-events             enable block beginblocker and endblocker event indexing? (default true)
       --base.index-chain                    enable chain indexing? (default true)
-      --base.index-rewards                  enable osmosis reward indexing? (default true)
       --base.prevent-reattempts             prevent reattempts of failed blocks.
       --base.reindex                        if true, this will re-attempt to index blocks we have already indexed (defaults to false)
-      --base.rewards-end-block int          block to stop indexing rewards at (use -1 to index indefinitely
-      --base.rewards-start-block int        block to start indexing rewards at
       --base.rpc-workers int                rpc workers (default 1)
       --base.start-block int                block to start indexing at (use -1 to resume from highest block indexed)
       --base.throttling float               throttle delay (default 0.5)
@@ -106,7 +103,7 @@ Global Flags:
       --lens.rpc string                     node rpc endpoint
       --log.level string                    log level (default "info")
       --log.path string                     log path (default is $HOME/.cosmos-tax-cli/logs.txt
-      --log.pretty                          pretty logs
+      --log.pretty
 
 ```
 
