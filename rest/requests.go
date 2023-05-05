@@ -15,7 +15,6 @@ var apiEndpoints = map[string]string{
 	"blocks_endpoint":              "/cosmos/base/tendermint/v1beta1/blocks/%d",
 	"latest_block_endpoint":        "/blocks/latest",
 	"txs_by_block_height_endpoint": "/cosmos/tx/v1beta1/txs?events=tx.height=%d&pagination.limit=100&order_by=ORDER_BY_UNSPECIFIED",
-	"denoms_metadata":              "/cosmos/bank/v1beta1/denoms_metadata",
 	"denom-traces":                 "/ibc/apps/transfer/v1/denom_traces",
 }
 
@@ -128,55 +127,6 @@ func checkResponseErrorCode(requestEndpoint string, resp *http.Response) error {
 	}
 
 	return nil
-}
-
-func GetDenomsMetadatas(host string) (result denoms.GetDenomsMetadatasResponse, err error) {
-	result, err = getDenomsMetadatas(host, "")
-	if err != nil {
-		return
-	}
-	allResults := result
-	for result.Pagination.NextKey != "" {
-		result, err = getDenomsMetadatas(host, result.Pagination.NextKey)
-		if err != nil {
-			return
-		}
-		allResults.Metadatas = append(allResults.Metadatas, result.Metadatas...)
-	}
-	result = allResults
-	return
-}
-
-func getDenomsMetadatas(host string, paginationKey string) (result denoms.GetDenomsMetadatasResponse, err error) {
-	requestEndpoint := apiEndpoints["denoms_metadata"]
-	url := fmt.Sprintf("%s%s", host, requestEndpoint)
-	if paginationKey != "" {
-		url = fmt.Sprintf("%v?pagination.key=%v", url, paginationKey)
-	}
-
-	resp, err := http.Get(url) //nolint:gosec
-	if err != nil {
-		return result, err
-	}
-
-	defer resp.Body.Close()
-
-	err = checkResponseErrorCode(requestEndpoint, resp)
-	if err != nil {
-		return result, err
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return result, err
-	}
-
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		return result, err
-	}
-
-	return result, nil
 }
 
 func GetIBCDenomTraces(host string) (result denoms.GetDenomTracesResponse, err error) {

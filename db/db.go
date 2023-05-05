@@ -59,7 +59,6 @@ func MigrateModels(db *gorm.DB) error {
 		&TaxableEvent{},
 		&Denom{},
 		&DenomUnit{},
-		&DenomUnitAlias{},
 		&IBCDenom{},
 	)
 }
@@ -314,21 +313,11 @@ func UpsertDenoms(db *gorm.DB, denoms []DenomDBWrapper) error {
 				denomUnit.DenomUnit.Denom = denom.Denom
 
 				if err := dbTransaction.Clauses(clause.OnConflict{
-					Columns:   []clause.Column{{Name: "name"}},
-					DoUpdates: clause.AssignmentColumns([]string{"exponent"}),
+					DoNothing: true,
 				}).Create(&denomUnit.DenomUnit).Error; err != nil {
 					return err
 				}
 
-				for _, denomAlias := range denomUnit.Aliases {
-					thisDenomAlias := denomAlias // This is redundant but required for the picky gosec linter
-					thisDenomAlias.DenomUnit = denomUnit.DenomUnit
-					if err := dbTransaction.Clauses(clause.OnConflict{
-						DoNothing: true,
-					}).Create(&thisDenomAlias).Error; err != nil {
-						return err
-					}
-				}
 			}
 		}
 		return nil
