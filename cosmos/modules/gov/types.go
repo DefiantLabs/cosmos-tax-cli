@@ -153,11 +153,11 @@ func (sf *WrapperMsgDeposit) HandleMsg(msgType string, msg stdTypes.Msg, log *tx
 }
 
 func (sf *WrapperMsgDeposit) String() string {
-	return fmt.Sprintf("WrapperMsgDeposit: Address %s deposited %s \n",
+	return fmt.Sprintf("WrapperMsgDeposit: Address %s deposited %s",
 		sf.CosmosMsgDeposit.Depositor, sf.CosmosMsgDeposit.Amount)
 }
 
 func (sf *WrapperMsgSubmitProposal) String() string {
-	return fmt.Sprintf("WrapperMsgDeposit: Address %s deposited %s \n",
+	return fmt.Sprintf("WrapperMsgDeposit: Address %s deposited %s",
 		sf.CosmosMsgSubmitProposal.Proposer, sf.CosmosMsgSubmitProposal.InitialDeposit)
 }

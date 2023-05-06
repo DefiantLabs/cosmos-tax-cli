@@ -48,20 +48,14 @@ func (conf *Config) Validate() error {
 	if conf.Base.EndBlock == 0 {
 		return errors.New("base end-block must be set")
 	}
-	// If rewards indexes are not valid, error
-	if conf.Base.RewardStartBlock < 0 {
-		return errors.New("rewards-start-block must be valid")
+	// If block event indexes are not valid, error
+	if conf.Base.BlockEventsStartBlock < 0 {
+		return errors.New("block-events-start-block must be valid")
 	}
-	if conf.Base.RewardEndBlock < -1 {
-		return errors.New("rewards-end-block must be valid")
+	if conf.Base.BlockEventsEndBlock < -1 {
+		return errors.New("block-events-end-block must be valid")
 	}
-	// If rewards indexs are not set, use base start/end
-	if conf.Base.RewardStartBlock == 0 {
-		conf.Base.RewardStartBlock = conf.Base.StartBlock
-	}
-	if conf.Base.RewardEndBlock == 0 {
-		conf.Base.RewardEndBlock = conf.Base.EndBlock
-	}
+
 	// Check if API is provided, and if so, set default ports if not set
 	if conf.Base.API != "" {
 		if strings.Count(conf.Base.API, ":") != 2 {
@@ -155,22 +149,22 @@ type client struct {
 }
 
 type base struct {
-	API                   string
-	StartBlock            int64 `mapstructure:"start-block"`
-	EndBlock              int64 `mapstructure:"end-block"`
-	ReIndex               bool
-	PreventReattempts     bool `mapstructure:"prevent-reattempts"`
-	Throttling            float64
-	RPCWorkers            int64 `mapstructure:"rpc-workers"`
-	BlockTimer            int64 `mapstructure:"block-timer"`
-	WaitForChain          bool  `mapstructure:"wait-for-chain"`
-	WaitForChainDelay     int64 `mapstructure:"wait-for-chain-delay"`
-	ChainIndexingEnabled  bool  `mapstructure:"index-chain"`
-	ExitWhenCaughtUp      bool  `mapstructure:"exit-when-caught-up"`
-	RewardIndexingEnabled bool  `mapstructure:"index-rewards"`
-	Dry                   bool
-	RewardStartBlock      int64 `mapstructure:"rewards-start-block"`
-	RewardEndBlock        int64 `mapstructure:"rewards-end-block"`
+	API                       string
+	StartBlock                int64 `mapstructure:"start-block"`
+	EndBlock                  int64 `mapstructure:"end-block"`
+	ReIndex                   bool
+	PreventReattempts         bool `mapstructure:"prevent-reattempts"`
+	Throttling                float64
+	RPCWorkers                int64 `mapstructure:"rpc-workers"`
+	BlockTimer                int64 `mapstructure:"block-timer"`
+	WaitForChain              bool  `mapstructure:"wait-for-chain"`
+	WaitForChainDelay         int64 `mapstructure:"wait-for-chain-delay"`
+	ChainIndexingEnabled      bool  `mapstructure:"index-chain"`
+	ExitWhenCaughtUp          bool  `mapstructure:"exit-when-caught-up"`
+	BlockEventIndexingEnabled bool  `mapstructure:"index-block-events"`
+	Dry                       bool
+	BlockEventsStartBlock     int64 `mapstructure:"block-events-start-block"`
+	BlockEventsEndBlock       int64 `mapstructure:"block-events-end-block"`
 }
 
 type log struct {

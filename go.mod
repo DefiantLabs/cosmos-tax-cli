@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.2.1
 	// FYI, you can do go get github.com/DefiantLabs/lens@1f6f34841280df179c6e098f040bd584ced43a4c
 	// (using the commit hash from github) to pin to a specific commit.
-	github.com/DefiantLabs/lens v0.3.1-0.20230401205822-786fdae8c0ff
+	github.com/DefiantLabs/lens v0.3.1-0.20230428023132-a51c06c87677
 	github.com/cosmos/cosmos-sdk v0.46.10
 	github.com/gin-gonic/gin v1.9.0
 	github.com/go-co-op/gocron v1.13.0

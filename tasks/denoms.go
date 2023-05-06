@@ -8,13 +8,14 @@ import (
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/juno"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 	"github.com/DefiantLabs/cosmos-tax-cli/rest"
 
 	"gorm.io/gorm"
 )
 
-type OsmosisAssets struct {
+type AssetList struct {
 	Assets []Asset
 }
 
@@ -31,9 +32,18 @@ type DenomUnit struct {
 	Aliases  []string
 }
 
+var ChainSpecificDenomUpsertFunctions = map[string]func(db *gorm.DB){
+	osmosis.ChainID: UpsertOsmosisDenoms,
+	juno.ChainID:    UpsertJunoDenoms,
+}
+
 func DoChainSpecificUpsertDenoms(db *gorm.DB, chain string) {
 	if chain == osmosis.ChainID {
 		UpsertOsmosisDenoms(db)
+	}
+
+	if chain == juno.ChainID {
+		UpsertJunoDenoms(db)
 	}
 	// may want to move this elsewhere, or eliminate entirely
 	// I would prefer we just grab the denoms when needed always
@@ -42,13 +52,14 @@ func DoChainSpecificUpsertDenoms(db *gorm.DB, chain string) {
 }
 
 func UpsertOsmosisDenoms(db *gorm.DB) {
+	config.Log.Info("Updating Omsosis specific denoms")
 	url := "https://raw.githubusercontent.com/osmosis-labs/assetlists/main/osmosis-1/osmosis-1.assetlist.json"
 
-	denomAssets, err := getOsmosisAssetsList(url)
+	denomAssets, err := getAssetsList(url)
 	if err != nil {
 		config.Log.Fatal("Download Osmosis Denom Metadata", err)
 	} else {
-		denoms := toDenoms(denomAssets)
+		denoms := assetListToDenoms(denomAssets)
 		err = dbTypes.UpsertDenoms(db, denoms)
 		if err != nil {
 			config.Log.Fatal("Upsert Osmosis Denom Metadata", err)
@@ -56,7 +67,23 @@ func UpsertOsmosisDenoms(db *gorm.DB) {
 	}
 }
 
-func toDenoms(assets *OsmosisAssets) []dbTypes.DenomDBWrapper {
+func UpsertJunoDenoms(db *gorm.DB) {
+	config.Log.Info("Updating Juno specific denoms")
+	url := "https://raw.githubusercontent.com/cosmos/chain-registry/master/juno/assetlist.json"
+
+	denomAssets, err := getAssetsList(url)
+	if err != nil {
+		config.Log.Fatal("Error downloading Juno Denom Metadata", err)
+	} else {
+		denoms := assetListToDenoms(denomAssets)
+		err = dbTypes.UpsertDenoms(db, denoms)
+		if err != nil {
+			config.Log.Fatal("Error upserting Juno Denom Metadata", err)
+		}
+	}
+}
+
+func assetListToDenoms(assets *AssetList) []dbTypes.DenomDBWrapper {
 	var denoms []dbTypes.DenomDBWrapper = make([]dbTypes.DenomDBWrapper, len(assets.Assets))
 	for i, asset := range assets.Assets {
 		denoms[i].Denom = dbTypes.Denom{Base: asset.Base, Name: asset.Name, Symbol: asset.Symbol}
@@ -64,19 +91,15 @@ func toDenoms(assets *OsmosisAssets) []dbTypes.DenomDBWrapper {
 
 		for ii, denomUnit := range asset.Denoms {
 			denoms[i].DenomUnits[ii].DenomUnit = dbTypes.DenomUnit{Exponent: uint(denomUnit.Exponent), Name: denomUnit.Denom}
-			denoms[i].DenomUnits[ii].Aliases = make([]dbTypes.DenomUnitAlias, len(denomUnit.Aliases))
 
-			for iii, denomUnitAlias := range denomUnit.Aliases {
-				denoms[i].DenomUnits[ii].Aliases[iii] = dbTypes.DenomUnitAlias{Alias: denomUnitAlias}
-			}
 		}
 	}
 
 	return denoms
 }
 
-func getOsmosisAssetsList(assetsURL string) (*OsmosisAssets, error) {
-	assets := &OsmosisAssets{}
+func getAssetsList(assetsURL string) (*AssetList, error) {
+	assets := &AssetList{}
 	err := getJSON(assetsURL, assets)
 	if err != nil {
 		return nil, err
@@ -99,46 +122,6 @@ func getJSON(url string, target interface{}) error {
 	}
 
 	return json.NewDecoder(r.Body).Decode(target)
-}
-
-func DenomUpsertTask(apiHost string, db *gorm.DB) {
-	config.Log.Info(fmt.Sprintf("Updating Denom Metadata from %s", apiHost))
-	denomsMetadata, err := rest.GetDenomsMetadatas(apiHost)
-	if err != nil {
-		config.Log.Error(fmt.Sprintf("Error in Denom Metadata Update task when reaching out to the API at %s ", apiHost), err)
-		return
-	}
-
-	var denoms []dbTypes.DenomDBWrapper = make([]dbTypes.DenomDBWrapper, len(denomsMetadata.Metadatas))
-	for i, denom := range denomsMetadata.Metadatas {
-		if denom.Name == "" {
-			denom.Name = "UNKNOWN"
-		}
-		if denom.Symbol == "" {
-			denom.Symbol = "UNKNOWN"
-		}
-
-		denoms[i].Denom = dbTypes.Denom{Base: denom.Base, Name: denom.Name, Symbol: denom.Symbol}
-
-		denoms[i].DenomUnits = make([]dbTypes.DenomUnitDBWrapper, len(denom.DenomUnits))
-
-		for ii, denomUnit := range denom.DenomUnits {
-			denoms[i].DenomUnits[ii].DenomUnit = dbTypes.DenomUnit{Exponent: uint(denomUnit.Exponent), Name: denomUnit.Denom}
-
-			denoms[i].DenomUnits[ii].Aliases = make([]dbTypes.DenomUnitAlias, len(denomUnit.Aliases))
-
-			for iii, denomUnitAlias := range denomUnit.Aliases {
-				denoms[i].DenomUnits[ii].Aliases[iii] = dbTypes.DenomUnitAlias{Alias: denomUnitAlias}
-			}
-		}
-	}
-
-	err = dbTypes.UpsertDenoms(db, denoms)
-	if err != nil {
-		config.Log.Error("Error updating database in Denom Metadata Update task", err)
-		return
-	}
-	config.Log.Info("Denom Metadata Update Complete")
 }
 
 func IBCDenomUpsertTask(apiHost string, db *gorm.DB) {

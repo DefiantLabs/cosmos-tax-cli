@@ -22,6 +22,13 @@ type FailedBlock struct {
 	Chain        Chain `gorm:"foreignKey:BlockchainID"`
 }
 
+type FailedEventBlock struct {
+	ID           uint
+	Height       int64 `gorm:"uniqueIndex:failedchaineventheight"`
+	BlockchainID uint  `gorm:"uniqueIndex:failedchaineventheight"`
+	Chain        Chain `gorm:"foreignKey:BlockchainID"`
+}
+
 type Chain struct {
 	ID      uint   `gorm:"primaryKey"`
 	ChainID string `gorm:"uniqueIndex"` // e.g. osmosis-1
@@ -72,6 +79,14 @@ type Message struct {
 
 const (
 	OsmosisRewardDistribution uint = iota
+	TendermintLiquidityDepositCoinsToPool
+	TendermintLiquidityDepositPoolCoinReceived
+	TendermintLiquiditySwapTransactedCoinIn
+	TendermintLiquiditySwapTransactedCoinOut
+	TendermintLiquiditySwapTransactedFee
+	TendermintLiquidityWithdrawPoolCoinSent
+	TendermintLiquidityWithdrawCoinReceived
+	TendermintLiquidityWithdrawFee
 )
 
 // An event does not necessarily need to be part of a Transaction. For example, Osmosis rewards.
@@ -128,17 +143,10 @@ type Denom struct {
 
 type DenomUnit struct {
 	ID       uint
-	DenomID  uint
+	DenomID  uint `gorm:"uniqueIndex:,composite:denom_id_name"`
 	Denom    Denom
 	Exponent uint
-	Name     string `gorm:"unique"`
-}
-
-type DenomUnitAlias struct {
-	ID          uint
-	DenomUnitID uint
-	DenomUnit   DenomUnit
-	Alias       string `gorm:"unique"`
+	Name     string `gorm:"uniqueIndex:,composite:denom_id_name"`
 }
 
 // Store transactions with their messages for easy database creation
@@ -168,7 +176,6 @@ type DenomDBWrapper struct {
 
 type DenomUnitDBWrapper struct {
 	DenomUnit DenomUnit
-	Aliases   []DenomUnitAlias
 }
 
 type IBCDenom struct {

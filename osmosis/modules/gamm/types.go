@@ -175,7 +175,7 @@ func (sf *WrapperMsgSwapExactAmountIn) String() string {
 		tokenSwappedIn = sf.TokenIn.String()
 	}
 
-	return fmt.Sprintf("MsgSwapExactAmountIn: %s swapped in %s and received %s\n",
+	return fmt.Sprintf("MsgSwapExactAmountIn: %s swapped in %s and received %s",
 		sf.Address, tokenSwappedIn, tokenSwappedOut)
 }
 
@@ -200,7 +200,7 @@ func (sf *WrapperMsgSwapExactAmountOut) String() string {
 	if !sf.TokenIn.IsNil() {
 		tokenSwappedIn = sf.TokenIn.String()
 	}
-	return fmt.Sprintf("MsgSwapExactAmountOut: %s swapped in %s and received %s\n",
+	return fmt.Sprintf("MsgSwapExactAmountOut: %s swapped in %s and received %s",
 		sf.Address, tokenSwappedIn, tokenSwappedOut)
 }
 
@@ -213,7 +213,7 @@ func (sf *WrapperMsgJoinSwapExternAmountIn) String() string {
 	if !sf.TokenIn.IsNil() {
 		tokenSwappedIn = sf.TokenIn.String()
 	}
-	return fmt.Sprintf("MsgJoinSwapExternAmountIn: %s joined with %s and received %s\n",
+	return fmt.Sprintf("MsgJoinSwapExternAmountIn: %s joined with %s and received %s",
 		sf.Address, tokenSwappedIn, tokenSwappedOut)
 }
 
@@ -230,7 +230,7 @@ func (sf *WrapperMsgJoinSwapShareAmountOut) String() string {
 	if !sf.TokenIn.IsNil() {
 		tokenSwappedIn = sf.TokenIn.String()
 	}
-	return fmt.Sprintf("MsgJoinSwapShareAmountOut: %s joined with %s and received %s\n",
+	return fmt.Sprintf("MsgJoinSwapShareAmountOut: %s joined with %s and received %s",
 		sf.Address, tokenSwappedIn, tokenSwappedOut)
 }
 
@@ -245,7 +245,7 @@ func (sf *WrapperMsgJoinPool) String() string {
 	if !sf.TokenOut.IsNil() {
 		tokenOut = sf.TokenOut.String()
 	}
-	return fmt.Sprintf("MsgJoinPool: %s joined pool with %s and received %s\n",
+	return fmt.Sprintf("MsgJoinPool: %s joined pool with %s and received %s",
 		sf.Address, strings.Join(tokensIn, ", "), tokenOut)
 }
 
@@ -256,7 +256,7 @@ func (sf *WrapperMsgCreatePool) String() string {
 			tokensIn = append(tokensIn, v.Token.String())
 		}
 	}
-	return fmt.Sprintf("MsgCreatePool: %s created pool with %s\n",
+	return fmt.Sprintf("MsgCreatePool: %s created pool with %s",
 		sf.OsmosisMsgCreatePool.Sender, strings.Join(tokensIn, ", "))
 }
 
@@ -273,7 +273,7 @@ func (sf *WrapperMsgExitSwapShareAmountIn) String() string {
 	if !sf.TokenIn.IsNil() {
 		tokenSwappedIn = sf.TokenIn.String()
 	}
-	return fmt.Sprintf("MsgMsgExitSwapShareAmountIn: %s exited with %s and received %s\n",
+	return fmt.Sprintf("MsgMsgExitSwapShareAmountIn: %s exited with %s and received %s",
 		sf.Address, tokenSwappedIn, tokenSwappedOut)
 }
 
@@ -299,7 +299,7 @@ func (sf *WrapperMsgExitSwapShareAmountIn2) String() string {
 		postExitTokenSwapsRepr = strings.Join(postExitTokenSwaps, ", ")
 	}
 
-	return fmt.Sprintf("MsgMsgExitSwapShareAmountIn: %s exited with %s and received %s, then swapped %s\n",
+	return fmt.Sprintf("MsgMsgExitSwapShareAmountIn: %s exited with %s and received %s, then swapped %s",
 		sf.Address, tokenSwappedIn, tokenSwappedOut, postExitTokenSwapsRepr)
 }
 
@@ -312,7 +312,7 @@ func (sf *WrapperMsgExitSwapExternAmountOut) String() string {
 	if !sf.TokenIn.IsNil() {
 		tokenSwappedIn = sf.TokenIn.String()
 	}
-	return fmt.Sprintf("WrapperMsgExitSwapExternAmountOut: %s exited with %s and received %s\n",
+	return fmt.Sprintf("WrapperMsgExitSwapExternAmountOut: %s exited with %s and received %s",
 		sf.Address, tokenSwappedIn, tokenSwappedOut)
 }
 
@@ -327,7 +327,7 @@ func (sf *WrapperMsgExitPool) String() string {
 	if !sf.TokenIntoPool.IsNil() {
 		tokenIn = sf.TokenIntoPool.String()
 	}
-	return fmt.Sprintf("MsgExitPool: %s exited pool with %s and received %s\n",
+	return fmt.Sprintf("MsgExitPool: %s exited pool with %s and received %s",
 		sf.Address, tokenIn, strings.Join(tokensOut, ", "))
 }
 
