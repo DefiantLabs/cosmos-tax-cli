@@ -11,8 +11,10 @@ import (
 	"gorm.io/gorm"
 )
 
-var CachedDenomUnits []DenomUnit
-var denomCacheMutex sync.Mutex
+var (
+	CachedDenomUnits []DenomUnit
+	denomCacheMutex  sync.Mutex
+)
 
 func CacheDenoms(db *gorm.DB) {
 	var denomUnits []DenomUnit

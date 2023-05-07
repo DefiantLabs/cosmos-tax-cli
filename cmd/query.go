@@ -66,7 +66,6 @@ var queryCmd = &cobra.Command{
 			parsedDate, err := time.Parse(expectedLayout, endDateStr)
 			if err != nil {
 				throwValidationErr(cmd, fmt.Sprintf("Invalid end date '%v'.", endDateStr))
-
 			}
 			endDate = &parsedDate
 		}

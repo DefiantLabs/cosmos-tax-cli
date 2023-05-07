@@ -96,7 +96,7 @@ func ParseTransferEvent(evt LogMessageEvent) ([]TransferEvent, error) {
 			} else {
 				return nil, errInvalidTransfer
 			}
-		} else if i%3 == 0 { //every third attr should be "recipient"
+		} else if i%3 == 0 { // every third attr should be "recipient"
 			return nil, errInvalidTransfer
 		}
 	}

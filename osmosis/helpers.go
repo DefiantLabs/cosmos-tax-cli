@@ -141,6 +141,7 @@ func unmarshalResponseBytes(responseBytes []byte, expectedID types.JSONRPCIntID,
 
 	return result, nil
 }
+
 func (c *URIClient) DoBlockSearch(ctx context.Context, query string, page, perPage *int, orderBy string) (*ctypes.ResultBlockSearch, error) {
 	result := new(ctypes.ResultBlockSearch)
 	params := map[string]interface{}{

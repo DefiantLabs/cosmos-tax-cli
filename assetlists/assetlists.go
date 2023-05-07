@@ -15,7 +15,6 @@ func GetAssetList(url string) (AssetList, error) {
 	defer resp.Body.Close()
 
 	resBody, err := io.ReadAll(resp.Body)
-
 	if err != nil {
 		return assetList, err
 	}

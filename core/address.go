@@ -19,8 +19,10 @@ import (
 )
 
 // consider not using globals
-var addressRegex *regexp.Regexp
-var addressPrefix string
+var (
+	addressRegex  *regexp.Regexp
+	addressPrefix string
+)
 
 // TODO query this list from the DB
 var baseChainPrefixes = []string{

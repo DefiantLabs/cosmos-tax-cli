@@ -59,7 +59,9 @@ const (
 )
 
 func (at Label) String() string {
-	return [...]string{"", "gift", "lost", "cost", "margin fee", "realized gain", "stake",
+	return [...]string{
+		"", "gift", "lost", "cost", "margin fee", "realized gain", "stake",
 		"airdrop", "fork", "mining", "reward", "income", "loan interest", "unstake",
-		"swap", "liquidity in", "liquidity out"}[at]
+		"swap", "liquidity in", "liquidity out",
+	}[at]
 }
