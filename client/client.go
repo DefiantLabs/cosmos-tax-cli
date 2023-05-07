@@ -230,7 +230,7 @@ func GetTaxableEventsCSV(c *gin.Context) {
 		// the error returned here has already been pushed to the context... I think.
 		config.Log.Errorf("Error getting rows for addresses: %v", addresses)
 		fmt.Println(err)
-		c.AbortWithError(500, errors.New("Error getting rows for address")) // nolint:staticcheck,errcheck
+		c.AbortWithError(500, errors.New("error getting rows for address")) // nolint:staticcheck,errcheck
 		return
 	}
 
@@ -272,7 +272,7 @@ func GetTaxableEventsJSON(c *gin.Context) {
 	if err != nil {
 		// the error returned here has already been pushed to the context... I think.
 		config.Log.Errorf("Error getting rows for addresses: %v", addresses)
-		c.AbortWithError(500, errors.New("Error getting rows for address")) // nolint:staticcheck,errcheck
+		c.AbortWithError(500, errors.New("error getting rows for address")) // nolint:staticcheck,errcheck
 		return
 	}
 
@@ -290,7 +290,7 @@ func ParseTaxableEventsBody(c *gin.Context) ([]string, string, *time.Time, *time
 
 	if err != nil {
 		// the error returned here has already been pushed to the context... I think.
-		c.AbortWithError(500, errors.New("Error processing request body")) // nolint:staticcheck,errcheck
+		c.AbortWithError(500, errors.New("error processing request body")) // nolint:staticcheck,errcheck
 		return nil, "", nil, nil, err
 	}
 
@@ -332,7 +332,7 @@ func ParseTaxableEventsBody(c *gin.Context) ([]string, string, *time.Time, *time
 
 	if format == "" {
 		c.JSON(422, gin.H{"message": "Format is required"})
-		return nil, "", nil, nil, errors.New("Format is required")
+		return nil, "", nil, nil, errors.New("format is required")
 	}
 
 	return addresses, format, startDate, endDate, nil
