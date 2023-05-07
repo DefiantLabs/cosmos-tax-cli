@@ -18,8 +18,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/ibc"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/slashing"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/staking"
-	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
-	txTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
+	txtypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/vesting"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmwasm/modules/wasm"
 	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
@@ -40,18 +39,18 @@ import (
 )
 
 // Unmarshal JSON to a particular type. There can be more than one handler for each type.
-var messageTypeHandler = map[string][]func() txTypes.CosmosMessage{
-	bank.MsgSend:                                {func() txTypes.CosmosMessage { return &bank.WrapperMsgSend{} }},
-	bank.MsgMultiSend:                           {func() txTypes.CosmosMessage { return &bank.WrapperMsgMultiSend{} }},
-	distribution.MsgWithdrawDelegatorReward:     {func() txTypes.CosmosMessage { return &distribution.WrapperMsgWithdrawDelegatorReward{} }},
-	distribution.MsgWithdrawValidatorCommission: {func() txTypes.CosmosMessage { return &distribution.WrapperMsgWithdrawValidatorCommission{} }},
-	distribution.MsgFundCommunityPool:           {func() txTypes.CosmosMessage { return &distribution.WrapperMsgFundCommunityPool{} }},
-	gov.MsgDeposit:                              {func() txTypes.CosmosMessage { return &gov.WrapperMsgDeposit{} }},
-	gov.MsgSubmitProposal:                       {func() txTypes.CosmosMessage { return &gov.WrapperMsgSubmitProposal{} }},
-	staking.MsgDelegate:                         {func() txTypes.CosmosMessage { return &staking.WrapperMsgDelegate{} }},
-	staking.MsgUndelegate:                       {func() txTypes.CosmosMessage { return &staking.WrapperMsgUndelegate{} }},
-	staking.MsgBeginRedelegate:                  {func() txTypes.CosmosMessage { return &staking.WrapperMsgBeginRedelegate{} }},
-	ibc.MsgTransfer:                             {func() txTypes.CosmosMessage { return &ibc.WrapperMsgTransfer{} }},
+var messageTypeHandler = map[string][]func() txtypes.CosmosMessage{
+	bank.MsgSend:                                {func() txtypes.CosmosMessage { return &bank.WrapperMsgSend{} }},
+	bank.MsgMultiSend:                           {func() txtypes.CosmosMessage { return &bank.WrapperMsgMultiSend{} }},
+	distribution.MsgWithdrawDelegatorReward:     {func() txtypes.CosmosMessage { return &distribution.WrapperMsgWithdrawDelegatorReward{} }},
+	distribution.MsgWithdrawValidatorCommission: {func() txtypes.CosmosMessage { return &distribution.WrapperMsgWithdrawValidatorCommission{} }},
+	distribution.MsgFundCommunityPool:           {func() txtypes.CosmosMessage { return &distribution.WrapperMsgFundCommunityPool{} }},
+	gov.MsgDeposit:                              {func() txtypes.CosmosMessage { return &gov.WrapperMsgDeposit{} }},
+	gov.MsgSubmitProposal:                       {func() txtypes.CosmosMessage { return &gov.WrapperMsgSubmitProposal{} }},
+	staking.MsgDelegate:                         {func() txtypes.CosmosMessage { return &staking.WrapperMsgDelegate{} }},
+	staking.MsgUndelegate:                       {func() txtypes.CosmosMessage { return &staking.WrapperMsgUndelegate{} }},
+	staking.MsgBeginRedelegate:                  {func() txtypes.CosmosMessage { return &staking.WrapperMsgBeginRedelegate{} }},
+	ibc.MsgTransfer:                             {func() txtypes.CosmosMessage { return &ibc.WrapperMsgTransfer{} }},
 }
 
 // These messages are ignored for tax purposes.
@@ -125,7 +124,7 @@ var messageTypeIgnorer = map[string]interface{}{
 // Merge the chain specific message type handlers into the core message type handler map.
 // Chain specific handlers will be registered BEFORE any generic handlers.
 func ChainSpecificMessageTypeHandlerBootstrap(chainID string) {
-	var chainSpecificMessageTpeHandler map[string][]func() txTypes.CosmosMessage
+	var chainSpecificMessageTpeHandler map[string][]func() txtypes.CosmosMessage
 	if chainID == osmosis.ChainID {
 		chainSpecificMessageTpeHandler = osmosis.MessageTypeHandler
 	}
@@ -139,20 +138,20 @@ func ChainSpecificMessageTypeHandlerBootstrap(chainID string) {
 }
 
 // ParseCosmosMessageJSON - Parse a SINGLE Cosmos Message into the appropriate type.
-func ParseCosmosMessage(message types.Msg, log txTypes.LogMessage) (txTypes.CosmosMessage, string, error) {
+func ParseCosmosMessage(message types.Msg, log txtypes.LogMessage) (txtypes.CosmosMessage, string, error) {
 	var ok bool
 	var err error
-	var msgHandler txTypes.CosmosMessage
-	var handlerList []func() txTypes.CosmosMessage
+	var msgHandler txtypes.CosmosMessage
+	var handlerList []func() txtypes.CosmosMessage
 
 	// Figure out what type of Message this is based on the '@type' field that is included
 	// in every Cosmos Message (can be seen in raw JSON for any cosmos transaction).
-	cosmosMessage := txTypes.Message{}
+	cosmosMessage := txtypes.Message{}
 	cosmosMessage.Type = types.MsgTypeURL(message)
 
 	// So far we only parsed the '@type' field. Now we get a struct for that specific type.
 	if handlerList, ok = messageTypeHandler[cosmosMessage.Type]; !ok {
-		return nil, cosmosMessage.Type, txTypes.ErrUnknownMessage
+		return nil, cosmosMessage.Type, txtypes.ErrUnknownMessage
 	}
 
 	for _, handlerFunc := range handlerList {
@@ -170,19 +169,19 @@ func ParseCosmosMessage(message types.Msg, log txTypes.LogMessage) (txTypes.Cosm
 	return msgHandler, cosmosMessage.Type, err
 }
 
-func toAttributes(attrs []types.Attribute) []txTypes.Attribute {
-	list := []txTypes.Attribute{}
+func toAttributes(attrs []types.Attribute) []txtypes.Attribute {
+	list := []txtypes.Attribute{}
 	for _, attr := range attrs {
-		lma := txTypes.Attribute{Key: attr.Key, Value: attr.Value}
+		lma := txtypes.Attribute{Key: attr.Key, Value: attr.Value}
 		list = append(list, lma)
 	}
 
 	return list
 }
 
-func toEvents(msgEvents types.StringEvents) (list []txTypes.LogMessageEvent) {
+func toEvents(msgEvents types.StringEvents) (list []txtypes.LogMessageEvent) {
 	for _, evt := range msgEvents {
-		lme := tx.LogMessageEvent{Type: evt.Type, Attributes: toAttributes(evt.Attributes)}
+		lme := txtypes.LogMessageEvent{Type: evt.Type, Attributes: toAttributes(evt.Attributes)}
 		list = append(list, lme)
 	}
 
@@ -206,11 +205,11 @@ func ProcessRPCBlockByHeightTXs(db *gorm.DB, cl *client.ChainClient, blockResult
 		txResult := resultBlockRes.TxsResults[txIdx]
 
 		// Indexer types only used by the indexer app (similar to the cosmos types)
-		var indexerMergedTx txTypes.MergedTx
-		var indexerTx txTypes.IndexerTx
-		var txBody txTypes.Body
+		var indexerMergedTx txtypes.MergedTx
+		var indexerTx txtypes.IndexerTx
+		var txBody txtypes.Body
 		var currMessages []types.Msg
-		var currLogMsgs []tx.LogMessage
+		var currLogMsgs []txtypes.LogMessage
 
 		txDecoder := cl.Codec.TxConfig.TxDecoder()
 		txBasic, err := txDecoder(tendermintTx)
@@ -245,7 +244,7 @@ func ProcessRPCBlockByHeightTXs(db *gorm.DB, cl *client.ChainClient, blockResult
 					msgEvents = logs[msgIdx].Events
 				}
 
-				currTxLog := tx.LogMessage{
+				currTxLog := txtypes.LogMessage{
 					MessageIndex: msgIdx,
 					Events:       toEvents(msgEvents),
 				}
@@ -258,7 +257,7 @@ func ProcessRPCBlockByHeightTXs(db *gorm.DB, cl *client.ChainClient, blockResult
 		txBody.Messages = currMessages
 		indexerTx.Body = txBody
 		txHash := tendermintTx.Hash()
-		indexerTxResp := tx.Response{
+		indexerTxResp := txtypes.Response{
 			TxHash:    b64.StdEncoding.EncodeToString(txHash),
 			Height:    fmt.Sprintf("%d", blockResults.Block.Height),
 			TimeStamp: blockTimeStr,
@@ -292,11 +291,11 @@ func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]db
 
 	for txIdx := range txEventResp.Txs {
 		// Indexer types only used by the indexer app (similar to the cosmos types)
-		var indexerMergedTx txTypes.MergedTx
-		var indexerTx txTypes.IndexerTx
-		var txBody txTypes.Body
+		var indexerMergedTx txtypes.MergedTx
+		var indexerTx txtypes.IndexerTx
+		var txBody txtypes.Body
 		var currMessages []types.Msg
-		var currLogMsgs []tx.LogMessage
+		var currLogMsgs []txtypes.LogMessage
 		currTx := txEventResp.Txs[txIdx]
 		currTxResp := txEventResp.TxResponses[txIdx]
 
@@ -308,7 +307,7 @@ func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]db
 				currMessages = append(currMessages, msg)
 				if len(currTxResp.Logs) >= msgIdx+1 {
 					msgEvents := currTxResp.Logs[msgIdx].Events
-					currTxLog := tx.LogMessage{
+					currTxLog := txtypes.LogMessage{
 						MessageIndex: msgIdx,
 						Events:       toEvents(msgEvents),
 					}
@@ -327,7 +326,7 @@ func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]db
 		txBody.Messages = currMessages
 		indexerTx.Body = txBody
 
-		indexerTxResp := tx.Response{
+		indexerTxResp := txtypes.Response{
 			TxHash:    currTxResp.TxHash,
 			Height:    fmt.Sprintf("%d", currTxResp.Height),
 			TimeStamp: currTxResp.Timestamp,
@@ -386,7 +385,7 @@ func AnalyzeSwaps() {
 	fmt.Printf("Profit (OSMO): %.10f, days: %f\n", profit, latestTime.Sub(earliestTime).Hours()/24)
 }
 
-func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper, txTime time.Time, err error) {
+func ProcessTx(db *gorm.DB, tx txtypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper, txTime time.Time, err error) {
 	txTime, err = time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
 	if err != nil {
 		config.Log.Error("Error parsing tx timestamp.", err)
@@ -406,13 +405,13 @@ func ProcessTx(db *gorm.DB, tx txTypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 
 			// Get the message log that corresponds to the current message
 			var currMessageDBWrapper dbTypes.MessageDBWrapper
-			messageLog := txTypes.GetMessageLogForIndex(tx.TxResponse.Log, messageIndex)
+			messageLog := txtypes.GetMessageLogForIndex(tx.TxResponse.Log, messageIndex)
 			cosmosMessage, msgType, err := ParseCosmosMessage(message, *messageLog)
 			if err != nil {
 				currMessageType.MessageType = msgType
 				currMessage.MessageType = currMessageType
 				currMessageDBWrapper.Message = currMessage
-				if err != txTypes.ErrUnknownMessage {
+				if err != txtypes.ErrUnknownMessage {
 					// What should we do here? This is an actual error during parsing
 					config.Log.Error(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed for msg of type '%v'.", tx.TxResponse.Height, msgType), err)
 					config.Log.Error(fmt.Sprint(messageLog))

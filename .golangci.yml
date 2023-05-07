@@ -32,9 +32,6 @@ issues:
     - text: "unused-parameter"
       linters:
         - revive
-    - text: "SA1019:"
-      linters:
-        - staticcheck
     - text: "Use of weak random number generator"
       linters:
         - gosec
