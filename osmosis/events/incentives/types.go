@@ -43,7 +43,7 @@ func (sf *WrapperBlockDistribution) HandleEvent(eventType string, event abciType
 		sf.ReceiverAddress = receiverAddr
 		sf.RewardsReceived = coins
 	} else {
-		return errors.New("Rewards received or address were not present")
+		return errors.New("rewards received or address were not present")
 	}
 
 	return nil
