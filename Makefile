@@ -33,3 +33,7 @@ build-docker-amd:
 build-docker-arm:
 	docker build -t $(FQCN):$(VERSION) -f ./Dockerfile \
 	--build-arg TARGETPLATFORM=linux/arm64 .
+
+.PHONY: lint
+lint: ## Run golangci-linter
+	golangci-lint run --out-format=tab
