@@ -133,7 +133,7 @@ func (sf *WrapperMsgWithdrawDelegatorReward) HandleMsg(msgType string, msg stdTy
 }
 
 func (sf *WrapperMsgFundCommunityPool) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
-	var relevantData []parsingTypes.MessageRelevantInformation = make([]parsingTypes.MessageRelevantInformation, len(sf.Funds))
+	relevantData := make([]parsingTypes.MessageRelevantInformation, len(sf.Funds))
 
 	for i, v := range sf.Funds {
 		relevantData[i].AmountSent = v.Amount.BigInt()
@@ -146,7 +146,7 @@ func (sf *WrapperMsgFundCommunityPool) ParseRelevantData() []parsingTypes.Messag
 
 func (sf *WrapperMsgWithdrawValidatorCommission) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
 	if sf.CoinsReceived.IsNil() {
-		var relevantData []parsingTypes.MessageRelevantInformation = make([]parsingTypes.MessageRelevantInformation, len(sf.MultiCoinsReceived))
+		relevantData := make([]parsingTypes.MessageRelevantInformation, len(sf.MultiCoinsReceived))
 
 		for i, v := range sf.MultiCoinsReceived {
 			relevantData[i] = parsingTypes.MessageRelevantInformation{

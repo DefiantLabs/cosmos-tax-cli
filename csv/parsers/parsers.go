@@ -2,7 +2,7 @@ package parsers
 
 import "github.com/DefiantLabs/cosmos-tax-cli/db"
 
-// Check in your parsers here
+// Parsers should be used to check in your parsers.
 var Parsers map[string]bool
 
 func init() {

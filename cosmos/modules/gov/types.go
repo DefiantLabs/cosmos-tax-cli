@@ -36,7 +36,7 @@ type WrapperMsgDeposit struct {
 }
 
 func (sf *WrapperMsgSubmitProposal) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
-	var relevantData []parsingTypes.MessageRelevantInformation = make([]parsingTypes.MessageRelevantInformation, len(sf.CosmosMsgSubmitProposal.InitialDeposit))
+	relevantData := make([]parsingTypes.MessageRelevantInformation, len(sf.CosmosMsgSubmitProposal.InitialDeposit))
 
 	for i, v := range sf.CosmosMsgSubmitProposal.InitialDeposit {
 		var currRelevantData parsingTypes.MessageRelevantInformation
@@ -58,7 +58,7 @@ func (sf *WrapperMsgSubmitProposal) ParseRelevantData() []parsingTypes.MessageRe
 }
 
 func (sf *WrapperMsgDeposit) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
-	var relevantData []parsingTypes.MessageRelevantInformation = make([]parsingTypes.MessageRelevantInformation, len(sf.CosmosMsgDeposit.Amount))
+	relevantData := make([]parsingTypes.MessageRelevantInformation, len(sf.CosmosMsgDeposit.Amount))
 
 	for i, v := range sf.CosmosMsgDeposit.Amount {
 		var currRelevantData parsingTypes.MessageRelevantInformation

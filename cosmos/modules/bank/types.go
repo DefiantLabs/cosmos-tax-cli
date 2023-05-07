@@ -85,7 +85,7 @@ func (sf *WrapperMsgMultiSend) HandleMsg(msgType string, msg sdk.Msg, log *txMod
 				return fmt.Errorf("error processing MultiSend, inputs and outputs mismatch for denom %v, send %s != received %s", coin, amountSent, amountReceived)
 			}
 		} else {
-			return fmt.Errorf("error processing MultiSend, sent denom %v does not appear in recieved coins", coin)
+			return fmt.Errorf("error processing MultiSend, sent denom %v does not appear in received coins", coin)
 		}
 	}
 
@@ -106,7 +106,7 @@ func (sf *WrapperMsgMultiSend) String() string {
 }
 
 func (sf *WrapperMsgSend) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
-	var relevantData []parsingTypes.MessageRelevantInformation = make([]parsingTypes.MessageRelevantInformation, len(sf.CosmosMsgSend.Amount))
+	relevantData := make([]parsingTypes.MessageRelevantInformation, len(sf.CosmosMsgSend.Amount))
 
 	for i, v := range sf.CosmosMsgSend.Amount {
 		var currRelevantData parsingTypes.MessageRelevantInformation
