@@ -49,6 +49,7 @@ func DoChainSpecificUpsertDenoms(db *gorm.DB, chain string) {
 	// I would prefer we just grab the denoms when needed always
 	// Current problem: we use the denom cache in various blocks later on
 	dbTypes.CacheDenoms(db)
+	dbTypes.CacheIBCDenoms(db)
 }
 
 func UpsertOsmosisDenoms(db *gorm.DB) {

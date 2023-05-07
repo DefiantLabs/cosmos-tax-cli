@@ -52,6 +52,7 @@ var messageTypeHandler = map[string][]func() txTypes.CosmosMessage{
 	staking.MsgUndelegate:                       {func() txTypes.CosmosMessage { return &staking.WrapperMsgUndelegate{} }},
 	staking.MsgBeginRedelegate:                  {func() txTypes.CosmosMessage { return &staking.WrapperMsgBeginRedelegate{} }},
 	ibc.MsgTransfer:                             {func() txTypes.CosmosMessage { return &ibc.WrapperMsgTransfer{} }},
+	ibc.MsgRecvPacket:                           {func() txTypes.CosmosMessage { return &ibc.WrapperMsgRecvPacket{} }},
 }
 
 // These messages are ignored for tax purposes.
@@ -556,4 +557,37 @@ func ProcessFees(db *gorm.DB, authInfo cosmosTx.AuthInfo, signers []types.AccAdd
 	}
 
 	return fees, nil
+}
+
+// getDenom handles denom processing for both IBC denoms and native denoms.
+// If the denom begins with ibc/ we know this is an IBC denom trace, and it's not guaranteed there is an entry in
+// the Denom table.
+func getDenom(denom string) (dbTypes.Denom, error) {
+	var (
+		denomSent dbTypes.Denom
+		err       error
+	)
+
+	// if this is an ibc denom trace, get the ibc denom then use the base denom to get the Denom from the db
+	if strings.HasPrefix(denom, "ibc/") {
+		ibcDenom, err := dbTypes.GetIBCDenom(denom)
+		if err != nil {
+			config.Log.Error(fmt.Sprintf("IBC Denom lookup failed for  %s, err: %v", denom, err))
+		} else {
+			denomSent, err = dbTypes.GetDenomForBase(ibcDenom.BaseDenom)
+			if err != nil {
+				config.Log.Error(fmt.Sprintf("Denom lookup failed for IBC base denom %s, err: %v", ibcDenom.BaseDenom, err))
+			}
+		}
+	}
+
+	// if this is a native asset handle normally
+	if denomSent.Name == "" {
+		denomSent, err = dbTypes.GetDenomForBase(denom)
+		if err != nil {
+			return dbTypes.Denom{}, err
+		}
+	}
+
+	return denomSent, nil
 }

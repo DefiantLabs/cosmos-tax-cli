@@ -73,6 +73,7 @@ func setup() (*gorm.DB, *config.Config, int, string, error) {
 	}
 
 	dbTypes.CacheDenoms(db)
+	dbTypes.CacheIBCDenoms(db)
 
 	return db, &cfg, svcPort, cfg.Client.Model, nil
 }

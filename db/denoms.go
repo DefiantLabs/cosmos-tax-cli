@@ -11,8 +11,13 @@ import (
 	"gorm.io/gorm"
 )
 
-var CachedDenomUnits []DenomUnit
-var denomCacheMutex sync.Mutex
+var (
+	CachedDenomUnits []DenomUnit
+	denomCacheMutex  sync.Mutex
+
+	CachedIBCDenoms    []IBCDenom
+	ibcDenomCacheMutex sync.Mutex
+)
 
 func CacheDenoms(db *gorm.DB) {
 	var denomUnits []DenomUnit
@@ -20,6 +25,14 @@ func CacheDenoms(db *gorm.DB) {
 	denomCacheMutex.Lock()
 	defer denomCacheMutex.Unlock()
 	CachedDenomUnits = denomUnits
+}
+
+func CacheIBCDenoms(db *gorm.DB) {
+	var ibcDenoms []IBCDenom
+	db.Preload("IBCDenom").Find(&ibcDenoms)
+	ibcDenomCacheMutex.Lock()
+	defer ibcDenomCacheMutex.Unlock()
+	CachedIBCDenoms = ibcDenoms
 }
 
 func GetDenomForBase(base string) (Denom, error) {
@@ -32,6 +45,17 @@ func GetDenomForBase(base string) (Denom, error) {
 	}
 
 	return Denom{}, fmt.Errorf("GetDenomForBase: no denom unit for the specified denom %s", base)
+}
+
+func GetIBCDenom(denomTrace string) (IBCDenom, error) {
+	ibcDenomCacheMutex.Lock()
+	defer ibcDenomCacheMutex.Unlock()
+	for _, denom := range CachedIBCDenoms {
+		if denom.Hash == denomTrace {
+			return denom, nil
+		}
+	}
+	return IBCDenom{}, fmt.Errorf("no IBC denom found for the specified denom trace %s", denomTrace)
 }
 
 func GetDenomUnitForDenom(denom Denom) (DenomUnit, error) {
@@ -127,6 +151,7 @@ func AddUnknownDenom(db *gorm.DB, denom string) (Denom, error) {
 
 	// recache the denoms (threadsafe due to mutex on read and write)
 	CacheDenoms(db)
+	CacheIBCDenoms(db)
 
 	return GetDenomForBase(denom)
 }
