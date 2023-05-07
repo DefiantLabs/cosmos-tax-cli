@@ -219,8 +219,10 @@ func mapUnsupportedCoints(rows []Row) {
 }
 
 func (p Parser) GetHeaders() []string {
-	return []string{"Date", "Sent Amount", "Sent Currency", "Received Amount", "Received Currency", "Fee Amount", "Fee Currency",
-		"Net Worth Amount", "Net Worth Currency", "Label", "Description", "TxHash"}
+	return []string{
+		"Date", "Sent Amount", "Sent Currency", "Received Amount", "Received Currency", "Fee Amount", "Fee Currency",
+		"Net Worth Amount", "Net Worth Currency", "Label", "Description", "TxHash",
+	}
 }
 
 // HandleFees:

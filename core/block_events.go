@@ -10,8 +10,10 @@ import (
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
-var beginBlockerEventTypeHandlers = map[string][]func() eventTypes.CosmosEvent{}
-var endBlockerEventTypeHandlers = map[string][]func() eventTypes.CosmosEvent{}
+var (
+	beginBlockerEventTypeHandlers = map[string][]func() eventTypes.CosmosEvent{}
+	endBlockerEventTypeHandlers   = map[string][]func() eventTypes.CosmosEvent{}
+)
 
 func ChainSpecificEndBlockerEventTypeHandlerBootstrap(chainID string) {
 	var chainSpecificEndBlockerEventTypeHandler map[string][]func() eventTypes.CosmosEvent
@@ -59,7 +61,7 @@ func ProcessRPCBlockEvents(blockResults *ctypes.ResultBlockResults) ([]eventType
 					config.Log.Debug(fmt.Sprintf("[Block: %v] Cosmos Block EndBlocker event of known type: %s. Handler failed", blockResults.Height, event.Type), err)
 					continue
 				}
-				var relevantData = cosmosEventHandler.ParseRelevantData()
+				relevantData := cosmosEventHandler.ParseRelevantData()
 
 				taxableEvents = append(taxableEvents, relevantData...)
 
@@ -90,7 +92,7 @@ func ProcessRPCBlockEvents(blockResults *ctypes.ResultBlockResults) ([]eventType
 					config.Log.Debug(fmt.Sprintf("[Block: %v] Cosmos Block EndBlocker event of known type: %s. Handler failed", blockResults.Height, event.Type), err)
 					continue
 				}
-				var relevantData = cosmosEventHandler.ParseRelevantData()
+				relevantData := cosmosEventHandler.ParseRelevantData()
 
 				taxableEvents = append(taxableEvents, relevantData...)
 

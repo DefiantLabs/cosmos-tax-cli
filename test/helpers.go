@@ -68,7 +68,6 @@ func ensureTestAddress(db *gorm.DB) dbUtils.Address {
 //   - Returns various values used throughout the application
 func dbSetup(addressRegex string, addressPrefix string) (*gorm.DB, error) {
 	config, err := configUtils.GetConfig("../config.toml")
-
 	if err != nil {
 		fmt.Println("Error opening configuration file", err)
 		return nil, err

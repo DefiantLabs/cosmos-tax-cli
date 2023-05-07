@@ -58,7 +58,6 @@ func GetTxsByBlockHeight(host string, height uint64) (tx.GetTxByBlockHeightRespo
 	requestEndpoint := fmt.Sprintf(apiEndpoints["txs_by_block_height_endpoint"], height)
 
 	resp, err := http.Get(fmt.Sprintf("%s%s", host, requestEndpoint))
-
 	if err != nil {
 		return result, err
 	}
@@ -72,7 +71,6 @@ func GetTxsByBlockHeight(host string, height uint64) (tx.GetTxByBlockHeightRespo
 	}
 
 	body, err := io.ReadAll(resp.Body)
-
 	if err != nil {
 		return result, err
 	}
@@ -92,7 +90,6 @@ func GetLatestBlock(host string) (tx.GetLatestBlockResponse, error) {
 	requestEndpoint := apiEndpoints["latest_block_endpoint"]
 
 	resp, err := http.Get(fmt.Sprintf("%s%s", host, requestEndpoint))
-
 	if err != nil {
 		return result, err
 	}
@@ -106,7 +103,6 @@ func GetLatestBlock(host string) (tx.GetLatestBlockResponse, error) {
 	}
 
 	body, err := io.ReadAll(resp.Body)
-
 	if err != nil {
 		return result, err
 	}

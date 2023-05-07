@@ -19,8 +19,10 @@ import (
 	"gorm.io/gorm"
 )
 
-var DB *gorm.DB
-var GlobalCfg *config.Config
+var (
+	DB        *gorm.DB
+	GlobalCfg *config.Config
+)
 
 func setup() (*gorm.DB, *config.Config, int, string, error) {
 	argConfig, flagSet, svcPort, err := config.ParseArgs(os.Stderr, os.Args[1:])
@@ -206,7 +208,6 @@ var jsTimeFmt = "2006-01-02T15:04:05Z07:00"
 // @Router /events.csv [post]
 func GetTaxableEventsCSV(c *gin.Context) {
 	addresses, format, startDate, endDate, err := ParseTaxableEventsBody(c)
-
 	if err != nil {
 		return
 	}
@@ -249,7 +250,6 @@ func GetTaxableEventsCSV(c *gin.Context) {
 // @Router /events.json [post]
 func GetTaxableEventsJSON(c *gin.Context) {
 	addresses, format, startDate, endDate, err := ParseTaxableEventsBody(c)
-
 	if err != nil {
 		return
 	}
@@ -287,7 +287,6 @@ func GetTaxableEventsJSON(c *gin.Context) {
 func ParseTaxableEventsBody(c *gin.Context) ([]string, string, *time.Time, *time.Time, error) {
 	var requestBody TaxableEventsCSVRequest
 	err := c.BindJSON(&requestBody)
-
 	if err != nil {
 		// the error returned here has already been pushed to the context... I think.
 		c.AbortWithError(500, errors.New("error processing request body")) // nolint:staticcheck,errcheck

@@ -149,9 +149,11 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parser
 }
 
 func (p Parser) GetHeaders() []string {
-	return []string{"Date and Time", "Transaction Type", "Sent Quantity", "Sent Currency", "Sending Source",
+	return []string{
+		"Date and Time", "Transaction Type", "Sent Quantity", "Sent Currency", "Sending Source",
 		"Received Quantity", "Received Currency", "Receiving Destination", "Fee", "Fee Currency", "Exchange Transaction ID",
-		"Blockchain Transaction Hash"}
+		"Blockchain Transaction Hash",
+	}
 }
 
 // HandleFees:

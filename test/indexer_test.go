@@ -35,7 +35,7 @@ func TestOsmosisCsvForAddress(t *testing.T) {
 		t.Fatal("CSV length should never be 0, there are always headers!")
 	}
 
-	err = os.WriteFile("accointing.csv", buffer.Bytes(), 0600)
+	err = os.WriteFile("accointing.csv", buffer.Bytes(), 0o600)
 	if err != nil {
 		t.Fatal("Failed to write CSV to disk")
 	}
@@ -63,7 +63,7 @@ func TestCsvForAddress(t *testing.T) {
 		t.Fatal("CSV length should never be 0, there are always headers!")
 	}
 
-	err = os.WriteFile("accointing.csv", buffer.Bytes(), 0600)
+	err = os.WriteFile("accointing.csv", buffer.Bytes(), 0o600)
 	if err != nil {
 		t.Fatal("Failed to write CSV to disk")
 	}

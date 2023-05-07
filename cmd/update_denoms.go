@@ -28,7 +28,6 @@ var updateDenomsCmd = &cobra.Command{
 
 func updateDenoms(cmd *cobra.Command, args []string) {
 	cfg, _, db, _, err := setup(conf)
-
 	if err != nil {
 		log.Fatalf("Error during application setup. Err: %v", err)
 	}

@@ -91,7 +91,6 @@ func assetListToDenoms(assets *AssetList) []dbTypes.DenomDBWrapper {
 
 		for ii, denomUnit := range asset.Denoms {
 			denoms[i].DenomUnits[ii].DenomUnit = dbTypes.DenomUnit{Exponent: uint(denomUnit.Exponent), Name: denomUnit.Denom}
-
 		}
 	}
 
@@ -109,7 +108,7 @@ func getAssetsList(assetsURL string) (*AssetList, error) {
 }
 
 func getJSON(url string, target interface{}) error {
-	var myClient = &http.Client{Timeout: 10 * time.Second}
+	myClient := &http.Client{Timeout: 10 * time.Second}
 
 	r, err := myClient.Get(url)
 	if err != nil {
