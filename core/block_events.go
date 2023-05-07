@@ -6,7 +6,6 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	eventTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/events"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmoshub"
-	cosmoshubTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmoshub"
 	osmosisTypes "github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
@@ -17,7 +16,7 @@ var endBlockerEventTypeHandlers = map[string][]func() eventTypes.CosmosEvent{}
 func ChainSpecificEndBlockerEventTypeHandlerBootstrap(chainID string) {
 	var chainSpecificEndBlockerEventTypeHandler map[string][]func() eventTypes.CosmosEvent
 	if chainID == cosmoshub.ChainID {
-		chainSpecificEndBlockerEventTypeHandler = cosmoshubTypes.EndBlockerEventTypeHandlers
+		chainSpecificEndBlockerEventTypeHandler = cosmoshub.EndBlockerEventTypeHandlers
 	}
 	for key, value := range chainSpecificEndBlockerEventTypeHandler {
 		if list, ok := endBlockerEventTypeHandlers[key]; ok {
