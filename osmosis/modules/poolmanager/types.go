@@ -126,7 +126,7 @@ func (sf *WrapperMsgSwapExactAmountOut) HandleMsg(msgType string, msg sdk.Msg, l
 }
 
 func (sf *WrapperMsgSwapExactAmountIn) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
-	var relevantData = make([]parsingTypes.MessageRelevantInformation, 1)
+	relevantData := make([]parsingTypes.MessageRelevantInformation, 1)
 	relevantData[0] = parsingTypes.MessageRelevantInformation{
 		AmountSent:           sf.TokenIn.Amount.BigInt(),
 		DenominationSent:     sf.TokenIn.Denom,
@@ -139,7 +139,7 @@ func (sf *WrapperMsgSwapExactAmountIn) ParseRelevantData() []parsingTypes.Messag
 }
 
 func (sf *WrapperMsgSwapExactAmountOut) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
-	var relevantData = make([]parsingTypes.MessageRelevantInformation, 1)
+	relevantData := make([]parsingTypes.MessageRelevantInformation, 1)
 	relevantData[0] = parsingTypes.MessageRelevantInformation{
 		AmountSent:           sf.TokenIn.Amount.BigInt(),
 		DenominationSent:     sf.TokenIn.Denom,

@@ -301,7 +301,6 @@ func (sf *WrapperBlockEventSwapTransacted) String() string {
 }
 
 func (sf *WrapperBlockWithdrawFromPool) String() string {
-
 	feesPaidString := "No fees were paid"
 	if len(sf.WithdrawFees) != 0 {
 		feesPaidString = fmt.Sprintf("Fees paid were %s", sf.WithdrawFees)

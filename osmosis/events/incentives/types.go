@@ -22,7 +22,6 @@ func (sf *WrapperBlockDistribution) GetType() string {
 }
 
 func (sf *WrapperBlockDistribution) HandleEvent(eventType string, event abciTypes.Event) error {
-
 	var receiverAddr string
 	var receiverAmount string
 

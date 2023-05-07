@@ -153,7 +153,7 @@ type WrapperMsgCreatePool struct {
 	OsmosisMsgCreatePool *osmosisOldTypes.MsgCreatePool
 	CoinsSpent           []sdk.Coin
 	GammCoinsReceived    sdk.Coin
-	OtherCoinsReceived   []coinReceived //e.g. from claims module (airdrops)
+	OtherCoinsReceived   []coinReceived // e.g. from claims module (airdrops)
 }
 
 type coinReceived struct {
@@ -568,10 +568,9 @@ func (sf *WrapperMsgSwapExactAmountOut) HandleMsg(msgType string, msg sdk.Msg, l
 		tokenInDenom := sf.OsmosisMsgSwapExactAmountOut.TokenInDenom()
 
 		for _, evt := range transferEvt.Attributes {
-			//Get the first amount that matches the token in denom
+			// Get the first amount that matches the token in denom
 			if evt.Key == "amount" {
 				tokenIn, err := sdk.ParseCoinNormalized(evt.Value)
-
 				if err != nil {
 					return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 				}
@@ -592,7 +591,6 @@ func (sf *WrapperMsgSwapExactAmountOut) HandleMsg(msgType string, msg sdk.Msg, l
 
 		tokenOutStr := txModule.GetLastValueForAttribute("amount", transferEvt)
 		tokenOut, err := sdk.ParseCoinNormalized(tokenOutStr)
-
 		if err != nil {
 			return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 		}
@@ -1169,7 +1167,6 @@ func (sf *WrapperMsgExitSwapShareAmountIn2) HandleMsg(msgType string, msg sdk.Ms
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 	multiTokensOut, err := sdk.ParseCoinsNormalized(tokensOut)
-
 	if err != nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
@@ -1184,13 +1181,11 @@ func (sf *WrapperMsgExitSwapShareAmountIn2) HandleMsg(msgType string, msg sdk.Ms
 		tokenSwappedIn := txModule.GetValueForAttribute(gammTypes.AttributeKeyTokensIn, &tokenSwappedEvent)
 		tokenSwappedOut := txModule.GetValueForAttribute(gammTypes.AttributeKeyTokensOut, &tokenSwappedEvent)
 		parsedTokensSwappedIn, err := sdk.ParseCoinNormalized(tokenSwappedIn)
-
 		if err != nil {
 			return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 		}
 
 		parsedTokensSwappedOut, err := sdk.ParseCoinNormalized(tokenSwappedOut)
-
 		if err != nil {
 			return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 		}
@@ -1372,7 +1367,7 @@ type ArbitrageTx struct {
 }
 
 func (sf *WrapperMsgSwapExactAmountIn) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
-	var relevantData = make([]parsingTypes.MessageRelevantInformation, 1)
+	relevantData := make([]parsingTypes.MessageRelevantInformation, 1)
 	relevantData[0] = parsingTypes.MessageRelevantInformation{
 		AmountSent:           sf.TokenIn.Amount.BigInt(),
 		DenominationSent:     sf.TokenIn.Denom,
@@ -1389,7 +1384,7 @@ func (sf *WrapperMsgSwapExactAmountIn2) ParseRelevantData() []parsingTypes.Messa
 }
 
 func (sf *WrapperMsgSwapExactAmountOut) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
-	var relevantData = make([]parsingTypes.MessageRelevantInformation, 1)
+	relevantData := make([]parsingTypes.MessageRelevantInformation, 1)
 	relevantData[0] = parsingTypes.MessageRelevantInformation{
 		AmountSent:           sf.TokenIn.Amount.BigInt(),
 		DenominationSent:     sf.TokenIn.Denom,
@@ -1402,7 +1397,7 @@ func (sf *WrapperMsgSwapExactAmountOut) ParseRelevantData() []parsingTypes.Messa
 }
 
 func (sf *WrapperMsgJoinSwapExternAmountIn) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
-	var relevantData = make([]parsingTypes.MessageRelevantInformation, 1)
+	relevantData := make([]parsingTypes.MessageRelevantInformation, 1)
 	relevantData[0] = parsingTypes.MessageRelevantInformation{
 		AmountSent:           sf.TokenIn.Amount.BigInt(),
 		DenominationSent:     sf.TokenIn.Denom,
@@ -1415,7 +1410,7 @@ func (sf *WrapperMsgJoinSwapExternAmountIn) ParseRelevantData() []parsingTypes.M
 }
 
 func (sf *WrapperMsgJoinSwapShareAmountOut) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
-	var relevantData = make([]parsingTypes.MessageRelevantInformation, 1)
+	relevantData := make([]parsingTypes.MessageRelevantInformation, 1)
 	relevantData[0] = parsingTypes.MessageRelevantInformation{
 		AmountSent:           sf.TokenIn.Amount.BigInt(),
 		DenominationSent:     sf.TokenIn.Denom,
@@ -1429,7 +1424,7 @@ func (sf *WrapperMsgJoinSwapShareAmountOut) ParseRelevantData() []parsingTypes.M
 
 func (sf *WrapperMsgJoinPool) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
 	// need to make a relevant data block for all Tokens sent to the pool since JoinPool can use 1 or both tokens used in the pool
-	var relevantData = make([]parsingTypes.MessageRelevantInformation, len(sf.TokensIn))
+	relevantData := make([]parsingTypes.MessageRelevantInformation, len(sf.TokensIn))
 
 	// figure out how many gams per token
 	nthGamms, remainderGamms := calcNthGams(sf.TokenOut.Amount.BigInt(), len(sf.TokensIn))
@@ -1475,7 +1470,7 @@ func (sf *WrapperMsgCreatePool2) ParseRelevantData() []parsingTypes.MessageRelev
 
 func (sf *WrapperMsgCreatePool) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
 	// need to make a relevant data block for all Tokens sent to the pool on creation
-	var relevantData = make([]parsingTypes.MessageRelevantInformation, len(sf.CoinsSpent)+len(sf.OtherCoinsReceived))
+	relevantData := make([]parsingTypes.MessageRelevantInformation, len(sf.CoinsSpent)+len(sf.OtherCoinsReceived))
 
 	// figure out how many gams per token
 	nthGamms, remainderGamms := calcNthGams(sf.GammCoinsReceived.Amount.BigInt(), len(sf.CoinsSpent))
@@ -1520,7 +1515,7 @@ func (sf *WrapperMsgCreatePool) ParseRelevantData() []parsingTypes.MessageReleva
 }
 
 func (sf *WrapperMsgExitSwapShareAmountIn) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
-	var relevantData = make([]parsingTypes.MessageRelevantInformation, 1)
+	relevantData := make([]parsingTypes.MessageRelevantInformation, 1)
 	relevantData[0] = parsingTypes.MessageRelevantInformation{
 		AmountSent:           sf.TokenIn.Amount.BigInt(),
 		DenominationSent:     sf.TokenIn.Denom,
@@ -1533,12 +1528,12 @@ func (sf *WrapperMsgExitSwapShareAmountIn) ParseRelevantData() []parsingTypes.Me
 }
 
 func (sf *WrapperMsgExitSwapShareAmountIn2) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
-	var relevantData = make([]parsingTypes.MessageRelevantInformation, len(sf.TokensOut))
+	relevantData := make([]parsingTypes.MessageRelevantInformation, len(sf.TokensOut))
 
 	// figure out how many gams per token
 	nthGamms, remainderGamms := calcNthGams(sf.TokenIn.Amount.BigInt(), len(sf.TokensOut))
 
-	//Handle the pool exit
+	// Handle the pool exit
 	for i, v := range sf.TokensOut {
 		// split received tokens across entry so we receive GAMM tokens for both exchanges
 		// each swap will get 1 nth of the gams until the last one which will get the remainder
@@ -1563,7 +1558,7 @@ func (sf *WrapperMsgExitSwapShareAmountIn2) ParseRelevantData() []parsingTypes.M
 		}
 	}
 
-	//Handle the post exit swap event
+	// Handle the post exit swap event
 	for _, tokensSwapped := range sf.TokenSwaps {
 		relevantData = append(relevantData, parsingTypes.MessageRelevantInformation{
 			AmountSent:           tokensSwapped.TokenSwappedIn.Amount.BigInt(),
@@ -1579,7 +1574,7 @@ func (sf *WrapperMsgExitSwapShareAmountIn2) ParseRelevantData() []parsingTypes.M
 }
 
 func (sf *WrapperMsgExitSwapExternAmountOut) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
-	var relevantData = make([]parsingTypes.MessageRelevantInformation, 1)
+	relevantData := make([]parsingTypes.MessageRelevantInformation, 1)
 	relevantData[0] = parsingTypes.MessageRelevantInformation{
 		AmountSent:           sf.TokenIn.Amount.BigInt(),
 		DenominationSent:     sf.TokenIn.Denom,
@@ -1593,7 +1588,7 @@ func (sf *WrapperMsgExitSwapExternAmountOut) ParseRelevantData() []parsingTypes.
 
 func (sf *WrapperMsgExitPool) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
 	// need to make a relevant data block for all Tokens received from the pool since ExitPool can receive 1 or both tokens used in the pool
-	var relevantData = make([]parsingTypes.MessageRelevantInformation, len(sf.TokensOutOfPool))
+	relevantData := make([]parsingTypes.MessageRelevantInformation, len(sf.TokensOutOfPool))
 
 	// figure out how many gams per token
 	nthGamms, remainderGamms := calcNthGams(sf.TokenIntoPool.Amount.BigInt(), len(sf.TokensOutOfPool))

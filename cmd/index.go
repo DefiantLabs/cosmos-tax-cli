@@ -489,7 +489,7 @@ func (idxr *Indexer) indexBlockEvents(wg *sync.WaitGroup, failedBlockHandler cor
 
 	config.Log.Infof("Indexing block events from block: %v to %v", startHeight, endHeight)
 
-	//TODO: Strip this out of the Osmosis module and make it generalized
+	// TODO: Strip this out of the Osmosis module and make it generalized
 	rpcClient := osmosis.URIClient{
 		Address: idxr.cl.Config.RPCAddr,
 		Client:  &http.Client{},
@@ -549,9 +549,9 @@ func (idxr *Indexer) indexBlockEvents(wg *sync.WaitGroup, failedBlockHandler cor
 		// Sleep for a bit to allow new blocks to be written to the chain, this allows us to continue the indexer run indefinitely
 		if currentHeight > lastKnownBlockHeight {
 			config.Log.Infof("Block %d has passed lastKnownBlockHeight, checking again", currentHeight)
-			//For loop catches both of the following
-			//whether we are going too fast and need to do multiple sleeps
-			//whether the lastKnownHeight was set a long time ago (as in at app start) and we just need to reset the value
+			// For loop catches both of the following
+			// whether we are going too fast and need to do multiple sleeps
+			// whether the lastKnownHeight was set a long time ago (as in at app start) and we just need to reset the value
 			for {
 				lastKnownBlockHeight, err = rpc.GetLatestBlockHeight(idxr.cl)
 				if err != nil {

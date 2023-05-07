@@ -199,7 +199,7 @@ func ProcessRPCBlockByHeightTXs(db *gorm.DB, cl *client.ChainClient, blockResult
 
 	blockTime := &blockResults.Block.Time
 	blockTimeStr := blockTime.Format(time.RFC3339)
-	var currTxDbWrappers = make([]dbTypes.TxDBWrapper, len(blockResults.Block.Txs))
+	currTxDbWrappers := make([]dbTypes.TxDBWrapper, len(blockResults.Block.Txs))
 
 	for txIdx, tendermintTx := range blockResults.Block.Txs {
 		txResult := resultBlockRes.TxsResults[txIdx]
@@ -286,7 +286,7 @@ func ProcessRPCBlockByHeightTXs(db *gorm.DB, cl *client.ChainClient, blockResult
 
 // ProcessRPCTXs - Given an RPC response, build out the more specific data used by the parser.
 func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]dbTypes.TxDBWrapper, *time.Time, error) {
-	var currTxDbWrappers = make([]dbTypes.TxDBWrapper, len(txEventResp.Txs))
+	currTxDbWrappers := make([]dbTypes.TxDBWrapper, len(txEventResp.Txs))
 	var blockTime *time.Time
 
 	for txIdx := range txEventResp.Txs {
@@ -431,10 +431,10 @@ func ProcessTx(db *gorm.DB, tx txtypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 				currMessage.MessageType = currMessageType
 				currMessageDBWrapper.Message = currMessage
 
-				var relevantData = cosmosMessage.ParseRelevantData()
+				relevantData := cosmosMessage.ParseRelevantData()
 
 				if len(relevantData) > 0 {
-					var taxableTxs = make([]dbTypes.TaxableTxDBWrapper, len(relevantData))
+					taxableTxs := make([]dbTypes.TaxableTxDBWrapper, len(relevantData))
 					for i, v := range relevantData {
 						if v.AmountSent != nil {
 							taxableTxs[i].TaxableTx.AmountSent = util.ToNumeric(v.AmountSent)
