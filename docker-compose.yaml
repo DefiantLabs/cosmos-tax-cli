@@ -33,7 +33,7 @@ services:
 
   indexer:
     restart: "no"
-    image: cosmos-cli:local
+    image: ghcr.io/defiantlabs/cosmos-tax-cli:main
     user: defiant
     stop_grace_period: 10s
     volumes:
@@ -57,7 +57,7 @@ services:
       --log.pretty = true \
       --log.level = debug \
       --base.index-chain = false \
-      --base.start-block 2723300 \
+      --base.start-block 2723462 \
       --base.end-block 2723464 \
       --base.index-rewards = true \
       --base.rewards-start-block 4535620 \
