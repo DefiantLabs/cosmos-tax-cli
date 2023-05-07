@@ -10,7 +10,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/poolmanager"
 )
 
-// Unmarshal JSON to a particular type.
+// MessageTypeHandler is used to unmarshal JSON to a particular type.
 var MessageTypeHandler = map[string][]func() txTypes.CosmosMessage{
 	gamm.MsgSwapExactAmountIn:         {func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn2{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn3{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn4{} }},
 	gamm.MsgSwapExactAmountOut:        {func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountOut{} }},
@@ -25,7 +25,7 @@ var MessageTypeHandler = map[string][]func() txTypes.CosmosMessage{
 	poolmanager.MsgSwapExactAmountOut: {func() txTypes.CosmosMessage { return &poolmanager.WrapperMsgSwapExactAmountOut{} }},
 }
 
-// Extend these using an init func to setup CosmosHub end blocker handlers if we want more functionality
+// BeginBlockerEventTypeHandlers should be extended using these and an init func to set up CosmosHub end blocker handlers if we want more functionality.
 var BeginBlockerEventTypeHandlers = map[string][]func() eventTypes.CosmosEvent{
 	events.BlockEventDistribution: {func() eventTypes.CosmosEvent { return &incentivesEventTypes.WrapperBlockDistribution{} }},
 }

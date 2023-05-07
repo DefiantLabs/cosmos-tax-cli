@@ -17,7 +17,7 @@ var IsOsmosisExit = map[string]bool{
 	gamm.MsgExitPool:                true,
 }
 
-// Guard for adding messages to the group
+// IsOsmosisLpTxGroup is used as a guard for adding messages to the group.
 var IsOsmosisLpTxGroup = make(map[string]bool)
 
 func init() {

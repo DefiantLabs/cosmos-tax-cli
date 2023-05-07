@@ -84,7 +84,7 @@ func UpsertJunoDenoms(db *gorm.DB) {
 }
 
 func assetListToDenoms(assets *AssetList) []dbTypes.DenomDBWrapper {
-	var denoms []dbTypes.DenomDBWrapper = make([]dbTypes.DenomDBWrapper, len(assets.Assets))
+	denoms := make([]dbTypes.DenomDBWrapper, len(assets.Assets))
 	for i, asset := range assets.Assets {
 		denoms[i].Denom = dbTypes.Denom{Base: asset.Base, Name: asset.Name, Symbol: asset.Symbol}
 		denoms[i].DenomUnits = make([]dbTypes.DenomUnitDBWrapper, len(asset.Denoms))
