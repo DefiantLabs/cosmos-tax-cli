@@ -70,7 +70,7 @@ func ProcessRPCBlockEvents(blockResults *ctypes.ResultBlockResults) ([]eventType
 
 			// If err is not nil here, all handlers failed
 			if err != nil {
-				return nil, fmt.Errorf("Could not handle event type %s, all handlers failed", event.Type)
+				return nil, fmt.Errorf("could not handle event type %s, all handlers failed", event.Type)
 			}
 		}
 	}
@@ -101,7 +101,7 @@ func ProcessRPCBlockEvents(blockResults *ctypes.ResultBlockResults) ([]eventType
 
 			// If err is not nil here, all handlers failed
 			if err != nil {
-				return nil, fmt.Errorf("Could not handle event type %s, all handlers failed", event.Type)
+				return nil, fmt.Errorf("could not handle event type %s, all handlers failed", event.Type)
 			}
 		}
 	}
