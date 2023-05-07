@@ -9,9 +9,7 @@ import (
 	"testing"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
-
 	"github.com/DefiantLabs/lens/client"
-	lensClient "github.com/DefiantLabs/lens/client"
 	lensQuery "github.com/DefiantLabs/lens/client/query"
 	"github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/assert"
@@ -95,32 +93,32 @@ func TestDecodeIBCTypes(t *testing.T) {
 	assert.True(t, hasIbcType)
 }
 
-func GetJunoTestClient(t *testing.T) *lensClient.ChainClient {
+func GetJunoTestClient(t *testing.T) *client.ChainClient {
 	homepath := getHomePath(t)
 	// IMPORTANT: the actual keyring-test will be searched for at the path {homepath}/keys/{ChainID}/keyring-test.
 	// You can use lens default settings to generate that directory appropriately then move it to the desired path.
 	// For example, 'lens keys restore default' will restore the key to the default keyring (e.g. /home/kyle/.lens/...)
 	// and you can move all of the necessary keys to whatever homepath you want to use. Or you can use --home flag.
-	cl, err := lensClient.NewChainClient(GetJunoConfig(homepath, true), homepath, nil, nil)
+	cl, err := client.NewChainClient(GetJunoConfig(homepath, true), homepath, nil, nil)
 	assert.Nil(t, err)
 	config.RegisterAdditionalTypes(cl)
 	return cl
 }
 
-func GetOsmosisTestClient(t *testing.T) *lensClient.ChainClient {
+func GetOsmosisTestClient(t *testing.T) *client.ChainClient {
 	homepath := getHomePath(t)
 	// IMPORTANT: the actual keyring-test will be searched for at the path {homepath}/keys/{ChainID}/keyring-test.
 	// You can use lens default settings to generate that directory appropriately then move it to the desired path.
 	// For example, 'lens keys restore default' will restore the key to the default keyring (e.g. /home/kyle/.lens/...)
 	// and you can move all of the necessary keys to whatever homepath you want to use. Or you can use --home flag.
-	cl, err := lensClient.NewChainClient(GetOsmosisConfig(homepath, true), homepath, nil, nil)
+	cl, err := client.NewChainClient(GetOsmosisConfig(homepath, true), homepath, nil, nil)
 	assert.Nil(t, err)
 	config.RegisterAdditionalTypes(cl)
 	return cl
 }
 
-func GetJunoConfig(keyHome string, debug bool) *lensClient.ChainClientConfig {
-	return &lensClient.ChainClientConfig{
+func GetJunoConfig(keyHome string, debug bool) *client.ChainClientConfig {
+	return &client.ChainClientConfig{
 		Key:            "default",
 		ChainID:        "testing",
 		RPCAddr:        "http://localhost:26657",
@@ -138,9 +136,9 @@ func GetJunoConfig(keyHome string, debug bool) *lensClient.ChainClientConfig {
 	}
 }
 
-func GetOsmosisConfig(keyHome string, debug bool) *lensClient.ChainClientConfig {
+func GetOsmosisConfig(keyHome string, debug bool) *client.ChainClientConfig {
 	log.Println(keyHome)
-	return &lensClient.ChainClientConfig{
+	return &client.ChainClientConfig{
 		Key:            "default",
 		ChainID:        "osmosis-1",
 		RPCAddr:        "https://osmosis-mainnet-archive.allthatnode.com:26657",
