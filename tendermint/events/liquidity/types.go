@@ -125,13 +125,13 @@ func (sf *WrapperBlockEventSwapTransacted) HandleEvent(eventType string, event a
 
 	offerAmount, ok := sdk.NewIntFromString(offerCoinAmount)
 	if !ok {
-		return fmt.Errorf("Error parsing coin amount for offerCoinAmount %s", offerCoinAmount)
+		return fmt.Errorf("error parsing coin amount for offerCoinAmount %s", offerCoinAmount)
 	}
 	sf.CoinSwappedIn = sdk.NewCoin(offerCoinDenom, offerAmount)
 
 	demandAmount, ok := sdk.NewIntFromString(demandCoinAmount)
 	if !ok {
-		return fmt.Errorf("Error parsing coin amount for demandCoinAmount %s", demandCoinAmount)
+		return fmt.Errorf("error parsing coin amount for demandCoinAmount %s", demandCoinAmount)
 	}
 	sf.CoinSwappedOut = sdk.NewCoin(demandCoinDenom, demandAmount)
 
@@ -141,7 +141,7 @@ func (sf *WrapperBlockEventSwapTransacted) HandleEvent(eventType string, event a
 	}
 	offerFeeAmount, ok := sdk.NewIntFromString(offerCoinFeeAmount)
 	if !ok {
-		return fmt.Errorf("Error parsing coin amount for offerCoinFeeAmount %s", offerCoinFeeAmount)
+		return fmt.Errorf("error parsing coin amount for offerCoinFeeAmount %s", offerCoinFeeAmount)
 	}
 	firstFee := sdk.NewCoin(offerCoinDenom, offerFeeAmount)
 
@@ -151,7 +151,7 @@ func (sf *WrapperBlockEventSwapTransacted) HandleEvent(eventType string, event a
 	}
 	demandFeeAmount, ok := sdk.NewIntFromString(demandCoinFeeAmount)
 	if !ok {
-		return fmt.Errorf("Error parsing coin amount for demandCoinFeeAmount %s", demandCoinFeeAmount)
+		return fmt.Errorf("error parsing coin amount for demandCoinFeeAmount %s", demandCoinFeeAmount)
 	}
 	secondFee := sdk.NewCoin(demandCoinDenom, demandFeeAmount)
 
