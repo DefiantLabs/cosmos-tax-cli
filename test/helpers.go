@@ -91,5 +91,7 @@ func dbSetup(addressRegex string, addressPrefix string) (*gorm.DB, error) {
 	}
 
 	dbUtils.CacheDenoms(db) // Have to cache denoms to get translations from e.g. ujuno to Juno
+	dbUtils.CacheIBCDenoms(db)
+
 	return db, nil
 }

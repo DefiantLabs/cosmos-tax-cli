@@ -193,6 +193,7 @@ func setup(cfg config.Config) (*config.Config, bool, *gorm.DB, *gocron.Scheduler
 
 	// We should stop relying on the denom cache now that we are running this as a CLI tool only
 	dbTypes.CacheDenoms(db)
+	dbTypes.CacheIBCDenoms(db)
 
 	return &cfg, cfg.Base.Dry, db, scheduler, nil
 }
