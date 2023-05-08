@@ -33,3 +33,11 @@ build-docker-amd:
 build-docker-arm:
 	docker build -t $(FQCN):$(VERSION) -f ./Dockerfile \
 	--build-arg TARGETPLATFORM=linux/arm64 .
+
+.PHONY: lint
+lint: ## Run golangci-linter
+	golangci-lint run --out-format=tab
+
+.PHONY: format
+format: ## Formats the code with gofumpt
+	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./client/docs/*" | xargs gofumpt -w

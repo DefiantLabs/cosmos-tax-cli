@@ -63,7 +63,7 @@ func IndexBlockEvents(db *gorm.DB, dryRun bool, blockHeight int64, blockTime tim
 
 		awaitingInsert := dbEvents[i:batchEnd]
 
-		//Only way this can happen is if i == batchEnd
+		// Only way this can happen is if i == batchEnd
 		if len(awaitingInsert) == 0 {
 			awaitingInsert = []TaxableEvent{dbEvents[i]}
 		}

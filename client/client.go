@@ -19,8 +19,10 @@ import (
 	"gorm.io/gorm"
 )
 
-var DB *gorm.DB
-var GlobalCfg *config.Config
+var (
+	DB        *gorm.DB
+	GlobalCfg *config.Config
+)
 
 func setup() (*gorm.DB, *config.Config, int, string, error) {
 	argConfig, flagSet, svcPort, err := config.ParseArgs(os.Stderr, os.Args[1:])
@@ -207,7 +209,6 @@ var jsTimeFmt = "2006-01-02T15:04:05Z07:00"
 // @Router /events.csv [post]
 func GetTaxableEventsCSV(c *gin.Context) {
 	addresses, format, startDate, endDate, err := ParseTaxableEventsBody(c)
-
 	if err != nil {
 		return
 	}
@@ -231,7 +232,7 @@ func GetTaxableEventsCSV(c *gin.Context) {
 		// the error returned here has already been pushed to the context... I think.
 		config.Log.Errorf("Error getting rows for addresses: %v", addresses)
 		fmt.Println(err)
-		c.AbortWithError(500, errors.New("Error getting rows for address")) // nolint:staticcheck,errcheck
+		c.AbortWithError(500, errors.New("error getting rows for address")) // nolint:staticcheck,errcheck
 		return
 	}
 
@@ -250,7 +251,6 @@ func GetTaxableEventsCSV(c *gin.Context) {
 // @Router /events.json [post]
 func GetTaxableEventsJSON(c *gin.Context) {
 	addresses, format, startDate, endDate, err := ParseTaxableEventsBody(c)
-
 	if err != nil {
 		return
 	}
@@ -273,7 +273,7 @@ func GetTaxableEventsJSON(c *gin.Context) {
 	if err != nil {
 		// the error returned here has already been pushed to the context... I think.
 		config.Log.Errorf("Error getting rows for addresses: %v", addresses)
-		c.AbortWithError(500, errors.New("Error getting rows for address")) // nolint:staticcheck,errcheck
+		c.AbortWithError(500, errors.New("error getting rows for address")) // nolint:staticcheck,errcheck
 		return
 	}
 
@@ -288,10 +288,9 @@ func GetTaxableEventsJSON(c *gin.Context) {
 func ParseTaxableEventsBody(c *gin.Context) ([]string, string, *time.Time, *time.Time, error) {
 	var requestBody TaxableEventsCSVRequest
 	err := c.BindJSON(&requestBody)
-
 	if err != nil {
 		// the error returned here has already been pushed to the context... I think.
-		c.AbortWithError(500, errors.New("Error processing request body")) // nolint:staticcheck,errcheck
+		c.AbortWithError(500, errors.New("error processing request body")) // nolint:staticcheck,errcheck
 		return nil, "", nil, nil, err
 	}
 
@@ -333,7 +332,7 @@ func ParseTaxableEventsBody(c *gin.Context) ([]string, string, *time.Time, *time
 
 	if format == "" {
 		c.JSON(422, gin.H{"message": "Format is required"})
-		return nil, "", nil, nil, errors.New("Format is required")
+		return nil, "", nil, nil, errors.New("format is required")
 	}
 
 	return addresses, format, startDate, endDate, nil

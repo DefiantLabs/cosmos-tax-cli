@@ -8,19 +8,21 @@ import (
 	"regexp"
 	"strings"
 
-	tx "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	cosmostypes "github.com/cosmos/cosmos-sdk/types"
-	legacybech32 "github.com/cosmos/cosmos-sdk/types/bech32/legacybech32" // nolint:staticcheck
+	"github.com/cosmos/cosmos-sdk/types/bech32/legacybech32" // nolint:staticcheck
 )
 
 // consider not using globals
-var addressRegex *regexp.Regexp
-var addressPrefix string
+var (
+	addressRegex  *regexp.Regexp
+	addressPrefix string
+)
 
 // TODO query this list from the DB
 var baseChainPrefixes = []string{

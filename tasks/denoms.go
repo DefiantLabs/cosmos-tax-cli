@@ -85,14 +85,13 @@ func UpsertJunoDenoms(db *gorm.DB) {
 }
 
 func assetListToDenoms(assets *AssetList) []dbTypes.DenomDBWrapper {
-	var denoms []dbTypes.DenomDBWrapper = make([]dbTypes.DenomDBWrapper, len(assets.Assets))
+	denoms := make([]dbTypes.DenomDBWrapper, len(assets.Assets))
 	for i, asset := range assets.Assets {
 		denoms[i].Denom = dbTypes.Denom{Base: asset.Base, Name: asset.Name, Symbol: asset.Symbol}
 		denoms[i].DenomUnits = make([]dbTypes.DenomUnitDBWrapper, len(asset.Denoms))
 
 		for ii, denomUnit := range asset.Denoms {
 			denoms[i].DenomUnits[ii].DenomUnit = dbTypes.DenomUnit{Exponent: uint(denomUnit.Exponent), Name: denomUnit.Denom}
-
 		}
 	}
 
@@ -110,7 +109,7 @@ func getAssetsList(assetsURL string) (*AssetList, error) {
 }
 
 func getJSON(url string, target interface{}) error {
-	var myClient = &http.Client{Timeout: 10 * time.Second}
+	myClient := &http.Client{Timeout: 10 * time.Second}
 
 	r, err := myClient.Get(url)
 	if err != nil {

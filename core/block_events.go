@@ -6,18 +6,19 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	eventTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/events"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmoshub"
-	cosmoshubTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmoshub"
 	osmosisTypes "github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
-var beginBlockerEventTypeHandlers = map[string][]func() eventTypes.CosmosEvent{}
-var endBlockerEventTypeHandlers = map[string][]func() eventTypes.CosmosEvent{}
+var (
+	beginBlockerEventTypeHandlers = map[string][]func() eventTypes.CosmosEvent{}
+	endBlockerEventTypeHandlers   = map[string][]func() eventTypes.CosmosEvent{}
+)
 
 func ChainSpecificEndBlockerEventTypeHandlerBootstrap(chainID string) {
 	var chainSpecificEndBlockerEventTypeHandler map[string][]func() eventTypes.CosmosEvent
 	if chainID == cosmoshub.ChainID {
-		chainSpecificEndBlockerEventTypeHandler = cosmoshubTypes.EndBlockerEventTypeHandlers
+		chainSpecificEndBlockerEventTypeHandler = cosmoshub.EndBlockerEventTypeHandlers
 	}
 	for key, value := range chainSpecificEndBlockerEventTypeHandler {
 		if list, ok := endBlockerEventTypeHandlers[key]; ok {
@@ -60,7 +61,7 @@ func ProcessRPCBlockEvents(blockResults *ctypes.ResultBlockResults) ([]eventType
 					config.Log.Debug(fmt.Sprintf("[Block: %v] Cosmos Block EndBlocker event of known type: %s. Handler failed", blockResults.Height, event.Type), err)
 					continue
 				}
-				var relevantData = cosmosEventHandler.ParseRelevantData()
+				relevantData := cosmosEventHandler.ParseRelevantData()
 
 				taxableEvents = append(taxableEvents, relevantData...)
 
@@ -70,7 +71,7 @@ func ProcessRPCBlockEvents(blockResults *ctypes.ResultBlockResults) ([]eventType
 
 			// If err is not nil here, all handlers failed
 			if err != nil {
-				return nil, fmt.Errorf("Could not handle event type %s, all handlers failed", event.Type)
+				return nil, fmt.Errorf("could not handle event type %s, all handlers failed", event.Type)
 			}
 		}
 	}
@@ -91,7 +92,7 @@ func ProcessRPCBlockEvents(blockResults *ctypes.ResultBlockResults) ([]eventType
 					config.Log.Debug(fmt.Sprintf("[Block: %v] Cosmos Block EndBlocker event of known type: %s. Handler failed", blockResults.Height, event.Type), err)
 					continue
 				}
-				var relevantData = cosmosEventHandler.ParseRelevantData()
+				relevantData := cosmosEventHandler.ParseRelevantData()
 
 				taxableEvents = append(taxableEvents, relevantData...)
 
@@ -101,7 +102,7 @@ func ProcessRPCBlockEvents(blockResults *ctypes.ResultBlockResults) ([]eventType
 
 			// If err is not nil here, all handlers failed
 			if err != nil {
-				return nil, fmt.Errorf("Could not handle event type %s, all handlers failed", event.Type)
+				return nil, fmt.Errorf("could not handle event type %s, all handlers failed", event.Type)
 			}
 		}
 	}

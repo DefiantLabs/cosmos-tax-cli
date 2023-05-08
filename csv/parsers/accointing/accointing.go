@@ -151,8 +151,10 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parser
 }
 
 func (p Parser) GetHeaders() []string {
-	return []string{"transactionType", "date", "inBuyAmount", "inBuyAsset", "outSellAmount", "outSellAsset",
-		"feeAmount (optional)", "feeAsset (optional)", "classification (optional)", "operationId (optional)", "comments (optional)"}
+	return []string{
+		"transactionType", "date", "inBuyAmount", "inBuyAsset", "outSellAmount", "outSellAsset",
+		"feeAmount (optional)", "feeAsset (optional)", "classification (optional)", "operationId (optional)", "comments (optional)",
+	}
 }
 
 // HandleFees:
