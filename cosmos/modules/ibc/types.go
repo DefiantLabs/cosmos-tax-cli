@@ -145,5 +145,4 @@ func (w *WrapperMsgRecvPacket) String() string {
 		return fmt.Sprintf("MsgRecvPacket: IBC transfer from %s to %s did not include an amount\n", w.SenderAddress, w.ReceiverAddress)
 	}
 	return fmt.Sprintf("MsgRecvPacket: IBC transfer of %s from %s to %s\n", w.Amount, w.SenderAddress, w.ReceiverAddress)
-
 }

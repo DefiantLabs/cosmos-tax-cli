@@ -444,15 +444,14 @@ func ProcessTx(db *gorm.DB, tx txtypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 							taxableTxs[i].TaxableTx.AmountReceived = util.ToNumeric(v.AmountReceived)
 						}
 
-						var denomSent dbTypes.Denom
 						if v.DenominationSent != "" {
-							denomSent, err = dbTypes.GetDenomForBase(v.DenominationSent)
+							denomSent, err := getDenom(v.DenominationSent)
 							if err != nil {
 								// attempt to add missing denoms to the database
-								config.Log.Warnf("Denom lookup failed. Will be inserted as UNKNOWN. Denom Received: %v. Err: %v", v.DenominationSent, err)
-								denomSent, err = dbTypes.AddUnknownDenom(db, v.DenominationSent)
+								config.Log.Warnf("Denom lookup failed. Will be inserted as UNKNOWN. Denom Sent: %v. Err: %v", denomSent.Base, err)
+								denomSent, err = dbTypes.AddUnknownDenom(db, denomSent.Base)
 								if err != nil {
-									config.Log.Error(fmt.Sprintf("There was an error adding a missing denom. Denom sent: %v", v.DenominationSent), err)
+									config.Log.Error(fmt.Sprintf("There was an error adding a missing denom. Denom sent: %v", denomSent.Base), err)
 									return txDBWapper, txTime, err
 								}
 							}
@@ -460,18 +459,18 @@ func ProcessTx(db *gorm.DB, tx txtypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 							taxableTxs[i].TaxableTx.DenominationSent = denomSent
 						}
 
-						var denomReceived dbTypes.Denom
 						if v.DenominationReceived != "" {
-							denomReceived, err = dbTypes.GetDenomForBase(v.DenominationReceived)
+							denomReceived, err := getDenom(v.DenominationReceived)
 							if err != nil {
 								// attempt to add missing denoms to the database
-								config.Log.Warnf("Denom lookup failed. Will be inserted as UNKNOWN. Denom Received: %v. Err: %v", v.DenominationReceived, err)
-								denomReceived, err = dbTypes.AddUnknownDenom(db, v.DenominationReceived)
+								config.Log.Warnf("Denom lookup failed. Will be inserted as UNKNOWN. Denom Received: %v. Err: %v", denomReceived.Base, err)
+								denomReceived, err = dbTypes.AddUnknownDenom(db, denomReceived.Base)
 								if err != nil {
-									config.Log.Error(fmt.Sprintf("There was an error adding a missing denom. Denom received: %v", v.DenominationReceived), err)
+									config.Log.Error(fmt.Sprintf("There was an error adding a missing denom. Denom received: %v", denomReceived.Base), err)
 									return txDBWapper, txTime, err
 								}
 							}
+
 							taxableTxs[i].TaxableTx.DenominationReceived = denomReceived
 						}
 
@@ -571,20 +570,22 @@ func getDenom(denom string) (dbTypes.Denom, error) {
 	if strings.HasPrefix(denom, "ibc/") {
 		ibcDenom, err := dbTypes.GetIBCDenom(denom)
 		if err != nil {
-			config.Log.Error(fmt.Sprintf("IBC Denom lookup failed for  %s, err: %v", denom, err))
+			config.Log.Warnf("IBC Denom lookup failed for  %s, err: %v", denom, err)
 		} else {
 			denomSent, err = dbTypes.GetDenomForBase(ibcDenom.BaseDenom)
 			if err != nil {
-				config.Log.Error(fmt.Sprintf("Denom lookup failed for IBC base denom %s, err: %v", ibcDenom.BaseDenom, err))
+				config.Log.Warnf("Denom lookup failed for IBC base denom %s, err: %v", ibcDenom.BaseDenom, err)
+				return dbTypes.Denom{Base: ibcDenom.BaseDenom}, err
 			}
 		}
 	}
 
-	// if this is a native asset handle normally
-	if denomSent.Name == "" {
+	// if this is not an ibc denom trace or there was an issue querying the ibc denom trace in the other table,
+	// attempt to look up this denom in the regular Denom table
+	if denomSent.Base == "" {
 		denomSent, err = dbTypes.GetDenomForBase(denom)
 		if err != nil {
-			return dbTypes.Denom{}, err
+			return dbTypes.Denom{Base: denom}, err
 		}
 	}
 
