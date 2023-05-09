@@ -27,7 +27,7 @@ func TestOsmosisCsvForAddress(t *testing.T) {
 	}
 
 	addressRegex := OsmosisAddressRegex
-	addressPrefix := OsmosisAddressRegex
+	addressPrefix := OsmosisAddressPrefix
 	gorm, _ := dbSetup(addressRegex, addressPrefix)
 	address := "osmo14mmus5h7m6vkp0pteks8wawaj4wf3sx7fy3s2r" // local test key address
 	csvRows, headers, err := csv.ParseForAddress([]string{address}, nil, nil, gorm, "accointing", config)
