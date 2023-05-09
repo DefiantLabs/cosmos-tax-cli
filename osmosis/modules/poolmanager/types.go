@@ -80,10 +80,10 @@ func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, lo
 	// The last route in the hops gives the token out denom and pool ID for the final output
 	lastRoute := sf.OsmosisMsgSwapExactAmountIn.Routes[len(sf.OsmosisMsgSwapExactAmountIn.Routes)-1]
 	lastRouteDenom := lastRoute.TokenOutDenom
-	lastRoutePoolId := lastRoute.PoolId
+	lastRoutePoolID := lastRoute.PoolId
 
 	tokenOutStr := txModule.GetLastValueForAttribute("tokens_out", tokensSwappedEvt)
-	tokenOutPoolId := txModule.GetLastValueForAttribute("pool_id", tokensSwappedEvt)
+	tokenOutPoolID := txModule.GetLastValueForAttribute("pool_id", tokensSwappedEvt)
 
 	tokenOut, err := sdk.ParseCoinNormalized(tokenOutStr)
 	if err != nil {
@@ -91,7 +91,7 @@ func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, lo
 	}
 
 	// Sanity check last route swap
-	if tokenOut.Denom != lastRouteDenom || strconv.FormatUint(lastRoutePoolId, 10) != tokenOutPoolId {
+	if tokenOut.Denom != lastRouteDenom || strconv.FormatUint(lastRoutePoolID, 10) != tokenOutPoolID {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 

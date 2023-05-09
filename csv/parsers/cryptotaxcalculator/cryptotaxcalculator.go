@@ -85,10 +85,9 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parser
 		if startDate != nil && firstToKeep == nil {
 			if cryptoRows[i].Date.Before(*startDate) {
 				continue
-			} else {
-				startIdx := i
-				firstToKeep = &startIdx
 			}
+			startIdx := i
+			firstToKeep = &startIdx
 		} else if endDate != nil && lastToKeep == nil {
 			if cryptoRows[i].Date.Before(*endDate) {
 				continue

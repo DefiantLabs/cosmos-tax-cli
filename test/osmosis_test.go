@@ -32,8 +32,8 @@ func TestGetRewardsForAddress(t *testing.T) {
 		order by a.amount desc limit 5
 	*/
 
-	addressRegex := "osmo(valoper)?1[a-z0-9]{38}"
-	addressPrefix := "osmo"
+	addressRegex := OsmosisAddressRegex
+	addressPrefix := OsmosisAddressPrefix
 	gorm, err := dbSetup(addressRegex, addressPrefix)
 	if err != nil {
 		t.Fail()
@@ -63,8 +63,8 @@ func TestGetRewardsForAddress(t *testing.T) {
 }
 
 func TestGetOsmosisRewardIndex(t *testing.T) {
-	addressRegex := "osmo(valoper)?1[a-z0-9]{38}"
-	addressPrefix := "osmo"
+	addressRegex := OsmosisAddressRegex
+	addressPrefix := OsmosisAddressPrefix
 	gorm, err := dbSetup(addressRegex, addressPrefix)
 	if err != nil {
 		t.Fail()
@@ -82,8 +82,8 @@ func TestGetOsmosisRewardIndex(t *testing.T) {
 }
 
 func TestInsertOsmosisRewards(t *testing.T) {
-	addressRegex := "osmo(valoper)?1[a-z0-9]{38}"
-	addressPrefix := "osmo"
+	addressRegex := OsmosisAddressRegex
+	addressPrefix := OsmosisAddressPrefix
 	gorm, err := dbSetup(addressRegex, addressPrefix)
 	if err != nil {
 		t.Fail()
