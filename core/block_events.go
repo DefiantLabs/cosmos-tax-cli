@@ -53,7 +53,7 @@ func ProcessRPCBlockEvents(blockResults *ctypes.ResultBlockResults) ([]eventType
 				continue
 			}
 
-			var err error = nil
+			var err error
 			for _, handler := range handlers {
 				cosmosEventHandler := handler()
 				err = cosmosEventHandler.HandleEvent(event.Type, event)
@@ -84,7 +84,7 @@ func ProcessRPCBlockEvents(blockResults *ctypes.ResultBlockResults) ([]eventType
 				continue
 			}
 
-			var err error = nil
+			var err error
 			for _, handler := range handlers {
 				cosmosEventHandler := handler()
 				err = cosmosEventHandler.HandleEvent(event.Type, event)

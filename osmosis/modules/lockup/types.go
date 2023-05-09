@@ -6,5 +6,5 @@ const (
 	MsgLockTokens        = "/osmosis.lockup.MsgLockTokens" // nolint:gosec
 	MsgBeginUnlockingAll = "/osmosis.lockup.MsgBeginUnlockingAll"
 	MsgUnlockPeriodLock  = "/osmosis.lockup.MsgUnlockPeriodLock"
-	MsgUnlockTokens      = "/osmosis.lockup.MsgUnlockTokens"
+	MsgUnlockTokens      = "/osmosis.lockup.MsgUnlockTokens" //nolint:gosec
 )

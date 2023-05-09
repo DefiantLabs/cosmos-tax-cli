@@ -508,7 +508,7 @@ func (idxr *Indexer) indexBlockEvents(wg *sync.WaitGroup, failedBlockHandler cor
 				config.Log.Fatal("Failed to insert failed block event", err)
 			}
 
-			currentHeight += 1
+			currentHeight++
 			if idxr.cfg.Base.Throttling != 0 {
 				time.Sleep(time.Second * time.Duration(idxr.cfg.Base.Throttling))
 			}
@@ -517,14 +517,14 @@ func (idxr *Indexer) indexBlockEvents(wg *sync.WaitGroup, failedBlockHandler cor
 
 		blockRelevantEvents, err := core.ProcessRPCBlockEvents(bresults)
 
-		if err != nil {
+		switch {
+		case err != nil:
 			failedBlockHandler(currentHeight, core.FailedBlockEventHandling, err)
-
 			err := dbTypes.UpsertFailedEventBlock(idxr.db, currentHeight, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
 			if err != nil {
 				config.Log.Fatal("Failed to insert failed block event", err)
 			}
-		} else if len(blockRelevantEvents) != 0 {
+		case len(blockRelevantEvents) != 0:
 			result, err := rpc.GetBlock(idxr.cl, bresults.Height)
 			if err != nil {
 				failedBlockHandler(currentHeight, core.FailedBlockEventHandling, err)
@@ -540,11 +540,11 @@ func (idxr *Indexer) indexBlockEvents(wg *sync.WaitGroup, failedBlockHandler cor
 					blockRelevantEvents: blockRelevantEvents,
 				}
 			}
-		} else {
+		default:
 			config.Log.Infof("Block %d has no relevant block events", bresults.Height)
 		}
 
-		currentHeight += 1
+		currentHeight++
 
 		// Sleep for a bit to allow new blocks to be written to the chain, this allows us to continue the indexer run indefinitely
 		if currentHeight > lastKnownBlockHeight {

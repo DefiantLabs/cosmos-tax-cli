@@ -9,6 +9,11 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
 )
 
+const (
+	OsmosisAddressRegex  = "osmo(valoper)?1[a-z0-9]{38}"
+	OsmosisAddressPrefix = "osmo"
+)
+
 // Example DB query to get TXs for address:
 /*
 select * from taxable_tx tx
@@ -21,8 +26,8 @@ func TestOsmosisCsvForAddress(t *testing.T) {
 		t.Fatalf("Error getting config. Err: %v", err)
 	}
 
-	addressRegex := "osmo(valoper)?1[a-z0-9]{38}"
-	addressPrefix := "osmo"
+	addressRegex := OsmosisAddressRegex
+	addressPrefix := OsmosisAddressRegex
 	gorm, _ := dbSetup(addressRegex, addressPrefix)
 	address := "osmo14mmus5h7m6vkp0pteks8wawaj4wf3sx7fy3s2r" // local test key address
 	csvRows, headers, err := csv.ParseForAddress([]string{address}, nil, nil, gorm, "accointing", config)

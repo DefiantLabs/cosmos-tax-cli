@@ -11,11 +11,16 @@ import (
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 )
 
+const (
+	EventAttributePoolID  = "pool_id"
+	EventAttributeSuccess = "success"
+)
+
 type WrapperBlockEventDepositToPool struct {
 	Event            abciTypes.Event
 	Address          string
 	AcceptedCoins    sdk.Coins
-	PoolId           string
+	PoolID           string
 	Success          string
 	PoolCoinReceived sdk.Coin
 }
@@ -26,7 +31,7 @@ type WrapperBlockEventSwapTransacted struct {
 	CoinSwappedOut sdk.Coin
 	Fees           sdk.Coins
 	Address        string
-	PoolId         string
+	PoolID         string
 	Success        string
 }
 
@@ -36,7 +41,7 @@ type WrapperBlockWithdrawFromPool struct {
 	PoolCoinSent  sdk.Coin
 	WithdrawCoins sdk.Coins
 	WithdrawFees  sdk.Coins
-	PoolId        string
+	PoolID        string
 	Success       string
 }
 
@@ -52,7 +57,7 @@ func (sf *WrapperBlockWithdrawFromPool) GetType() string {
 	return tendermintEvents.BlockEventWithdrawFromPool
 }
 
-func (sf *WrapperBlockEventDepositToPool) HandleEvent(eventType string, event abciTypes.Event) error {
+func (sf *WrapperBlockEventDepositToPool) HandleEvent(_ string, event abciTypes.Event) error {
 	sf.Event = event
 	var poolCoinAmount string
 	var poolCoinDenom string
@@ -66,10 +71,10 @@ func (sf *WrapperBlockEventDepositToPool) HandleEvent(eventType string, event ab
 				return err
 			}
 			sf.AcceptedCoins = acceptedCoins
-		case "success":
+		case EventAttributeSuccess:
 			sf.Success = string(attribute.Value)
-		case "pool_id":
-			sf.PoolId = string(attribute.Value)
+		case EventAttributePoolID:
+			sf.PoolID = string(attribute.Value)
 		case "pool_coin_amount":
 			poolCoinAmount = string(attribute.Value)
 		case "pool_coin_denom":
@@ -116,10 +121,10 @@ func (sf *WrapperBlockEventSwapTransacted) HandleEvent(eventType string, event a
 			offerCoinFeeAmount = string(attribute.Value)
 		case "exchanged_coin_fee_amount":
 			demandCoinFeeAmount = string(attribute.Value)
-		case "success":
+		case EventAttributeSuccess:
 			sf.Success = string(attribute.Value)
-		case "pool_id":
-			sf.PoolId = string(attribute.Value)
+		case EventAttributePoolID:
+			sf.PoolID = string(attribute.Value)
 		}
 	}
 
@@ -180,9 +185,9 @@ func (sf *WrapperBlockWithdrawFromPool) HandleEvent(eventType string, event abci
 			withdrawCoinsString = string(attribute.Value)
 		case "withdraw_fee_coins":
 			withdrawFeesString = string(attribute.Value)
-		case "pool_id":
-			sf.PoolId = string(attribute.Value)
-		case "success":
+		case EventAttributePoolID:
+			sf.PoolID = string(attribute.Value)
+		case EventAttributeSuccess:
 			sf.Success = string(attribute.Value)
 		}
 	}
@@ -293,11 +298,11 @@ func (sf *WrapperBlockWithdrawFromPool) ParseRelevantData() []events.EventReleva
 }
 
 func (sf *WrapperBlockEventDepositToPool) String() string {
-	return fmt.Sprintf("Tendermint Liquidity event %s: Address %s deposited %s into pool %s and received %s with status %s", sf.GetType(), sf.Address, sf.AcceptedCoins, sf.PoolId, sf.PoolCoinReceived, sf.Success)
+	return fmt.Sprintf("Tendermint Liquidity event %s: Address %s deposited %s into pool %s and received %s with status %s", sf.GetType(), sf.Address, sf.AcceptedCoins, sf.PoolID, sf.PoolCoinReceived, sf.Success)
 }
 
 func (sf *WrapperBlockEventSwapTransacted) String() string {
-	return fmt.Sprintf("Tendermint Liquidity event %s: Address %s swapped %s into pool %s and received %s with status %s. Fees paid were %s", sf.GetType(), sf.Address, sf.CoinSwappedIn, sf.PoolId, sf.CoinSwappedOut, sf.Success, sf.Fees)
+	return fmt.Sprintf("Tendermint Liquidity event %s: Address %s swapped %s into pool %s and received %s with status %s. Fees paid were %s", sf.GetType(), sf.Address, sf.CoinSwappedIn, sf.PoolID, sf.CoinSwappedOut, sf.Success, sf.Fees)
 }
 
 func (sf *WrapperBlockWithdrawFromPool) String() string {
@@ -305,5 +310,5 @@ func (sf *WrapperBlockWithdrawFromPool) String() string {
 	if len(sf.WithdrawFees) != 0 {
 		feesPaidString = fmt.Sprintf("Fees paid were %s", sf.WithdrawFees)
 	}
-	return fmt.Sprintf("Tendermint Liquidity event %s: Address %s sent %s into pool %s and received %s with status %s. %s.", sf.GetType(), sf.Address, sf.PoolCoinSent, sf.PoolId, sf.WithdrawCoins, sf.Success, feesPaidString)
+	return fmt.Sprintf("Tendermint Liquidity event %s: Address %s sent %s into pool %s and received %s with status %s. %s.", sf.GetType(), sf.Address, sf.PoolCoinSent, sf.PoolID, sf.WithdrawCoins, sf.Success, feesPaidString)
 }
