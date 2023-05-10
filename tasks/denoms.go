@@ -148,3 +148,42 @@ func IBCDenomUpsertTask(apiHost string, db *gorm.DB) {
 	}
 	config.Log.Info("IBC Denom Metadata Update Complete")
 }
+
+func ValidateDenoms(db *gorm.DB) error {
+	config.Log.Info("Running post-update denom validations")
+	var denoms []dbTypes.Denom
+
+	// Find all denoms which are missing an entry in the denom_units table
+	// This is currently required due to a bug that was introduced by dropping the denom_units table without thinking fully through the consequences
+	// We may want to remove this at some point, since UNKNOWN denoms get a single denom_unit added during indexing already
+	res := db.Joins("LEFT JOIN denom_units ON denoms.id = denom_units.denom_id").Where("denom_units.denom_id IS NULL").Find(&denoms)
+
+	if res.Error != nil {
+		config.Log.Error("Error getting denoms in denom validator", res.Error)
+		return res.Error
+	}
+
+	if len(denoms) > 0 {
+		config.Log.Infof("Adding missing denom units for %d denoms", len(denoms))
+		err := db.Transaction(func(dbTransaction *gorm.DB) error {
+			for _, denom := range denoms {
+				var missingBaseDenomUnit = dbTypes.DenomUnit{DenomID: denom.ID, Name: denom.Base, Exponent: 0}
+				txRes := db.Create(&missingBaseDenomUnit)
+				if txRes.Error != nil {
+					return txRes.Error
+				}
+			}
+			return nil
+		})
+
+		if err != nil {
+			config.Log.Error("Error backfilling missing denom_units in validator", res.Error)
+			return err
+		}
+	} else {
+		config.Log.Info("All denoms have at least 1 corresponding denom_unit")
+	}
+
+	return nil
+
+}

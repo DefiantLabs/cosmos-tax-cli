@@ -50,4 +50,6 @@ func updateDenoms(cmd *cobra.Command, args []string) {
 	} else {
 		config.Log.Fatal("Please pass the flag --update-all or provide a chain-id in your application configuration")
 	}
+
+	tasks.ValidateDenoms(db)
 }
