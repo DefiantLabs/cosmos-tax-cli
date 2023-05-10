@@ -167,7 +167,7 @@ func ValidateDenoms(db *gorm.DB) error {
 		config.Log.Infof("Adding missing denom units for %d denoms", len(denoms))
 		err := db.Transaction(func(dbTransaction *gorm.DB) error {
 			for _, denom := range denoms {
-				var missingBaseDenomUnit = dbTypes.DenomUnit{DenomID: denom.ID, Name: denom.Base, Exponent: 0}
+				missingBaseDenomUnit := dbTypes.DenomUnit{DenomID: denom.ID, Name: denom.Base, Exponent: 0}
 				txRes := db.Create(&missingBaseDenomUnit)
 				if txRes.Error != nil {
 					return txRes.Error
@@ -175,7 +175,6 @@ func ValidateDenoms(db *gorm.DB) error {
 			}
 			return nil
 		})
-
 		if err != nil {
 			config.Log.Error("Error backfilling missing denom_units in validator", res.Error)
 			return err
@@ -185,5 +184,4 @@ func ValidateDenoms(db *gorm.DB) error {
 	}
 
 	return nil
-
 }
