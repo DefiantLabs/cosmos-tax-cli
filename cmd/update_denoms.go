@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"log"
+	"os"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	"github.com/DefiantLabs/cosmos-tax-cli/tasks"
@@ -50,5 +51,12 @@ func updateDenoms(cmd *cobra.Command, args []string) {
 		}
 	default:
 		config.Log.Fatal("Please pass the flag --update-all or provide a chain-id in your application configuration")
+	}
+
+	err = tasks.ValidateDenoms(db)
+
+	if err != nil {
+		config.Log.Error("Error running post-validation for update-denoms")
+		os.Exit(1)
 	}
 }
