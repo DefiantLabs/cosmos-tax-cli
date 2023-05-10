@@ -37,7 +37,7 @@ func init() {
 
 	for _, asset := range assetList.Assets {
 		// Required format for koinly IDs is ID:<val>
-		symbolsToKoinlyIds[asset.Symbol] = fmt.Sprintf("ID:%s", asset.KoinlyId)
+		symbolsToKoinlyIds[asset.Symbol] = fmt.Sprintf("ID:%s", asset.KoinlyID)
 	}
 }
 
@@ -157,10 +157,9 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parser
 			}
 			if rowDate.Before(*startDate) {
 				continue
-			} else {
-				startIdx := i
-				firstToKeep = &startIdx
 			}
+			startIdx := i
+			firstToKeep = &startIdx
 		} else if endDate != nil && lastToKeep == nil {
 			rowDate, err := time.Parse(TimeLayout, koinlyRows[i].Date)
 			if err != nil {

@@ -113,10 +113,9 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parser
 			}
 			if rowDate.Before(*startDate) {
 				continue
-			} else {
-				startIdx := i
-				firstToKeep = &startIdx
 			}
+			startIdx := i
+			firstToKeep = &startIdx
 		} else if endDate != nil && lastToKeep == nil {
 			rowDate, err := time.Parse(TimeLayout, taxbitRows[i].Date)
 			if err != nil {

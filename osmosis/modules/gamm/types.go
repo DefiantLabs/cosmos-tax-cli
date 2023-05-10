@@ -444,7 +444,7 @@ func (sf *WrapperMsgSwapExactAmountIn3) HandleMsg(msgType string, msg sdk.Msg, l
 
 	// First sender should be the address that conducted the swap
 	firstSender := txModule.GetNthValueForAttribute("sender", 1, tokensTransferredEvt)
-	firstAmount := txModule.GetNthValueForAttribute("amount", 1, tokensTransferredEvt)
+	firstAmount := txModule.GetNthValueForAttribute(EventAttributeAmount, 1, tokensTransferredEvt)
 
 	if firstSender != msgSender {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
@@ -455,7 +455,7 @@ func (sf *WrapperMsgSwapExactAmountIn3) HandleMsg(msgType string, msg sdk.Msg, l
 	sf.Address = msgSender
 
 	secondReceiver := txModule.GetNthValueForAttribute("recipient", 2, tokensTransferredEvt)
-	secondAmount := txModule.GetNthValueForAttribute("amount", 2, tokensTransferredEvt)
+	secondAmount := txModule.GetNthValueForAttribute(EventAttributeAmount, 2, tokensTransferredEvt)
 
 	if secondReceiver != msgSender {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
@@ -508,7 +508,7 @@ func (sf *WrapperMsgSwapExactAmountIn4) HandleMsg(msgType string, msg sdk.Msg, l
 
 	// First sender should be the address that conducted the swap
 	firstSender := txModule.GetNthValueForAttribute("sender", 1, tokensTransferredEvt)
-	firstAmount := txModule.GetNthValueForAttribute("amount", 1, tokensTransferredEvt)
+	firstAmount := txModule.GetNthValueForAttribute(EventAttributeAmount, 1, tokensTransferredEvt)
 
 	if firstSender != msgSender {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
@@ -519,7 +519,7 @@ func (sf *WrapperMsgSwapExactAmountIn4) HandleMsg(msgType string, msg sdk.Msg, l
 	sf.Address = msgSender
 
 	lastReceiver := txModule.GetLastValueForAttribute("recipient", tokensTransferredEvt)
-	lastAmount := txModule.GetLastValueForAttribute("amount", tokensTransferredEvt)
+	lastAmount := txModule.GetLastValueForAttribute(EventAttributeAmount, tokensTransferredEvt)
 
 	if lastReceiver != msgSender {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
@@ -569,7 +569,7 @@ func (sf *WrapperMsgSwapExactAmountOut) HandleMsg(msgType string, msg sdk.Msg, l
 
 		for _, evt := range transferEvt.Attributes {
 			// Get the first amount that matches the token in denom
-			if evt.Key == "amount" {
+			if evt.Key == EventAttributeAmount {
 				tokenIn, err := sdk.ParseCoinNormalized(evt.Value)
 				if err != nil {
 					return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
@@ -589,7 +589,7 @@ func (sf *WrapperMsgSwapExactAmountOut) HandleMsg(msgType string, msg sdk.Msg, l
 		}
 		sf.Address = senderReceiver
 
-		tokenOutStr := txModule.GetLastValueForAttribute("amount", transferEvt)
+		tokenOutStr := txModule.GetLastValueForAttribute(EventAttributeAmount, transferEvt)
 		tokenOut, err := sdk.ParseCoinNormalized(tokenOutStr)
 		if err != nil {
 			return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
@@ -646,7 +646,7 @@ func (sf *WrapperMsgJoinSwapExternAmountIn) HandleMsg(msgType string, msg sdk.Ms
 	}
 
 	// This gets the amount of GAMM tokens received
-	gammTokenInStr := txModule.GetValueForAttribute("amount", coinbaseEvt)
+	gammTokenInStr := txModule.GetValueForAttribute(EventAttributeAmount, coinbaseEvt)
 	if !strings.Contains(gammTokenInStr, "gamm") {
 		fmt.Println("Gamm token in string must contain gamm")
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
@@ -695,7 +695,7 @@ func (sf *WrapperMsgJoinSwapExternAmountIn2) HandleMsg(msgType string, msg sdk.M
 	// Loop backwards to find the GAMM out string
 	for i := len(transferEvt.Attributes) - 1; i >= 0; i-- {
 		attr := transferEvt.Attributes[i]
-		if attr.Key == "amount" && strings.Contains(attr.Value, "gamm") && strings.HasSuffix(attr.Value, fmt.Sprintf("/%d", sf.OsmosisMsgJoinSwapExternAmountIn.PoolId)) {
+		if attr.Key == EventAttributeAmount && strings.Contains(attr.Value, "gamm") && strings.HasSuffix(attr.Value, fmt.Sprintf("/%d", sf.OsmosisMsgJoinSwapExternAmountIn.PoolId)) {
 			// Verify the recipient of the gamm output is the sender of the message
 			if i-2 > -1 && transferEvt.Attributes[i-2].Key == "recipient" && transferEvt.Attributes[i-2].Value == sf.Address {
 				gammOutString = attr.Value
@@ -733,7 +733,7 @@ func (sf *WrapperMsgJoinSwapShareAmountOut) HandleMsg(msgType string, msg sdk.Ms
 	}
 
 	// This gets the amount of GAMM tokens received
-	gammTokenInStr := txModule.GetValueForAttribute("amount", coinbaseEvt)
+	gammTokenInStr := txModule.GetValueForAttribute(EventAttributeAmount, coinbaseEvt)
 	if !strings.Contains(gammTokenInStr, "gamm") {
 		fmt.Println("Gamm token in string must contain gamm")
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
@@ -788,7 +788,7 @@ func (sf *WrapperMsgJoinSwapShareAmountOut2) HandleMsg(msgType string, msg sdk.M
 	// Loop backwards to find the GAMM out string
 	for i := len(transferEvt.Attributes) - 1; i >= 0; i-- {
 		attr := transferEvt.Attributes[i]
-		if attr.Key == "amount" && strings.Contains(attr.Value, "gamm") && strings.HasSuffix(attr.Value, fmt.Sprintf("/%d", sf.OsmosisMsgJoinSwapShareAmountOut.PoolId)) {
+		if attr.Key == EventAttributeAmount && strings.Contains(attr.Value, "gamm") && strings.HasSuffix(attr.Value, fmt.Sprintf("/%d", sf.OsmosisMsgJoinSwapShareAmountOut.PoolId)) {
 			// Verify the recipient of the gamm output is the sender of the message
 			if i-2 > -1 && transferEvt.Attributes[i-2].Key == "recipient" && transferEvt.Attributes[i-2].Value == sf.OsmosisMsgJoinSwapShareAmountOut.Sender {
 				gammOutString = attr.Value
@@ -852,16 +852,16 @@ func (sf *WrapperMsgJoinPool) HandleMsg(msgType string, msg sdk.Msg, log *txModu
 	var gammTokenOutStr string
 	if strings.Contains(fmt.Sprint(log), "claim") {
 		// This gets the amount of the claim
-		claimStr := txModule.GetLastValueForAttribute("amount", transferEvt)
+		claimStr := txModule.GetLastValueForAttribute(EventAttributeAmount, transferEvt)
 		claimTokenOut, err := sdk.ParseCoinNormalized(claimStr)
 		if err != nil {
 			return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 		}
 		sf.Claim = &claimTokenOut
 
-		gammTokenOutStr = txModule.GetNthValueForAttribute("amount", 2, transferEvt)
+		gammTokenOutStr = txModule.GetNthValueForAttribute(EventAttributeAmount, 2, transferEvt)
 	} else {
-		gammTokenOutStr = txModule.GetLastValueForAttribute("amount", transferEvt)
+		gammTokenOutStr = txModule.GetLastValueForAttribute(EventAttributeAmount, transferEvt)
 	}
 	if !strings.Contains(gammTokenOutStr, "gamm") {
 		fmt.Println(gammTokenOutStr)
@@ -885,7 +885,7 @@ func (sf *WrapperMsgJoinPool) HandleMsg(msgType string, msg sdk.Msg, log *txModu
 		var tokensIn string
 		var sender string
 		for i, attr := range transferEvt.Attributes {
-			if attr.Key == "amount" && strings.Contains(attr.Value, ",") {
+			if attr.Key == EventAttributeAmount && strings.Contains(attr.Value, ",") {
 				tokensIn = attr.Value
 				// If we haven't found the sender yet, it will be the address that sent this non-gamm token
 				if i > 0 && transferEvt.Attributes[i-1].Key == "sender" && sf.OsmosisMsgJoinPool.Sender == transferEvt.Attributes[i-1].Value {
@@ -1085,7 +1085,7 @@ func (sf *WrapperMsgExitSwapShareAmountIn) HandleMsg(msgType string, msg sdk.Msg
 	}
 
 	// This gets the amount of GAMM exited with
-	gammTokenInStr := txModule.GetValueForAttribute("amount", burnEvt)
+	gammTokenInStr := txModule.GetValueForAttribute(EventAttributeAmount, burnEvt)
 	if !strings.Contains(gammTokenInStr, "gamm") {
 		fmt.Println("Gamm token in string must contain gamm")
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
@@ -1139,7 +1139,7 @@ func (sf *WrapperMsgExitSwapShareAmountIn2) HandleMsg(msgType string, msg sdk.Ms
 	}
 
 	// This gets the amount of GAMM exited with
-	gammTokenInStr := txModule.GetValueForAttribute("amount", burnEvt)
+	gammTokenInStr := txModule.GetValueForAttribute(EventAttributeAmount, burnEvt)
 	if !strings.Contains(gammTokenInStr, "gamm") {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
@@ -1177,9 +1177,9 @@ func (sf *WrapperMsgExitSwapShareAmountIn2) HandleMsg(msgType string, msg sdk.Ms
 	tokenSwappedEvents := txModule.GetAllEventsWithType(gammTypes.TypeEvtTokenSwapped, log)
 
 	// This is to handle multi-token pool exit swaps
-	for _, tokenSwappedEvent := range tokenSwappedEvents {
-		tokenSwappedIn := txModule.GetValueForAttribute(gammTypes.AttributeKeyTokensIn, &tokenSwappedEvent)
-		tokenSwappedOut := txModule.GetValueForAttribute(gammTypes.AttributeKeyTokensOut, &tokenSwappedEvent)
+	for i := range tokenSwappedEvents {
+		tokenSwappedIn := txModule.GetValueForAttribute(gammTypes.AttributeKeyTokensIn, &tokenSwappedEvents[i])
+		tokenSwappedOut := txModule.GetValueForAttribute(gammTypes.AttributeKeyTokensOut, &tokenSwappedEvents[i])
 		parsedTokensSwappedIn, err := sdk.ParseCoinNormalized(tokenSwappedIn)
 		if err != nil {
 			return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
@@ -1215,7 +1215,7 @@ func (sf *WrapperMsgExitSwapExternAmountOut) HandleMsg(msgType string, msg sdk.M
 	}
 
 	// This gets the amount of GAMM exited with
-	gammTokenInStr := txModule.GetValueForAttribute("amount", burnEvt)
+	gammTokenInStr := txModule.GetValueForAttribute(EventAttributeAmount, burnEvt)
 	if !strings.Contains(gammTokenInStr, "gamm") {
 		fmt.Println("Gamm token in string must contain gamm")
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
@@ -1269,7 +1269,7 @@ func (sf *WrapperMsgExitPool2) HandleMsg(msgType string, msg sdk.Msg, log *txMod
 	}
 
 	// This gets the amount of GAMM tokens sent
-	gammTokenOutStr := txModule.GetLastValueForAttribute("amount", transferEvt)
+	gammTokenOutStr := txModule.GetLastValueForAttribute(EventAttributeAmount, transferEvt)
 	if !strings.Contains(gammTokenOutStr, "gamm") {
 		fmt.Println("Gamm token out string must contain gamm")
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
@@ -1292,7 +1292,7 @@ func (sf *WrapperMsgExitPool2) HandleMsg(msgType string, msg sdk.Msg, log *txMod
 	}
 
 	// String value for the tokens out, which can be multiple
-	tokensOutString := txModule.GetNthValueForAttribute("amount", 1, transferEvt)
+	tokensOutString := txModule.GetNthValueForAttribute(EventAttributeAmount, 1, transferEvt)
 	if tokensOutString == "" {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
@@ -1322,7 +1322,7 @@ func (sf *WrapperMsgExitPool) HandleMsg(msgType string, msg sdk.Msg, log *txModu
 	}
 
 	// This gets the amount of GAMM tokens sent
-	gammTokenOutStr := txModule.GetLastValueForAttribute("amount", transverEvt)
+	gammTokenOutStr := txModule.GetLastValueForAttribute(EventAttributeAmount, transverEvt)
 	if !strings.Contains(gammTokenOutStr, "gamm") {
 		fmt.Println("Gamm token out string must contain gamm")
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}

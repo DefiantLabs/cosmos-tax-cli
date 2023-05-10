@@ -326,11 +326,11 @@ func UpsertDenoms(db *gorm.DB, denoms []DenomDBWrapper) error {
 
 func UpsertIBCDenoms(db *gorm.DB, denoms []IBCDenom) error {
 	return db.Transaction(func(dbTransaction *gorm.DB) error {
-		for _, denom := range denoms {
+		for i := range denoms {
 			if err := dbTransaction.Clauses(clause.OnConflict{
 				Columns:   []clause.Column{{Name: "hash"}},
 				DoUpdates: clause.AssignmentColumns([]string{"path", "base_denom"}),
-			}).Create(&denom).Error; err != nil {
+			}).Create(&denoms[i]).Error; err != nil {
 				return err
 			}
 		}

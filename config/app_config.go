@@ -188,7 +188,7 @@ func MergeConfigs(def Config, overide Config) Config {
 	return overide
 }
 
-func CheckSuperfluousConfigKeys(keys []string) (ignoredKeys []string) {
+func CheckSuperfluousConfigKeys(keys []string) []string {
 	validKeys := make(map[string]struct{})
 	// add DB keys
 	for _, key := range getValidConfigKeys(database{}) {
@@ -212,13 +212,14 @@ func CheckSuperfluousConfigKeys(keys []string) (ignoredKeys []string) {
 	}
 
 	// Check keys
+	ignoredKeys := make([]string, 0)
 	for _, key := range keys {
 		if _, ok := validKeys[key]; !ok {
 			ignoredKeys = append(ignoredKeys, key)
 		}
 	}
 
-	return
+	return ignoredKeys
 }
 
 func getValidConfigKeys(section any) (keys []string) {

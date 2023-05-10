@@ -8,7 +8,7 @@ import (
 
 func GetAssetList(url string) (AssetList, error) {
 	var assetList AssetList
-	resp, err := http.Get(url)
+	resp, err := http.Get(url) //nolint:gosec
 	if err != nil {
 		return assetList, err
 	}

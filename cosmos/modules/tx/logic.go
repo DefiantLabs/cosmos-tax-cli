@@ -7,6 +7,8 @@ import (
 	"unicode"
 )
 
+const EventAttributeAmount = "amount"
+
 func GetMessageLogForIndex(logs []LogMessage, index int) *LogMessage {
 	for _, log := range logs {
 		if log.MessageIndex == index {
@@ -84,7 +86,7 @@ func ParseTransferEvent(evt LogMessageEvent) ([]TransferEvent, error) {
 			if attrAmountIdx < len(evt.Attributes) {
 				attrSender := evt.Attributes[attrSenderIdx]
 				attrAmount := evt.Attributes[attrAmountIdx]
-				if attrSender.Key == "sender" && attrAmount.Key == "amount" {
+				if attrSender.Key == "sender" && attrAmount.Key == EventAttributeAmount {
 					transfers = append(transfers, TransferEvent{
 						Recipient: attrRecipient.Value,
 						Sender:    attrSender.Value,
@@ -134,7 +136,7 @@ func GetCoinsSpent(spender string, evts []LogMessageEvent) []string {
 				attrAmountIdx := i + 1
 				if attrAmountIdx < len(evt.Attributes) {
 					attrNext := evt.Attributes[attrAmountIdx]
-					if attrNext.Key == "amount" {
+					if attrNext.Key == EventAttributeAmount {
 						commaSeperatedCoins := attrNext.Value
 						currentCoins := strings.Split(commaSeperatedCoins, ",")
 						for _, coin := range currentCoins {
@@ -165,7 +167,7 @@ func GetCoinsReceived(receiver string, evts []LogMessageEvent) []string {
 				attrAmountIdx := i + 1
 				if attrAmountIdx < len(evt.Attributes) {
 					attrNext := evt.Attributes[attrAmountIdx]
-					if attrNext.Key == "amount" {
+					if attrNext.Key == EventAttributeAmount {
 						commaSeperatedCoins := attrNext.Value
 						currentCoins := strings.Split(commaSeperatedCoins, ",")
 						for _, coin := range currentCoins {

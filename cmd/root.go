@@ -110,11 +110,12 @@ func initConfig() {
 	var noConfig bool
 	err := v.ReadInConfig()
 	if err != nil {
-		if strings.Contains(err.Error(), "Config File \"config\" Not Found") {
+		switch {
+		case strings.Contains(err.Error(), "Config File \"config\" Not Found"):
 			noConfig = true
-		} else if strings.Contains(err.Error(), "incomplete number") {
+		case strings.Contains(err.Error(), "incomplete number"):
 			log.Fatalf("Failed to read config file %v. This usually means you forgot to wrap a string in quotes.", err)
-		} else {
+		default:
 			log.Fatalf("Failed to read config file. Err: %v", err)
 		}
 	}
