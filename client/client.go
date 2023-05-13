@@ -241,7 +241,13 @@ func GetTaxableEventsCSV(c *gin.Context) {
 		return
 	}
 
-	buffer := csv.ToCsv(accountRows, headers)
+	buffer, err := csv.ToCsv(accountRows, headers)
+	if err != nil {
+		config.Log.Error("Error generating CSV", err)
+		c.AbortWithError(500, errors.New("error getting rows for address"))
+		return
+	}
+
 	c.Data(200, "text/csv", buffer.Bytes())
 }
 
