@@ -64,7 +64,7 @@ func (p *Parser) ProcessTaxableEvent(taxableEvents []db.TaxableEvent) error {
 	return nil
 }
 
-func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parsers.CsvRow {
+func (p *Parser) GetRows(address string, startDate, endDate *time.Time) ([]parsers.CsvRow, error) {
 	// Combine all normal rows and parser group rows into 1
 	cryptoRows := p.Rows // contains TX rows and fees as well as taxable events
 	for _, v := range p.ParsingGroups {
@@ -112,7 +112,7 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parser
 		csvRows[i] = v
 	}
 
-	return csvRows
+	return csvRows, nil
 }
 
 func (p Parser) GetHeaders() []string {

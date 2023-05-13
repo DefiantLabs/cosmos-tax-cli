@@ -44,7 +44,8 @@ func TestAccointingIbcMsgTransferSelf(t *testing.T) {
 	assert.Nil(t, err, "should not get error from parsing these transactions")
 
 	// validate output
-	rows := parser.GetRows(sourceAddress.Address, nil, nil)
+	rows, err := parser.GetRows(sourceAddress.Address, nil, nil)
+	assert.Nil(t, err, "should not get error from getting rows")
 	assert.Equalf(t, len(transferTxs), len(rows), "you should have one row for each transfer transaction ")
 	assert.Equal(t, transferTxs[0].Message.MessageType.MessageType, ibc.MsgTransfer, "message type should be an IBC transfer")
 
@@ -88,7 +89,8 @@ func TestAccointingIbcMsgTransferExternal(t *testing.T) {
 	assert.Nil(t, err, "should not get error from parsing these transactions")
 
 	// validate output
-	rows := parser.GetRows(sourceAddress.Address, nil, nil)
+	rows, err := parser.GetRows(sourceAddress.Address, nil, nil)
+	assert.Nil(t, err, "should not get error from getting rows")
 	assert.Equalf(t, len(transferTxs), len(rows), "you should have one row for each transfer transaction ")
 	assert.Equal(t, transferTxs[0].Message.MessageType.MessageType, ibc.MsgTransfer, "message type should be an IBC transfer")
 
@@ -119,7 +121,8 @@ func TestAccointingOsmoLPParsing(t *testing.T) {
 	assert.Nil(t, err, "should not get error from parsing these transactions")
 
 	// validate output
-	rows := parser.GetRows(targetAddress.Address, nil, nil)
+	rows, err := parser.GetRows(targetAddress.Address, nil, nil)
+	assert.Nil(t, err, "should not get error from getting rows")
 	assert.Equalf(t, len(transferTxs), len(rows), "you should have one row for each transfer transaction ")
 
 	// all transactions should be orders classified as liquidity_pool
@@ -154,7 +157,8 @@ func TestAccointingOsmoRewardParsing(t *testing.T) {
 	assert.Nil(t, err, "should not get error from parsing these transactions")
 
 	// validate output
-	rows := parser.GetRows(targetAddress.Address, nil, nil)
+	rows, err := parser.GetRows(targetAddress.Address, nil, nil)
+	assert.Nil(t, err, "should not get error from getting rows")
 	assert.Equalf(t, len(taxableEvents), len(rows), "you should have one row for each transfer transaction ")
 
 	// all transactions should be orders classified as liquidity_pool

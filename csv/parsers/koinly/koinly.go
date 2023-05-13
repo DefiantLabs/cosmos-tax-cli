@@ -103,7 +103,7 @@ func (p *Parser) InitializeParsingGroups() {
 	p.ParsingGroups = append(p.ParsingGroups, parsers.GetOsmosisTxParsingGroups()...)
 }
 
-func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parsers.CsvRow {
+func (p *Parser) GetRows(address string, startDate, endDate *time.Time) ([]parsers.CsvRow, error) {
 	// Combine all normal rows and parser group rows into 1
 	koinlyRows := p.Rows // contains TX rows and fees as well as taxable events
 	for _, v := range p.ParsingGroups {
@@ -153,7 +153,8 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parser
 		if startDate != nil && firstToKeep == nil {
 			rowDate, err := time.Parse(TimeLayout, koinlyRows[i].Date)
 			if err != nil {
-				config.Log.Fatal("Error parsing row date.", err)
+				config.Log.Error("Error parsing row date.", err)
+				return nil, err
 			}
 			if rowDate.Before(*startDate) {
 				continue
@@ -163,7 +164,8 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parser
 		} else if endDate != nil && lastToKeep == nil {
 			rowDate, err := time.Parse(TimeLayout, koinlyRows[i].Date)
 			if err != nil {
-				config.Log.Fatal("Error parsing row date.", err)
+				config.Log.Error("Error parsing row date.", err)
+				return nil, err
 			}
 			if rowDate.Before(*endDate) {
 				continue
@@ -196,7 +198,7 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) []parser
 
 		csvRows[i] = v
 	}
-	return csvRows
+	return csvRows, nil
 }
 
 // mapUnsupportedCoints will create a map of unsupported coins to be replaced with NULL
