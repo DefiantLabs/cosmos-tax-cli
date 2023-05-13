@@ -150,42 +150,50 @@ func ParseEvent(event db.TaxableEvent) (rows []Row) {
 
 func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.CsvRow, err error) {
 	for _, event := range events {
+		var newRow Row
+		var err error = nil
 		switch event.Message.MessageType.MessageType {
 		case bank.MsgSendV0:
-			rows = append(rows, ParseMsgSend(address, event))
+			newRow, err = ParseMsgSend(address, event)
 		case bank.MsgSend:
-			rows = append(rows, ParseMsgSend(address, event))
+			newRow, err = ParseMsgSend(address, event)
 		case bank.MsgMultiSendV0:
-			rows = append(rows, ParseMsgMultiSend(address, event))
+			newRow, err = ParseMsgMultiSend(address, event)
 		case bank.MsgMultiSend:
-			rows = append(rows, ParseMsgMultiSend(address, event))
+			newRow, err = ParseMsgMultiSend(address, event)
 		case distribution.MsgFundCommunityPool:
-			rows = append(rows, ParseMsgFundCommunityPool(address, event))
+			newRow, err = ParseMsgFundCommunityPool(address, event)
 		case distribution.MsgWithdrawValidatorCommission:
-			rows = append(rows, ParseMsgWithdrawValidatorCommission(address, event))
+			newRow, err = ParseMsgWithdrawValidatorCommission(address, event)
 		case distribution.MsgWithdrawRewards:
-			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
+			newRow, err = ParseMsgWithdrawDelegatorReward(address, event)
 		case distribution.MsgWithdrawDelegatorReward:
-			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
+			newRow, err = ParseMsgWithdrawDelegatorReward(address, event)
 		case staking.MsgDelegate:
-			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
+			newRow, err = ParseMsgWithdrawDelegatorReward(address, event)
 		case staking.MsgUndelegate:
-			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
+			newRow, err = ParseMsgWithdrawDelegatorReward(address, event)
 		case staking.MsgBeginRedelegate:
-			rows = append(rows, ParseMsgWithdrawDelegatorReward(address, event))
+			newRow, err = ParseMsgWithdrawDelegatorReward(address, event)
 		case gamm.MsgSwapExactAmountIn:
-			rows = append(rows, ParseMsgSwapExactAmountIn(address, event))
+			newRow, err = ParseMsgSwapExactAmountIn(address, event)
 		case gamm.MsgSwapExactAmountOut:
-			rows = append(rows, ParseMsgSwapExactAmountOut(address, event))
+			newRow, err = ParseMsgSwapExactAmountOut(address, event)
 		case gov.MsgSubmitProposal:
-			rows = append(rows, ParseMsgSubmitProposal(address, event))
+			newRow, err = ParseMsgSubmitProposal(address, event)
 		case gov.MsgDeposit:
-			rows = append(rows, ParseMsgDeposit(address, event))
+			newRow, err = ParseMsgDeposit(address, event)
 		case ibc.MsgTransfer:
-			rows = append(rows, ParseMsgTransfer(address, event))
+			newRow, err = ParseMsgTransfer(address, event)
 		default:
 			return nil, fmt.Errorf("no parser for message type '%v'", event.Message.MessageType.MessageType)
 		}
+
+		if err != nil {
+			return nil, fmt.Errorf("error parsing message type '%v'", event.Message.MessageType.MessageType)
+		}
+
+		rows = append(rows, newRow)
 	}
 	return rows, nil
 }
@@ -193,80 +201,80 @@ func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.Csv
 // ParseMsgSend:
 // If the address we searched is the receiver, then this transaction is a deposit.
 // If the address we searched is the sender, then this transaction is a withdrawal.
-func ParseMsgSend(address string, event db.TaxableTransaction) Row {
+func ParseMsgSend(address string, event db.TaxableTransaction) (Row, error) {
 	row := &Row{}
 	err := row.ParseBasic(address, event)
 	if err != nil {
-		config.Log.Fatal("Error with ParseMsgSend.", err)
+		config.Log.Error("Error with ParseMsgSend.", err)
 	}
-	return *row
+	return *row, err
 }
 
-func ParseMsgMultiSend(address string, event db.TaxableTransaction) Row {
+func ParseMsgMultiSend(address string, event db.TaxableTransaction) (Row, error) {
 	row := &Row{}
 	err := row.ParseBasic(address, event)
 	if err != nil {
-		config.Log.Fatal("Error with ParseMsgMultiSend.", err)
+		config.Log.Error("Error with ParseMsgMultiSend.", err)
 	}
-	return *row
+	return *row, err
 }
 
 // ParseMsgValidatorWithdraw:
 // This transaction is always a withdrawal.
-func ParseMsgWithdrawValidatorCommission(address string, event db.TaxableTransaction) Row {
+func ParseMsgWithdrawValidatorCommission(address string, event db.TaxableTransaction) (Row, error) {
 	row := &Row{}
 	err := row.ParseBasic(address, event)
 	if err != nil {
-		config.Log.Fatal("Error with ParseMsgWithdrawValidatorCommission.", err)
+		config.Log.Error("Error with ParseMsgWithdrawValidatorCommission.", err)
 	}
 	// row.Label = Unstake
-	return *row
+	return *row, err
 }
 
-func ParseMsgWithdrawDelegatorReward(address string, event db.TaxableTransaction) Row {
+func ParseMsgWithdrawDelegatorReward(address string, event db.TaxableTransaction) (Row, error) {
 	row := &Row{}
 	err := row.ParseBasic(address, event)
 	if err != nil {
-		config.Log.Fatal("Error with ParseMsgWithdrawDelegatorReward.", err)
+		config.Log.Error("Error with ParseMsgWithdrawDelegatorReward.", err)
 	}
 	// row.Label = Unstake
-	return *row
+	return *row, err
 }
 
-func ParseMsgFundCommunityPool(address string, event db.TaxableTransaction) Row {
+func ParseMsgFundCommunityPool(address string, event db.TaxableTransaction) (Row, error) {
 	row := &Row{}
 	err := row.ParseBasic(address, event)
 	if err != nil {
-		config.Log.Fatal("Error with ParseMsgFundCommunityPool.", err)
+		config.Log.Error("Error with ParseMsgFundCommunityPool.", err)
 	}
-	return *row
+	return *row, err
 }
 
-func ParseMsgSubmitProposal(address string, event db.TaxableTransaction) Row {
+func ParseMsgSubmitProposal(address string, event db.TaxableTransaction) (Row, error) {
 	row := &Row{}
 	err := row.ParseBasic(address, event)
 	if err != nil {
-		config.Log.Fatal("Error with ParseMsgSubmitProposal.", err)
+		config.Log.Error("Error with ParseMsgSubmitProposal.", err)
 	}
-	return *row
+	return *row, err
 }
 
-func ParseMsgDeposit(address string, event db.TaxableTransaction) Row {
+func ParseMsgDeposit(address string, event db.TaxableTransaction) (Row, error) {
 	row := &Row{}
 	err := row.ParseBasic(address, event)
 	if err != nil {
-		config.Log.Fatal("Error with ParseMsgDeposit.", err)
+		config.Log.Error("Error with ParseMsgDeposit.", err)
 	}
-	return *row
+	return *row, err
 }
 
-func ParseMsgTransfer(address string, event db.TaxableTransaction) Row {
+func ParseMsgTransfer(address string, event db.TaxableTransaction) (Row, error) {
 	row := &Row{}
 	err := row.ParseBasic(address, event)
 	if err != nil {
-		config.Log.Fatal("Error with ParseMsgTransfer.", err)
+		config.Log.Error("Error with ParseMsgTransfer.", err)
 	}
-	return *row
+	return *row, err
 }
 
 func (p *Parser) InitializeParsingGroups() {
@@ -282,20 +290,20 @@ func ParseOsmosisReward(event db.TaxableEvent) (Row, error) {
 	return *row, err
 }
 
-func ParseMsgSwapExactAmountIn(address string, event db.TaxableTransaction) Row {
+func ParseMsgSwapExactAmountIn(address string, event db.TaxableTransaction) (Row, error) {
 	row := &Row{}
 	err := row.ParseSwap(event, address, Buy)
 	if err != nil {
-		config.Log.Fatal("Error with ParseMsgSwapExactAmountIn.", err)
+		config.Log.Error("Error with ParseMsgSwapExactAmountIn.", err)
 	}
-	return *row
+	return *row, err
 }
 
-func ParseMsgSwapExactAmountOut(address string, event db.TaxableTransaction) Row {
+func ParseMsgSwapExactAmountOut(address string, event db.TaxableTransaction) (Row, error) {
 	row := &Row{}
 	err := row.ParseSwap(event, address, Sell)
 	if err != nil {
-		config.Log.Fatal("Error with ParseMsgSwapExactAmountOut.", err)
+		config.Log.Error("Error with ParseMsgSwapExactAmountOut.", err)
 	}
-	return *row
+	return *row, err
 }
