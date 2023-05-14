@@ -35,7 +35,11 @@ func TestOsmosisCsvForAddress(t *testing.T) {
 		t.Fatal("Failed to lookup taxable events")
 	}
 
-	buffer := csv.ToCsv(csvRows, headers)
+	buffer, err := csv.ToCsv(csvRows, headers)
+	if err != nil {
+		t.Fatal("CSV writing should not result in error", err)
+	}
+
 	if len(buffer.Bytes()) == 0 {
 		t.Fatal("CSV length should never be 0, there are always headers!")
 	}
@@ -63,7 +67,10 @@ func TestCsvForAddress(t *testing.T) {
 		t.Fatal("Failed to lookup taxable events")
 	}
 
-	buffer := csv.ToCsv(csvRows, headers)
+	buffer, err := csv.ToCsv(csvRows, headers)
+	if err != nil {
+		t.Fatal("CSV writing should not result in error", err)
+	}
 	if len(buffer.Bytes()) == 0 {
 		t.Fatal("CSV length should never be 0, there are always headers!")
 	}

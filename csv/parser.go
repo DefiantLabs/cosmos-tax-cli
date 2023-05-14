@@ -81,7 +81,10 @@ func ParseForAddress(addresses []string, startDate, endDate *time.Time, pgSQL *g
 		}
 
 		// Get rows once right at the end, also filter them by date
-		rows := parser.GetRows(address, startDate, endDate)
+		rows, err := parser.GetRows(address, startDate, endDate)
+		if err != nil {
+			return nil, nil, err
+		}
 
 		csvRows = append(csvRows, rows...)
 		headers = parser.GetHeaders()

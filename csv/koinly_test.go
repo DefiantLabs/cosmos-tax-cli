@@ -29,7 +29,8 @@ func TestKoinlyOsmoLPParsing(t *testing.T) {
 	assert.Nil(t, err, "should not get error from parsing these transactions")
 
 	// validate output
-	rows := parser.GetRows(targetAddress.Address, nil, nil)
+	rows, err := parser.GetRows(targetAddress.Address, nil, nil)
+	assert.Nil(t, err, "should not get error from getting rows")
 	assert.Equalf(t, len(transferTxs), len(rows), "you should have one row for each transfer transaction ")
 
 	// all transactions should be orders classified as liquidity_pool
@@ -67,7 +68,8 @@ func TestKoinlyOsmoRewardParsing(t *testing.T) {
 	assert.Nil(t, err, "should not get error from parsing these transactions")
 
 	// validate output
-	rows := parser.GetRows(targetAddress.Address, nil, nil)
+	rows, err := parser.GetRows(targetAddress.Address, nil, nil)
+	assert.Nil(t, err, "should not get error from getting rows")
 	assert.Equalf(t, len(taxableEvents), len(rows), "you should have one row for each transfer transaction ")
 
 	// all transactions should be orders classified as liquidity_pool

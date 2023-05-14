@@ -76,7 +76,10 @@ var queryCmd = &cobra.Command{
 			config.Log.Fatal("Error calling parser for address", err)
 		}
 
-		buffer := csv.ToCsv(csvRows, headers)
+		buffer, err := csv.ToCsv(csvRows, headers)
+		if err != nil {
+			config.Log.Fatal("Error generating CSV", err)
+		}
 		fmt.Println(buffer.String())
 	},
 }
