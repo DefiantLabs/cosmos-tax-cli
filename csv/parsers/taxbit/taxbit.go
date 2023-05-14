@@ -218,7 +218,7 @@ func ParseEvent(event db.TaxableEvent) (rows []Row, err error) {
 func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.CsvRow, err error) {
 	for _, event := range events {
 		var newRow Row
-		var err error = nil
+		var err error
 		switch event.Message.MessageType.MessageType {
 		case bank.MsgSendV0:
 			newRow, err = ParseMsgSend(address, event)

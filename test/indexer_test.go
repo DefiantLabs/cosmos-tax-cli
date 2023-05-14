@@ -36,7 +36,6 @@ func TestOsmosisCsvForAddress(t *testing.T) {
 	}
 
 	buffer, err := csv.ToCsv(csvRows, headers)
-
 	if err != nil {
 		t.Fatal("CSV writing should not result in error", err)
 	}
