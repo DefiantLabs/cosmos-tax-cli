@@ -68,7 +68,11 @@ func (p *Parser) ProcessTaxableEvent(taxableEvents []db.TaxableEvent) error {
 	// Parse all the potentially taxable events
 	for _, event := range taxableEvents {
 		// generate the rows for the CSV.
-		p.Rows = append(p.Rows, ParseEvent(event)...)
+		rows, err := ParseEvent(event)
+		if err != nil {
+			return err
+		}
+		p.Rows = append(p.Rows, rows...)
 	}
 
 	return nil
@@ -195,16 +199,17 @@ func HandleFees(address string, events []db.TaxableTransaction) (rows []Row, err
 }
 
 // ParseEvent: Parse the potentially taxable event
-func ParseEvent(event db.TaxableEvent) (rows []Row) {
+func ParseEvent(event db.TaxableEvent) (rows []Row, err error) {
 	if event.Source == db.OsmosisRewardDistribution {
 		row, err := ParseOsmosisReward(event)
 		if err != nil {
-			config.Log.Fatal("error parsing row. Should be impossible to reach this condition, ideally (once all bugs worked out)", err)
+			config.Log.Error("error parsing row. Should be impossible to reach this condition, ideally (once all bugs worked out)", err)
+			return nil, err
 		}
 		rows = append(rows, row)
 	}
 
-	return rows
+	return rows, nil
 }
 
 // ParseTx: Parse the potentially taxable TX and Messages
@@ -363,7 +368,7 @@ func ParseOsmosisReward(event db.TaxableEvent) (Row, error) {
 	row := &Row{}
 	err := row.EventParseBasic(event)
 	if err != nil {
-		config.Log.Fatal("Error with ParseOsmosisReward.", err)
+		config.Log.Error("Error with ParseOsmosisReward.", err)
 	}
 	return *row, err
 }
