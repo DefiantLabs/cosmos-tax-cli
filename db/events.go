@@ -54,7 +54,15 @@ func IndexBlockEvents(db *gorm.DB, dryRun bool, blockHeight int64, blockTime tim
 	})
 
 	// insert events into DB in batches of batchSize
-	batchSize := 1000
+	batchSize := 10000
+	numItems := len(dbEvents)
+	currentIter := 1
+	numIters := 1
+
+	if batchSize < numItems {
+		numIters = (numItems / batchSize) + 1
+	}
+
 	for i := 0; i < len(dbEvents); i += batchSize {
 		batchEnd := i + batchSize
 		if batchEnd > len(dbEvents) {
@@ -69,12 +77,14 @@ func IndexBlockEvents(db *gorm.DB, dryRun bool, blockHeight int64, blockTime tim
 		}
 
 		if !dryRun {
+			config.Log.Infof("Sending %d block events to DB %d/%d", len(awaitingInsert), currentIter, numIters)
 			err := createTaxableEvents(db, awaitingInsert)
 			if err != nil {
 				config.Log.Error("Error storing DB events.", err)
 				return err
 			}
 		}
+		currentIter++
 	}
 
 	return nil
