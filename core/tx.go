@@ -50,7 +50,6 @@ var messageTypeHandler = map[string][]func() txtypes.CosmosMessage{
 	staking.MsgDelegate:                         {func() txtypes.CosmosMessage { return &staking.WrapperMsgDelegate{} }},
 	staking.MsgUndelegate:                       {func() txtypes.CosmosMessage { return &staking.WrapperMsgUndelegate{} }},
 	staking.MsgBeginRedelegate:                  {func() txtypes.CosmosMessage { return &staking.WrapperMsgBeginRedelegate{} }},
-	ibc.MsgTransfer:                             {func() txtypes.CosmosMessage { return &ibc.WrapperMsgTransfer{} }},
 	ibc.MsgRecvPacket:                           {func() txtypes.CosmosMessage { return &ibc.WrapperMsgRecvPacket{} }},
 	ibc.MsgAcknowledgement:                      {func() txtypes.CosmosMessage { return &ibc.WrapperMsgAcknowledgement{} }},
 }
@@ -70,6 +69,7 @@ var messageTypeIgnorer = map[string]interface{}{
 	// Voting is not taxable
 	gov.MsgVote: nil,
 	// The IBC msgs below do not create taxable events
+	ibc.MsgTransfer:              nil,
 	ibc.MsgUpdateClient:          nil,
 	ibc.MsgTimeout:               nil,
 	ibc.MsgTimeoutOnClose:        nil,
