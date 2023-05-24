@@ -14,9 +14,9 @@ import (
 const (
 	MsgRecvPacket      = "/ibc.core.channel.v1.MsgRecvPacket"
 	MsgAcknowledgement = "/ibc.core.channel.v1.MsgAcknowledgement"
-	MsgTransfer        = "/ibc.applications.transfer.v1.MsgTransfer"
 
 	// Explicitly ignored messages for tx parsing purposes
+	MsgTransfer           = "/ibc.applications.transfer.v1.MsgTransfer"
 	MsgChannelOpenTry     = "/ibc.core.channel.v1.MsgChannelOpenTry"
 	MsgChannelOpenConfirm = "/ibc.core.channel.v1.MsgChannelOpenConfirm"
 	MsgChannelOpenInit    = "/ibc.core.channel.v1.MsgChannelOpenInit"
