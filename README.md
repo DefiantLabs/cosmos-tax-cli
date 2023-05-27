@@ -5,7 +5,7 @@ The Cosmos Indexer is an open-source application designed to index a Cosmos chai
 In addition to indexing a chain, this tool also queries the indexed data to find all transactions associated with one or more addresses on a specific chain.
 
 **Watch our Tool Overview and How-To Videos:**
-- [Overview of Cosmos Indexer](https://studio.youtube.com/video/Vx3t8uCnHqE/edit)
+- [Overview of Cosmos Indexer](https://www.youtube.com/watch?v=Vx3t8uCnHqE)
 
 ## :star: Funding
 
@@ -77,9 +77,9 @@ The Database section defines the settings needed to connect to the database serv
 
 The Base section contains the core settings for the tool, such as API endpoints, block ranges, indexing behavior, and more.
 
-#### Probe
+#### Lens
 
-The probe section configures [probe](https://github.com/DefiantLabs/probe) used by the tool to read data from the blockchain. This is built into the application and doesn't need to be installed separately.
+The probe section configures [lens](https://github.com/DefiantLabs/lens) used by the tool to read data from the blockchain. This is built into the application and doesn't need to be installed separately.
 
 For detailed descriptions of each setting in these sections, please refer to the [Detailed Config Explanation](#detailed-config-explanation) section below.
 
@@ -90,6 +90,12 @@ This section provides an in-depth description of each setting available in the c
 # 📝 Supported Message Types
 
 During the chain indexing process, we parse individual messages to determine their significance. Certain messages, like **transfers**, carry tax implications, whereas others, such as **bonding/unbonding funds**, don't. Additionally, some message types have only partial support or are under active development, which safeguards the indexer from encountering errors when processing these types.
+
+The applications current data model is oriented toward indexing data with taxable implications. Transaction messages that imply the taxable sending or receiving of tokens are indexed according to this data model. While message types that do not imply taxable sends and receives skip this process, we do still index these message types in the following manner:
+
+1. All transactions are indexed along with the signer of the transaction
+2. Fees for every transaction are indexed, no matter the taxable implications
+3. All transaction messages with their type are indexed alongside the transaction they were executed in
 
 While we strive to expand our list of supported messages, we acknowledge that we do not yet cover every possible message across all chains. If you identify a missing or improperly handled message type, we encourage you to **open an issue or submit a PR**.
 
