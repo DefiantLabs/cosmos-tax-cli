@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
-	"github.com/DefiantLabs/lens/client"
-	lensQuery "github.com/DefiantLabs/lens/client/query"
+	"github.com/DefiantLabs/probe/client"
+	lensQuery "github.com/DefiantLabs/probe/query"
 	"github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -122,16 +122,12 @@ func GetJunoConfig(keyHome string, debug bool) *client.ChainClientConfig {
 		Key:            "default",
 		ChainID:        "testing",
 		RPCAddr:        "http://localhost:26657",
-		GRPCAddr:       "http://localhost:26657",
 		AccountPrefix:  "juno",
 		KeyringBackend: "test",
-		GasAdjustment:  1.2,
-		GasPrices:      "0ustake",
 		KeyDirectory:   keyHome,
 		Debug:          debug,
 		Timeout:        "10s",
 		OutputFormat:   "json",
-		SignModeStr:    "direct",
 		Modules:        client.ModuleBasics,
 	}
 }
@@ -142,16 +138,12 @@ func GetOsmosisConfig(keyHome string, debug bool) *client.ChainClientConfig {
 		Key:            "default",
 		ChainID:        "osmosis-1",
 		RPCAddr:        "https://osmosis-mainnet-archive.allthatnode.com:26657",
-		GRPCAddr:       "https://osmosis-mainnet-archive.allthatnode.com:26657",
 		AccountPrefix:  "osmo",
 		KeyringBackend: "test",
-		GasAdjustment:  1.2,
-		GasPrices:      "0uosmo",
 		KeyDirectory:   keyHome,
 		Debug:          debug,
 		Timeout:        "10s",
 		OutputFormat:   "json",
-		SignModeStr:    "direct",
 		Modules:        client.ModuleBasics,
 	}
 }

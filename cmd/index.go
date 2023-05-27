@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/DefiantLabs/lens/client"
+	"github.com/DefiantLabs/probe/client"
 	"github.com/go-co-op/gocron"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
@@ -20,8 +20,8 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 	"github.com/DefiantLabs/cosmos-tax-cli/rpc"
 	"github.com/DefiantLabs/cosmos-tax-cli/tasks"
+	ctypes "github.com/cometbft/cometbft/rpc/core/types"
 	"github.com/spf13/cobra"
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	"gorm.io/gorm"
 )

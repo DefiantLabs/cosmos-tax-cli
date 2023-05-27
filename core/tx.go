@@ -29,12 +29,12 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/superfluid"
 	"github.com/DefiantLabs/cosmos-tax-cli/tendermint/modules/liquidity"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
-	"github.com/DefiantLabs/lens/client"
+	"github.com/DefiantLabs/probe/client"
+	coretypes "github.com/cometbft/cometbft/rpc/core/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
 	cryptoTypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types"
 	cosmosTx "github.com/cosmos/cosmos-sdk/types/tx"
-	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 	"gorm.io/gorm"
 )
 
@@ -358,32 +358,6 @@ func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]db
 }
 
 var allSwaps = []gamm.ArbitrageTx{}
-
-func AnalyzeSwaps() {
-	earliestTime := time.Now()
-	latestTime := time.Now()
-	profit := 0.0
-	fmt.Printf("%d total uosmo arbitrage swaps\n", len(allSwaps))
-
-	for _, swap := range allSwaps {
-		if swap.TokenOut.Denom == "uosmo" && swap.TokenIn.Denom == "uosmo" {
-			amount := swap.TokenOut.Amount.Sub(swap.TokenIn.Amount)
-			if amount.GT(types.ZeroInt()) {
-				txProfit := amount.ToDec().Quo(types.NewDec(1000000)).MustFloat64()
-				profit += txProfit
-			}
-
-			if swap.BlockTime.Before(earliestTime) {
-				earliestTime = swap.BlockTime
-			}
-			if swap.BlockTime.After(latestTime) {
-				latestTime = swap.BlockTime
-			}
-		}
-	}
-
-	fmt.Printf("Profit (OSMO): %.10f, days: %f\n", profit, latestTime.Sub(earliestTime).Hours()/24)
-}
 
 func ProcessTx(db *gorm.DB, tx txtypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper, txTime time.Time, err error) {
 	txTime, err = time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)

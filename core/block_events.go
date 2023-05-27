@@ -7,7 +7,7 @@ import (
 	eventTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/events"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmoshub"
 	osmosisTypes "github.com/DefiantLabs/cosmos-tax-cli/osmosis"
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
+	ctypes "github.com/cometbft/cometbft/rpc/core/types"
 )
 
 var (

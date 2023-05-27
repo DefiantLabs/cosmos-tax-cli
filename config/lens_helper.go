@@ -1,8 +1,7 @@
 package config
 
 import (
-	lensClient "github.com/DefiantLabs/lens/client"
-	ibcTypes "github.com/cosmos/ibc-go/v4/modules/apps/transfer/types"
+	lensClient "github.com/DefiantLabs/probe/client"
 )
 
 func GetLensClient(conf lens) *lensClient.ChainClient {
@@ -14,30 +13,26 @@ func GetLensClient(conf lens) *lensClient.ChainClient {
 	if err != nil {
 		Log.Fatalf("Error connecting to chain. Err: %v", err)
 	}
-	RegisterAdditionalTypes(cl)
+	// RegisterAdditionalTypes(cl)
 	return cl
 }
 
-func RegisterAdditionalTypes(cc *lensClient.ChainClient) {
-	// Register IBC types
-	// ibcTypes.RegisterLegacyAminoCodec(cc.Codec.Amino)
-	ibcTypes.RegisterInterfaces(cc.Codec.InterfaceRegistry)
-}
+// func RegisterAdditionalTypes(cc *lensClient.ChainClient) {
+// 	// Register IBC types
+// 	// ibcTypes.RegisterLegacyAminoCodec(cc.Codec.Amino)
+// 	ibcTypes.RegisterInterfaces(cc.Codec.InterfaceRegistry)
+// }
 
 func GetLensConfig(conf lens, debug bool) *lensClient.ChainClientConfig {
 	return &lensClient.ChainClientConfig{
 		Key:            "default",
 		ChainID:        conf.ChainID,
 		RPCAddr:        conf.RPC,
-		GRPCAddr:       "UNSUPPORTED",
 		AccountPrefix:  conf.AccountPrefix,
 		KeyringBackend: "test",
-		GasAdjustment:  1.2,
-		GasPrices:      "0ustake",
 		Debug:          debug,
 		Timeout:        "10s",
 		OutputFormat:   "json",
-		SignModeStr:    "direct",
 		Modules:        lensClient.ModuleBasics,
 	}
 }

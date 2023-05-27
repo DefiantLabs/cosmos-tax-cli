@@ -7,8 +7,8 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/events"
 	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
 	osmosisEvents "github.com/DefiantLabs/cosmos-tax-cli/osmosis/events"
+	abciTypes "github.com/cometbft/cometbft/abci/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	abciTypes "github.com/tendermint/tendermint/abci/types"
 )
 
 type WrapperBlockDistribution struct {

@@ -1,10 +1,10 @@
 package rpc
 
 import (
-	coretypes "github.com/tendermint/tendermint/rpc/core/types"
+	coretypes "github.com/cometbft/cometbft/rpc/core/types"
 
-	lensClient "github.com/DefiantLabs/lens/client"
-	lensQuery "github.com/DefiantLabs/lens/client/query"
+	lensClient "github.com/DefiantLabs/probe/client"
+	lensQuery "github.com/DefiantLabs/probe/query"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	txTypes "github.com/cosmos/cosmos-sdk/types/tx"
 )
