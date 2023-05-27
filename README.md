@@ -1,386 +1,193 @@
-# Cosmos Tax CLI
+# Cosmos Indexer
 
-This application indexes a Cosmos chain to a standardized DB schema with the following goals in mind:
-* A generalized DB schema that could potentially work with all Cosmos SDK Chains
-* A focus on making it easy to correlate transactions with addresses and store relevant data
+The Cosmos Indexer is an open-source application designed to index a Cosmos chain to a generalized DB schema. Its mission is to offer a flexible DB schema compatible with all Cosmos SDK Chains while simplifying the correlation of transactions with addresses and storing relevant data.
 
-In addition to indexing a chain, this tool can also query the indexed data to find all transactions associated with
-one or more addresses on a given chain. This data can be returned in one of multiple formatted CSVs designed
-to integrate with tools for determining an individuals tax liability as a result of these transactions.
+In addition to indexing a chain, this tool also queries the indexed data to find all transactions associated with one or more addresses on a specific chain.
 
-This CLI tool for indexing and querying the chain is also accompanied by a webserver (found in the `client` directory)
-which can allow a frontend UI to request a CSV. Defiant has created its own version of this frontend which can be found
-[here](https://github.com/DefiantLabs/sycamore)
+**Watch our Tool Overview and How-To Videos:**
+- [Overview of Cosmos Indexer](https://studio.youtube.com/video/Vx3t8uCnHqE/edit)
 
-## Osmosis Quick Start
-Use our docker-compose file to see a quick example of how to run the indexer, db, web client, and ui.
-Edit start-block and end-block to be the osmosis block where you did a swap, or earned LP rewards.
+## :star: Funding
 
-Launch docker compose
+The development and evolution of Cosmos Indexer across versions v0.1.0, v0.2.0, and v0.3.0 were significantly supported by the **Interchain Foundation**, facilitated by **Strangelove-Ventures**. After December 31, 2022, all subsequent development has been self-funded by **Defiant Labs**, demonstrating our commitment to this project and its potential.
 
-```
+## :handshake: Integrations
+
+Applications like [Sycamore](https://app.sycamore.tax/) have been built on top of our Cosmos Indexer, showcasing its functionality and adaptability. If you're looking to integrate our indexer into your project, you can do so in the following ways:
+
+1. **Direct Indexing**: Directly index the chain data into your own Database.
+2. **API Usage**: Use our APIs to access the data and incorporate it into your service.
+3. **Custom**: Work with our experts for custom integrations. DM us on twitter [@defiantlabs](https://twitter.com/defiantlabs).
+
+This project is open-source, and we encourage developers to build upon our work, enhancing the Cosmos ecosystem.
+
+## Quick Start
+
+You can use our `docker-compose` file for a quick demo of how to run the indexer, DB, web client, and UI.
+
+```shell
 docker compose up
 ```
-
-Watch the output for the index.
-
-Click the link to the web server, and put in your address
-
-
+Keep an eye on the output for the index and access the web server through the provided link.
 
 ## Getting Started
-The typical workflow for using the tax CLI is to index the chain for a given period of time and persist this data
-in a database to allow multiple users to query for their data. This section will cover the end-to-end process of
-indexing and querying data.
 
-Note: While this readme includes up-to-date information about using the tool, the tool itself also contains some
-internal documentation. Running `go run main.go` without any arguments should display the help text for the application
-as well as a list of the flags that can be used. Additionally, calling any of the commands with the `--help` flag
-will display their help text.
+It's indexing time! Follow the steps below to get started.
 
 ### Prerequisites
-Before you can begin indexing a chain, you must first configure the applications dependencies.
+
+Before you can start indexing a chain, you need to set up the application's dependencies:
 
 #### PostgreSQL
-The app requires a postgresql server with an established database and an owner user/role with password login.
-A simple example for setting up a containerized database locally can be found [here](https://towardsdatascience.com/local-development-set-up-of-postgresql-with-docker-c022632f13ea).
+The application requires a PostgreSQL server with an established database and an owner user/role with password login. Here's a simple example of setting up a containerized database locally [here](https://towardsdatascience.com/local-development-set-up-of-postgresql-with-docker-c022632f13ea).
 
 #### Go
-The app is written and Go and you will need to build from source. This requires a system install of Go 1.19.
-Instruction for installing and configuring Go can be found [here](https://go.dev/doc/install).
-
-### Indexing
-At this point you should be ready to run the indexer. The indexer is what adds records to the Postgres DB and required
-in order to index all the data that one might want to query.
-
-To run the indexer, simply use the `index` command `go run main.go index --config {{PATH_TO_CONFIG}}` where `{{PATH_TO_CONFIG}}`
-is replaced with the path to a local config file used to configure the application. An example config file can be found
-[here](https://github.com/DefiantLabs/cosmos-tax-cli/blob/main/config.toml.example). For more information about
-the config file, as well as the CLI flags which can be used to override config settings, please refer to the more
-in-depth [config](#config) section below.
-
-**CMD help text**
-```
-$ go run main.go index --help
-Indexes the Cosmos-based blockchain according to the configurations found on the command line
-        or in the specified config file. Indexes taxable events into a database for easy querying. It is
-        highly recommended to keep this command running as a background service to keep your index up to date.
-
-Usage:
-  cosmos-tax-cli index [flags]
-
-Flags:
-  -h, --help                           help for index
-      --re-index-message-type string   If specified, the indexer will reindex only the blocks containing the message type provided.
-
-Global Flags:
-      --base.api string                     node api endpoint
-      --base.block-events-end-block int     block to stop indexing block events at (use -1 to index indefinitely
-      --base.block-events-start-block int   block to start indexing block events at
-      --base.block-timer int                print out how long it takes to process this many blocks (default 10000)
-      --base.dry                            index the chain but don't insert data in the DB.
-      --base.end-block int                  block to stop indexing at (use -1 to index indefinitely (default -1)
-      --base.exit-when-caught-up            mainly used for Osmosis rewards indexing (default true)
-      --base.index-block-events             enable block beginblocker and endblocker event indexing? (default true)
-      --base.index-chain                    enable chain indexing? (default true)
-      --base.prevent-reattempts             prevent reattempts of failed blocks.
-      --base.reindex                        if true, this will re-attempt to index blocks we have already indexed (defaults to false)
-      --base.rpc-workers int                rpc workers (default 1)
-      --base.start-block int                block to start indexing at (use -1 to resume from highest block indexed)
-      --base.throttling float               throttle delay (default 0.5)
-      --base.wait-for-chain                 wait for chain to be in sync?
-      --base.wait-for-chain-delay int       seconds to wait between each check for node to catch up to the chain (default 10)
-      --config string                       config file (default is $HOME/.cosmos-tax-cli/config.yaml)
-      --database.database string            database name
-      --database.host string                database host
-      --database.log-level string           database loglevel
-      --database.password string            database password
-      --database.port string                database port (default "5432")
-      --database.user string                database user
-      --lens.account-prefix string          lens account prefix
-      --lens.chain-id string                lens chain ID
-      --lens.chain-name string              lens chain name
-      --lens.rpc string                     node rpc endpoint
-      --log.level string                    log level (default "info")
-      --log.path string                     log path (default is $HOME/.cosmos-tax-cli/logs.txt
-      --log.pretty
-
-```
-
-### Querying
-Once the chain has been indexed, data can be queried using the `query` command. As with indexing, a config file is provided
-to configure the application. In addition, the addresses you wish to query can be provided as a comma separated list:
-
-`go run main.go query --address "address1,address2" --config {{PATH_TO_CONFIG}}`
-
-For more information about the config, please refer to the more in-depth
-[config](#config) section below.
-
-## Config
-A config file can be used to configure the tool. The config is broken into 4 sections:
-- [Log](#log)
-- [Database](#database)
-- [Base](#base)
-- [Lens](#lens)
-
-**Note: Ultimately all the settings available in the config will be available via CLI flags.
-To see a list of the currently supported flags, simply display the application help text:
-`go run main.go`**
-
-### Log
-#### level
-This setting is used to determine which level of logs will be included. The available levels include
-- `Debug`
-- `Info` (default)
-- `Warn`
-- `Error`
-- `Fatal`
-- `Panic`
-
-#### path
-Logs will always be written to standard out, but if desired they can also be written to a file.
-To do this, simply provide a path to a file.
-
-#### pretty
-We use a logging package called [ZeroLog](https://github.com/rs/zerolog). To take advantage of their "pretty" logging
-you can set `pretty` to true.
-
-### Database
-The config options for the database are largely self-explanatory.
+The application is written in Go, so you need to build it from source. This requires a system installation of at minimum Go 1.19. Instructions for installing and configuring Go can be found [here](https://go.dev/doc/install).
 
-#### host
-The address needed to connect to the DB.
+## Indexing and Querying
 
-#### port
-The port needed to connect to the DB.
+You are now ready to index and query the chain. For detailed steps, check out the [Indexing](#indexing) and [Querying](#querying) sections below.
 
-#### database
-The name of the database to connect to.
+## CLI Syntax
 
-#### user
-The DB username
+The Cosmos Indexer tool provides several settings and commands which are accessible via a config file or through CLI flags. You can learn about the CLI flags and their function by running `go run main.go` to display the application help text.
 
-#### password
-The password for the DB user.
+For more detailed information on the settings, refer to the [Config](#config) section.
 
-#### log-level
-This is a feature built into [gorm](https://gorm.io) to allow for logging of query information. This can be helpful for troubleshooting
-performance issues.
+### Config
 
-Available log levels include:
-- `silent` (default)
-- `info`
-- `warn`
-- `error`
+The config file, used to set up the Cosmos Indexer tool, is broken into four main
 
-### Base
-These are the core settings for the tool
+ sections:
 
-#### api
-Node API endpoint for querying chain information.
+1. [Log](#log)
+2. [Database](#database)
+3. [Base](#base)
+4. [Probe](#probe)
 
-#### start-block
-The block height to start indexing at.
+#### Log
 
-#### end-block
-The block height to stop indexing at. If set to '-1' indexing will keep running and keep pace with the chain.
+The Log section covers settings related to logging levels and formats, including log file paths and whether to use [ZeroLog's](https://github.com/rs/zerolog) pretty logging.
 
-#### reindex
-If true, this will re-attempt to index blocks we have already indexed (defaults to false)
+#### Database
 
-#### prevent-reattempts
-If true, failed blocks are not reattempted. Defaults to false.
+The Database section defines the settings needed to connect to the database server and to configure the logging level of the ORM.
 
-#### throttling
-The minimum number of seconds per block. Higher number, will be slower. A value of 1 will result in approximately
-1 block per second being indexed.
+#### Base
 
-#### rpc-workers
-The number of RPC workers. This should typically be a similar order of magnitude to the number of cpu cores available
-to the indexer.
+The Base section contains the core settings for the tool, such as API endpoints, block ranges, indexing behavior, and more.
 
-#### block-timer
-The indexer will track how long it takes ot process this number of blocks.
+#### Probe
 
-#### wait-for-chain
-When true, the indexer will not start until the defined RPC server's catching up status is false.
+The probe section configures [probe](https://github.com/DefiantLabs/probe) used by the tool to read data from the blockchain. This is built into the application and doesn't need to be installed separately.
 
-#### wait-for-chain-delay
-Seconds to wait between each check for node to catch up to the chain.
+For detailed descriptions of each setting in these sections, please refer to the [Detailed Config Explanation](#detailed-config-explanation) section below.
 
-#### index-chain
-If false, the indexer won't actually index the chain. This may be desirable if your goal is only to index rewards.
+## Detailed Config Explanation
 
-#### exit-when-caught-up
-When true, the indexer will exit when it catches up the the RPC server's latest_block_height
+This section provides an in-depth description of each setting available in the config file. For further details, refer to the inline documentation within the config file.
 
-#### index-rewards
-If true, the indexer will attempt to index osmosis rewards.
+# 📝 Supported Message Types
 
-#### rewards-start-block
-The block height to start indexing rewards. (will default to start block if not set)
+During the chain indexing process, we parse individual messages to determine their significance. Certain messages, like **transfers**, carry tax implications, whereas others, such as **bonding/unbonding funds**, don't. Additionally, some message types have only partial support or are under active development, which safeguards the indexer from encountering errors when processing these types.
 
-#### rewards-end-block
-The block height to stop indexing rewards. (will default to end block if not set)
+While we strive to expand our list of supported messages, we acknowledge that we do not yet cover every possible message across all chains. If you identify a missing or improperly handled message type, we encourage you to **open an issue or submit a PR**.
 
-#### index-block-events
-If true, the indexer will attempt to index block BeginBlock and EndBlock events.
-
-#### block-events-start-block
-The block height to start indexing block events.
-
-#### block-events-end-block
-The block height to stop indexing rewards. (set to -1 to run indefinitely)
-
-#### dry
-If true, the indexer will read the chain but won't actually write data to the database.
-
-### Lens
-This tool uses a [fork of Lens](https://github.com/DefiantLabs/lens) to read data from the blockchain. This is built
-into the application and does not need to be installed separately.
-
-#### rpc
-The node RPC endpoint
-
-#### account-prefix
-Lens account prefix
-
-#### chain-id
-The ID of the chain being indexed
-
-#### chain-name
-The name of the chain being indexed
-
-
-## Supported message types
-When indexing the chain, we need to parse individual messages in order to determine their significance.
-Some messages (transfers for example) have tax implication, whereas other (bonding/unbonding funds) do not. Furthermore, some messages types only have partial support or are still in progress. This allows the indexer to not error when processing this message type. While we are constantly adding to our list of supported messages, we do not currently support every possible message on every chain. If a message type is missing, or not being handled properly, please open an issue, or submit a PR.
-
-To view the always up-to-date complete list of supported messages, please consult the code [here](https://github.com/DefiantLabs/cosmos-tax-cli/blob/main/core/tx.go)
-
-Here is a list of what we support / handle currently.
-
-
-### Cosmos Modules
-#### Authz
-```go
-	MsgExec   = "/cosmos.authz.v1beta1.MsgExec"
-	MsgGrant  = "/cosmos.authz.v1beta1.MsgGrant"
-	MsgRevoke = "/cosmos.authz.v1beta1.MsgRevoke"
-```
-
-#### Bank
-```go
-	MsgSendV0 = "MsgSend"
-	MsgSend   = "/cosmos.bank.v1beta1.MsgSend"
-	MsgMultiSendV0 = "MsgMultiSend"
-	MsgMultiSend   = "/cosmos.bank.v1beta1.MsgMultiSend"
-```
-
-#### Distribution
-```go
-	MsgFundCommunityPool           = "/cosmos.distribution.v1beta1.MsgFundCommunityPool"
-	MsgWithdrawValidatorCommission = "/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission"
-	MsgWithdrawDelegatorReward     = "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward"
-	MsgWithdrawRewards             = "withdraw-rewards"
-	MsgSetWithdrawAddress          = "/cosmos.distribution.v1beta1.MsgSetWithdrawAddress"
-```
-
-#### Gov
-```go
-	MsgVote           = "/cosmos.gov.v1beta1.MsgVote"
-	MsgDeposit        = "/cosmos.gov.v1beta1.MsgDeposit"
-	MsgSubmitProposal = "/cosmos.gov.v1beta1.MsgSubmitProposal"
-	MsgVoteWeighted   = "/cosmos.gov.v1beta1.MsgVoteWeighted"
-```
-
-#### IBC
-```go
-	MsgTransfer = "/ibc.applications.transfer.v1.MsgTransfer"
-	MsgAcknowledgement    = "/ibc.core.channel.v1.MsgAcknowledgement"
-	MsgChannelOpenTry     = "/ibc.core.channel.v1.MsgChannelOpenTry"
-	MsgChannelOpenConfirm = "/ibc.core.channel.v1.MsgChannelOpenConfirm"
-	MsgChannelOpenInit    = "/ibc.core.channel.v1.MsgChannelOpenInit"
-	MsgChannelOpenAck     = "/ibc.core.channel.v1.MsgChannelOpenAck"
-	MsgRecvPacket         = "/ibc.core.channel.v1.MsgRecvPacket"
-	MsgTimeout            = "/ibc.core.channel.v1.MsgTimeout"
-	MsgTimeoutOnClose     = "/ibc.core.channel.v1.MsgTimeoutOnClose"
-	MsgConnectionOpenTry     = "/ibc.core.connection.v1.MsgConnectionOpenTry"
-	MsgConnectionOpenConfirm = "/ibc.core.connection.v1.MsgConnectionOpenConfirm"
-	MsgConnectionOpenInit    = "/ibc.core.connection.v1.MsgConnectionOpenInit"
-	MsgConnectionOpenAck     = "/ibc.core.connection.v1.MsgConnectionOpenAck"
-	MsgCreateClient = "/ibc.core.client.v1.MsgCreateClient"
-	MsgUpdateClient = "/ibc.core.client.v1.MsgUpdateClient"
-```
-
-#### Slashing
-```go
-	MsgUnjail       = "/cosmos.slashing.v1beta1.MsgUnjail"
-	MsgUpdateParams = "/cosmos.slashing.v1beta1.MsgUpdateParams"
-```
-
-#### Staking
-```go
-	MsgDelegate        = "/cosmos.staking.v1beta1.MsgDelegate"
-	MsgUndelegate      = "/cosmos.staking.v1beta1.MsgUndelegate"
-	MsgBeginRedelegate = "/cosmos.staking.v1beta1.MsgBeginRedelegate"
-	MsgCreateValidator = "/cosmos.staking.v1beta1.MsgCreateValidator"
-	MsgEditValidator   = "/cosmos.staking.v1beta1.MsgEditValidator"
-```
-
-#### Vesting
-```go
-	MsgCreateVestingAccount = "/cosmos.vesting.v1beta1.MsgCreateVestingAccount"
-```
-
-### Osmosis Modules
-#### Gamm
-```go
-	MsgSwapExactAmountIn       = "/osmosis.gamm.v1beta1.MsgSwapExactAmountIn"
-	MsgSwapExactAmountOut      = "/osmosis.gamm.v1beta1.MsgSwapExactAmountOut"
-	MsgJoinSwapExternAmountIn  = "/osmosis.gamm.v1beta1.MsgJoinSwapExternAmountIn"
-	MsgJoinSwapShareAmountOut  = "/osmosis.gamm.v1beta1.MsgJoinSwapShareAmountOut"
-	MsgJoinPool                = "/osmosis.gamm.v1beta1.MsgJoinPool"
-	MsgExitSwapShareAmountIn   = "/osmosis.gamm.v1beta1.MsgExitSwapShareAmountIn"
-	MsgExitSwapExternAmountOut = "/osmosis.gamm.v1beta1.MsgExitSwapExternAmountOut"
-	MsgExitPool                = "/osmosis.gamm.v1beta1.MsgExitPool"
-```
-
-#### Incentives
-```go
-	MsgCreateGauge = "/osmosis.incentives.MsgCreateGauge"
-	MsgAddToGauge  = "/osmosis.incentives.MsgAddToGauge"
-
-```
-
-#### Lockup
-```go
-	MsgBeginUnlocking    = "/osmosis.lockup.MsgBeginUnlocking"
-	MsgLockTokens        = "/osmosis.lockup.MsgLockTokens"
-	MsgBeginUnlockingAll = "/osmosis.lockup.MsgBeginUnlockingAll"
-```
-
-#### Superfluid
-```go
-	MsgSuperfluidDelegate        = "/osmosis.superfluid.MsgSuperfluidDelegate"
-	MsgSuperfluidUndelegate      = "/osmosis.superfluid.MsgSuperfluidUndelegate"
-	MsgSuperfluidUnbondLock      = "/osmosis.superfluid.MsgSuperfluidUnbondLock"
-	MsgLockAndSuperfluidDelegate = "/osmosis.superfluid.MsgLockAndSuperfluidDelegate"
-	MsgUnPoolWhitelistedPool     = "/osmosis.superfluid.MsgUnPoolWhitelistedPool"
-```
-
-### Tendermint Modules
-#### Liquidity
-```go
-	MsgCreatePool          = "/tendermint.liquidity.v1beta1.MsgCreatePool"
-	MsgDepositWithinBatch  = "/tendermint.liquidity.v1beta1.MsgDepositWithinBatch"
-	MsgWithdrawWithinBatch = "/tendermint.liquidity.v1beta1.MsgWithdrawWithinBatch"
-	MsgSwapWithinBatch     = "/tendermint.liquidity.v1beta1.MsgSwapWithinBatch"
-```
-
-### CosmWasm Modules
-#### Wasm
-```go
-    MsgExecuteContract = "/cosmwasm.wasm.v1.MsgExecuteContract"
-    MsgInstantiateContract = "/cosmwasm.wasm.v1.MsgInstantiateContract"
-```
+For the most recent, comprehensive list of supported messages, please refer to the code [**here**](https://github.com/DefiantLabs/cosmos-tax-cli/blob/main/core/tx.go).
+
+Below is the rundown of our current support for different types of messages:
+
+## 🌌 Cosmos Modules
+### 🛡️ Authz
+- `MsgExec`
+- `MsgGrant`
+- `MsgRevoke`
+
+### 🏦 Bank
+- `MsgSendV0` (deprecated)
+- `MsgSend`
+- `MsgMultiSendV0` (deprecated)
+- `MsgMultiSend`
+
+### 📈 Distribution
+- `MsgFundCommunityPool`
+- `MsgWithdrawValidatorCommission`
+- `MsgWithdrawDelegatorReward`
+- `MsgWithdrawRewards`
+- `MsgSetWithdrawAddress`
+
+### 🏛️ Gov
+- `MsgVote`
+- `MsgDeposit`
+- `MsgSubmitProposal`
+- `MsgVoteWeighted`
+
+### 🌐 IBC
+- `MsgTransfer`
+- `MsgAcknowledgement`
+- `MsgChannelOpenTry`
+- `MsgChannelOpenConfirm`
+- `MsgChannelOpenInit`
+- `MsgChannelOpenAck`
+- `MsgRecvPacket`
+- `MsgTimeout`
+- `MsgTimeoutOnClose`
+- `MsgConnectionOpenTry`
+- `MsgConnectionOpenConfirm`
+- `MsgConnectionOpenInit`
+- `MsgConnectionOpenAck`
+- `MsgCreateClient`
+- `MsgUpdateClient`
+
+### ⛏️ Slashing
+- `MsgUnjail`
+- `MsgUpdateParams`
+
+### 🪙 Staking
+- `MsgDelegate`
+- `MsgUndelegate`
+- `MsgBeginRedelegate`
+- `MsgCreateValidator`
+- `MsgEditValidator`
+
+### ⏳ Vesting
+- `MsgCreateVestingAccount`
+
+## 🌊 Osmosis Modules
+### 🔄 Gamm
+- `MsgSwapExactAmountIn`
+- `MsgSwapExactAmountOut`
+- `MsgJoinSwapExternAmountIn`
+- `MsgJoinSwapShareAmountOut`
+- `MsgJoinPool`
+- `MsgExitSwapShareAmountIn`
+- `MsgExitSwapExternAmountOut`
+- `MsgExitPool`
+
+### 🎁 Incentives
+- `MsgCreateGauge`
+- `MsgAddToGauge`
+
+### 🔒 Lockup
+- `MsgBeginUnlocking`
+- `MsgLockTokens`
+- `MsgBeginUnlockingAll`
+
+### 🌊 Superfluid
+- `MsgSuperfluidDelegate`
+- `MsgSuperfluidUndelegate`
+- `MsgSuperfluidUnbondLock`
+- `MsgLockAndSuperfluidDelegate`
+- `MsgUnPoolWhitelistedPool`
+
+## ⭐ Tendermint Modules
+### 💧 Liquidity
+- `MsgCreatePool`
+- `MsgDepositWithinBatch`
+- `MsgWithdrawWithinBatch`
+- `MsgSwapWithinBatch`
+
+## 🌐 CosmWasm Modules
+### 🧩 Wasm
+- `MsgExecuteContract`
+- `MsgInstantiateContract`
