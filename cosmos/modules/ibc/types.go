@@ -57,7 +57,9 @@ func (w *WrapperMsgRecvPacket) HandleMsg(msgType string, msg stdTypes.Msg, log *
 	// Unmarshal the json encoded packet data so we can access sender, receiver and denom info
 	var data types.FungibleTokenPacketData
 	if err := types.ModuleCdc.UnmarshalJSON(w.MsgRecvPacket.Packet.GetData(), &data); err != nil {
-		return err
+		// If there was a failure then this recv was not for a token transfer packet,
+		// currently we only consider successful token transfers taxable events.
+		return nil
 	}
 
 	w.SenderAddress = data.Sender
@@ -95,9 +97,9 @@ func (w *WrapperMsgRecvPacket) ParseRelevantData() []parsingTypes.MessageRelevan
 
 func (w *WrapperMsgRecvPacket) String() string {
 	if w.Amount.IsNil() {
-		return fmt.Sprintf("MsgRecvPacket: IBC transfer from %s to %s did not include an amount\n", w.SenderAddress, w.ReceiverAddress)
+		return "MsgRecvPacket: IBC transfer was not a FungibleTokenTransfer"
 	}
-	return fmt.Sprintf("MsgRecvPacket: IBC transfer of %s%s from %s to %s\n", w.Amount, w.Denom, w.SenderAddress, w.ReceiverAddress)
+	return fmt.Sprintf("MsgRecvPacket: IBC transfer of %s%s from %s to %s", w.Amount, w.Denom, w.SenderAddress, w.ReceiverAddress)
 }
 
 type WrapperMsgAcknowledgement struct {
@@ -124,7 +126,7 @@ func (w *WrapperMsgAcknowledgement) HandleMsg(msgType string, msg stdTypes.Msg, 
 	if err := types.ModuleCdc.UnmarshalJSON(w.MsgAcknowledgement.Packet.GetData(), &data); err != nil {
 		// If there was a failure then this ack was not for a token transfer packet,
 		// currently we only consider successful token transfers taxable events.
-		return err
+		return nil
 	}
 
 	w.SenderAddress = data.Sender
@@ -175,7 +177,7 @@ func (w *WrapperMsgAcknowledgement) ParseRelevantData() []parsingTypes.MessageRe
 
 func (w *WrapperMsgAcknowledgement) String() string {
 	if w.Amount.IsNil() {
-		return fmt.Sprintf("MsgAcknowledgement: IBC transfer from %s to %s did not include an amount\n", w.SenderAddress, w.ReceiverAddress)
+		return "MsgAcknowledgement: IBC transfer was not a FungibleTokenTransfer"
 	}
 	return fmt.Sprintf("MsgAcknowledgement: IBC transfer of %s from %s to %s\n", w.Amount, w.SenderAddress, w.ReceiverAddress)
 }
