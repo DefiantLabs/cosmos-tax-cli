@@ -40,7 +40,8 @@ type WrapperMsgRecvPacket struct {
 	Sequence        uint64
 	SenderAddress   string
 	ReceiverAddress string
-	Amount          stdTypes.Coin
+	Amount          stdTypes.Int
+	Denom           string
 }
 
 func (w *WrapperMsgRecvPacket) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
@@ -68,7 +69,8 @@ func (w *WrapperMsgRecvPacket) HandleMsg(msgType string, msg stdTypes.Msg, log *
 		return fmt.Errorf("failed to convert denom amount to sdk.Int, got(%s)", data.Amount)
 	}
 
-	w.Amount = stdTypes.NewCoin(data.Denom, amount)
+	w.Amount = amount
+	w.Denom = data.Denom
 
 	return nil
 }
@@ -85,9 +87,9 @@ func (w *WrapperMsgRecvPacket) ParseRelevantData() []parsingTypes.MessageRelevan
 		SenderAddress:        w.SenderAddress,
 		ReceiverAddress:      w.ReceiverAddress,
 		AmountSent:           amountSent.BigInt(),
-		AmountReceived:       w.Amount.Amount.BigInt(),
+		AmountReceived:       w.Amount.BigInt(),
 		DenominationSent:     "",
-		DenominationReceived: w.Amount.Denom,
+		DenominationReceived: w.Denom,
 	}}
 }
 
@@ -95,7 +97,7 @@ func (w *WrapperMsgRecvPacket) String() string {
 	if w.Amount.IsNil() {
 		return fmt.Sprintf("MsgRecvPacket: IBC transfer from %s to %s did not include an amount\n", w.SenderAddress, w.ReceiverAddress)
 	}
-	return fmt.Sprintf("MsgRecvPacket: IBC transfer of %s from %s to %s\n", w.Amount, w.SenderAddress, w.ReceiverAddress)
+	return fmt.Sprintf("MsgRecvPacket: IBC transfer of %s%s from %s to %s\n", w.Amount, w.Denom, w.SenderAddress, w.ReceiverAddress)
 }
 
 type WrapperMsgAcknowledgement struct {
