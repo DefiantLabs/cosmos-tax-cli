@@ -108,7 +108,8 @@ type WrapperMsgAcknowledgement struct {
 	Sequence           uint64
 	SenderAddress      string
 	ReceiverAddress    string
-	Amount             stdTypes.Coin
+	Amount             stdTypes.Int
+	Denom              string
 }
 
 func (w *WrapperMsgAcknowledgement) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
@@ -138,7 +139,8 @@ func (w *WrapperMsgAcknowledgement) HandleMsg(msgType string, msg stdTypes.Msg, 
 		return fmt.Errorf("failed to convert denom amount to sdk.Int, got(%s)", data.Amount)
 	}
 
-	w.Amount = stdTypes.NewCoin(data.Denom, amount)
+	w.Amount = amount
+	w.Denom = data.Denom
 
 	// Acknowledgements can contain an error & we only want to index successful acks,
 	// so we need to check the ack bytes to determine if it was a result or an error.
@@ -168,9 +170,9 @@ func (w *WrapperMsgAcknowledgement) ParseRelevantData() []parsingTypes.MessageRe
 	return []parsingTypes.MessageRelevantInformation{{
 		SenderAddress:        w.SenderAddress,
 		ReceiverAddress:      w.ReceiverAddress,
-		AmountSent:           w.Amount.Amount.BigInt(),
+		AmountSent:           w.Amount.BigInt(),
 		AmountReceived:       amountReceived.BigInt(),
-		DenominationSent:     w.Amount.Denom,
+		DenominationSent:     w.Denom,
 		DenominationReceived: "",
 	}}
 }
@@ -179,5 +181,5 @@ func (w *WrapperMsgAcknowledgement) String() string {
 	if w.Amount.IsNil() {
 		return "MsgAcknowledgement: IBC transfer was not a FungibleTokenTransfer"
 	}
-	return fmt.Sprintf("MsgAcknowledgement: IBC transfer of %s from %s to %s\n", w.Amount, w.SenderAddress, w.ReceiverAddress)
+	return fmt.Sprintf("MsgAcknowledgement: IBC transfer of %s%s from %s to %s\n", w.Amount, w.Denom, w.SenderAddress, w.ReceiverAddress)
 }
