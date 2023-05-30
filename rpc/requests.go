@@ -5,6 +5,7 @@ import (
 
 	lensClient "github.com/DefiantLabs/lens/client"
 	lensQuery "github.com/DefiantLabs/lens/client/query"
+	lensEpochsTypes "github.com/DefiantLabs/lens/osmosis/x/epochs/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	txTypes "github.com/cosmos/cosmos-sdk/types/tx"
 )
@@ -94,4 +95,12 @@ func GetLatestBlockHeight(cl *lensClient.ChainClient) (int64, error) {
 		return 0, err
 	}
 	return resStatus.SyncInfo.LatestBlockHeight, nil
+}
+
+// GetEpochsAtHeight makes a request to the Cosmos RPC API and returns the Epoch at a specific height
+func GetEpochsAtHeight(cl *lensClient.ChainClient, height int64) (*lensEpochsTypes.QueryEpochsInfoResponse, error) {
+	options := lensQuery.QueryOptions{}
+	query := lensQuery.Query{Client: cl, Options: &options}
+	resp, err := query.EpochsAtHeight(height)
+	return resp, err
 }

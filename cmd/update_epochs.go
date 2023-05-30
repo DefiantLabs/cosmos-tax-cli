@@ -1,0 +1,168 @@
+package cmd
+
+import (
+	"log"
+	"time"
+
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
+	epochsTypes "github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/epochs"
+	"github.com/DefiantLabs/cosmos-tax-cli/rpc"
+	"github.com/DefiantLabs/lens/client"
+	"github.com/spf13/cobra"
+	"gorm.io/gorm"
+)
+
+var epochIdentifier string
+
+func init() {
+	updateEpochsCmd.Flags().StringVar(&epochIdentifier, "epoch-identifier", "day", "If provided, the update script will ignore the config chain-id and update all denoms by reaching out to all assetlists supported.")
+	rootCmd.AddCommand(updateEpochsCmd)
+}
+
+var updateEpochsCmd = &cobra.Command{
+	Use:   "update-epochs",
+	Short: "Gather Epoch information from the blockchain and index it. Currently only supports the Osmosis Epochs module.",
+	Long: `Indexes Epoch information from the blockchain. This command currently only support the Osmosis Epochs module.
+	Future versions will support the same concept of Epochs for other Cosmos chains if they exist.`,
+	Run: updateEpochs,
+}
+
+func updateEpochs(cmd *cobra.Command, args []string) {
+	cfg, _, db, _, err := setup(conf)
+	if err != nil {
+		log.Fatalf("Error during application setup. Err: %v", err)
+	}
+
+	cl := config.GetLensClient(cfg.Lens)
+
+	if cl.Config.ChainID == osmosis.ChainID {
+		// Setup Chain model item
+		var chain dbTypes.Chain
+		chain.ChainID = cl.Config.ChainID
+		chain.Name = cfg.Lens.ChainName
+		res := db.FirstOrCreate(&chain)
+
+		if res.Error != nil {
+			config.Log.Fatalf("Error setting up Chain model. Err: %v", err)
+		}
+
+		config.Log.Infof("Running Epoch indexer for %s and identifier %s", cl.Config.ChainID, epochIdentifier)
+
+		// Start at latest height to get the latest Epochs and work from there
+		latestHeight, err := rpc.GetLatestBlockHeight(cl)
+
+		if err != nil {
+			config.Log.Fatalf("Error getting latest block height. Err: %v", err)
+		}
+
+		config.Log.Infof("Found latest block height %d", latestHeight)
+
+		if latestHeight > 0 {
+			time.Sleep(8 * time.Second)
+			currentHeight := latestHeight
+			for {
+				lastIndexedEpoch, foundLast := indexEpochsAtStartingHeight(db, cl, currentHeight, chain, cfg.Base.Throttling)
+
+				if lastIndexedEpoch.EpochNumber <= 1 || foundLast {
+					config.Log.Infof("Indexed earliest Epoch, exiting")
+					break
+				}
+
+				var nextIndexedEpochs []dbTypes.Epoch
+
+				// Get the next Epoch to index
+				dbResp := db.Where("epoch_number < ?", lastIndexedEpoch.EpochNumber).Find(&nextIndexedEpochs)
+
+				if dbResp.Error != nil {
+					config.Log.Fatal("Error validating all epochs have been indexed", dbResp.Error)
+				}
+
+				if len(nextIndexedEpochs) == 0 {
+					currentHeight = int64(lastIndexedEpoch.StartHeight - 1)
+				} else {
+					currentEpochNumber := lastIndexedEpoch.EpochNumber
+
+					for i, epoch := range nextIndexedEpochs {
+						if epoch.EpochNumber != currentEpochNumber-1 {
+							currentHeight = int64(epoch.StartHeight - 1)
+						} else {
+							currentEpochNumber = epoch.EpochNumber
+						}
+
+						if i == len(nextIndexedEpochs)-1 {
+							currentHeight = int64(epoch.StartHeight - 1)
+						}
+					}
+
+					if currentEpochNumber-1 > 1 && currentHeight > 0 {
+						config.Log.Debugf("Next Epoch to index is %d", currentEpochNumber-1)
+					} else {
+						config.Log.Infof("All Epochs indexed, exiting")
+						break
+					}
+				}
+
+			}
+		}
+	} else {
+		config.Log.Infof("Chain %s is not supported by this command.", cl.Config.ChainID)
+	}
+
+}
+
+func indexEpochsAtStartingHeight(db *gorm.DB, cl *client.ChainClient, startingHeight int64, chain dbTypes.Chain, throttling float64) (*dbTypes.Epoch, bool) {
+	currentHeight := startingHeight
+	for {
+		time.Sleep(time.Second * time.Duration(throttling))
+		resp, err := rpc.GetEpochsAtHeight(cl, currentHeight)
+		if err != nil {
+			config.Log.Fatalf("Error getting epochs at height %d. Err: %v", currentHeight, err)
+		}
+
+		// Not sure if this is possible, this means that the Epochs module returned no Epochs for a height
+		if len(resp.Epochs) == 0 {
+			config.Log.Fatalf("No Epochs found at height %d", currentHeight)
+		}
+
+		var newItem dbTypes.Epoch
+		found := false
+
+		// Get the index of the shortest duration EpochInfo, this will be used for the querying mechanism
+		for _, epoch := range resp.Epochs {
+			// Make sure we have the ability to index this EpochInfo
+			// This will save us trouble if Osmosis adds more Epochs in the future
+			indexable, identifierExists := epochsTypes.OsmosisIndexableEpochs[epoch.Identifier]
+			if identifierExists && indexable && epoch.Identifier == epochIdentifier {
+				config.Log.Infof("Found Epoch %d at height %d", epoch.CurrentEpoch, epoch.CurrentEpochStartHeight)
+				currentHeight = epoch.CurrentEpochStartHeight - 1
+				newItem = dbTypes.Epoch{Chain: chain, Identifier: epoch.Identifier, StartHeight: uint(epoch.CurrentEpochStartHeight), EpochNumber: uint(epoch.CurrentEpoch)}
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			config.Log.Fatalf("Epoch with identifier %s not found at %d", epochIdentifier, currentHeight)
+		}
+
+		dbResp := db.Where(&newItem).FirstOrCreate(&newItem)
+
+		if dbResp.Error != nil {
+			config.Log.Fatal("Error creating Epoch item", dbResp.Error)
+		}
+
+		// We have reached an item we already created for
+		if dbResp.RowsAffected == 0 {
+			config.Log.Debugf("Epoch already exists for Epoch %d at height %d", newItem.EpochNumber, newItem.StartHeight)
+			return &newItem, false
+		}
+
+		if currentHeight <= 0 || newItem.EpochNumber == 1 {
+			config.Log.Infof("Reached height %d, stopping", currentHeight)
+			return &newItem, true
+		}
+
+	}
+}
