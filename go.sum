@@ -66,6 +66,10 @@ github.com/DefiantLabs/lens v0.3.1-0.20230428023132-a51c06c87677 h1:yznj6Qm+9Ysn
 github.com/DefiantLabs/lens v0.3.1-0.20230428023132-a51c06c87677/go.mod h1:iYXij2G8daws2xBOYNzyMNlasr7vJJTOJkVk7aXkMXw=
 github.com/DefiantLabs/lens v0.3.1-0.20230529184335-4285c4f86664 h1:5N1DCjUBPtHE6woepPZTRTUjzj+6lzIhmzYkXBvo5kI=
 github.com/DefiantLabs/lens v0.3.1-0.20230529184335-4285c4f86664/go.mod h1:iYXij2G8daws2xBOYNzyMNlasr7vJJTOJkVk7aXkMXw=
+github.com/DefiantLabs/lens v0.3.1-0.20230601224515-5b98f91ec8f2 h1:kZNW1vyhtbzV8WhnqIeqyI9JTjMtXhxbHYXD4ANhOMQ=
+github.com/DefiantLabs/lens v0.3.1-0.20230601224515-5b98f91ec8f2/go.mod h1:iYXij2G8daws2xBOYNzyMNlasr7vJJTOJkVk7aXkMXw=
+github.com/DefiantLabs/lens v0.3.1-0.20230601224644-9babbffc163f h1:l/3elgd9DvvDChIQshzf+XHxt+vT2e9q+6EUR2ZZqzI=
+github.com/DefiantLabs/lens v0.3.1-0.20230601224644-9babbffc163f/go.mod h1:iYXij2G8daws2xBOYNzyMNlasr7vJJTOJkVk7aXkMXw=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
 github.com/KyleBanks/depth v1.2.1 h1:5h8fQADFrWtarTdtDudMmGsC7GPbOAu6RVB3ffsVFHc=
 github.com/KyleBanks/depth v1.2.1/go.mod h1:jzSb9d0L43HxTQfT+oSA1EEp2q+ne2uh6XgeJcm8brE=

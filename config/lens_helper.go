@@ -35,7 +35,7 @@ func GetLensConfig(conf lens, debug bool) *lensClient.ChainClientConfig {
 		GasAdjustment:  1.2,
 		GasPrices:      "0ustake",
 		Debug:          debug,
-		Timeout:        "10s",
+		Timeout:        "30s",
 		OutputFormat:   "json",
 		SignModeStr:    "direct",
 		Modules:        lensClient.ModuleBasics,

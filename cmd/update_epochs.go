@@ -62,11 +62,12 @@ func updateEpochs(cmd *cobra.Command, args []string) {
 		if latestHeight > 0 {
 			time.Sleep(8 * time.Second)
 			currentHeight := latestHeight
+
 			for {
 				lastIndexedEpoch, foundLast := indexEpochsAtStartingHeight(db, cl, currentHeight, chain, cfg.Base.Throttling)
 
 				if lastIndexedEpoch.EpochNumber <= 1 || foundLast {
-					config.Log.Infof("Indexed earliest Epoch, exiting")
+					config.Log.Infof("Indexed earliest possible Epoch through Epoch querying method")
 					break
 				}
 
@@ -99,11 +100,26 @@ func updateEpochs(cmd *cobra.Command, args []string) {
 					if currentEpochNumber-1 > 1 && currentHeight > 0 {
 						config.Log.Debugf("Next Epoch to index is %d", currentEpochNumber-1)
 					} else {
-						config.Log.Infof("All Epochs indexed, exiting")
+						config.Log.Infof("All possible Epochs indexed through Epoch querying method")
 						break
 					}
 				}
 
+			}
+
+			lastIndexedEpoch := dbTypes.Epoch{Identifier: epochIdentifier, Chain: chain}
+
+			dbResp := db.Where(&lastIndexedEpoch).Order("epoch_number asc").First(&lastIndexedEpoch)
+
+			if dbResp.Error != nil {
+				config.Log.Fatal("Error validating all epochs have been indexed", dbResp.Error)
+			}
+
+			config.Log.Infof("Last indexed Epoch is %d at height %d", lastIndexedEpoch.EpochNumber, lastIndexedEpoch.StartHeight)
+
+			if lastIndexedEpoch.EpochNumber > 1 {
+				config.Log.Info("Last indexed Epoch is not the first, falling back to alternate querying methods")
+				rpc.BlockSearchEpochStartsLessThanHeight(cl, int64(lastIndexedEpoch.StartHeight))
 			}
 		}
 	} else {
@@ -114,6 +130,7 @@ func updateEpochs(cmd *cobra.Command, args []string) {
 
 func indexEpochsAtStartingHeight(db *gorm.DB, cl *client.ChainClient, startingHeight int64, chain dbTypes.Chain, throttling float64) (*dbTypes.Epoch, bool) {
 	currentHeight := startingHeight
+	var lastIndexedItem dbTypes.Epoch
 	for {
 		time.Sleep(time.Second * time.Duration(throttling))
 		resp, err := rpc.GetEpochsAtHeight(cl, currentHeight)
@@ -135,6 +152,12 @@ func indexEpochsAtStartingHeight(db *gorm.DB, cl *client.ChainClient, startingHe
 			// This will save us trouble if Osmosis adds more Epochs in the future
 			indexable, identifierExists := epochsTypes.OsmosisIndexableEpochs[epoch.Identifier]
 			if identifierExists && indexable && epoch.Identifier == epochIdentifier {
+
+				if epoch.CurrentEpochStartHeight <= 0 {
+					config.Log.Debugf("Found Epoch %d that contains 0 for CurrentEpochStartHeight, cannot continue", epoch.CurrentEpoch)
+					return &lastIndexedItem, true
+				}
+
 				config.Log.Infof("Found Epoch %d at height %d", epoch.CurrentEpoch, epoch.CurrentEpochStartHeight)
 				currentHeight = epoch.CurrentEpochStartHeight - 1
 				newItem = dbTypes.Epoch{Chain: chain, Identifier: epoch.Identifier, StartHeight: uint(epoch.CurrentEpochStartHeight), EpochNumber: uint(epoch.CurrentEpoch)}
@@ -164,5 +187,6 @@ func indexEpochsAtStartingHeight(db *gorm.DB, cl *client.ChainClient, startingHe
 			return &newItem, true
 		}
 
+		lastIndexedItem = newItem
 	}
 }
