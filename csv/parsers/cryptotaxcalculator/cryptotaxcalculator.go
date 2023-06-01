@@ -189,6 +189,10 @@ func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.Csv
 			newRow, err = ParseMsgDeposit(address, event)
 		case ibc.MsgTransfer:
 			newRow, err = ParseMsgTransfer(address, event)
+		case ibc.MsgAcknowledgement:
+			newRow, err = ParseMsgTransfer(address, event)
+		case ibc.MsgRecvPacket:
+			newRow, err = ParseMsgTransfer(address, event)
 		default:
 			config.Log.Errorf("no parser for message type '%v'", event.Message.MessageType.MessageType)
 			continue
