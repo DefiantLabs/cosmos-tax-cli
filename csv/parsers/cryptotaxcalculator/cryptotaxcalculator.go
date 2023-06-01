@@ -1,7 +1,6 @@
 package cryptotaxcalculator
 
 import (
-	"fmt"
 	"sort"
 	"time"
 
@@ -191,11 +190,13 @@ func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.Csv
 		case ibc.MsgTransfer:
 			newRow, err = ParseMsgTransfer(address, event)
 		default:
-			return nil, fmt.Errorf("no parser for message type '%v'", event.Message.MessageType.MessageType)
+			config.Log.Errorf("no parser for message type '%v'", event.Message.MessageType.MessageType)
+			continue
 		}
 
 		if err != nil {
-			return nil, fmt.Errorf("error parsing message type '%v'", event.Message.MessageType.MessageType)
+			config.Log.Errorf("error parsing message type '%v': %v", event.Message.MessageType.MessageType, err)
+			continue
 		}
 
 		rows = append(rows, newRow)
