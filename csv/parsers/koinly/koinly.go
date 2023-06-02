@@ -321,12 +321,18 @@ func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.Csv
 			newRow, err = ParseMsgSubmitProposal(address, event)
 		case gov.MsgDeposit:
 			newRow, err = ParseMsgDeposit(address, event)
+		case ibc.MsgAcknowledgement:
+			newRow, err = ParseMsgTransfer(address, event)
+		case ibc.MsgRecvPacket:
+			newRow, err = ParseMsgTransfer(address, event)
 		default:
-			return nil, fmt.Errorf("no parser for message type '%v'", event.Message.MessageType.MessageType)
+			config.Log.Errorf("no parser for message type '%v'", event.Message.MessageType.MessageType)
+			continue
 		}
 
 		if err != nil {
-			return nil, fmt.Errorf("error parsing message type '%v'", event.Message.MessageType.MessageType)
+			config.Log.Errorf("error parsing message type '%v': %v", event.Message.MessageType.MessageType, err)
+			continue
 		}
 
 		rows = append(rows, newRow)
