@@ -52,7 +52,6 @@ func updateEpochs(cmd *cobra.Command, args []string) {
 
 		// Start at latest height to get the latest Epochs and work from there
 		latestHeight, err := rpc.GetLatestBlockHeight(cl)
-
 		if err != nil {
 			config.Log.Fatalf("Error getting latest block height. Err: %v", err)
 		}
@@ -124,7 +123,6 @@ func updateEpochs(cmd *cobra.Command, args []string) {
 	} else {
 		config.Log.Infof("Chain %s is not supported by this command.", cl.Config.ChainID)
 	}
-
 }
 
 func indexEpochsAtStartingHeight(db *gorm.DB, cl *client.ChainClient, startingHeight int64, chain dbTypes.Chain, throttling float64) (*dbTypes.Epoch, bool) {
