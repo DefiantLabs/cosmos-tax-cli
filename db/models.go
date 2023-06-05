@@ -184,3 +184,12 @@ type IBCDenom struct {
 	Path      string
 	BaseDenom string
 }
+
+type Epoch struct {
+	ID           uint
+	BlockchainID uint   `gorm:"uniqueIndex:chainepochidentifierheight"`
+	Chain        Chain  `gorm:"foreignKey:BlockchainID"`
+	StartHeight  uint   `gorm:"uniqueIndex:chainepochidentifierheight"`
+	Identifier   string `gorm:"uniqueIndex:chainepochidentifierheight"`
+	EpochNumber  uint
+}

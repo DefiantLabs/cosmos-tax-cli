@@ -60,6 +60,7 @@ func MigrateModels(db *gorm.DB) error {
 		&Denom{},
 		&DenomUnit{},
 		&IBCDenom{},
+		&Epoch{},
 	)
 }
 
