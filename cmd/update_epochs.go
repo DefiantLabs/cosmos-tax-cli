@@ -74,7 +74,7 @@ func updateEpochs(cmd *cobra.Command, args []string) {
 				var nextIndexedEpochs []dbTypes.Epoch
 
 				// Get the next Epoch to index
-				dbResp := db.Where("epoch_number < ?", lastIndexedEpoch.EpochNumber).Find(&nextIndexedEpochs)
+				dbResp := db.Where("epoch_number < ? AND identifier=? AND blockchain_id=?", lastIndexedEpoch.EpochNumber, lastIndexedEpoch.Identifier, chain.ID).Find(&nextIndexedEpochs)
 
 				if dbResp.Error != nil {
 					config.Log.Fatal("Error validating all epochs have been indexed", dbResp.Error)
