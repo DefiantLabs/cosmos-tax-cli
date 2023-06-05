@@ -118,8 +118,7 @@ func updateEpochs(cmd *cobra.Command, args []string) {
 			config.Log.Infof("Last indexed Epoch is %d at height %d", lastIndexedEpoch.EpochNumber, lastIndexedEpoch.StartHeight)
 
 			if lastIndexedEpoch.EpochNumber > 1 {
-				config.Log.Info("Last indexed Epoch is not the first, falling back to alternate querying methods")
-				rpc.BlockSearchEpochStartsLessThanHeight(cl, int64(lastIndexedEpoch.StartHeight))
+				config.Log.Error("Last indexed Epoch is not the first, could not index full history of Epochs")
 			}
 		}
 	} else {

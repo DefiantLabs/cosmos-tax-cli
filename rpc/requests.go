@@ -104,9 +104,3 @@ func GetEpochsAtHeight(cl *lensClient.ChainClient, height int64) (*lensEpochsTyp
 	resp, err := query.EpochsAtHeight(height)
 	return resp, err
 }
-
-func BlockSearchEpochStartsLessThanHeight(cl *lensClient.ChainClient, height int64) {
-	options := lensQuery.QueryOptions{}
-	query := lensQuery.Query{Client: cl, Options: &options}
-	query.BlockSearchEpochStartsLessThanHeight(height)
-}
