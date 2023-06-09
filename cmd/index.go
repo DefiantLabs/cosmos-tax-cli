@@ -599,12 +599,11 @@ func (idxr *Indexer) indexEpochEvents(wg *sync.WaitGroup, failedBlockHandler cor
 		config.Log.Fatalf("Error getting epochs between %d and %d for identifier %s. %s", startEpochNumber, endEpochNumber, epochIdentifier, err)
 	}
 
-	config.Log.Infof("Indexing epoch events from epoch: %v to %v", startEpochNumber, endEpochNumber)
+	if len(epochsBetween) == 0 {
+		config.Log.Fatalf("No epochs found in database between start %d and end %d for epoch identifier %s", startEpochNumber, endEpochNumber, epochIdentifier)
+	}
 
-	//Loop through epochs, for each:
-	//1. Get height
-	//2. Get block result at height
-	//3. Process block result for relevant events in begin and end blocker
+	config.Log.Infof("Indexing epoch events from epoch: %v to %v", startEpochNumber, endEpochNumber)
 
 	rpcClient := osmosis.URIClient{
 		Address: idxr.cl.Config.RPCAddr,
@@ -665,6 +664,8 @@ func (idxr *Indexer) indexEpochEvents(wg *sync.WaitGroup, failedBlockHandler cor
 		}
 
 	}
+
+	config.Log.Infof("Finished gathering epoch events for epochs %d to %d in identifier %s", startEpochNumber, endEpochNumber, epochIdentifier)
 
 }
 
