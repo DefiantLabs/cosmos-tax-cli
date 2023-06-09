@@ -6,7 +6,6 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	eventTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/events"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmoshub"
-	osmosisTypes "github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
@@ -30,17 +29,7 @@ func ChainSpecificEndBlockerEventTypeHandlerBootstrap(chainID string) {
 }
 
 func ChainSpecificBeginBlockerEventTypeHandlerBootstrap(chainID string) {
-	var chainSpecificBeginBlockerEventTypeHandler map[string][]func() eventTypes.CosmosEvent
-	if chainID == osmosisTypes.ChainID {
-		chainSpecificBeginBlockerEventTypeHandler = osmosisTypes.BeginBlockerEventTypeHandlers
-	}
-	for key, value := range chainSpecificBeginBlockerEventTypeHandler {
-		if list, ok := endBlockerEventTypeHandlers[key]; ok {
-			beginBlockerEventTypeHandlers[key] = append(value, list...)
-		} else {
-			beginBlockerEventTypeHandlers[key] = value
-		}
-	}
+	// Stub, for use when we have begin blocker events
 }
 
 func ProcessRPCBlockEvents(blockResults *ctypes.ResultBlockResults) ([]eventTypes.EventRelevantInformation, error) {
