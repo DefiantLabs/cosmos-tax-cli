@@ -16,7 +16,7 @@ var dayEventTypeHandlers = map[string]map[string][]func() eventTypes.CosmosEvent
 	"end_block":   nil,
 }
 
-// EpochIdentifiersToEventHandlers is a mapping of epoch identifiers to event types and their associated event handlers
+// EpochIdentifierBlockEventHandlers is a mapping of epoch identifiers to event types and their associated event handlers
 // It is used to get a list of event handlers for:
 // 1. A particular Epoch Identifier
 // 2. CosmosHub begin blocker or end blocker events for

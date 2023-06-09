@@ -592,9 +592,8 @@ func (idxr *Indexer) indexEpochEvents(wg *sync.WaitGroup, failedBlockHandler cor
 	endEpochNumber := idxr.cfg.Base.EpochEventsEndEpoch
 	epochIdentifier := idxr.cfg.Base.EpochIndexingIdentifier
 
-	//Get epochs for identifier between start and end epoch
+	// Get epochs for identifier between start and end epoch
 	epochsBetween, err := GetEpochsAtIdentifierBetweenStartAndEnd(idxr.db, chainID, epochIdentifier, startEpochNumber, endEpochNumber)
-
 	if err != nil {
 		config.Log.Fatalf("Error getting epochs between %d and %d for identifier %s. %s", startEpochNumber, endEpochNumber, epochIdentifier, err)
 	}
@@ -614,7 +613,6 @@ func (idxr *Indexer) indexEpochEvents(wg *sync.WaitGroup, failedBlockHandler cor
 		config.Log.Infof("Indexing epoch events for epoch %v at height %d", epoch.EpochNumber, epoch.StartHeight)
 
 		bresults, err := getBlockResult(rpcClient, int64(epoch.StartHeight))
-
 		if err != nil {
 			config.Log.Error(fmt.Sprintf("Error receiving block result for block %d", epoch.StartHeight), err)
 			failedBlockHandler(int64(epoch.StartHeight), core.FailedBlockEventHandling, err)
@@ -666,7 +664,6 @@ func (idxr *Indexer) indexEpochEvents(wg *sync.WaitGroup, failedBlockHandler cor
 	}
 
 	config.Log.Infof("Finished gathering epoch events for epochs %d to %d in identifier %s", startEpochNumber, endEpochNumber, epochIdentifier)
-
 }
 
 func GetEpochsAtIdentifierBetweenStartAndEnd(db *gorm.DB, chainID uint, identifier string, startEpochNumber int64, endEpochNumber int64) ([]dbTypes.Epoch, error) {

@@ -29,7 +29,7 @@ func ChainSpecificEndBlockerEventTypeHandlerBootstrap(chainID string) {
 }
 
 func ChainSpecificBeginBlockerEventTypeHandlerBootstrap(chainID string) {
-	//Stub, for use when we have begin blocker events
+	// Stub, for use when we have begin blocker events
 }
 
 func ProcessRPCBlockEvents(blockResults *ctypes.ResultBlockResults) ([]eventTypes.EventRelevantInformation, error) {
