@@ -163,8 +163,12 @@ type base struct {
 	ExitWhenCaughtUp          bool  `mapstructure:"exit-when-caught-up"`
 	BlockEventIndexingEnabled bool  `mapstructure:"index-block-events"`
 	Dry                       bool
-	BlockEventsStartBlock     int64 `mapstructure:"block-events-start-block"`
-	BlockEventsEndBlock       int64 `mapstructure:"block-events-end-block"`
+	BlockEventsStartBlock     int64  `mapstructure:"block-events-start-block"`
+	BlockEventsEndBlock       int64  `mapstructure:"block-events-end-block"`
+	EpochEventIndexingEnabled bool   `mapstructure:"index-epoch-events"`
+	EpochIndexingIdentifier   string `mapstructure:"epoch-indexing-identifier"`
+	EpochEventsStartEpoch     int64  `mapstructure:"epoch-events-start-epoch"`
+	EpochEventsEndEpoch       int64  `mapstructure:"epoch-events-end-epoch"`
 }
 
 type log struct {
