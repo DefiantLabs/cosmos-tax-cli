@@ -6,6 +6,7 @@ import (
 	lensClient "github.com/DefiantLabs/lens/client"
 	lensQuery "github.com/DefiantLabs/lens/client/query"
 	lensEpochsTypes "github.com/DefiantLabs/lens/osmosis/x/epochs/types"
+	lensProtorevTypes "github.com/DefiantLabs/lens/osmosis/x/protorev/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	txTypes "github.com/cosmos/cosmos-sdk/types/tx"
 )
@@ -102,5 +103,13 @@ func GetEpochsAtHeight(cl *lensClient.ChainClient, height int64) (*lensEpochsTyp
 	options := lensQuery.QueryOptions{}
 	query := lensQuery.Query{Client: cl, Options: &options}
 	resp, err := query.EpochsAtHeight(height)
+	return resp, err
+}
+
+// GetEpochsAtHeight makes a request to the Cosmos RPC API and returns the Epoch at a specific height
+func GetProtorevDeveloperAccount(cl *lensClient.ChainClient) (*lensProtorevTypes.QueryGetProtoRevDeveloperAccountResponse, error) {
+	options := lensQuery.QueryOptions{}
+	query := lensQuery.Query{Client: cl, Options: &options}
+	resp, err := query.ProtorevDeveloperAccount()
 	return resp, err
 }
