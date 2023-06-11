@@ -3,6 +3,7 @@ package epochs
 import (
 	eventTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/events"
 	incentivesEventTypes "github.com/DefiantLabs/cosmos-tax-cli/osmosis/epochs/incentives"
+	protorevEventTypes "github.com/DefiantLabs/cosmos-tax-cli/osmosis/epochs/protorev"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/events"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/epochs"
 )
@@ -11,8 +12,17 @@ var dayBeginBlockEventTypesToHandlers = map[string][]func() eventTypes.CosmosEve
 	events.BlockEventDistribution: {func() eventTypes.CosmosEvent { return &incentivesEventTypes.WrapperBlockDistribution{} }},
 }
 
+var weekBeginBlockEventTypesToHandlers = map[string][]func() eventTypes.CosmosEvent{
+	events.BlockEventCoinReceived: {func() eventTypes.CosmosEvent { return &protorevEventTypes.WrapperBlockCoinReceived{} }},
+}
+
 var dayEventTypeHandlers = map[string]map[string][]func() eventTypes.CosmosEvent{
 	"begin_block": dayBeginBlockEventTypesToHandlers,
+	"end_block":   nil,
+}
+
+var weekEventTypeHandlers = map[string]map[string][]func() eventTypes.CosmosEvent{
+	"begin_block": weekBeginBlockEventTypesToHandlers,
 	"end_block":   nil,
 }
 
@@ -22,5 +32,6 @@ var dayEventTypeHandlers = map[string]map[string][]func() eventTypes.CosmosEvent
 // 2. CosmosHub begin blocker or end blocker events for
 // 3. A particular Event Type
 var EpochIdentifierBlockEventHandlers = map[string]map[string]map[string][]func() eventTypes.CosmosEvent{
-	epochs.DayEpochIdentifier: dayEventTypeHandlers,
+	epochs.DayEpochIdentifier:  dayEventTypeHandlers,
+	epochs.WeekEpochIdentifier: weekEventTypeHandlers,
 }
