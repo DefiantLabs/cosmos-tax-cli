@@ -59,7 +59,6 @@ func (sf *WrapperBlockCoinReceived) HandleEvent(eventType string, event abciType
 }
 
 func (sf *WrapperBlockCoinReceived) ParseRelevantData() []events.EventRelevantInformation {
-
 	if !sf.ProtorevEvent {
 		return nil
 	}

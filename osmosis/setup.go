@@ -13,7 +13,6 @@ func SetupOsmosisEpochIndexer(cl *client.ChainClient) error {
 	config.Log.Info("Gathering Protorev Developer Account Address")
 
 	resp, err := rpc.GetProtorevDeveloperAccount(cl)
-
 	if err != nil {
 		config.Log.Error("Error getting Protorev Developer Account Address", err)
 		return err
