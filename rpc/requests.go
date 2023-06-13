@@ -4,7 +4,10 @@ import (
 	coretypes "github.com/cometbft/cometbft/rpc/core/types"
 
 	lensClient "github.com/DefiantLabs/probe/client"
+	lensEpochsTypes "github.com/DefiantLabs/probe/client/codec/osmosis/v15/x/epochs/types"
+	lensProtorevTypes "github.com/DefiantLabs/probe/client/codec/osmosis/v15/x/protorev/types"
 	lensQuery "github.com/DefiantLabs/probe/query"
+	lensOsmosisQuery "github.com/DefiantLabs/probe/query/osmosis"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	txTypes "github.com/cosmos/cosmos-sdk/types/tx"
 )
@@ -94,4 +97,20 @@ func GetLatestBlockHeight(cl *lensClient.ChainClient) (int64, error) {
 		return 0, err
 	}
 	return resStatus.SyncInfo.LatestBlockHeight, nil
+}
+
+// GetEpochsAtHeight makes a request to the Cosmos RPC API and returns the Epoch at a specific height
+func GetEpochsAtHeight(cl *lensClient.ChainClient, height int64) (*lensEpochsTypes.QueryEpochsInfoResponse, error) {
+	options := lensQuery.QueryOptions{}
+	query := lensQuery.Query{Client: cl, Options: &options}
+	resp, err := lensOsmosisQuery.EpochsAtHeightRPC(&query, height)
+	return resp, err
+}
+
+// GetEpochsAtHeight makes a request to the Cosmos RPC API and returns the Epoch at a specific height
+func GetProtorevDeveloperAccount(cl *lensClient.ChainClient) (*lensProtorevTypes.QueryGetProtoRevDeveloperAccountResponse, error) {
+	options := lensQuery.QueryOptions{}
+	query := lensQuery.Query{Client: cl, Options: &options}
+	resp, err := lensOsmosisQuery.ProtorevDeveloperAccountRPC(&query)
+	return resp, err
 }

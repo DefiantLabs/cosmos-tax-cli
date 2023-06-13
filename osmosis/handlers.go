@@ -1,10 +1,6 @@
 package osmosis
 
 import (
-	eventTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/events"
-	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/events"
-	incentivesEventTypes "github.com/DefiantLabs/cosmos-tax-cli/osmosis/events/incentives"
-
 	txTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/poolmanager"
@@ -23,9 +19,4 @@ var MessageTypeHandler = map[string][]func() txTypes.CosmosMessage{
 	gamm.MsgCreatePool:                {func() txTypes.CosmosMessage { return &gamm.WrapperMsgCreatePool{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgCreatePool2{} }},
 	poolmanager.MsgSwapExactAmountIn:  {func() txTypes.CosmosMessage { return &poolmanager.WrapperMsgSwapExactAmountIn{} }},
 	poolmanager.MsgSwapExactAmountOut: {func() txTypes.CosmosMessage { return &poolmanager.WrapperMsgSwapExactAmountOut{} }},
-}
-
-// BeginBlockerEventTypeHandlers should be extended using these and an init func to set up CosmosHub end blocker handlers if we want more functionality.
-var BeginBlockerEventTypeHandlers = map[string][]func() eventTypes.CosmosEvent{
-	events.BlockEventDistribution: {func() eventTypes.CosmosEvent { return &incentivesEventTypes.WrapperBlockDistribution{} }},
 }

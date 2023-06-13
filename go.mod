@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/BurntSushi/toml v1.2.1
-	github.com/DefiantLabs/probe v0.0.0-20230528184352-a53435c67884
+	github.com/DefiantLabs/probe v0.0.0-20230613233054-498e028783b3
 	github.com/cometbft/cometbft v0.37.1
 	github.com/cosmos/cosmos-sdk v0.47.2
 	github.com/cosmos/ibc-go/v7 v7.0.1

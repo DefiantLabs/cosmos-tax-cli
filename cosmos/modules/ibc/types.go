@@ -33,6 +33,15 @@ const (
 
 	MsgCreateClient = "/ibc.core.client.v1.MsgCreateClient"
 	MsgUpdateClient = "/ibc.core.client.v1.MsgUpdateClient"
+
+	// Consts used for classifying Ack messages
+	// We may need to keep extending these consts for other types
+	AckFungibleTokenTransfer    = 0
+	AckNotFungibleTokenTransfer = 1
+
+	// Same as above, we may want to to extend these to track other results
+	AckSuccess = 0
+	AckFailure = 1
 )
 
 type WrapperMsgRecvPacket struct {
@@ -41,7 +50,8 @@ type WrapperMsgRecvPacket struct {
 	Sequence        uint64
 	SenderAddress   string
 	ReceiverAddress string
-	Amount          stdTypes.Coin
+	Amount          stdTypes.Int
+	Denom           string
 }
 
 func (w *WrapperMsgRecvPacket) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
@@ -57,7 +67,9 @@ func (w *WrapperMsgRecvPacket) HandleMsg(msgType string, msg stdTypes.Msg, log *
 	// Unmarshal the json encoded packet data so we can access sender, receiver and denom info
 	var data types.FungibleTokenPacketData
 	if err := types.ModuleCdc.UnmarshalJSON(w.MsgRecvPacket.Packet.GetData(), &data); err != nil {
-		return err
+		// If there was a failure then this recv was not for a token transfer packet,
+		// currently we only consider successful token transfers taxable events.
+		return nil
 	}
 
 	w.SenderAddress = data.Sender
@@ -69,12 +81,14 @@ func (w *WrapperMsgRecvPacket) HandleMsg(msgType string, msg stdTypes.Msg, log *
 		return fmt.Errorf("failed to convert denom amount to sdk.Int, got(%s)", data.Amount)
 	}
 
-	w.Amount = stdTypes.NewCoin(data.Denom, amount)
+	w.Amount = amount
+	w.Denom = data.Denom
 
 	return nil
 }
 
 func (w *WrapperMsgRecvPacket) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	// This prevents the item from being indexed
 	if w.Amount.IsNil() {
 		return nil
 	}
@@ -86,17 +100,17 @@ func (w *WrapperMsgRecvPacket) ParseRelevantData() []parsingTypes.MessageRelevan
 		SenderAddress:        w.SenderAddress,
 		ReceiverAddress:      w.ReceiverAddress,
 		AmountSent:           amountSent.BigInt(),
-		AmountReceived:       w.Amount.Amount.BigInt(),
+		AmountReceived:       w.Amount.BigInt(),
 		DenominationSent:     "",
-		DenominationReceived: w.Amount.Denom,
+		DenominationReceived: w.Denom,
 	}}
 }
 
 func (w *WrapperMsgRecvPacket) String() string {
 	if w.Amount.IsNil() {
-		return fmt.Sprintf("MsgRecvPacket: IBC transfer from %s to %s did not include an amount\n", w.SenderAddress, w.ReceiverAddress)
+		return "MsgRecvPacket: IBC transfer was not a FungibleTokenTransfer"
 	}
-	return fmt.Sprintf("MsgRecvPacket: IBC transfer of %s from %s to %s\n", w.Amount, w.SenderAddress, w.ReceiverAddress)
+	return fmt.Sprintf("MsgRecvPacket: IBC transfer of %s%s from %s to %s", w.Amount, w.Denom, w.SenderAddress, w.ReceiverAddress)
 }
 
 type WrapperMsgAcknowledgement struct {
@@ -105,7 +119,10 @@ type WrapperMsgAcknowledgement struct {
 	Sequence           uint64
 	SenderAddress      string
 	ReceiverAddress    string
-	Amount             stdTypes.Coin
+	Amount             stdTypes.Int
+	Denom              string
+	AckType            int
+	AckResult          int
 }
 
 func (w *WrapperMsgAcknowledgement) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
@@ -123,8 +140,11 @@ func (w *WrapperMsgAcknowledgement) HandleMsg(msgType string, msg stdTypes.Msg, 
 	if err := types.ModuleCdc.UnmarshalJSON(w.MsgAcknowledgement.Packet.GetData(), &data); err != nil {
 		// If there was a failure then this ack was not for a token transfer packet,
 		// currently we only consider successful token transfers taxable events.
-		return err
+		w.AckType = AckNotFungibleTokenTransfer
+		return nil
 	}
+
+	w.AckType = AckFungibleTokenTransfer
 
 	w.SenderAddress = data.Sender
 	w.ReceiverAddress = data.Receiver
@@ -135,8 +155,6 @@ func (w *WrapperMsgAcknowledgement) HandleMsg(msgType string, msg stdTypes.Msg, 
 		return fmt.Errorf("failed to convert denom amount to sdk.Int, got(%s)", data.Amount)
 	}
 
-	w.Amount = stdTypes.NewCoin(data.Denom, amount)
-
 	// Acknowledgements can contain an error & we only want to index successful acks,
 	// so we need to check the ack bytes to determine if it was a result or an error.
 	var ack chantypes.Acknowledgement
@@ -146,15 +164,21 @@ func (w *WrapperMsgAcknowledgement) HandleMsg(msgType string, msg stdTypes.Msg, 
 
 	switch ack.Response.(type) {
 	case *chantypes.Acknowledgement_Error:
-		return fmt.Errorf("acknowledgement contained an error, %s", ack.Response)
+		// We index nothing on Acknowledgement errors
+		w.AckResult = AckFailure
+		return nil
 	default:
 		// the acknowledgement succeeded on the receiving chain
+		w.AckResult = AckSuccess
+		w.Amount = amount
+		w.Denom = data.Denom
 		return nil
 	}
 }
 
 func (w *WrapperMsgAcknowledgement) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
-	if w.Amount.IsNil() {
+	// This prevents the item from being indexed
+	if w.Amount.IsNil() || w.AckType == AckNotFungibleTokenTransfer || w.AckResult == AckFailure {
 		return nil
 	}
 
@@ -165,16 +189,25 @@ func (w *WrapperMsgAcknowledgement) ParseRelevantData() []parsingTypes.MessageRe
 	return []parsingTypes.MessageRelevantInformation{{
 		SenderAddress:        w.SenderAddress,
 		ReceiverAddress:      w.ReceiverAddress,
-		AmountSent:           w.Amount.Amount.BigInt(),
+		AmountSent:           w.Amount.BigInt(),
 		AmountReceived:       amountReceived.BigInt(),
-		DenominationSent:     w.Amount.Denom,
+		DenominationSent:     w.Denom,
 		DenominationReceived: "",
 	}}
 }
 
 func (w *WrapperMsgAcknowledgement) String() string {
-	if w.Amount.IsNil() {
-		return fmt.Sprintf("MsgAcknowledgement: IBC transfer from %s to %s did not include an amount\n", w.SenderAddress, w.ReceiverAddress)
+	if w.AckType == AckNotFungibleTokenTransfer {
+		return "MsgAcknowledgement: IBC transfer was not a FungibleTokenTransfer"
 	}
-	return fmt.Sprintf("MsgAcknowledgement: IBC transfer of %s from %s to %s\n", w.Amount, w.SenderAddress, w.ReceiverAddress)
+
+	if w.AckType == AckFungibleTokenTransfer && w.AckResult == AckFailure {
+		return "MsgAcknowledgement: IBC transfer was not successful"
+	}
+
+	if w.Amount.IsNil() {
+		return "MsgAcknowledgement: IBC transfer was not a FungibleTokenTransfer"
+	}
+
+	return fmt.Sprintf("MsgAcknowledgement: IBC transfer of %s%s from %s to %s\n", w.Amount, w.Denom, w.SenderAddress, w.ReceiverAddress)
 }

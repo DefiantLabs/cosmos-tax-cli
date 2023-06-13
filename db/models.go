@@ -87,6 +87,7 @@ const (
 	TendermintLiquidityWithdrawPoolCoinSent
 	TendermintLiquidityWithdrawCoinReceived
 	TendermintLiquidityWithdrawFee
+	OsmosisProtorevDeveloperRewardDistribution
 )
 
 // An event does not necessarily need to be part of a Transaction. For example, Osmosis rewards.
@@ -183,4 +184,13 @@ type IBCDenom struct {
 	Hash      string `gorm:"uniqueIndex"`
 	Path      string
 	BaseDenom string
+}
+
+type Epoch struct {
+	ID           uint
+	BlockchainID uint   `gorm:"uniqueIndex:chainepochidentifierheight"`
+	Chain        Chain  `gorm:"foreignKey:BlockchainID"`
+	StartHeight  uint   `gorm:"uniqueIndex:chainepochidentifierheight"`
+	Identifier   string `gorm:"uniqueIndex:chainepochidentifierheight"`
+	EpochNumber  uint
 }

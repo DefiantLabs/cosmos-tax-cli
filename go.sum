@@ -219,8 +219,8 @@ github.com/CosmWasm/wasmd v0.40.0/go.mod h1:SuxskRBB7+bpwXGhUXaEfdpjg5WKpdxBy7Tm
 github.com/CosmWasm/wasmvm v1.2.3 h1:OKYlobwmVGbl0eSn0mXoAAjE5hIuXnQCLPjbNd91sVY=
 github.com/CosmWasm/wasmvm v1.2.3/go.mod h1:vW/E3h8j9xBQs9bCoijDuawKo9kCtxOaS8N8J7KFtkc=
 github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
-github.com/DefiantLabs/probe v0.0.0-20230528184352-a53435c67884 h1:Opwu3rf/Gf+N3x4ffYcMhWa0KNSt2Y3NJR47hAMQDec=
-github.com/DefiantLabs/probe v0.0.0-20230528184352-a53435c67884/go.mod h1:Iv3rhs4MEM0GrrfbK76ZcwnTtRakpFxglrsyH7lbw44=
+github.com/DefiantLabs/probe v0.0.0-20230613233054-498e028783b3 h1:kH+/21JftEGdGBs+Pr72hAsphBuvG+uhkmzeZ1edID8=
+github.com/DefiantLabs/probe v0.0.0-20230613233054-498e028783b3/go.mod h1:Iv3rhs4MEM0GrrfbK76ZcwnTtRakpFxglrsyH7lbw44=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
 github.com/KyleBanks/depth v1.2.1 h1:5h8fQADFrWtarTdtDudMmGsC7GPbOAu6RVB3ffsVFHc=
 github.com/KyleBanks/depth v1.2.1/go.mod h1:jzSb9d0L43HxTQfT+oSA1EEp2q+ne2uh6XgeJcm8brE=

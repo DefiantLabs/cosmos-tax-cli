@@ -31,7 +31,7 @@ func GetLensConfig(conf lens, debug bool) *lensClient.ChainClientConfig {
 		AccountPrefix:  conf.AccountPrefix,
 		KeyringBackend: "test",
 		Debug:          debug,
-		Timeout:        "10s",
+		Timeout:        "30s",
 		OutputFormat:   "json",
 		Modules:        lensClient.ModuleBasics,
 	}
