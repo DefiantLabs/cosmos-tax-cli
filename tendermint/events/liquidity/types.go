@@ -1,6 +1,7 @@
 package liquidity
 
 import (
+	"encoding/base64"
 	"fmt"
 	"strings"
 
@@ -62,23 +63,33 @@ func (sf *WrapperBlockEventDepositToPool) HandleEvent(_ string, event abciTypes.
 	var poolCoinAmount string
 	var poolCoinDenom string
 	for _, attribute := range event.Attributes {
-		switch string(attribute.Key) {
+
+		key, err := base64.StdEncoding.DecodeString(attribute.Key)
+		if err != nil {
+			return fmt.Errorf("could not decode event attribute key: %w", err)
+		}
+		value, err := base64.StdEncoding.DecodeString(attribute.Value)
+		if err != nil {
+			return fmt.Errorf("could not decode event attribute value: %w", err)
+		}
+
+		switch string(key) {
 		case "depositor":
-			sf.Address = string(attribute.Value)
+			sf.Address = string(value)
 		case "accepted_coins":
-			acceptedCoins, err := sdk.ParseCoinsNormalized(string(attribute.Value))
+			acceptedCoins, err := sdk.ParseCoinsNormalized(string(value))
 			if err != nil {
 				return err
 			}
 			sf.AcceptedCoins = acceptedCoins
 		case EventAttributeSuccess:
-			sf.Success = string(attribute.Value)
+			sf.Success = string(value)
 		case EventAttributePoolID:
-			sf.PoolID = string(attribute.Value)
+			sf.PoolID = string(value)
 		case "pool_coin_amount":
-			poolCoinAmount = string(attribute.Value)
+			poolCoinAmount = string(value)
 		case "pool_coin_denom":
-			poolCoinDenom = string(attribute.Value)
+			poolCoinDenom = string(value)
 		}
 	}
 
@@ -106,25 +117,35 @@ func (sf *WrapperBlockEventSwapTransacted) HandleEvent(eventType string, event a
 	var demandCoinFeeAmount string
 
 	for _, attribute := range event.Attributes {
-		switch string(attribute.Key) {
+
+		key, err := base64.StdEncoding.DecodeString(attribute.Key)
+		if err != nil {
+			return fmt.Errorf("could not decode event attribute key: %w", err)
+		}
+		value, err := base64.StdEncoding.DecodeString(attribute.Value)
+		if err != nil {
+			return fmt.Errorf("could not decode event attribute value: %w", err)
+		}
+
+		switch string(key) {
 		case "swap_requester":
-			sf.Address = string(attribute.Value)
+			sf.Address = string(value)
 		case "exchanged_offer_coin_amount":
-			offerCoinAmount = string(attribute.Value)
+			offerCoinAmount = string(value)
 		case "offer_coin_denom":
-			offerCoinDenom = string(attribute.Value)
+			offerCoinDenom = string(value)
 		case "exchanged_demand_coin_amount":
-			demandCoinAmount = string(attribute.Value)
+			demandCoinAmount = string(value)
 		case "demand_coin_denom":
-			demandCoinDenom = string(attribute.Value)
+			demandCoinDenom = string(value)
 		case "offer_coin_fee_amount":
-			offerCoinFeeAmount = string(attribute.Value)
+			offerCoinFeeAmount = string(value)
 		case "exchanged_coin_fee_amount":
-			demandCoinFeeAmount = string(attribute.Value)
+			demandCoinFeeAmount = string(value)
 		case EventAttributeSuccess:
-			sf.Success = string(attribute.Value)
+			sf.Success = string(value)
 		case EventAttributePoolID:
-			sf.PoolID = string(attribute.Value)
+			sf.PoolID = string(value)
 		}
 	}
 
@@ -174,21 +195,31 @@ func (sf *WrapperBlockWithdrawFromPool) HandleEvent(eventType string, event abci
 	var withdrawFeesString string
 
 	for _, attribute := range event.Attributes {
-		switch string(attribute.Key) {
+
+		key, err := base64.StdEncoding.DecodeString(attribute.Key)
+		if err != nil {
+			return fmt.Errorf("could not decode event attribute key: %w", err)
+		}
+		value, err := base64.StdEncoding.DecodeString(attribute.Value)
+		if err != nil {
+			return fmt.Errorf("could not decode event attribute value: %w", err)
+		}
+
+		switch string(key) {
 		case "withdrawer":
-			sf.Address = string(attribute.Value)
+			sf.Address = string(value)
 		case "pool_coin_amount":
-			poolCoinAmount = string(attribute.Value)
+			poolCoinAmount = string(value)
 		case "pool_coin_denom":
-			poolCoinDenom = string(attribute.Value)
+			poolCoinDenom = string(value)
 		case "withdraw_coins":
-			withdrawCoinsString = string(attribute.Value)
+			withdrawCoinsString = string(value)
 		case "withdraw_fee_coins":
-			withdrawFeesString = string(attribute.Value)
+			withdrawFeesString = string(value)
 		case EventAttributePoolID:
-			sf.PoolID = string(attribute.Value)
+			sf.PoolID = string(value)
 		case EventAttributeSuccess:
-			sf.Success = string(attribute.Value)
+			sf.Success = string(value)
 		}
 	}
 

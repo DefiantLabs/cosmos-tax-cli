@@ -1,6 +1,7 @@
 package protorev
 
 import (
+	"encoding/base64"
 	"fmt"
 
 	abciTypes "github.com/cometbft/cometbft/abci/types"
@@ -35,11 +36,20 @@ func (sf *WrapperBlockCoinReceived) HandleEvent(eventType string, event abciType
 	var receiverAmount string
 
 	for _, attr := range event.Attributes {
-		if string(attr.Key) == "receiver" {
-			receiverAddr = string(attr.Value)
+		key, err := base64.StdEncoding.DecodeString(attr.Key)
+		if err != nil {
+			return fmt.Errorf("could not decode event attribute key: %w", err)
 		}
-		if string(attr.Key) == "amount" {
-			receiverAmount = string(attr.Value)
+		value, err := base64.StdEncoding.DecodeString(attr.Value)
+		if err != nil {
+			return fmt.Errorf("could not decode event attribute value: %w", err)
+		}
+
+		if string(key) == "receiver" {
+			receiverAddr = string(value)
+		}
+		if string(key) == "amount" {
+			receiverAmount = string(value)
 		}
 	}
 
