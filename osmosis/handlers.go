@@ -1,9 +1,9 @@
 package osmosis
 
 import (
-	txTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
-	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
-	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/poolmanager"
+	txTypes "github.com/DefiantLabs/cosmos-indexer/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-indexer/osmosis/modules/gamm"
+	"github.com/DefiantLabs/cosmos-indexer/osmosis/modules/poolmanager"
 )
 
 // MessageTypeHandler is used to unmarshal JSON to a particular type.

@@ -1,11 +1,11 @@
 package epochs
 
 import (
-	eventTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/events"
-	incentivesEventTypes "github.com/DefiantLabs/cosmos-tax-cli/osmosis/epochs/incentives"
-	protorevEventTypes "github.com/DefiantLabs/cosmos-tax-cli/osmosis/epochs/protorev"
-	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/events"
-	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/epochs"
+	eventTypes "github.com/DefiantLabs/cosmos-indexer/cosmos/events"
+	incentivesEventTypes "github.com/DefiantLabs/cosmos-indexer/osmosis/epochs/incentives"
+	protorevEventTypes "github.com/DefiantLabs/cosmos-indexer/osmosis/epochs/protorev"
+	"github.com/DefiantLabs/cosmos-indexer/osmosis/events"
+	"github.com/DefiantLabs/cosmos-indexer/osmosis/modules/epochs"
 )
 
 var dayBeginBlockEventTypesToHandlers = map[string][]func() eventTypes.CosmosEvent{

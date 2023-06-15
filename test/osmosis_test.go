@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
+	"github.com/DefiantLabs/cosmos-indexer/osmosis"
 
-	dbUtils "github.com/DefiantLabs/cosmos-tax-cli/db"
-	"github.com/DefiantLabs/cosmos-tax-cli/util"
+	dbUtils "github.com/DefiantLabs/cosmos-indexer/db"
+	"github.com/DefiantLabs/cosmos-indexer/util"
 	"github.com/stretchr/testify/assert"
 )
 

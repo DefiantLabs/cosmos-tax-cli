@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/DefiantLabs/cosmos-tax-cli/config"
-	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
-	"github.com/DefiantLabs/cosmos-tax-cli/juno"
-	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
-	"github.com/DefiantLabs/cosmos-tax-cli/rest"
+	"github.com/DefiantLabs/cosmos-indexer/config"
+	dbTypes "github.com/DefiantLabs/cosmos-indexer/db"
+	"github.com/DefiantLabs/cosmos-indexer/juno"
+	"github.com/DefiantLabs/cosmos-indexer/osmosis"
+	"github.com/DefiantLabs/cosmos-indexer/rest"
 
 	"gorm.io/gorm"
 )

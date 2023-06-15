@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strconv"
 
-	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
-	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
-	"github.com/DefiantLabs/cosmos-tax-cli/util"
+	parsingTypes "github.com/DefiantLabs/cosmos-indexer/cosmos/modules"
+	txModule "github.com/DefiantLabs/cosmos-indexer/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-indexer/util"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	poolManagerTypes "github.com/osmosis-labs/osmosis/v15/x/poolmanager/types"
 )

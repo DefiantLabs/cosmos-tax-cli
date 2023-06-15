@@ -3,7 +3,7 @@ package parsers
 import (
 	"time"
 
-	"github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-indexer/db"
 )
 
 type Parser interface {
