@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"github.com/DefiantLabs/cosmos-indexer/config"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

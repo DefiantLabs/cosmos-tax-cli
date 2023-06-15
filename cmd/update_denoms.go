@@ -4,8 +4,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/DefiantLabs/cosmos-tax-cli/config"
-	"github.com/DefiantLabs/cosmos-tax-cli/tasks"
+	"github.com/DefiantLabs/cosmos-indexer/config"
+	"github.com/DefiantLabs/cosmos-indexer/tasks"
 	"github.com/spf13/cobra"
 )
 

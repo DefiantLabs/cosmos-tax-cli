@@ -3,10 +3,10 @@ package core
 import (
 	"fmt"
 
-	"github.com/DefiantLabs/cosmos-tax-cli/config"
-	eventTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/events"
-	osmosisTypes "github.com/DefiantLabs/cosmos-tax-cli/osmosis"
-	osmosisEpochTypes "github.com/DefiantLabs/cosmos-tax-cli/osmosis/epochs"
+	"github.com/DefiantLabs/cosmos-indexer/config"
+	eventTypes "github.com/DefiantLabs/cosmos-indexer/cosmos/events"
+	osmosisTypes "github.com/DefiantLabs/cosmos-indexer/osmosis"
+	osmosisEpochTypes "github.com/DefiantLabs/cosmos-indexer/osmosis/epochs"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 

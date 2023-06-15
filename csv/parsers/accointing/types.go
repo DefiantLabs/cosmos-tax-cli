@@ -1,6 +1,6 @@
 package accointing
 
-import "github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
+import "github.com/DefiantLabs/cosmos-indexer/csv/parsers"
 
 const (
 	// ParserKey is the key used to identify this parser

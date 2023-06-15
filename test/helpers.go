@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
+	"github.com/DefiantLabs/cosmos-indexer/osmosis"
 
-	configUtils "github.com/DefiantLabs/cosmos-tax-cli/config"
-	"github.com/DefiantLabs/cosmos-tax-cli/core"
-	dbUtils "github.com/DefiantLabs/cosmos-tax-cli/db"
-	"github.com/DefiantLabs/cosmos-tax-cli/util"
+	configUtils "github.com/DefiantLabs/cosmos-indexer/config"
+	"github.com/DefiantLabs/cosmos-indexer/core"
+	dbUtils "github.com/DefiantLabs/cosmos-indexer/db"
+	"github.com/DefiantLabs/cosmos-indexer/util"
 	"gorm.io/gorm"
 )
 

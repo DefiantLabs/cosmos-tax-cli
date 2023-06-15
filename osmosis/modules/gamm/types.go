@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
-	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
-	"github.com/DefiantLabs/cosmos-tax-cli/util"
+	parsingTypes "github.com/DefiantLabs/cosmos-indexer/cosmos/modules"
+	txModule "github.com/DefiantLabs/cosmos-indexer/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-indexer/util"
 	osmosisOldTypes "github.com/DefiantLabs/lens/extra-codecs/osmosis/gamm/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"

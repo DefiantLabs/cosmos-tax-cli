@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/DefiantLabs/cosmos-tax-cli/config"
-	"github.com/DefiantLabs/cosmos-tax-cli/csv"
-	parsers_pkg "github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
+	"github.com/DefiantLabs/cosmos-indexer/config"
+	"github.com/DefiantLabs/cosmos-indexer/csv"
+	parsers_pkg "github.com/DefiantLabs/cosmos-indexer/csv/parsers"
 
 	"github.com/spf13/cobra"
 )

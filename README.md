@@ -99,7 +99,7 @@ The applications current data model is oriented toward indexing data with taxabl
 
 While we strive to expand our list of supported messages, we acknowledge that we do not yet cover every possible message across all chains. If you identify a missing or improperly handled message type, we encourage you to **open an issue or submit a PR**.
 
-For the most recent, comprehensive list of supported messages, please refer to the code [**here**](https://github.com/DefiantLabs/cosmos-tax-cli/blob/main/core/tx.go).
+For the most recent, comprehensive list of supported messages, please refer to the code [**here**](https://github.com/DefiantLabs/cosmos-indexer/blob/main/core/tx.go).
 
 Below is the rundown of our current support for different types of messages:
 

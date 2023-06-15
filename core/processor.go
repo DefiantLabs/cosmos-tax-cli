@@ -3,7 +3,7 @@ package core
 import (
 	"fmt"
 
-	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"github.com/DefiantLabs/cosmos-indexer/config"
 )
 
 type BlockProcessingFailure int

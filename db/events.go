@@ -7,9 +7,9 @@ import (
 	"sort"
 	"time"
 
-	"github.com/DefiantLabs/cosmos-tax-cli/config"
-	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/events"
-	"github.com/DefiantLabs/cosmos-tax-cli/util"
+	"github.com/DefiantLabs/cosmos-indexer/config"
+	"github.com/DefiantLabs/cosmos-indexer/cosmos/events"
+	"github.com/DefiantLabs/cosmos-indexer/util"
 	"gorm.io/gorm"
 )
 
