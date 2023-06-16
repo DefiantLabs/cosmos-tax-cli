@@ -3,9 +3,9 @@ package core
 import (
 	"fmt"
 
-	"github.com/DefiantLabs/cosmos-tax-cli/config"
-	eventTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/events"
-	"github.com/DefiantLabs/cosmos-tax-cli/cosmoshub"
+	"github.com/DefiantLabs/cosmos-indexer/config"
+	eventTypes "github.com/DefiantLabs/cosmos-indexer/cosmos/events"
+	"github.com/DefiantLabs/cosmos-indexer/cosmoshub"
 	ctypes "github.com/cometbft/cometbft/rpc/core/types"
 )
 

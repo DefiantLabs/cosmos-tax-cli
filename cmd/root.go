@@ -7,21 +7,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"github.com/DefiantLabs/cosmos-indexer/config"
 	"github.com/go-co-op/gocron"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
 
-	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
+	dbTypes "github.com/DefiantLabs/cosmos-indexer/db"
 )
 
 var (
 	cfgFile string        // config file location to load
 	conf    config.Config // stores the unmarshaled config loaded from Viper, available to all commands in the cmd package
 	rootCmd = &cobra.Command{
-		Use:   "cosmos-tax-cli",
+		Use:   "cosmos-indexer",
 		Short: "A CLI tool for indexing and querying on-chain data",
 		Long: `Cosmos Tax CLI is a CLI tool for indexing and querying Cosmos-based blockchains,
 		with a heavy focus on taxable events.`,
@@ -36,12 +36,12 @@ func Execute() error {
 func init() {
 	// initConfig on initialize of cobra guarantees config struct will be set before all subcommands are executed
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.cosmos-tax-cli/config.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.cosmos-indexer/config.yaml)")
 
 	// Log
 	rootCmd.PersistentFlags().StringVar(&conf.Log.Level, "log.level", "info", "log level")
 	rootCmd.PersistentFlags().BoolVar(&conf.Log.Pretty, "log.pretty", false, "pretty logs")
-	rootCmd.PersistentFlags().StringVar(&conf.Log.Path, "log.path", "", "log path (default is $HOME/.cosmos-tax-cli/logs.txt")
+	rootCmd.PersistentFlags().StringVar(&conf.Log.Path, "log.path", "", "log path (default is $HOME/.cosmos-indexer/logs.txt")
 
 	// Base
 	// chain indexing
@@ -104,7 +104,7 @@ func initConfig() {
 			if err != nil {
 				log.Fatalf("Failed to find user home dir. Err: %v", err)
 			}
-			cfgFile = fmt.Sprintf("%s/.cosmos-tax-cli", home)
+			cfgFile = fmt.Sprintf("%s/.cosmos-indexer", home)
 		}
 		v.AddConfigPath(cfgFile)
 		v.SetConfigType("toml")

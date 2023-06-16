@@ -1,9 +1,9 @@
 package tendermint
 
 import (
-	eventTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/events"
-	"github.com/DefiantLabs/cosmos-tax-cli/tendermint/events"
-	liquidityEventTypes "github.com/DefiantLabs/cosmos-tax-cli/tendermint/events/liquidity"
+	eventTypes "github.com/DefiantLabs/cosmos-indexer/cosmos/events"
+	"github.com/DefiantLabs/cosmos-indexer/tendermint/events"
+	liquidityEventTypes "github.com/DefiantLabs/cosmos-indexer/tendermint/events/liquidity"
 )
 
 var EndBlockerEventTypeHandlers = map[string][]func() eventTypes.CosmosEvent{

@@ -6,16 +6,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/DefiantLabs/cosmos-tax-cli/assetlists"
-	"github.com/DefiantLabs/cosmos-tax-cli/config"
-	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/bank"
-	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/distribution"
-	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/gov"
-	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/ibc"
-	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/staking"
-	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
-	"github.com/DefiantLabs/cosmos-tax-cli/db"
-	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
+	"github.com/DefiantLabs/cosmos-indexer/assetlists"
+	"github.com/DefiantLabs/cosmos-indexer/config"
+	"github.com/DefiantLabs/cosmos-indexer/cosmos/modules/bank"
+	"github.com/DefiantLabs/cosmos-indexer/cosmos/modules/distribution"
+	"github.com/DefiantLabs/cosmos-indexer/cosmos/modules/gov"
+	"github.com/DefiantLabs/cosmos-indexer/cosmos/modules/ibc"
+	"github.com/DefiantLabs/cosmos-indexer/cosmos/modules/staking"
+	"github.com/DefiantLabs/cosmos-indexer/csv/parsers"
+	"github.com/DefiantLabs/cosmos-indexer/db"
+	"github.com/DefiantLabs/cosmos-indexer/osmosis/modules/gamm"
 )
 
 var unsupportedCoins = []string{

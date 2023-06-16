@@ -3,10 +3,10 @@ package gov
 import (
 	"fmt"
 
-	"github.com/DefiantLabs/cosmos-tax-cli/config"
-	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
-	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
-	"github.com/DefiantLabs/cosmos-tax-cli/util"
+	"github.com/DefiantLabs/cosmos-indexer/config"
+	parsingTypes "github.com/DefiantLabs/cosmos-indexer/cosmos/modules"
+	txModule "github.com/DefiantLabs/cosmos-indexer/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-indexer/util"
 	stdTypes "github.com/cosmos/cosmos-sdk/types"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	govTypes "github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"

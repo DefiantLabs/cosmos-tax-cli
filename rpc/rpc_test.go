@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"github.com/DefiantLabs/cosmos-indexer/config"
 	"github.com/DefiantLabs/probe/client"
 	lensQuery "github.com/DefiantLabs/probe/query"
 	"github.com/cosmos/cosmos-sdk/types"
