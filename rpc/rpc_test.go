@@ -1,7 +1,6 @@
 package rpc
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -10,7 +9,6 @@ import (
 
 	"github.com/DefiantLabs/cosmos-indexer/config"
 	"github.com/DefiantLabs/probe/client"
-	lensQuery "github.com/DefiantLabs/probe/query"
 	"github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -54,19 +52,6 @@ func setupConfig(t *testing.T) {
 	testConfig = &cfg
 }
 
-func TestRPC(t *testing.T) {
-	block := 2620000
-	err := lensQueryBank(t, int64(block))
-	if err != nil {
-		assert.Nil(t, err, "should not error writing to CSV")
-	}
-
-	err = rpcQueryTx(t, int64(block))
-	if err != nil {
-		assert.Nil(t, err, "should not error calling rpc")
-	}
-}
-
 func TestDecodeIBCTypes(t *testing.T) {
 	cl := GetOsmosisTestClient(t)
 	resp, err := GetTxsByBlockHeight(cl, 2620000)
@@ -101,7 +86,6 @@ func GetJunoTestClient(t *testing.T) *client.ChainClient {
 	// and you can move all of the necessary keys to whatever homepath you want to use. Or you can use --home flag.
 	cl, err := client.NewChainClient(GetJunoConfig(homepath, true), homepath, nil, nil)
 	assert.Nil(t, err)
-	config.RegisterAdditionalTypes(cl)
 	return cl
 }
 
@@ -113,7 +97,6 @@ func GetOsmosisTestClient(t *testing.T) *client.ChainClient {
 	// and you can move all of the necessary keys to whatever homepath you want to use. Or you can use --home flag.
 	cl, err := client.NewChainClient(GetOsmosisConfig(homepath, true), homepath, nil, nil)
 	assert.Nil(t, err)
-	config.RegisterAdditionalTypes(cl)
 	return cl
 }
 
@@ -146,34 +129,4 @@ func GetOsmosisConfig(keyHome string, debug bool) *client.ChainClientConfig {
 		OutputFormat:   "json",
 		Modules:        client.ModuleBasics,
 	}
-}
-
-func lensQueryBank(t *testing.T, height int64) error {
-	cl := GetOsmosisTestClient(t)
-	keyNameOrAddress := cl.Config.Key
-	address, err := cl.AccountFromKeyOrAddress(keyNameOrAddress)
-	if err != nil {
-		log.Println("Error getting account from key or address: ", keyNameOrAddress)
-		return err
-	}
-	encodedAddr := cl.MustEncodeAccAddr(address)
-	options := lensQuery.QueryOptions{Height: height}
-	query := lensQuery.Query{Client: cl, Options: &options}
-	balance, err := query.Balances(encodedAddr)
-	fmt.Printf("Balance: %s\n", balance)
-	return err
-}
-
-func rpcQueryTx(t *testing.T, height int64) error {
-	cl := GetOsmosisTestClient(t)
-	// requestEndpoint := fmt.Sprintf(rest.GetEndpoint("txs_by_block_height_endpoint"), height)
-	options := lensQuery.QueryOptions{Height: height}
-	query := lensQuery.Query{Client: cl, Options: &options}
-	resp, err := query.TxByHeight(cl.Codec)
-	if err != nil {
-		return err
-	}
-	jResp, err := json.Marshal(*resp)
-	fmt.Printf("Resp: %s\n", jResp)
-	return err
 }

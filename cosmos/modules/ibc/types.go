@@ -9,6 +9,7 @@ import (
 	"github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
 	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
 
+	sdkMath "cosmossdk.io/math"
 	stdTypes "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -50,7 +51,7 @@ type WrapperMsgRecvPacket struct {
 	Sequence        uint64
 	SenderAddress   string
 	ReceiverAddress string
-	Amount          stdTypes.Int
+	Amount          sdkMath.Int
 	Denom           string
 }
 
@@ -119,7 +120,7 @@ type WrapperMsgAcknowledgement struct {
 	Sequence           uint64
 	SenderAddress      string
 	ReceiverAddress    string
-	Amount             stdTypes.Int
+	Amount             sdkMath.Int
 	Denom              string
 	AckType            int
 	AckResult          int
