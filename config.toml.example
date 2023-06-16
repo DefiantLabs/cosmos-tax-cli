@@ -27,8 +27,8 @@ dry = false # if true, indexing will occur but data will not be written to the d
 api = "" # node api endpoint
 rpc-workers = 1
 
-#Lens config options
-[lens]
+#Probe config options
+[probe]
 rpc = "https://rpc.kujira.ccvalidators.com:443" #On Kujira use one of the endpoints from the list https://github.com/Team-Kujira/networks/tree/master/mainnet
 account-prefix = "kujira"
 chain-id = "kaiyo-1"

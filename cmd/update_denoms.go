@@ -40,14 +40,14 @@ func updateDenoms(cmd *cobra.Command, args []string) {
 			config.Log.Infof("Running denom update task for chain %s", chainID)
 			function(db)
 		}
-	case cfg.Lens.ChainID != "":
-		function, ok := tasks.ChainSpecificDenomUpsertFunctions[cfg.Lens.ChainID]
+	case cfg.Probe.ChainID != "":
+		function, ok := tasks.ChainSpecificDenomUpsertFunctions[cfg.Probe.ChainID]
 		if ok {
-			config.Log.Infof("Running denom update task for chain %s found in config", cfg.Lens.ChainID)
+			config.Log.Infof("Running denom update task for chain %s found in config", cfg.Probe.ChainID)
 			function(db)
 			config.Log.Info("Done")
 		} else {
-			config.Log.Fatalf("No denom update functionality for chain-id %s", cfg.Lens.ChainID)
+			config.Log.Fatalf("No denom update functionality for chain-id %s", cfg.Probe.ChainID)
 		}
 	default:
 		config.Log.Fatal("Please pass the flag --update-all or provide a chain-id in your application configuration")

@@ -35,13 +35,13 @@ func updateEpochs(cmd *cobra.Command, args []string) {
 		log.Fatalf("Error during application setup. Err: %v", err)
 	}
 
-	cl := config.GetLensClient(cfg.Lens)
+	cl := config.GetProbeClient(cfg.Probe)
 
 	if cl.Config.ChainID == osmosis.ChainID {
 		// Setup Chain model item
 		var chain dbTypes.Chain
 		chain.ChainID = cl.Config.ChainID
-		chain.Name = cfg.Lens.ChainName
+		chain.Name = cfg.Probe.ChainName
 		res := db.FirstOrCreate(&chain)
 
 		if res.Error != nil {

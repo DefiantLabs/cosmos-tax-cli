@@ -18,7 +18,7 @@ func getHomePath(t *testing.T) string {
 	if err != nil {
 		assert.Nil(t, err)
 	}
-	return fmt.Sprintf("%v/.lens", homeDir)
+	return fmt.Sprintf("%v/.probe", homeDir)
 }
 
 // nolint:unused
@@ -81,8 +81,8 @@ func TestDecodeIBCTypes(t *testing.T) {
 func GetJunoTestClient(t *testing.T) *client.ChainClient {
 	homepath := getHomePath(t)
 	// IMPORTANT: the actual keyring-test will be searched for at the path {homepath}/keys/{ChainID}/keyring-test.
-	// You can use lens default settings to generate that directory appropriately then move it to the desired path.
-	// For example, 'lens keys restore default' will restore the key to the default keyring (e.g. /home/kyle/.lens/...)
+	// You can use probe default settings to generate that directory appropriately then move it to the desired path.
+	// For example, 'probe keys restore default' will restore the key to the default keyring (e.g. /home/kyle/.probe/...)
 	// and you can move all of the necessary keys to whatever homepath you want to use. Or you can use --home flag.
 	cl, err := client.NewChainClient(GetJunoConfig(homepath, true), homepath, nil, nil)
 	assert.Nil(t, err)
@@ -92,8 +92,8 @@ func GetJunoTestClient(t *testing.T) *client.ChainClient {
 func GetOsmosisTestClient(t *testing.T) *client.ChainClient {
 	homepath := getHomePath(t)
 	// IMPORTANT: the actual keyring-test will be searched for at the path {homepath}/keys/{ChainID}/keyring-test.
-	// You can use lens default settings to generate that directory appropriately then move it to the desired path.
-	// For example, 'lens keys restore default' will restore the key to the default keyring (e.g. /home/kyle/.lens/...)
+	// You can use probe default settings to generate that directory appropriately then move it to the desired path.
+	// For example, 'probe keys restore default' will restore the key to the default keyring (e.g. /home/kyle/.probe/...)
 	// and you can move all of the necessary keys to whatever homepath you want to use. Or you can use --home flag.
 	cl, err := client.NewChainClient(GetOsmosisConfig(homepath, true), homepath, nil, nil)
 	assert.Nil(t, err)

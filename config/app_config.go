@@ -14,11 +14,11 @@ import (
 
 type Config struct {
 	Database           database
-	API                api // deprecated in favor of lens.Rpc (at least in this app)
+	API                api // deprecated in favor of probe.Rpc (at least in this app)
 	ConfigFileLocation string
 	Base               base
 	Log                log
-	Lens               lens
+	Probe              probe
 	Client             client
 }
 
@@ -76,27 +76,27 @@ func (conf *Config) Validate() error {
 	// Log
 	// Both level and path can safely be blank
 
-	// Lens
-	if util.StrNotSet(conf.Lens.RPC) {
-		return errors.New("lens rpc must be set")
+	// Probe
+	if util.StrNotSet(conf.Probe.RPC) {
+		return errors.New("probe rpc must be set")
 	}
 	// add port if not set
-	if strings.Count(conf.Lens.RPC, ":") != 2 {
-		if strings.HasPrefix(conf.Lens.RPC, "https:") {
-			conf.Lens.RPC = fmt.Sprintf("%s:443", conf.Lens.RPC)
-		} else if strings.HasPrefix(conf.Lens.RPC, "http:") {
-			conf.Lens.RPC = fmt.Sprintf("%s:80", conf.Lens.RPC)
+	if strings.Count(conf.Probe.RPC, ":") != 2 {
+		if strings.HasPrefix(conf.Probe.RPC, "https:") {
+			conf.Probe.RPC = fmt.Sprintf("%s:443", conf.Probe.RPC)
+		} else if strings.HasPrefix(conf.Probe.RPC, "http:") {
+			conf.Probe.RPC = fmt.Sprintf("%s:80", conf.Probe.RPC)
 		}
 	}
 
-	if util.StrNotSet(conf.Lens.AccountPrefix) {
-		return errors.New("lens account-prefix must be set")
+	if util.StrNotSet(conf.Probe.AccountPrefix) {
+		return errors.New("probe account-prefix must be set")
 	}
-	if util.StrNotSet(conf.Lens.ChainID) {
-		return errors.New("lens chain-id must be set")
+	if util.StrNotSet(conf.Probe.ChainID) {
+		return errors.New("probe chain-id must be set")
 	}
-	if util.StrNotSet(conf.Lens.ChainName) {
-		return errors.New("lens chain-name must be set")
+	if util.StrNotSet(conf.Probe.ChainName) {
+		return errors.New("probe chain-name must be set")
 	}
 
 	return nil
@@ -133,7 +133,7 @@ type database struct {
 	LogLevel string `mapstructure:"log-level"`
 }
 
-type lens struct {
+type probe struct {
 	RPC           string
 	AccountPrefix string `mapstructure:"account-prefix"`
 	ChainID       string `mapstructure:"chain-id"`
@@ -210,8 +210,8 @@ func CheckSuperfluousConfigKeys(keys []string) []string {
 	for _, key := range getValidConfigKeys(log{}) {
 		validKeys[key] = struct{}{}
 	}
-	// add lens keys
-	for _, key := range getValidConfigKeys(lens{}) {
+	// add probe keys
+	for _, key := range getValidConfigKeys(probe{}) {
 		validKeys[key] = struct{}{}
 	}
 

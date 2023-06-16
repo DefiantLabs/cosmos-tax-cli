@@ -1,15 +1,15 @@
 package config
 
 import (
-	lensClient "github.com/DefiantLabs/probe/client"
+	probeClient "github.com/DefiantLabs/probe/client"
 )
 
-func GetLensClient(conf lens) *lensClient.ChainClient {
+func GetProbeClient(conf probe) *probeClient.ChainClient {
 	// IMPORTANT: the actual keyring-test will be searched for at the path {homepath}/keys/{ChainID}/keyring-test.
-	// You can use lens default settings to generate that directory appropriately then move it to the desired path.
-	// For example, 'lens keys restore default' will restore the key to the default keyring (e.g. /home/kyle/.lens/...)
+	// You can use probe default settings to generate that directory appropriately then move it to the desired path.
+	// For example, 'probe keys restore default' will restore the key to the default keyring (e.g. /home/kyle/.probe/...)
 	// and you can move all of the necessary keys to whatever homepath you want to use. Or you can use --home flag.
-	cl, err := lensClient.NewChainClient(GetLensConfig(conf, true), "", nil, nil)
+	cl, err := probeClient.NewChainClient(GetProbeConfig(conf, true), "", nil, nil)
 	if err != nil {
 		Log.Fatalf("Error connecting to chain. Err: %v", err)
 	}
@@ -17,14 +17,14 @@ func GetLensClient(conf lens) *lensClient.ChainClient {
 	return cl
 }
 
-// func RegisterAdditionalTypes(cc *lensClient.ChainClient) {
+// func RegisterAdditionalTypes(cc *probeClient.ChainClient) {
 // 	// Register IBC types
 // 	// ibcTypes.RegisterLegacyAminoCodec(cc.Codec.Amino)
 // 	ibcTypes.RegisterInterfaces(cc.Codec.InterfaceRegistry)
 // }
 
-func GetLensConfig(conf lens, debug bool) *lensClient.ChainClientConfig {
-	return &lensClient.ChainClientConfig{
+func GetProbeConfig(conf probe, debug bool) *probeClient.ChainClientConfig {
+	return &probeClient.ChainClientConfig{
 		Key:            "default",
 		ChainID:        conf.ChainID,
 		RPCAddr:        conf.RPC,
@@ -33,6 +33,6 @@ func GetLensConfig(conf lens, debug bool) *lensClient.ChainClientConfig {
 		Debug:          debug,
 		Timeout:        "30s",
 		OutputFormat:   "json",
-		Modules:        lensClient.ModuleBasics,
+		Modules:        probeClient.ModuleBasics,
 	}
 }

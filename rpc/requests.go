@@ -3,11 +3,11 @@ package rpc
 import (
 	coretypes "github.com/cometbft/cometbft/rpc/core/types"
 
-	lensClient "github.com/DefiantLabs/probe/client"
-	lensEpochsTypes "github.com/DefiantLabs/probe/client/codec/osmosis/v15/x/epochs/types"
-	lensProtorevTypes "github.com/DefiantLabs/probe/client/codec/osmosis/v15/x/protorev/types"
-	lensQuery "github.com/DefiantLabs/probe/query"
-	lensOsmosisQuery "github.com/DefiantLabs/probe/query/osmosis"
+	probeClient "github.com/DefiantLabs/probe/client"
+	probeEpochsTypes "github.com/DefiantLabs/probe/client/codec/osmosis/v15/x/epochs/types"
+	probeProtorevTypes "github.com/DefiantLabs/probe/client/codec/osmosis/v15/x/protorev/types"
+	probeQuery "github.com/DefiantLabs/probe/query"
+	probeOsmosisQuery "github.com/DefiantLabs/probe/query/osmosis"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	txTypes "github.com/cosmos/cosmos-sdk/types/tx"
 )
@@ -24,9 +24,9 @@ func GetEndpoint(key string) string {
 }
 
 // GetBlockByHeight makes a request to the Cosmos RPC API and returns all the transactions for a specific block
-func GetBlockByHeight(cl *lensClient.ChainClient, height int64) (*coretypes.ResultBlockResults, error) {
-	options := lensQuery.QueryOptions{Height: height}
-	query := lensQuery.Query{Client: cl, Options: &options}
+func GetBlockByHeight(cl *probeClient.ChainClient, height int64) (*coretypes.ResultBlockResults, error) {
+	options := probeQuery.QueryOptions{Height: height}
+	query := probeQuery.Query{Client: cl, Options: &options}
 	resp, err := query.BlockResults()
 	if err != nil {
 		return nil, err
@@ -36,9 +36,9 @@ func GetBlockByHeight(cl *lensClient.ChainClient, height int64) (*coretypes.Resu
 }
 
 // GetBlockTimestamp
-func GetBlock(cl *lensClient.ChainClient, height int64) (*coretypes.ResultBlock, error) {
-	options := lensQuery.QueryOptions{Height: height}
-	query := lensQuery.Query{Client: cl, Options: &options}
+func GetBlock(cl *probeClient.ChainClient, height int64) (*coretypes.ResultBlock, error) {
+	options := probeQuery.QueryOptions{Height: height}
+	query := probeQuery.Query{Client: cl, Options: &options}
 	resp, err := query.Block()
 	if err != nil {
 		return nil, err
@@ -48,10 +48,10 @@ func GetBlock(cl *lensClient.ChainClient, height int64) (*coretypes.ResultBlock,
 }
 
 // GetTxsByBlockHeight makes a request to the Cosmos RPC API and returns all the transactions for a specific block
-func GetTxsByBlockHeight(cl *lensClient.ChainClient, height int64) (*txTypes.GetTxsEventResponse, error) {
+func GetTxsByBlockHeight(cl *probeClient.ChainClient, height int64) (*txTypes.GetTxsEventResponse, error) {
 	pg := query.PageRequest{Limit: 100}
-	options := lensQuery.QueryOptions{Height: height, Pagination: &pg}
-	query := lensQuery.Query{Client: cl, Options: &options}
+	options := probeQuery.QueryOptions{Height: height, Pagination: &pg}
+	query := probeQuery.Query{Client: cl, Options: &options}
 	resp, err := query.TxByHeight(cl.Codec)
 	if err != nil {
 		return nil, err
@@ -75,8 +75,8 @@ func GetTxsByBlockHeight(cl *lensClient.ChainClient, height int64) (*txTypes.Get
 }
 
 // IsCatchingUp true if the node is catching up to the chain, false otherwise
-func IsCatchingUp(cl *lensClient.ChainClient) (bool, error) {
-	query := lensQuery.Query{Client: cl, Options: &lensQuery.QueryOptions{}}
+func IsCatchingUp(cl *probeClient.ChainClient) (bool, error) {
+	query := probeQuery.Query{Client: cl, Options: &probeQuery.QueryOptions{}}
 	ctx, cancel := query.GetQueryContext()
 	defer cancel()
 
@@ -87,8 +87,8 @@ func IsCatchingUp(cl *lensClient.ChainClient) (bool, error) {
 	return resStatus.SyncInfo.CatchingUp, nil
 }
 
-func GetLatestBlockHeight(cl *lensClient.ChainClient) (int64, error) {
-	query := lensQuery.Query{Client: cl, Options: &lensQuery.QueryOptions{}}
+func GetLatestBlockHeight(cl *probeClient.ChainClient) (int64, error) {
+	query := probeQuery.Query{Client: cl, Options: &probeQuery.QueryOptions{}}
 	ctx, cancel := query.GetQueryContext()
 	defer cancel()
 
@@ -100,17 +100,17 @@ func GetLatestBlockHeight(cl *lensClient.ChainClient) (int64, error) {
 }
 
 // GetEpochsAtHeight makes a request to the Cosmos RPC API and returns the Epoch at a specific height
-func GetEpochsAtHeight(cl *lensClient.ChainClient, height int64) (*lensEpochsTypes.QueryEpochsInfoResponse, error) {
-	options := lensQuery.QueryOptions{}
-	query := lensQuery.Query{Client: cl, Options: &options}
-	resp, err := lensOsmosisQuery.EpochsAtHeightRPC(&query, height)
+func GetEpochsAtHeight(cl *probeClient.ChainClient, height int64) (*probeEpochsTypes.QueryEpochsInfoResponse, error) {
+	options := probeQuery.QueryOptions{}
+	query := probeQuery.Query{Client: cl, Options: &options}
+	resp, err := probeOsmosisQuery.EpochsAtHeightRPC(&query, height)
 	return resp, err
 }
 
 // GetEpochsAtHeight makes a request to the Cosmos RPC API and returns the Epoch at a specific height
-func GetProtorevDeveloperAccount(cl *lensClient.ChainClient) (*lensProtorevTypes.QueryGetProtoRevDeveloperAccountResponse, error) {
-	options := lensQuery.QueryOptions{}
-	query := lensQuery.Query{Client: cl, Options: &options}
-	resp, err := lensOsmosisQuery.ProtorevDeveloperAccountRPC(&query)
+func GetProtorevDeveloperAccount(cl *probeClient.ChainClient) (*probeProtorevTypes.QueryGetProtoRevDeveloperAccountResponse, error) {
+	options := probeQuery.QueryOptions{}
+	query := probeQuery.Query{Client: cl, Options: &options}
+	resp, err := probeOsmosisQuery.ProtorevDeveloperAccountRPC(&query)
 	return resp, err
 }

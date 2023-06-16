@@ -13,7 +13,7 @@ import (
 
 func TestKoinlyOsmoLPParsing(t *testing.T) {
 	cfg := config.Config{}
-	cfg.Lens.ChainID = osmosis.ChainID
+	cfg.Probe.ChainID = osmosis.ChainID
 	parser := GetParser(koinly.ParserKey)
 	parser.InitializeParsingGroups()
 
@@ -52,7 +52,7 @@ func TestKoinlyOsmoLPParsing(t *testing.T) {
 
 func TestKoinlyOsmoRewardParsing(t *testing.T) {
 	cfg := config.Config{}
-	cfg.Lens.ChainID = osmosis.ChainID
+	cfg.Probe.ChainID = osmosis.ChainID
 	parser := GetParser(koinly.ParserKey)
 	parser.InitializeParsingGroups()
 

@@ -69,11 +69,11 @@ func init() {
 	rootCmd.PersistentFlags().Int64Var(&conf.Base.BlockTimer, "base.block-timer", 10000, "print out how long it takes to process this many blocks")
 	rootCmd.PersistentFlags().BoolVar(&conf.Base.ExitWhenCaughtUp, "base.exit-when-caught-up", true, "mainly used for Osmosis rewards indexing")
 
-	// Lens
-	rootCmd.PersistentFlags().StringVar(&conf.Lens.RPC, "lens.rpc", "", "node rpc endpoint")
-	rootCmd.PersistentFlags().StringVar(&conf.Lens.AccountPrefix, "lens.account-prefix", "", "lens account prefix")
-	rootCmd.PersistentFlags().StringVar(&conf.Lens.ChainID, "lens.chain-id", "", "lens chain ID")
-	rootCmd.PersistentFlags().StringVar(&conf.Lens.ChainName, "lens.chain-name", "", "lens chain name")
+	// Probe
+	rootCmd.PersistentFlags().StringVar(&conf.Probe.RPC, "probe.rpc", "", "node rpc endpoint")
+	rootCmd.PersistentFlags().StringVar(&conf.Probe.AccountPrefix, "probe.account-prefix", "", "probe account prefix")
+	rootCmd.PersistentFlags().StringVar(&conf.Probe.ChainID, "probe.chain-id", "", "probe chain ID")
+	rootCmd.PersistentFlags().StringVar(&conf.Probe.ChainName, "probe.chain-name", "", "probe chain name")
 
 	// Database
 	rootCmd.PersistentFlags().StringVar(&conf.Database.Host, "database.host", "", "database host")

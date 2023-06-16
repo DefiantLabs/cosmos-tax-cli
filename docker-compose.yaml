@@ -64,10 +64,10 @@ services:
       --base.reindex true \
       --base.prevent-reattempts true \
       --base.api http://34.168.39.1:1317 \
-      --lens.rpc http://34.168.39.1:26657 \
-      --lens.account-prefix osmo \
-      --lens.chain-id osmosis-1 \
-      --lens.chain-name osmosis \
+      --probe.rpc http://34.168.39.1:26657 \
+      --probe.account-prefix osmo \
+      --probe.chain-id osmosis-1 \
+      --probe.chain-name osmosis \
       --database.host postgres \
       --database.database postgres \
       --database.user taxuser \
