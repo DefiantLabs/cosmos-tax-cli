@@ -105,7 +105,7 @@ func setupIndexer() *Indexer {
 	}
 
 	if idxr.cfg.Lens.ChainID == osmosis.ChainID && idxr.cfg.Base.EpochEventIndexingEnabled {
-		err := osmosis.SetupOsmosisEpochIndexer(idxr.cl)
+		err := osmosis.SetupOsmosisEpochIndexer(idxr.cl, idxr.cfg.Base.EpochIndexingIdentifier)
 		if err != nil {
 			config.Log.Fatal("Error setting up Osmosis Epoch Indexer.", err)
 		}
