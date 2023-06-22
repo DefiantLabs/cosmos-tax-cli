@@ -194,6 +194,6 @@ Below is the rundown of our current support for different types of messages:
 - `MsgSwapWithinBatch`
 
 ## 🌐 CosmWasm Modules
-### 🧩 Wasm
+### 🧩 Wasm (Coming soon)
 - `MsgExecuteContract`
 - `MsgInstantiateContract`
