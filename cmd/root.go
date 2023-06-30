@@ -55,7 +55,7 @@ func init() {
 	rootCmd.PersistentFlags().Int64Var(&conf.Base.BlockEventsStartBlock, "base.block-events-start-block", 0, "block to start indexing block events at")
 	rootCmd.PersistentFlags().Int64Var(&conf.Base.BlockEventsEndBlock, "base.block-events-end-block", 0, "block to stop indexing block events at (use -1 to index indefinitely")
 	// epoch event indexing
-	rootCmd.PersistentFlags().BoolVar(&conf.Base.EpochEventIndexingEnabled, "base.index-epoch-events", true, "enable epoch beginblocker and endblocker event indexing?")
+	rootCmd.PersistentFlags().BoolVar(&conf.Base.EpochEventIndexingEnabled, "base.index-epoch-events", false, "enable epoch beginblocker and endblocker event indexing?")
 	rootCmd.PersistentFlags().Int64Var(&conf.Base.EpochEventsStartEpoch, "base.epoch-events-start-epoch", 0, "epoch number to start indexing block events at")
 	rootCmd.PersistentFlags().Int64Var(&conf.Base.EpochEventsEndEpoch, "base.epoch-events-end-epoch", 0, "epoch number to stop indexing block events at")
 	rootCmd.PersistentFlags().StringVar(&conf.Base.EpochIndexingIdentifier, "base.epoch-indexing-identifier", "", "epoch identifier to index")
