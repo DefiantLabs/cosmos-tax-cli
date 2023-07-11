@@ -12,7 +12,7 @@ import (
 	osmosisOldTypes "github.com/DefiantLabs/lens/extra-codecs/osmosis/gamm/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	gammTypes "github.com/osmosis-labs/osmosis/v15/x/gamm/types"
+	gammTypes "github.com/osmosis-labs/osmosis/v16/x/gamm/types"
 )
 
 const (
