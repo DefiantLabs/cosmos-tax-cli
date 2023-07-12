@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	MsgCreatePosition   = "/osmosis.concentratedliquidity.v1beta1.MsgCreatePosition"
-	MsgWithdrawPosition = "/osmosis.concentratedliquidity.v1beta1.MsgWithdrawPosition"
+	MsgCreatePosition       = "/osmosis.concentratedliquidity.v1beta1.MsgCreatePosition"
+	MsgWithdrawPosition     = "/osmosis.concentratedliquidity.v1beta1.MsgWithdrawPosition"
+	MsgCollectSpreadRewards = "/osmosis.concentratedliquidity.v1beta1.MsgCollectSpreadRewards"
 )
 
 type WrapperMsgCreatePosition struct {
@@ -129,6 +130,63 @@ func (sf *WrapperMsgWithdrawPosition) HandleMsg(msgType string, msg sdk.Msg, log
 }
 
 func (sf *WrapperMsgWithdrawPosition) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	relevantData := make([]parsingTypes.MessageRelevantInformation, 0)
+	for _, token := range sf.TokensRecieved {
+		if token.Amount.IsPositive() {
+			relevantData = append(relevantData, parsingTypes.MessageRelevantInformation{
+				AmountReceived:       token.Amount.BigInt(),
+				DenominationReceived: token.Denom,
+				SenderAddress:        sf.Address,
+			})
+		}
+	}
+	return relevantData
+}
+
+type WrapperMsgCollectSpreadRewards struct {
+	txModule.Message
+	OsmosisMsgCollectSpreadRewards *clTypes.MsgCollectSpreadRewards
+	TokensRecieved                 sdk.Coins
+	Address                        string
+}
+
+func (sf *WrapperMsgCollectSpreadRewards) String() string {
+	var tokensRecv []string
+	if !(len(sf.TokensRecieved) == 0) {
+		for _, v := range sf.TokensRecieved {
+			tokensRecv = append(tokensRecv, v.String())
+		}
+	}
+	return fmt.Sprintf("MsgCollectSpreadRewards: %s received rewards of amount %s",
+		sf.Address, strings.Join(tokensRecv, ", "))
+}
+
+func (sf *WrapperMsgCollectSpreadRewards) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.OsmosisMsgCollectSpreadRewards = msg.(*clTypes.MsgCollectSpreadRewards)
+
+	coinReceivedEvents := txModule.GetEventsWithType("coin_received", log)
+	if len(coinReceivedEvents) == 0 {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	senderCoinsReceivedStrings := txModule.GetCoinsReceived(sf.OsmosisMsgCollectSpreadRewards.Sender, coinReceivedEvents)
+
+	for _, coinReceivedString := range senderCoinsReceivedStrings {
+		coinsReceived, err := sdk.ParseCoinsNormalized(coinReceivedString)
+		if err != nil {
+			return errors.New("error parsing coins received from event")
+		}
+
+		sf.TokensRecieved = append(sf.TokensRecieved, coinsReceived...)
+	}
+
+	sf.Address = sf.OsmosisMsgCollectSpreadRewards.Sender
+
+	return nil
+}
+
+func (sf *WrapperMsgCollectSpreadRewards) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
 	relevantData := make([]parsingTypes.MessageRelevantInformation, 0)
 	for _, token := range sf.TokensRecieved {
 		if token.Amount.IsPositive() {
