@@ -13,15 +13,10 @@ ARG LD_FLAGS=-linkmode=external -extldflags '-Wl,-z,muldefs -static'
 RUN apk add --update --no-cache curl make git libc-dev bash gcc linux-headers eudev-dev ncurses-dev libc6-compat jq htop atop iotop
 
 # Install build dependencies.
-RUN if [ "${TARGETPLATFORM}" = "linux/amd64" ] ; then \
-      wget -P /lib https://github.com/CosmWasm/wasmvm/releases/download/v1.1.1/libwasmvm_muslc.x86_64.a ; \
-      cp /lib/libwasmvm_muslc.x86_64.a /lib/libwasmvm_muslc.a ; \
-    fi
-
-RUN if  [ "${TARGETPLATFORM}" = "linux/arm64" ] ; then \
-      wget -P /lib https://github.com/CosmWasm/wasmvm/releases/download/v1.1.1/libwasmvm_muslc.aarch64.a ; \
-      cp /lib/libwasmvm_muslc.aarch64.a /lib/libwasmvm_muslc.a ; \
-    fi
+RUN WASM_VERSION=$(go list -m all | grep github.com/CosmWasm/wasmvm | awk '{print $NF}'); \
+    if [ ! -z "${WASM_VERSION}" ]; then \
+      wget -O /lib/libwasmvm_muslc.a https://github.com/CosmWasm/wasmvm/releases/download/${WASM_VERSION}/libwasmvm_muslc.$(uname -m).a; \
+    fi;
 
 # Build main app.
 WORKDIR /go/src/app
