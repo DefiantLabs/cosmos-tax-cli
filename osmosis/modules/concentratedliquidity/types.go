@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	MsgCreatePosition = "/osmosis.concentratedliquidity.v1beta1.MsgCreatePosition"
+	MsgCreatePosition   = "/osmosis.concentratedliquidity.v1beta1.MsgCreatePosition"
+	MsgWithdrawPosition = "/osmosis.concentratedliquidity.v1beta1.MsgWithdrawPosition"
 )
 
 type WrapperMsgCreatePosition struct {
@@ -43,37 +44,20 @@ func (sf *WrapperMsgCreatePosition) HandleMsg(msgType string, msg sdk.Msg, log *
 		return util.ReturnInvalidLog(msgType, log)
 	}
 
-	sf.TokensSent = sf.OsmosisMsgCreatePosition.TokensProvided
-
-	// Need to get actual amounts from event emissions
-	createPositionEvent := txModule.GetEventWithType("create_position", log)
-	if createPositionEvent == nil {
+	coinSpentEvents := txModule.GetEventsWithType("coin_spent", log)
+	if len(coinSpentEvents) == 0 {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
-	amount0String := txModule.GetValueForAttribute("amount0", createPositionEvent)
-	amount1String := txModule.GetValueForAttribute("amount1", createPositionEvent)
+	senderCoinsSpentStrings := txModule.GetCoinsSpent(sf.OsmosisMsgCreatePosition.Sender, coinSpentEvents)
 
-	if amount0String != "" {
-		amount0, ok := sdk.NewIntFromString(amount0String)
-
-		if !ok {
-			return errors.New("error parsing amount0")
+	for _, coinReceivedString := range senderCoinsSpentStrings {
+		coinsReceived, err := sdk.ParseCoinsNormalized(coinReceivedString)
+		if err != nil {
+			return errors.New("error parsing coins received from event")
 		}
-		sf.TokensSent[0].Amount = amount0
-	} else {
-		sf.TokensSent[0].Amount = sdk.NewIntFromUint64(0)
-	}
 
-	if amount1String != "" && len(sf.TokensSent) > 1 {
-		amount1, ok := sdk.NewIntFromString(amount1String)
-
-		if !ok {
-			return errors.New("error parsing amount1")
-		}
-		sf.TokensSent[1].Amount = amount1
-	} else if len(sf.TokensSent) > 1 {
-		sf.TokensSent[1].Amount = sdk.NewIntFromUint64(0)
+		sf.TokensSent = append(sf.TokensSent, coinsReceived...)
 	}
 
 	sf.Address = sf.OsmosisMsgCreatePosition.Sender
@@ -90,6 +74,68 @@ func (sf *WrapperMsgCreatePosition) ParseRelevantData() []parsingTypes.MessageRe
 				AmountSent:       token.Amount.BigInt(),
 				DenominationSent: token.Denom,
 				SenderAddress:    sf.Address,
+			})
+		}
+	}
+	return relevantData
+}
+
+type WrapperMsgWithdrawPosition struct {
+	txModule.Message
+	OsmosisMsgWithdrawPosition *clTypes.MsgWithdrawPosition
+	TokensRecieved             sdk.Coins
+	Address                    string
+}
+
+func (sf *WrapperMsgWithdrawPosition) String() string {
+	var tokensRecv []string
+	if !(len(sf.TokensRecieved) == 0) {
+		for _, v := range sf.TokensRecieved {
+			tokensRecv = append(tokensRecv, v.String())
+		}
+	}
+	return fmt.Sprintf("MsgWithdrawPosition: %s withdrew position by receiving %s",
+		sf.Address, strings.Join(tokensRecv, ", "))
+}
+
+func (sf *WrapperMsgWithdrawPosition) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.OsmosisMsgWithdrawPosition = msg.(*clTypes.MsgWithdrawPosition)
+
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
+	}
+
+	coinReceivedEvents := txModule.GetEventsWithType("coin_received", log)
+	if len(coinReceivedEvents) == 0 {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	senderCoinsReceivedStrings := txModule.GetCoinsReceived(sf.OsmosisMsgWithdrawPosition.Sender, coinReceivedEvents)
+
+	for _, coinReceivedString := range senderCoinsReceivedStrings {
+		coinsReceived, err := sdk.ParseCoinsNormalized(coinReceivedString)
+		if err != nil {
+			return errors.New("error parsing coins received from event")
+		}
+
+		sf.TokensRecieved = append(sf.TokensRecieved, coinsReceived...)
+	}
+
+	sf.Address = sf.OsmosisMsgWithdrawPosition.Sender
+
+	return nil
+}
+
+func (sf *WrapperMsgWithdrawPosition) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	relevantData := make([]parsingTypes.MessageRelevantInformation, 0)
+	for _, token := range sf.TokensRecieved {
+		if token.Amount.IsPositive() {
+			relevantData = append(relevantData, parsingTypes.MessageRelevantInformation{
+				AmountReceived:       token.Amount.BigInt(),
+				DenominationReceived: token.Denom,
+				SenderAddress:        sf.Address,
 			})
 		}
 	}
