@@ -18,6 +18,7 @@ const (
 	MsgWithdrawPosition       = "/osmosis.concentratedliquidity.v1beta1.MsgWithdrawPosition"
 	MsgCollectSpreadRewards   = "/osmosis.concentratedliquidity.v1beta1.MsgCollectSpreadRewards"
 	MsgCreateConcentratedPool = "/osmosis.concentratedliquidity.poolmodel.concentrated.v1beta1.MsgCreateConcentratedPool"
+	MsgCollectIncentives      = "/osmosis.concentratedliquidity.v1beta1.MsgCollectIncentives"
 )
 
 type WrapperMsgCreatePosition struct {
@@ -256,6 +257,68 @@ func (sf *WrappeMsgCreateConcentratedPool) ParseRelevantData() []parsingTypes.Me
 				AmountSent:       token.Amount.BigInt(),
 				DenominationSent: token.Denom,
 				SenderAddress:    sf.Address,
+			})
+		}
+	}
+
+	return relevantData
+}
+
+type WrappeMsgCollectIncentives struct {
+	txModule.Message
+	OsmosisMsgCollectIncentives *clTypes.MsgCollectIncentives
+	TokensRecv                  sdk.Coins
+	Address                     string
+}
+
+func (sf *WrappeMsgCollectIncentives) String() string {
+	var tokensRecv []string
+	if !(len(sf.TokensRecv) == 0) {
+		for _, v := range sf.TokensRecv {
+			tokensRecv = append(tokensRecv, v.String())
+		}
+	}
+	return fmt.Sprintf("MsgCollectIncentives: %s collected %s",
+		sf.Address, strings.Join(tokensRecv, ", "))
+}
+
+func (sf *WrappeMsgCollectIncentives) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.OsmosisMsgCollectIncentives = msg.(*clTypes.MsgCollectIncentives)
+
+	totalCollectIncentivesEvent := txModule.GetEventsWithType("total_collect_incentives", log)
+	if len(totalCollectIncentivesEvent) == 0 {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	for _, collectIncentivesEvent := range totalCollectIncentivesEvent {
+		for _, attribute := range collectIncentivesEvent.Attributes {
+			if attribute.Key == "tokens_out" {
+				coinsReceived, err := sdk.ParseCoinsNormalized(attribute.Value)
+
+				if err != nil {
+					return errors.New("error parsing coins received from incentives event")
+				}
+
+				sf.TokensRecv = append(sf.TokensRecv, coinsReceived...)
+			}
+		}
+	}
+
+	sf.Address = sf.OsmosisMsgCollectIncentives.Sender
+
+	return nil
+}
+
+func (sf *WrappeMsgCollectIncentives) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	relevantData := make([]parsingTypes.MessageRelevantInformation, 0)
+
+	for _, token := range sf.TokensRecv {
+		if token.Amount.IsPositive() {
+			relevantData = append(relevantData, parsingTypes.MessageRelevantInformation{
+				AmountReceived:       token.Amount.BigInt(),
+				DenominationReceived: token.Denom,
+				SenderAddress:        sf.Address,
 			})
 		}
 	}

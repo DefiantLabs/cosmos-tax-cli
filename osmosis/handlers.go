@@ -24,4 +24,5 @@ var MessageTypeHandler = map[string][]func() txTypes.CosmosMessage{
 	concentratedliquidity.MsgWithdrawPosition:       {func() txTypes.CosmosMessage { return &concentratedliquidity.WrapperMsgWithdrawPosition{} }},
 	concentratedliquidity.MsgCollectSpreadRewards:   {func() txTypes.CosmosMessage { return &concentratedliquidity.WrapperMsgCollectSpreadRewards{} }},
 	concentratedliquidity.MsgCreateConcentratedPool: {func() txTypes.CosmosMessage { return &concentratedliquidity.WrappeMsgCreateConcentratedPool{} }},
+	concentratedliquidity.MsgCollectIncentives:      {func() txTypes.CosmosMessage { return &concentratedliquidity.WrappeMsgCollectIncentives{} }},
 }
