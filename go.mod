@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.2.1
 	// FYI, you can do go get github.com/DefiantLabs/lens@1f6f34841280df179c6e098f040bd584ced43a4c
 	// (using the commit hash from github) to pin to a specific commit.
-	github.com/DefiantLabs/lens v0.3.1-0.20230711231029-e04bca90e33f
+	github.com/DefiantLabs/lens v0.3.1-0.20230722165648-8d2ea08319c2
 	github.com/cosmos/cosmos-sdk v0.47.3
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-co-op/gocron v1.13.0
@@ -27,7 +27,7 @@ require (
 
 require (
 	github.com/cosmos/ibc-go/v4 v4.3.1
-	github.com/osmosis-labs/osmosis/v16 v16.0.0
+	github.com/osmosis-labs/osmosis/v16 v16.1.1
 	github.com/preichenberger/go-coinbasepro/v2 v2.1.0
 	github.com/rs/zerolog v1.27.0
 	github.com/swaggo/files v1.0.0
@@ -143,7 +143,7 @@ require (
 	github.com/mtibben/percent v0.2.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/osmosis-labs/osmosis/osmomath v0.0.5 // indirect
-	github.com/osmosis-labs/osmosis/osmoutils v0.0.5 // indirect
+	github.com/osmosis-labs/osmosis/osmoutils v0.0.6-0.20230709040235-cbf530ed88cc // indirect
 	github.com/osmosis-labs/osmosis/x/epochs v0.0.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
 	github.com/petermattis/goid v0.0.0-20220331194723-8ee3e6ded87a // indirect

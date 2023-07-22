@@ -9,13 +9,15 @@ import (
 	txModule "github.com/DefiantLabs/cosmos-indexer/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-indexer/util"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	clPoolTypes "github.com/osmosis-labs/osmosis/v16/x/concentrated-liquidity/model"
 	clTypes "github.com/osmosis-labs/osmosis/v16/x/concentrated-liquidity/types"
 )
 
 const (
-	MsgCreatePosition       = "/osmosis.concentratedliquidity.v1beta1.MsgCreatePosition"
-	MsgWithdrawPosition     = "/osmosis.concentratedliquidity.v1beta1.MsgWithdrawPosition"
-	MsgCollectSpreadRewards = "/osmosis.concentratedliquidity.v1beta1.MsgCollectSpreadRewards"
+	MsgCreatePosition         = "/osmosis.concentratedliquidity.v1beta1.MsgCreatePosition"
+	MsgWithdrawPosition       = "/osmosis.concentratedliquidity.v1beta1.MsgWithdrawPosition"
+	MsgCollectSpreadRewards   = "/osmosis.concentratedliquidity.v1beta1.MsgCollectSpreadRewards"
+	MsgCreateConcentratedPool = "/osmosis.concentratedliquidity.poolmodel.concentrated.v1beta1.MsgCreateConcentratedPool"
 )
 
 type WrapperMsgCreatePosition struct {
@@ -197,5 +199,66 @@ func (sf *WrapperMsgCollectSpreadRewards) ParseRelevantData() []parsingTypes.Mes
 			})
 		}
 	}
+	return relevantData
+}
+
+type WrappeMsgCreateConcentratedPool struct {
+	txModule.Message
+	OsmosisMsgCreateConcentratedPool *clPoolTypes.MsgCreateConcentratedPool
+	TokensSent                       sdk.Coins
+	Address                          string
+}
+
+func (sf *WrappeMsgCreateConcentratedPool) String() string {
+	var tokensSent []string
+	if !(len(sf.TokensSent) == 0) {
+		for _, v := range sf.TokensSent {
+			tokensSent = append(tokensSent, v.String())
+		}
+	}
+	return fmt.Sprintf("MsgCreateConcentratedPool: %s created pool and spent %s",
+		sf.Address, strings.Join(tokensSent, ", "))
+}
+
+func (sf *WrappeMsgCreateConcentratedPool) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.OsmosisMsgCreateConcentratedPool = msg.(*clPoolTypes.MsgCreateConcentratedPool)
+
+	coinSpentEvents := txModule.GetEventsWithType("coin_spent", log)
+	if len(coinSpentEvents) == 0 {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	senderCoinsSpentStrings := txModule.GetCoinsSpent(sf.OsmosisMsgCreateConcentratedPool.Sender, coinSpentEvents)
+
+	for _, coinSpentString := range senderCoinsSpentStrings {
+		if coinSpentString != "" {
+			coinsSpent, err := sdk.ParseCoinsNormalized(coinSpentString)
+			if err != nil {
+				return errors.New("error parsing coins received from event")
+			}
+
+			sf.TokensSent = append(sf.TokensSent, coinsSpent...)
+		}
+	}
+
+	sf.Address = sf.OsmosisMsgCreateConcentratedPool.Sender
+
+	return nil
+}
+
+func (sf *WrappeMsgCreateConcentratedPool) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	relevantData := make([]parsingTypes.MessageRelevantInformation, 0)
+
+	for _, token := range sf.TokensSent {
+		if token.Amount.IsPositive() {
+			relevantData = append(relevantData, parsingTypes.MessageRelevantInformation{
+				AmountSent:       token.Amount.BigInt(),
+				DenominationSent: token.Denom,
+				SenderAddress:    sf.Address,
+			})
+		}
+	}
+
 	return relevantData
 }
