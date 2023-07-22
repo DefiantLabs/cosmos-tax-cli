@@ -295,7 +295,6 @@ func (sf *WrappeMsgCollectIncentives) HandleMsg(msgType string, msg sdk.Msg, log
 		for _, attribute := range collectIncentivesEvent.Attributes {
 			if attribute.Key == "tokens_out" {
 				coinsReceived, err := sdk.ParseCoinsNormalized(attribute.Value)
-
 				if err != nil {
 					return errors.New("error parsing coins received from incentives event")
 				}
