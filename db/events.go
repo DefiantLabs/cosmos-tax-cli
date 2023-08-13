@@ -13,7 +13,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func IndexBlockEvents(db *gorm.DB, dryRun bool, blockHeight int64, blockTime time.Time, blockEvents []events.EventRelevantInformation, dbChainID string, dbChainName string) error {
+func IndexBlockEvents(db *gorm.DB, dryRun bool, blockHeight int64, blockTime time.Time, blockEvents []events.EventRelevantInformation, dbChainID string, dbChainName string, identifierLoggingString string) error {
 	dbEvents := []TaxableEvent{}
 
 	for _, blockEvent := range blockEvents {
@@ -77,7 +77,7 @@ func IndexBlockEvents(db *gorm.DB, dryRun bool, blockHeight int64, blockTime tim
 		}
 
 		if !dryRun {
-			config.Log.Infof("Sending %d block events to DB %d/%d", len(awaitingInsert), currentIter, numIters)
+			config.Log.Infof("Sending %d block events to DB for %s %d/%d", len(awaitingInsert), identifierLoggingString, currentIter, numIters)
 			err := createTaxableEvents(db, awaitingInsert)
 			if err != nil {
 				config.Log.Error("Error storing DB events.", err)
