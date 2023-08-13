@@ -41,6 +41,9 @@ const (
 	// Same as above, we may want to to extend these to track other results
 	AckSuccess = 0
 	AckFailure = 1
+
+	AlternateMsgAcknowledgementLogAction = "acknowledge_packet"
+	AlternateMsgRcvLogAction             = "recv_packet"
 )
 
 type WrapperMsgRecvPacket struct {
@@ -59,7 +62,9 @@ func (w *WrapperMsgRecvPacket) HandleMsg(msgType string, msg stdTypes.Msg, log *
 
 	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(w.GetType(), log)
-	if !validLog {
+	alternateValidLog := txModule.IsMessageActionEquals(AlternateMsgRcvLogAction, log)
+
+	if !validLog && !alternateValidLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
 
@@ -130,7 +135,9 @@ func (w *WrapperMsgAcknowledgement) HandleMsg(msgType string, msg stdTypes.Msg, 
 
 	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(w.GetType(), log)
-	if !validLog {
+	alternateValidLog := txModule.IsMessageActionEquals(AlternateMsgAcknowledgementLogAction, log)
+
+	if !validLog && !alternateValidLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
 
