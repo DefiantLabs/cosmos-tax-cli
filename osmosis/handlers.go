@@ -18,6 +18,7 @@ var MessageTypeHandler = map[string][]func() txTypes.CosmosMessage{
 	gamm.MsgExitSwapExternAmountOut:                 {func() txTypes.CosmosMessage { return &gamm.WrapperMsgExitSwapExternAmountOut{} }},
 	gamm.MsgExitPool:                                {func() txTypes.CosmosMessage { return &gamm.WrapperMsgExitPool{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgExitPool2{} }},
 	gamm.MsgCreatePool:                              {func() txTypes.CosmosMessage { return &gamm.WrapperMsgCreatePool{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgCreatePool2{} }},
+	gamm.MsgCreateBalancerPool:                      {func() txTypes.CosmosMessage { return &gamm.WrapperMsgCreateBalancerPool{} }},
 	poolmanager.MsgSwapExactAmountIn:                {func() txTypes.CosmosMessage { return &poolmanager.WrapperMsgSwapExactAmountIn{} }},
 	poolmanager.MsgSwapExactAmountOut:               {func() txTypes.CosmosMessage { return &poolmanager.WrapperMsgSwapExactAmountOut{} }},
 	concentratedliquidity.MsgCreatePosition:         {func() txTypes.CosmosMessage { return &concentratedliquidity.WrapperMsgCreatePosition{} }},
