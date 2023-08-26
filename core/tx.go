@@ -27,6 +27,7 @@ import (
 	"github.com/DefiantLabs/cosmos-indexer/osmosis/modules/incentives"
 	"github.com/DefiantLabs/cosmos-indexer/osmosis/modules/lockup"
 	"github.com/DefiantLabs/cosmos-indexer/osmosis/modules/superfluid"
+	"github.com/DefiantLabs/cosmos-indexer/osmosis/modules/valsetpref"
 	"github.com/DefiantLabs/cosmos-indexer/tendermint/modules/liquidity"
 	"github.com/DefiantLabs/cosmos-indexer/util"
 	"github.com/DefiantLabs/lens/client"
@@ -103,6 +104,10 @@ var messageTypeIgnorer = map[string]interface{}{
 	superfluid.MsgSuperfluidUnbondLock:      nil,
 	superfluid.MsgLockAndSuperfluidDelegate: nil,
 	superfluid.MsgUnPoolWhitelistedPool:     nil,
+
+	// Setting validator pref is not taxable
+	valsetpref.MsgSetValidatorSetPreference: nil,
+
 	// Create account is not taxable
 	vesting.MsgCreateVestingAccount: nil,
 
