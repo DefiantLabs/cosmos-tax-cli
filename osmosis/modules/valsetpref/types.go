@@ -19,6 +19,54 @@ const (
 	MsgRedelegateValidatorSet     = "/osmosis.valsetpref.v1beta1.MsgRedelegateValidatorSet"
 )
 
+// Set of common functions shared throughout
+func getRewardsReceived(log *txModule.LogMessage, address string) (sdk.Coins, error) {
+	receiveEvent := txModule.GetEventsWithType(bankTypes.EventTypeCoinReceived, log)
+
+	var rewardCoins sdk.Coins
+	if receiveEvent != nil {
+		delegaterCoinsReceivedStrings := txModule.GetCoinsReceived(address, receiveEvent)
+
+		for _, coinString := range delegaterCoinsReceivedStrings {
+			coins, err := sdk.ParseCoinsNormalized(coinString)
+			if err != nil {
+				return nil, err
+			}
+			rewardCoins = append(rewardCoins, coins...)
+		}
+	}
+	return rewardCoins, nil
+}
+
+func getRelevantData(rewards sdk.Coins, address string) []parsingTypes.MessageRelevantInformation {
+	relevantData := make([]parsingTypes.MessageRelevantInformation, 0)
+
+	for _, token := range rewards {
+		if token.Amount.IsPositive() {
+			relevantData = append(relevantData, parsingTypes.MessageRelevantInformation{
+				AmountReceived:       token.Amount.BigInt(),
+				DenominationReceived: token.Denom,
+				SenderAddress:        address,
+			})
+		}
+	}
+	return relevantData
+}
+
+func getString(messageType string, rewards sdk.Coins, address string) string {
+	var tokensSent []string
+	if !(len(rewards) == 0) {
+		for _, v := range rewards {
+			tokensSent = append(tokensSent, v.String())
+		}
+		return fmt.Sprintf("%s: %s received rewards %s",
+			messageType, address, strings.Join(tokensSent, ", "))
+	} else {
+		return fmt.Sprintf("%s: %s did not withdraw rewards",
+			messageType, address)
+	}
+}
+
 type WrapperMsgDelegateToValidatorSet struct {
 	txModule.Message
 	OsmosisMsgDelegateToValidatorSet *valsetPrefTypes.MsgDelegateToValidatorSet
@@ -27,18 +75,7 @@ type WrapperMsgDelegateToValidatorSet struct {
 }
 
 func (sf *WrapperMsgDelegateToValidatorSet) String() string {
-	var tokensSent []string
-	if !(len(sf.RewardsOut) == 0) {
-		for _, v := range sf.RewardsOut {
-			tokensSent = append(tokensSent, v.String())
-		}
-		return fmt.Sprintf("WrapperMsgDelegateToValidatorSet: %s received rewards %s",
-			sf.DelegatorAddress, strings.Join(tokensSent, ", "))
-	} else {
-		return fmt.Sprintf("WrapperMsgDelegateToValidatorSet: %s did not withdraw rewards",
-			sf.DelegatorAddress)
-	}
-
+	return getString("MsggDelegateToValidatorSet", sf.RewardsOut, sf.DelegatorAddress)
 }
 
 // HandleMsg: Handle type checking for MsgFundCommunityPool
@@ -53,35 +90,56 @@ func (sf *WrapperMsgDelegateToValidatorSet) HandleMsg(msgType string, msg sdk.Ms
 		return util.ReturnInvalidLog(msgType, log)
 	}
 
-	// The attribute in the log message that shows you the delegator rewards auto-received
-	receiveEvent := txModule.GetEventsWithType(bankTypes.EventTypeCoinReceived, log)
-	if receiveEvent != nil {
-		delegaterCoinsReceivedStrings := txModule.GetCoinsReceived(sf.DelegatorAddress, receiveEvent)
+	coins, err := getRewardsReceived(log, sf.DelegatorAddress)
 
-		for _, coinString := range delegaterCoinsReceivedStrings {
-			coins, err := sdk.ParseCoinsNormalized(coinString)
-			if err != nil {
-				return err
-			}
-			sf.RewardsOut = append(sf.RewardsOut, coins...)
-		}
-
+	if err != nil {
+		return err
 	}
+
+	sf.RewardsOut = coins
 
 	return nil
 }
 
 func (sf *WrapperMsgDelegateToValidatorSet) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
-	relevantData := make([]parsingTypes.MessageRelevantInformation, 0)
+	return getRelevantData(sf.RewardsOut, sf.DelegatorAddress)
+}
 
-	for _, token := range sf.RewardsOut {
-		if token.Amount.IsPositive() {
-			relevantData = append(relevantData, parsingTypes.MessageRelevantInformation{
-				AmountReceived:       token.Amount.BigInt(),
-				DenominationReceived: token.Denom,
-				SenderAddress:        sf.DelegatorAddress,
-			})
-		}
+type WrapperMsgUndelegateFromValidatorSet struct {
+	txModule.Message
+	OsmosisMsgUndelegateFromValidatorSet *valsetPrefTypes.MsgUndelegateFromValidatorSet
+	DelegatorAddress                     string
+	RewardsOut                           sdk.Coins
+}
+
+func (sf *WrapperMsgUndelegateFromValidatorSet) String() string {
+	return getString("MsgUndelegateFromValidatorSet", sf.RewardsOut, sf.DelegatorAddress)
+}
+
+// HandleMsg: Handle type checking for MsgFundCommunityPool
+func (sf *WrapperMsgUndelegateFromValidatorSet) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.OsmosisMsgUndelegateFromValidatorSet = msg.(*valsetPrefTypes.MsgUndelegateFromValidatorSet)
+	sf.DelegatorAddress = sf.OsmosisMsgUndelegateFromValidatorSet.Delegator
+
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
 	}
-	return relevantData
+
+	// The attribute in the log message that shows you the delegator rewards auto-received
+	coins, err := getRewardsReceived(log, sf.DelegatorAddress)
+
+	if err != nil {
+		return err
+	}
+
+	sf.RewardsOut = coins
+
+	return nil
+}
+
+func (sf *WrapperMsgUndelegateFromValidatorSet) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	return getRelevantData(sf.RewardsOut, sf.DelegatorAddress)
 }

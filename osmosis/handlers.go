@@ -29,4 +29,5 @@ var MessageTypeHandler = map[string][]func() txTypes.CosmosMessage{
 	concentratedliquidity.MsgCollectIncentives:      {func() txTypes.CosmosMessage { return &concentratedliquidity.WrapperMsgCollectIncentives{} }},
 	concentratedliquidity.MsgAddToPosition:          {func() txTypes.CosmosMessage { return &concentratedliquidity.WrapperMsgAddToPosition{} }},
 	valsetpref.MsgDelegateToValidatorSet:            {func() txTypes.CosmosMessage { return &valsetpref.WrapperMsgDelegateToValidatorSet{} }},
+	valsetpref.MsgUndelegateFromValidatorSet:        {func() txTypes.CosmosMessage { return &valsetpref.WrapperMsgUndelegateFromValidatorSet{} }},
 }
