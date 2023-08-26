@@ -5,6 +5,7 @@ import (
 	"github.com/DefiantLabs/cosmos-indexer/osmosis/modules/concentratedliquidity"
 	"github.com/DefiantLabs/cosmos-indexer/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-indexer/osmosis/modules/poolmanager"
+	"github.com/DefiantLabs/cosmos-indexer/osmosis/modules/valsetpref"
 )
 
 // MessageTypeHandler is used to unmarshal JSON to a particular type.
@@ -27,4 +28,5 @@ var MessageTypeHandler = map[string][]func() txTypes.CosmosMessage{
 	concentratedliquidity.MsgCreateConcentratedPool: {func() txTypes.CosmosMessage { return &concentratedliquidity.WrappeMsgCreateConcentratedPool{} }},
 	concentratedliquidity.MsgCollectIncentives:      {func() txTypes.CosmosMessage { return &concentratedliquidity.WrapperMsgCollectIncentives{} }},
 	concentratedliquidity.MsgAddToPosition:          {func() txTypes.CosmosMessage { return &concentratedliquidity.WrapperMsgAddToPosition{} }},
+	valsetpref.MsgDelegateToValidatorSet:            {func() txTypes.CosmosMessage { return &valsetpref.WrapperMsgDelegateToValidatorSet{} }},
 }

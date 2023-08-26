@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.2.1
 	// FYI, you can do go get github.com/DefiantLabs/lens@1f6f34841280df179c6e098f040bd584ced43a4c
 	// (using the commit hash from github) to pin to a specific commit.
-	github.com/DefiantLabs/lens v0.3.1-0.20230821220122-64e495f632d6
+	github.com/DefiantLabs/lens v0.3.1-0.20230826043737-bb641f40885d
 	github.com/cosmos/cosmos-sdk v0.47.3
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-co-op/gocron v1.13.0
@@ -19,15 +19,15 @@ require (
 	github.com/spf13/viper v1.16.0
 	github.com/stretchr/testify v1.8.4
 	github.com/tendermint/tendermint v0.37.0-rc1
-	google.golang.org/grpc v1.55.0 // indirect
-	google.golang.org/protobuf v1.30.0 // indirect
+	google.golang.org/grpc v1.56.2 // indirect
+	google.golang.org/protobuf v1.31.0 // indirect
 	gorm.io/driver/postgres v1.3.1
 	gorm.io/gorm v1.23.6
 )
 
 require (
 	github.com/cosmos/ibc-go/v4 v4.3.1
-	github.com/osmosis-labs/osmosis/v16 v16.1.1
+	github.com/osmosis-labs/osmosis/v16 v16.1.2
 	github.com/preichenberger/go-coinbasepro/v2 v2.1.0
 	github.com/rs/zerolog v1.27.0
 	github.com/swaggo/files v1.0.0
@@ -36,7 +36,7 @@ require (
 )
 
 require (
-	cosmossdk.io/errors v1.0.0-beta.7 // indirect
+	cosmossdk.io/errors v1.0.0 // indirect
 	filippo.io/edwards25519 v1.0.0-rc.1 // indirect
 	github.com/99designs/keyring v1.2.1 // indirect
 	github.com/ChainSafe/go-schnorrkel v1.0.0 // indirect
@@ -143,7 +143,7 @@ require (
 	github.com/mtibben/percent v0.2.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/osmosis-labs/osmosis/osmomath v0.0.5 // indirect
-	github.com/osmosis-labs/osmosis/osmoutils v0.0.6-0.20230709040235-cbf530ed88cc // indirect
+	github.com/osmosis-labs/osmosis/osmoutils v0.0.6-0.20230718110737-18371921cd51 // indirect
 	github.com/osmosis-labs/osmosis/x/epochs v0.0.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
 	github.com/petermattis/goid v0.0.0-20220331194723-8ee3e6ded87a // indirect
@@ -173,13 +173,13 @@ require (
 	github.com/zondax/ledger-go v0.14.1 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.opencensus.io v0.24.0 // indirect
-	golang.org/x/crypto v0.9.0 // indirect
+	golang.org/x/crypto v0.11.0 // indirect
 	golang.org/x/exp v0.0.0-20230131160201-f062dba9d201 // indirect
-	golang.org/x/net v0.10.0 // indirect
+	golang.org/x/net v0.12.0 // indirect
 	golang.org/x/sync v0.2.0 // indirect
-	golang.org/x/sys v0.8.0 // indirect
-	golang.org/x/term v0.8.0 // indirect
-	golang.org/x/text v0.9.0 // indirect
+	golang.org/x/sys v0.10.0 // indirect
+	golang.org/x/term v0.10.0 // indirect
+	golang.org/x/text v0.11.0 // indirect
 	golang.org/x/tools v0.8.0 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
