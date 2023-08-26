@@ -81,7 +81,6 @@ func (sf *WrapperMsgDelegateToValidatorSet) String() string {
 	return getString("MsggDelegateToValidatorSet", sf.RewardsOut, sf.DelegatorAddress)
 }
 
-// HandleMsg: Handle type checking for MsgFundCommunityPool
 func (sf *WrapperMsgDelegateToValidatorSet) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
 	sf.OsmosisMsgDelegateToValidatorSet = msg.(*valsetPrefTypes.MsgDelegateToValidatorSet)
@@ -118,7 +117,6 @@ func (sf *WrapperMsgUndelegateFromValidatorSet) String() string {
 	return getString("MsgUndelegateFromValidatorSet", sf.RewardsOut, sf.DelegatorAddress)
 }
 
-// HandleMsg: Handle type checking for MsgFundCommunityPool
 func (sf *WrapperMsgUndelegateFromValidatorSet) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
 	sf.OsmosisMsgUndelegateFromValidatorSet = msg.(*valsetPrefTypes.MsgUndelegateFromValidatorSet)
@@ -156,7 +154,6 @@ func (sf *WrapperMsgRedelegateValidatorSet) String() string {
 	return getString("MsgRedelegateValidatorSet", sf.RewardsOut, sf.DelegatorAddress)
 }
 
-// HandleMsg: Handle type checking for MsgFundCommunityPool
 func (sf *WrapperMsgRedelegateValidatorSet) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
 	sf.OsmosisMsgRedelegateValidatorSet = msg.(*valsetPrefTypes.MsgRedelegateValidatorSet)
@@ -194,7 +191,6 @@ func (sf *WrapperMsgWithdrawDelegationRewards) String() string {
 	return getString("MsgWithdrawDelegationRewards", sf.RewardsOut, sf.DelegatorAddress)
 }
 
-// HandleMsg: Handle type checking for MsgFundCommunityPool
 func (sf *WrapperMsgWithdrawDelegationRewards) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
 	sf.OsmosisMsgWithdrawDelegationRewards = msg.(*valsetPrefTypes.MsgWithdrawDelegationRewards)
@@ -232,7 +228,6 @@ func (sf *WrapperMsgDelegateBondedTokens) String() string {
 	return getString("MsgDelegateBondedTokens", sf.RewardsOut, sf.DelegatorAddress)
 }
 
-// HandleMsg: Handle type checking for MsgFundCommunityPool
 func (sf *WrapperMsgDelegateBondedTokens) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
 	sf.OsmosisMsgDelegateBondedTokens = msg.(*valsetPrefTypes.MsgDelegateBondedTokens)
