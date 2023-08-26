@@ -160,6 +160,15 @@ Below is the rundown of our current support for different types of messages:
 - `MsgCreateVestingAccount`
 
 ## 🌊 Osmosis Modules
+
+### 🎯 Concentrated Liquidity
+- `MsgCreatePosition`
+- `MsgWithdrawPosition`
+- `MsgCollectSpreadRewards`
+- `MsgCreateConcentratedPool`
+- `MsgCollectIncentives`
+- `MsgAddToPosition`
+
 ### 🔄 Gamm
 - `MsgSwapExactAmountIn`
 - `MsgSwapExactAmountOut`
@@ -185,6 +194,13 @@ Below is the rundown of our current support for different types of messages:
 - `MsgSuperfluidUnbondLock`
 - `MsgLockAndSuperfluidDelegate`
 - `MsgUnPoolWhitelistedPool`
+
+### 🌟 Valset-Pref
+- `MsgSetValidatorSetPreference`
+- `MsgDelegateToValidatorSet`
+- `MsgUndelegateFromValidatorSet`
+- `MsgRedelegateValidatorSet`
+- `MsgWithdrawDelegationRewards`
 
 ## ⭐ Tendermint Modules
 ### 💧 Liquidity

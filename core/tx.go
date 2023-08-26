@@ -105,7 +105,7 @@ var messageTypeIgnorer = map[string]interface{}{
 	superfluid.MsgLockAndSuperfluidDelegate: nil,
 	superfluid.MsgUnPoolWhitelistedPool:     nil,
 
-	//Setting validator pref is not taxable
+	// Setting validator pref is not taxable
 	valsetpref.MsgSetValidatorSetPreference: nil,
 
 	// Create account is not taxable
