@@ -143,3 +143,42 @@ func (sf *WrapperMsgUndelegateFromValidatorSet) HandleMsg(msgType string, msg sd
 func (sf *WrapperMsgUndelegateFromValidatorSet) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
 	return getRelevantData(sf.RewardsOut, sf.DelegatorAddress)
 }
+
+type WrapperMsgRedelegateValidatorSet struct {
+	txModule.Message
+	OsmosisMsgRedelegateValidatorSet *valsetPrefTypes.MsgRedelegateValidatorSet
+	DelegatorAddress                 string
+	RewardsOut                       sdk.Coins
+}
+
+func (sf *WrapperMsgRedelegateValidatorSet) String() string {
+	return getString("MsgRedelegateValidatorSet", sf.RewardsOut, sf.DelegatorAddress)
+}
+
+// HandleMsg: Handle type checking for MsgFundCommunityPool
+func (sf *WrapperMsgRedelegateValidatorSet) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.OsmosisMsgRedelegateValidatorSet = msg.(*valsetPrefTypes.MsgRedelegateValidatorSet)
+	sf.DelegatorAddress = sf.OsmosisMsgRedelegateValidatorSet.Delegator
+
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
+	}
+
+	// The attribute in the log message that shows you the delegator rewards auto-received
+	coins, err := getRewardsReceived(log, sf.DelegatorAddress)
+
+	if err != nil {
+		return err
+	}
+
+	sf.RewardsOut = coins
+
+	return nil
+}
+
+func (sf *WrapperMsgRedelegateValidatorSet) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	return getRelevantData(sf.RewardsOut, sf.DelegatorAddress)
+}
