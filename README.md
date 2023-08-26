@@ -201,6 +201,7 @@ Below is the rundown of our current support for different types of messages:
 - `MsgUndelegateFromValidatorSet`
 - `MsgRedelegateValidatorSet`
 - `MsgWithdrawDelegationRewards`
+- `MsgDelegateBondedTokens`
 
 ## ⭐ Tendermint Modules
 ### 💧 Liquidity
