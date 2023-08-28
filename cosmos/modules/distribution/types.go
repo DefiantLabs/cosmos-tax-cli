@@ -73,7 +73,7 @@ func (sf *WrapperMsgWithdrawValidatorCommission) HandleMsg(msgType string, msg s
 	}
 
 	// The attribute in the log message that shows you the delegator withdrawal address and amount received
-	delegatorReceivedCoinsEvt := txModule.GetEventWithType(distTypes.EventTypeWithdrawCommission, log)
+	delegatorReceivedCoinsEvt := txModule.GetEventWithType("coin_received", log)
 	if delegatorReceivedCoinsEvt == nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
