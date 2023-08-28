@@ -282,15 +282,30 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 
 					// It is possible to have more than 1 taxable TX for a single msg. In most cases it should only be 1 or 2, but
 					// more is possible. Keying off of msg ID and amount may be sufficient....
-					if err := dbTransaction.
+
+					var foundRecord TaxableTransaction
+					dbTransaction.
 						Where(TaxableTransaction{
 							MessageID:      taxableTxOnly.MessageID,
 							AmountSent:     taxableTxOnly.AmountSent,
 							AmountReceived: taxableTxOnly.AmountReceived,
-						}).
-						FirstOrCreate(&taxableTxOnly).Error; err != nil {
-						config.Log.Error("Error creating taxable transaction.", err)
-						return err
+						}).Limit(1).Find(&foundRecord)
+
+					// If not found, do a create
+					if foundRecord.ID == 0 {
+						res := dbTransaction.Create(&taxableTxOnly)
+
+						if res.Error != nil {
+							config.Log.Error("Error creating taxable transaction.", res.Error)
+							return res.Error
+						}
+					} else {
+						// Force update with new data
+						res := dbTransaction.Model(&foundRecord).Updates(&taxableTxOnly)
+						if res.Error != nil {
+							config.Log.Error("Error updating taxable transaction.", res.Error)
+							return res.Error
+						}
 					}
 				}
 			}
