@@ -96,8 +96,18 @@ func (sf *WrapperMsgSubmitProposal) HandleMsg(msgType string, msg stdTypes.Msg, 
 		return nil
 	}
 
-	coinsReceived := txModule.GetValueForAttribute("amount", proposerDepositedCoinsEvt)
-	recipientAccount := txModule.GetValueForAttribute("recipient", proposerDepositedCoinsEvt)
+	coinsReceived, err := txModule.GetValueForAttribute("amount", proposerDepositedCoinsEvt)
+
+	if err != nil {
+		return err
+	}
+
+	recipientAccount, err := txModule.GetValueForAttribute("recipient", proposerDepositedCoinsEvt)
+
+	if err != nil {
+		return err
+	}
+
 	sf.DepositReceiverAddress = recipientAccount
 
 	// This may be able to be optimized by doing one or the other
@@ -132,11 +142,24 @@ func (sf *WrapperMsgDeposit) HandleMsg(msgType string, msg stdTypes.Msg, log *tx
 		return nil
 	}
 
-	coinsReceived := txModule.GetValueForAttribute("amount", proposerDepositedCoinsEvt)
+	coinsReceived, err := txModule.GetValueForAttribute("amount", proposerDepositedCoinsEvt)
+
+	if err != nil {
+		return err
+	}
 
 	// This may be able to be optimized by doing one or the other
 	coin, err := stdTypes.ParseCoinNormalized(coinsReceived)
-	recipientAccount := txModule.GetValueForAttribute("recipient", proposerDepositedCoinsEvt)
+	if err != nil {
+		return err
+	}
+
+	recipientAccount, err := txModule.GetValueForAttribute("recipient", proposerDepositedCoinsEvt)
+
+	if err != nil {
+		return err
+	}
+
 	sf.DepositReceiverAddress = recipientAccount
 
 	if err != nil {

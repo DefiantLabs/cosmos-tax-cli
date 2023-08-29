@@ -113,7 +113,11 @@ func (sf *WrapperMsgSwapExactAmountOut) HandleMsg(msgType string, msg sdk.Msg, l
 	}
 
 	// This gets the first token swapped in (if there are multiple pools we do not care about intermediates)
-	tokenInStr := txModule.GetValueForAttribute("tokens_in", tokensSwappedEvt)
+	tokenInStr, err := txModule.GetValueForAttribute("tokens_in", tokensSwappedEvt)
+	if err != nil {
+		return err
+	}
+
 	tokenIn, err := sdk.ParseCoinNormalized(tokenInStr)
 	if err != nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}

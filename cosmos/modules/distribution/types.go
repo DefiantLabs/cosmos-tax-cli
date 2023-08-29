@@ -78,8 +78,18 @@ func (sf *WrapperMsgWithdrawValidatorCommission) HandleMsg(msgType string, msg s
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
-	sf.DelegatorReceiverAddress = txModule.GetValueForAttribute(bankTypes.AttributeKeyReceiver, delegatorReceivedCoinsEvt)
-	coinsReceived := txModule.GetValueForAttribute("amount", delegatorReceivedCoinsEvt)
+	receiverAddress, err := txModule.GetValueForAttribute(bankTypes.AttributeKeyReceiver, delegatorReceivedCoinsEvt)
+
+	if err != nil {
+		return err
+	}
+
+	sf.DelegatorReceiverAddress = receiverAddress
+	coinsReceived, err := txModule.GetValueForAttribute("amount", delegatorReceivedCoinsEvt)
+
+	if err != nil {
+		return err
+	}
 
 	coin, err := stdTypes.ParseCoinNormalized(coinsReceived)
 	if err != nil {
@@ -114,8 +124,17 @@ func (sf *WrapperMsgWithdrawDelegatorReward) HandleMsg(msgType string, msg stdTy
 		return nil
 	}
 
-	sf.RecipientAddress = txModule.GetValueForAttribute(bankTypes.AttributeKeyRecipient, delegatorReceivedCoinsEvt)
-	coinsReceived := txModule.GetValueForAttribute("amount", delegatorReceivedCoinsEvt)
+	recipientAddress, err := txModule.GetValueForAttribute(bankTypes.AttributeKeyRecipient, delegatorReceivedCoinsEvt)
+	if err != nil {
+		return err
+	}
+
+	sf.RecipientAddress = recipientAddress
+	coinsReceived, err := txModule.GetValueForAttribute("amount", delegatorReceivedCoinsEvt)
+
+	if err != nil {
+		return err
+	}
 
 	// This may be able to be optimized by doing one or the other
 	coin, err := stdTypes.ParseCoinNormalized(coinsReceived)

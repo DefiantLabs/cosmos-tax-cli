@@ -108,18 +108,18 @@ func ParseTransferEvent(evt LogMessageEvent) ([]TransferEvent, error) {
 
 // If order is reversed, the last attribute containing the given key will be returned
 // otherwise the first attribute will be returned
-func GetValueForAttribute(key string, evt *LogMessageEvent) string {
+func GetValueForAttribute(key string, evt *LogMessageEvent) (string, error) {
 	if evt == nil || evt.Attributes == nil {
-		return ""
+		return "", nil
 	}
 
 	for _, attr := range evt.Attributes {
 		if attr.Key == key {
-			return attr.Value
+			return attr.Value, nil
 		}
 	}
 
-	return ""
+	return "", fmt.Errorf("Attribute %s missing from event", key)
 }
 
 func GetCoinsSpent(spender string, evts []LogMessageEvent) []string {
