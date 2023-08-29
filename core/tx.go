@@ -426,8 +426,8 @@ func ProcessTx(db *gorm.DB, tx txtypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 				// if this msg isn't include in our list of those we are explicitly ignoring, do something about it.
 				// we have decided to throw the error back up the call stack, which will prevent any indexing from happening on this block and add this to the failed block table
 				if _, ok := messageTypeIgnorer[msgType]; !ok {
-					config.Log.Error(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed for msg of type '%v'. We do not currently have a message handler for this message type", tx.TxResponse.Height, msgType))
-					return txDBWapper, txTime, fmt.Errorf("missing parser or ignore list entry for msg type '%v'", msgType)
+					config.Log.Error(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed for msg of type '%v'. Missing parser and ignore list entry.", tx.TxResponse.Height, msgType))
+					return txDBWapper, txTime, fmt.Errorf("missing parser and ignore list entry for msg type '%v'", msgType)
 				}
 			} else {
 				config.Log.Debug(fmt.Sprintf("[Block: %v] Cosmos message of known type: %s", tx.TxResponse.Height, cosmosMessage))
