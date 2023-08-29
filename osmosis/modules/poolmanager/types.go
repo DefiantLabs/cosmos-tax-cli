@@ -172,7 +172,7 @@ func (sf *WrapperMsgSplitRouteSwapExactAmountIn) HandleMsg(msgType string, msg s
 
 	totalIn := sdk.NewCoin(denomIn, sdk.ZeroInt())
 
-	// Determine the token out denom from the first route that has pools and its final entry - gauranteed to be the same for every route based on the spec
+	// Determine the token out denom from the first route that has pools and its final entry - guaranteed to be the same for every route based on the spec
 	// Also determine the amount of token in based on the routes provided in the message
 	for _, route := range sf.OsmosisMsgSplitRouteSwapExactAmountIn.Routes {
 		if len(route.Pools) > 0 && !found {
@@ -196,7 +196,6 @@ func (sf *WrapperMsgSplitRouteSwapExactAmountIn) HandleMsg(msgType string, msg s
 	}
 
 	tokensOutString, err := txModule.GetValueForAttribute("tokens_out", splitRouteFinalEvent)
-
 	if err != nil {
 		return err
 	}
