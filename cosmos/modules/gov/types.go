@@ -97,13 +97,11 @@ func (sf *WrapperMsgSubmitProposal) HandleMsg(msgType string, msg stdTypes.Msg, 
 	}
 
 	coinsReceived, err := txModule.GetValueForAttribute("amount", proposerDepositedCoinsEvt)
-
 	if err != nil {
 		return err
 	}
 
 	recipientAccount, err := txModule.GetValueForAttribute("recipient", proposerDepositedCoinsEvt)
-
 	if err != nil {
 		return err
 	}
@@ -143,7 +141,6 @@ func (sf *WrapperMsgDeposit) HandleMsg(msgType string, msg stdTypes.Msg, log *tx
 	}
 
 	coinsReceived, err := txModule.GetValueForAttribute("amount", proposerDepositedCoinsEvt)
-
 	if err != nil {
 		return err
 	}
@@ -155,7 +152,6 @@ func (sf *WrapperMsgDeposit) HandleMsg(msgType string, msg stdTypes.Msg, log *tx
 	}
 
 	recipientAccount, err := txModule.GetValueForAttribute("recipient", proposerDepositedCoinsEvt)
-
 	if err != nil {
 		return err
 	}

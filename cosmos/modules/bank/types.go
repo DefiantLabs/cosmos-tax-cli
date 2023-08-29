@@ -39,7 +39,6 @@ func (sf *WrapperMsgSend) HandleMsg(msgType string, msg sdk.Msg, log *txModule.L
 	}
 
 	receiverAddress, err := txModule.GetValueForAttribute(bankTypes.AttributeKeyRecipient, receivedCoinsEvt)
-
 	if err != nil {
 		return err
 	}

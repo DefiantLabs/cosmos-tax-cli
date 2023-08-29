@@ -79,14 +79,12 @@ func (sf *WrapperMsgWithdrawValidatorCommission) HandleMsg(msgType string, msg s
 	}
 
 	receiverAddress, err := txModule.GetValueForAttribute(bankTypes.AttributeKeyReceiver, delegatorReceivedCoinsEvt)
-
 	if err != nil {
 		return err
 	}
 
 	sf.DelegatorReceiverAddress = receiverAddress
 	coinsReceived, err := txModule.GetValueForAttribute("amount", delegatorReceivedCoinsEvt)
-
 	if err != nil {
 		return err
 	}
@@ -131,7 +129,6 @@ func (sf *WrapperMsgWithdrawDelegatorReward) HandleMsg(msgType string, msg stdTy
 
 	sf.RecipientAddress = recipientAddress
 	coinsReceived, err := txModule.GetValueForAttribute("amount", delegatorReceivedCoinsEvt)
-
 	if err != nil {
 		return err
 	}
