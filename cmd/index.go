@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"math"
@@ -21,7 +20,6 @@ import (
 	"github.com/DefiantLabs/cosmos-indexer/rpc"
 	"github.com/DefiantLabs/cosmos-indexer/tasks"
 	"github.com/spf13/cobra"
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	"gorm.io/gorm"
 )
@@ -515,7 +513,6 @@ func (idxr *Indexer) indexBlockEvents(wg *sync.WaitGroup, failedBlockHandler cor
 
 	config.Log.Infof("Indexing block events from block: %v to %v", startHeight, endHeight)
 
-	// TODO: Strip this out of the Osmosis module and make it generalized
 	rpcClient := rpc.URIClient{
 		Address: idxr.cl.Config.RPCAddr,
 		Client:  &http.Client{},
@@ -524,7 +521,7 @@ func (idxr *Indexer) indexBlockEvents(wg *sync.WaitGroup, failedBlockHandler cor
 	currentHeight := startHeight
 
 	for endHeight == -1 || currentHeight <= endHeight {
-		bresults, err := getBlockResult(rpcClient, currentHeight)
+		bresults, err := rpc.GetBlockResultWithRetry(rpcClient, currentHeight, idxr.cfg.Base.RPCRetryAttempts, idxr.cfg.Base.RPCRetryMaxWait)
 		if err != nil {
 			config.Log.Error(fmt.Sprintf("Error receiving block result for block %d", currentHeight), err)
 			failedBlockHandler(currentHeight, core.FailedBlockEventHandling, err)
@@ -627,7 +624,7 @@ func (idxr *Indexer) indexEpochEvents(wg *sync.WaitGroup, failedBlockHandler cor
 	for _, epoch := range epochsBetween {
 		config.Log.Infof("Indexing epoch events for epoch %v at height %d", epoch.EpochNumber, epoch.StartHeight)
 
-		bresults, err := getBlockResult(rpcClient, int64(epoch.StartHeight))
+		bresults, err := rpc.GetBlockResultWithRetry(rpcClient, int64(epoch.StartHeight), idxr.cfg.Base.RPCRetryAttempts, idxr.cfg.Base.RPCRetryMaxWait)
 		if err != nil {
 			config.Log.Error(fmt.Sprintf("Error receiving block result for block %d", epoch.StartHeight), err)
 			failedBlockHandler(int64(epoch.StartHeight), core.FailedBlockEventHandling, err)
@@ -687,18 +684,6 @@ func GetEpochsAtIdentifierBetweenStartAndEnd(db *gorm.DB, chainID uint, identifi
 	var epochsBetween []dbTypes.Epoch
 	dbResp := db.Where("epoch_number >= ? AND epoch_number <= ? AND identifier=? AND blockchain_id=?", startEpochNumber, endEpochNumber, identifier, chainID).Find(&epochsBetween)
 	return epochsBetween, dbResp.Error
-}
-
-func getBlockResult(client rpc.URIClient, height int64) (*ctypes.ResultBlockResults, error) {
-	brctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
-	defer cancel()
-
-	bresults, err := client.DoBlockResults(brctx, &height)
-	if err != nil {
-		return nil, err
-	}
-
-	return bresults, nil
 }
 
 // doDBUpdates will read the data out of the db data chan that had been processed by the workers

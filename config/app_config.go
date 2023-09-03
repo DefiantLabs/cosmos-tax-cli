@@ -169,6 +169,8 @@ type base struct {
 	EpochIndexingIdentifier   string `mapstructure:"epoch-indexing-identifier"`
 	EpochEventsStartEpoch     int64  `mapstructure:"epoch-events-start-epoch"`
 	EpochEventsEndEpoch       int64  `mapstructure:"epoch-events-end-epoch"`
+	RPCRetryAttempts          int64  `mapstructure:"rpc-retry-attempts"`
+	RPCRetryMaxWait           uint64 `mapstructure:"rpc-retry-max-wait"`
 }
 
 type log struct {
