@@ -516,7 +516,7 @@ func (idxr *Indexer) indexBlockEvents(wg *sync.WaitGroup, failedBlockHandler cor
 	config.Log.Infof("Indexing block events from block: %v to %v", startHeight, endHeight)
 
 	// TODO: Strip this out of the Osmosis module and make it generalized
-	rpcClient := osmosis.URIClient{
+	rpcClient := rpc.URIClient{
 		Address: idxr.cl.Config.RPCAddr,
 		Client:  &http.Client{},
 	}
@@ -619,7 +619,7 @@ func (idxr *Indexer) indexEpochEvents(wg *sync.WaitGroup, failedBlockHandler cor
 
 	config.Log.Infof("Indexing epoch events from epoch: %v to %v", startEpochNumber, endEpochNumber)
 
-	rpcClient := osmosis.URIClient{
+	rpcClient := rpc.URIClient{
 		Address: idxr.cl.Config.RPCAddr,
 		Client:  &http.Client{},
 	}
@@ -689,7 +689,7 @@ func GetEpochsAtIdentifierBetweenStartAndEnd(db *gorm.DB, chainID uint, identifi
 	return epochsBetween, dbResp.Error
 }
 
-func getBlockResult(client osmosis.URIClient, height int64) (*ctypes.ResultBlockResults, error) {
+func getBlockResult(client rpc.URIClient, height int64) (*ctypes.ResultBlockResults, error) {
 	brctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 	defer cancel()
 
