@@ -99,11 +99,12 @@ var messageTypeIgnorer = map[string]interface{}{
 	staking.MsgCreateValidator: nil,
 	staking.MsgEditValidator:   nil,
 	// Delegating and Locking are not taxable
-	superfluid.MsgSuperfluidDelegate:        nil,
-	superfluid.MsgSuperfluidUndelegate:      nil,
-	superfluid.MsgSuperfluidUnbondLock:      nil,
-	superfluid.MsgLockAndSuperfluidDelegate: nil,
-	superfluid.MsgUnPoolWhitelistedPool:     nil,
+	superfluid.MsgSuperfluidDelegate:                                    nil,
+	superfluid.MsgSuperfluidUndelegate:                                  nil,
+	superfluid.MsgSuperfluidUnbondLock:                                  nil,
+	superfluid.MsgLockAndSuperfluidDelegate:                             nil,
+	superfluid.MsgUnPoolWhitelistedPool:                                 nil,
+	superfluid.MsgUnlockAndMigrateSharesToFullRangeConcentratedPosition: nil,
 
 	// Setting validator pref is not taxable
 	valsetpref.MsgSetValidatorSetPreference: nil,
