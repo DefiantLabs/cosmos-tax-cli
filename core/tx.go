@@ -105,6 +105,10 @@ var messageTypeIgnorer = map[string]interface{}{
 	superfluid.MsgLockAndSuperfluidDelegate:                             nil,
 	superfluid.MsgUnPoolWhitelistedPool:                                 nil,
 	superfluid.MsgUnlockAndMigrateSharesToFullRangeConcentratedPosition: nil,
+	superfluid.MsgSuperfluidUndelegateAndUnbondLock:                     nil,
+	superfluid.MsgCreateFullRangePositionAndSuperfluidDelegate:          nil,
+	superfluid.MsgAddToConcentratedLiquiditySuperfluidPosition:          nil,
+	superfluid.MsgUnbondConvertAndStake:                                 nil,
 
 	// Setting validator pref is not taxable
 	valsetpref.MsgSetValidatorSetPreference: nil,
