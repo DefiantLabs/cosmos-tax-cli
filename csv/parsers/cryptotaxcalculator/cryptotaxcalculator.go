@@ -13,6 +13,7 @@ import (
 	"github.com/DefiantLabs/cosmos-indexer/csv/parsers"
 	"github.com/DefiantLabs/cosmos-indexer/db"
 	"github.com/DefiantLabs/cosmos-indexer/osmosis/modules/gamm"
+	"github.com/DefiantLabs/cosmos-indexer/osmosis/modules/poolmanager"
 )
 
 func (p *Parser) TimeLayout() string {
@@ -193,6 +194,8 @@ func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.Csv
 			newRow, err = ParseMsgTransfer(address, event)
 		case ibc.MsgRecvPacket:
 			newRow, err = ParseMsgTransfer(address, event)
+		case poolmanager.MsgSplitRouteSwapExactAmountIn, poolmanager.MsgSwapExactAmountIn, poolmanager.MsgSwapExactAmountOut:
+			newRow, err = ParsePoolManagerSwap(address, event)
 		default:
 			config.Log.Errorf("no parser for message type '%v'", event.Message.MessageType.MessageType)
 			continue
@@ -314,6 +317,15 @@ func ParseMsgSwapExactAmountOut(address string, event db.TaxableTransaction) (Ro
 	err := row.ParseSwap(event, address, Sell)
 	if err != nil {
 		config.Log.Error("Error with ParseMsgSwapExactAmountOut.", err)
+	}
+	return *row, err
+}
+
+func ParsePoolManagerSwap(address string, event db.TaxableTransaction) (Row, error) {
+	row := &Row{}
+	err := row.ParseSwap(event, address, Buy)
+	if err != nil {
+		config.Log.Error("Error with ParsePoolManagerSwap.", err)
 	}
 	return *row, err
 }

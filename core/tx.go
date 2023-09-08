@@ -99,11 +99,16 @@ var messageTypeIgnorer = map[string]interface{}{
 	staking.MsgCreateValidator: nil,
 	staking.MsgEditValidator:   nil,
 	// Delegating and Locking are not taxable
-	superfluid.MsgSuperfluidDelegate:        nil,
-	superfluid.MsgSuperfluidUndelegate:      nil,
-	superfluid.MsgSuperfluidUnbondLock:      nil,
-	superfluid.MsgLockAndSuperfluidDelegate: nil,
-	superfluid.MsgUnPoolWhitelistedPool:     nil,
+	superfluid.MsgSuperfluidDelegate:                                    nil,
+	superfluid.MsgSuperfluidUndelegate:                                  nil,
+	superfluid.MsgSuperfluidUnbondLock:                                  nil,
+	superfluid.MsgLockAndSuperfluidDelegate:                             nil,
+	superfluid.MsgUnPoolWhitelistedPool:                                 nil,
+	superfluid.MsgUnlockAndMigrateSharesToFullRangeConcentratedPosition: nil,
+	superfluid.MsgSuperfluidUndelegateAndUnbondLock:                     nil,
+	superfluid.MsgCreateFullRangePositionAndSuperfluidDelegate:          nil,
+	superfluid.MsgAddToConcentratedLiquiditySuperfluidPosition:          nil,
+	superfluid.MsgUnbondConvertAndStake:                                 nil,
 
 	// Setting validator pref is not taxable
 	valsetpref.MsgSetValidatorSetPreference: nil,
@@ -424,12 +429,11 @@ func ProcessTx(db *gorm.DB, tx txtypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 					config.Log.Fatal("Issue parsing a cosmos msg that we DO have a parser for! PLEASE INVESTIGATE")
 				}
 				// if this msg isn't include in our list of those we are explicitly ignoring, do something about it.
+				// we have decided to throw the error back up the call stack, which will prevent any indexing from happening on this block and add this to the failed block table
 				if _, ok := messageTypeIgnorer[msgType]; !ok {
-					config.Log.Warn(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed for msg of type '%v'. We do not currently have a message handler for this message type", tx.TxResponse.Height, msgType))
+					config.Log.Error(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed for msg of type '%v'. Missing parser and ignore list entry.", tx.TxResponse.Height, msgType))
+					return txDBWapper, txTime, fmt.Errorf("missing parser and ignore list entry for msg type '%v'", msgType)
 				}
-				// println("------------------Cosmos message parsing failed. MESSAGE FORMAT FOLLOWS:---------------- \n\n")
-				// spew.Dump(message)
-				// println("\n------------------END MESSAGE----------------------\n")
 			} else {
 				config.Log.Debug(fmt.Sprintf("[Block: %v] Cosmos message of known type: %s", tx.TxResponse.Height, cosmosMessage))
 				currMessageType.MessageType = cosmosMessage.GetType()

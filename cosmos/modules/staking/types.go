@@ -61,8 +61,18 @@ func (sf *WrapperMsgDelegate) HandleMsg(msgType string, msg stdTypes.Msg, log *t
 		sf.AutoWithdrawalReward = nil
 		sf.DelegatorAddress = sf.CosmosMsgDelegate.DelegatorAddress
 	} else {
-		sf.DelegatorAddress = txModule.GetValueForAttribute("recipient", delegatorReceivedCoinsEvt)
-		coinsReceived := txModule.GetValueForAttribute("amount", delegatorReceivedCoinsEvt)
+		delegatorAddress, err := txModule.GetValueForAttribute("recipient", delegatorReceivedCoinsEvt)
+		if err != nil {
+			return err
+		}
+
+		sf.DelegatorAddress = delegatorAddress
+
+		coinsReceived, err := txModule.GetValueForAttribute("amount", delegatorReceivedCoinsEvt)
+		if err != nil {
+			return err
+		}
+
 		coin, err := stdTypes.ParseCoinNormalized(coinsReceived)
 		if err != nil {
 			sf.AutoWithdrawalRewards, err = stdTypes.ParseCoinsNormalized(coinsReceived)

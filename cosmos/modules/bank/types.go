@@ -38,7 +38,10 @@ func (sf *WrapperMsgSend) HandleMsg(msgType string, msg sdk.Msg, log *txModule.L
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
-	receiverAddress := txModule.GetValueForAttribute(bankTypes.AttributeKeyRecipient, receivedCoinsEvt)
+	receiverAddress, err := txModule.GetValueForAttribute(bankTypes.AttributeKeyRecipient, receivedCoinsEvt)
+	if err != nil {
+		return err
+	}
 	// coins_received := txModule.GetValueForAttribute("amount", receivedCoinsEvt)
 
 	if !strings.EqualFold(sf.CosmosMsgSend.ToAddress, receiverAddress) {
