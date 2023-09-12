@@ -9,7 +9,7 @@ import (
 	"github.com/DefiantLabs/cosmos-indexer/util"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	valsetPrefTypes "github.com/osmosis-labs/osmosis/v16/x/valset-pref/types"
+	valsetPrefTypes "github.com/osmosis-labs/osmosis/v19/x/valset-pref/types"
 )
 
 const (
