@@ -9,8 +9,8 @@ import (
 	txModule "github.com/DefiantLabs/cosmos-indexer/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-indexer/util"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	clPoolTypes "github.com/osmosis-labs/osmosis/v16/x/concentrated-liquidity/model"
-	clTypes "github.com/osmosis-labs/osmosis/v16/x/concentrated-liquidity/types"
+	clPoolTypes "github.com/osmosis-labs/osmosis/v19/x/concentrated-liquidity/model"
+	clTypes "github.com/osmosis-labs/osmosis/v19/x/concentrated-liquidity/types"
 )
 
 const (
