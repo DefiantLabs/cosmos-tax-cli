@@ -30,6 +30,9 @@ const (
 	MsgConnectionOpenInit    = "/ibc.core.connection.v1.MsgConnectionOpenInit"
 	MsgConnectionOpenAck     = "/ibc.core.connection.v1.MsgConnectionOpenAck"
 
+	MsgChannelCloseConfirm = "/ibc.core.channel.v1.MsgChannelCloseConfirm"
+	MsgChannelCloseInit    = "/ibc.core.channel.v1.MsgChannelCloseInit"
+
 	MsgCreateClient = "/ibc.core.client.v1.MsgCreateClient"
 	MsgUpdateClient = "/ibc.core.client.v1.MsgUpdateClient"
 
