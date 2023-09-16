@@ -83,6 +83,8 @@ var messageTypeIgnorer = map[string]interface{}{
 	ibc.MsgConnectionOpenAck:     nil,
 	ibc.MsgChannelOpenInit:       nil,
 	ibc.MsgChannelOpenAck:        nil,
+	ibc.MsgChannelCloseConfirm:   nil,
+	ibc.MsgChannelCloseInit:      nil,
 	// Creating and modifying gauges does not create taxable events
 	incentives.MsgCreateGauge: nil,
 	incentives.MsgAddToGauge:  nil,
