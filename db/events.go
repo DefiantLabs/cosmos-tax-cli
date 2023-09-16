@@ -90,6 +90,16 @@ func IndexBlockEvents(db *gorm.DB, dryRun bool, blockHeight int64, blockTime tim
 	return nil
 }
 
+func UpdateEpochIndexingStatus(db *gorm.DB, dryRun bool, epochNumber uint, epochIdentifier string, dbChainID string, dbChainName string) error {
+	epochToUpdate := Epoch{
+		EpochNumber: epochNumber,
+		Chain:       Chain{ChainID: dbChainID, Name: dbChainName},
+		Identifier:  epochIdentifier,
+	}
+
+	return db.Model(&Epoch{}).Where(&epochToUpdate).Update("indexed", true).Error
+}
+
 func createTaxableEvents(db *gorm.DB, events []TaxableEvent) error {
 	// Ordering matters due to foreign key constraints. Call Create() first to get right foreign key ID
 	return db.Transaction(func(dbTransaction *gorm.DB) error {

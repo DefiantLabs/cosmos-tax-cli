@@ -193,4 +193,5 @@ type Epoch struct {
 	StartHeight  uint   `gorm:"uniqueIndex:chainepochidentifierheight"`
 	Identifier   string `gorm:"uniqueIndex:chainepochidentifierheight"`
 	EpochNumber  uint
+	Indexed      bool `gorm:"default:false"`
 }
