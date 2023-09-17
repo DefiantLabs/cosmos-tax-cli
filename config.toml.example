@@ -8,6 +8,7 @@ pretty = true
 [base]
 start-block = 1 # start indexing at beginning of the blockchain, -1 to resume from highest block indexed
 end-block = 100 # stop indexing at this block, -1 to never stop indexing
+block-input-file = "" # a file location containing a JSON list of block heights to index. Will override start and end block flags.
 reindex = false # if true, this will re-attempt to index blocks we have already indexed (defaults to false)
 prevent-reattempts = false # if true, this will prevent us from re-attempting to index failed blocks (defaults to false)
 throttling = 0

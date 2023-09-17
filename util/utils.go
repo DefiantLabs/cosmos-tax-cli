@@ -65,3 +65,15 @@ func ReturnInvalidLog(msgType string, log *txModule.LogMessage) error {
 	fmt.Println(log)
 	return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 }
+
+func RemoveDuplicatesFromUint64Slice(sliceList []uint64) []uint64 {
+	allKeys := make(map[uint64]bool)
+	list := []uint64{}
+	for _, item := range sliceList {
+		if _, value := allKeys[item]; !value {
+			allKeys[item] = true
+			list = append(list, item)
+		}
+	}
+	return list
+}
