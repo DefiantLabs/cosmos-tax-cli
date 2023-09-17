@@ -494,17 +494,35 @@ func (idxr *Indexer) indexEpochEvents(wg *sync.WaitGroup, failedBlockHandler cor
 	endEpochNumber := idxr.cfg.Base.EpochEventsEndEpoch
 	epochIdentifier := idxr.cfg.Base.EpochIndexingIdentifier
 
-	// Get epochs for identifier between start and end epoch
-	epochsBetween, err := GetEpochsAtIdentifierBetweenStartAndEnd(idxr.db, chainID, epochIdentifier, startEpochNumber, endEpochNumber)
+	config.Log.Infof("Checking for latest epochs before running indexer")
+	var chain dbTypes.Chain
+	chain.ChainID = idxr.cl.Config.ChainID
+	chain.Name = idxr.cfg.Lens.ChainName
+	res := idxr.db.FirstOrCreate(&chain)
+
+	if res.Error != nil {
+		config.Log.Fatalf("Error setting up Chain model. Err: %v", res.Error)
+	}
+
+	latestHeight, err := rpc.GetLatestBlockHeight(idxr.cl)
+	if err != nil {
+		config.Log.Fatalf("Error getting latest block height. Err: %v", err)
+	}
+
+	indexEpochsAtStartingHeight(idxr.db, idxr.cl, latestHeight, chain, epochIdentifier, idxr.cfg.Base.Throttling)
+
+	// Get epochs for identifier between start and end epoch that have not been indexed
+	epochsBetween, err := GetUnindexedEpochsAtIdentifierBetweenStartAndEnd(idxr.db, chainID, epochIdentifier, startEpochNumber, endEpochNumber)
 	if err != nil {
 		config.Log.Fatalf("Error getting epochs between %d and %d for identifier %s. %s", startEpochNumber, endEpochNumber, epochIdentifier, err)
 	}
 
 	if len(epochsBetween) == 0 {
-		config.Log.Fatalf("No epochs found in database between start %d and end %d for epoch identifier %s", startEpochNumber, endEpochNumber, epochIdentifier)
+		config.Log.Infof("No unindexed epochs found in database between start %d and end %d for epoch identifier %s", startEpochNumber, endEpochNumber, epochIdentifier)
+		return
 	}
 
-	config.Log.Infof("Indexing epoch events from epoch: %v to %v", startEpochNumber, endEpochNumber)
+	config.Log.Infof("Indexing epoch events from epoch: %v to %v", epochsBetween[0].EpochNumber, epochsBetween[len(epochsBetween)-1].EpochNumber)
 
 	rpcClient := rpc.URIClient{
 		Address: idxr.cl.Config.RPCAddr,
@@ -532,14 +550,17 @@ func (idxr *Indexer) indexEpochEvents(wg *sync.WaitGroup, failedBlockHandler cor
 
 		blockRelevantEvents, err := core.ProcessRPCEpochEvents(bresults, epochIdentifier)
 
-		switch {
-		case err != nil:
+		if err != nil {
 			failedBlockHandler(int64(epoch.StartHeight), core.FailedBlockEventHandling, err)
 			err := dbTypes.UpsertFailedEventBlock(idxr.db, int64(epoch.StartHeight), idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
 			if err != nil {
 				config.Log.Fatal("Failed to insert failed block event", err)
 			}
-		case len(blockRelevantEvents) != 0:
+		} else {
+			if len(blockRelevantEvents) == 0 {
+				config.Log.Infof("Block %d has no relevant block events", bresults.Height)
+			}
+
 			result, err := rpc.GetBlock(idxr.cl, bresults.Height)
 			if err != nil {
 				failedBlockHandler(int64(epoch.StartHeight), core.FailedBlockEventHandling, err)
@@ -557,8 +578,6 @@ func (idxr *Indexer) indexEpochEvents(wg *sync.WaitGroup, failedBlockHandler cor
 					epochNumber:         epoch.EpochNumber,
 				}
 			}
-		default:
-			config.Log.Infof("Block %d has no relevant block events", bresults.Height)
 		}
 
 		if idxr.cfg.Base.Throttling != 0 {
@@ -570,10 +589,19 @@ func (idxr *Indexer) indexEpochEvents(wg *sync.WaitGroup, failedBlockHandler cor
 	config.Log.Infof("Finished gathering epoch events for epochs %d to %d in identifier %s", startEpochNumber, endEpochNumber, epochIdentifier)
 }
 
-func GetEpochsAtIdentifierBetweenStartAndEnd(db *gorm.DB, chainID uint, identifier string, startEpochNumber int64, endEpochNumber int64) ([]dbTypes.Epoch, error) {
+func GetUnindexedEpochsAtIdentifierBetweenStartAndEnd(db *gorm.DB, chainID uint, identifier string, startEpochNumber int64, endEpochNumber int64) ([]dbTypes.Epoch, error) {
 	var epochsBetween []dbTypes.Epoch
-	dbResp := db.Where("epoch_number >= ? AND epoch_number <= ? AND identifier=? AND blockchain_id=?", startEpochNumber, endEpochNumber, identifier, chainID).Find(&epochsBetween)
-	return epochsBetween, dbResp.Error
+	var err error
+	if endEpochNumber >= 0 {
+		config.Log.Info("Epoch number start and end set, searching database between start and end epoch number")
+		dbResp := db.Where("epoch_number >= ? AND epoch_number <= ? AND identifier=? AND blockchain_id=? AND indexed=False", startEpochNumber, endEpochNumber, identifier, chainID).Order("epoch_number asc").Find(&epochsBetween)
+		err = dbResp.Error
+	} else {
+		config.Log.Info("End epoch number less than 0, searching database for epochs greater than start epoch number")
+		dbResp := db.Where("epoch_number >= ? AND identifier=? AND blockchain_id=? AND indexed=False", startEpochNumber, identifier, chainID).Order("epoch_number asc").Find(&epochsBetween)
+		err = dbResp.Error
+	}
+	return epochsBetween, err
 }
 
 // doDBUpdates will read the data out of the db data chan that had been processed by the workers
@@ -667,6 +695,12 @@ func (idxr *Indexer) doDBUpdates(wg *sync.WaitGroup, txDataChan chan *dbData, bl
 				if err != nil {
 					config.Log.Fatal(fmt.Sprintf("Error indexing block events for %s.", identifierLoggingString), err)
 				}
+			}
+
+			err = dbTypes.UpdateEpochIndexingStatus(idxr.db, idxr.dryRun, epochEventData.epochNumber, epochEventData.epochIdentifier, idxr.cfg.Lens.ChainID, idxr.cfg.Lens.ChainName)
+
+			if err != nil {
+				config.Log.Fatal(fmt.Sprintf("Error indexing block events for %s. Could not mark Epoch indexed.", identifierLoggingString), err)
 			}
 		}
 	}
