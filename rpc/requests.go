@@ -98,6 +98,18 @@ func GetLatestBlockHeight(cl *lensClient.ChainClient) (int64, error) {
 	return resStatus.SyncInfo.LatestBlockHeight, nil
 }
 
+func GetEarliestAndLatestBlockHeights(cl *lensClient.ChainClient) (int64, int64, error) {
+	query := lensQuery.Query{Client: cl, Options: &lensQuery.QueryOptions{}}
+	ctx, cancel := query.GetQueryContext()
+	defer cancel()
+
+	resStatus, err := query.Client.RPCClient.Status(ctx)
+	if err != nil {
+		return 0, 0, err
+	}
+	return resStatus.SyncInfo.EarliestBlockHeight, resStatus.SyncInfo.LatestBlockHeight, nil
+}
+
 // GetEpochsAtHeight makes a request to the Cosmos RPC API and returns the Epoch at a specific height
 func GetEpochsAtHeight(cl *lensClient.ChainClient, height int64) (*lensEpochsTypes.QueryEpochsInfoResponse, error) {
 	options := lensQuery.QueryOptions{}

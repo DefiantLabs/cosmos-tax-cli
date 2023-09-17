@@ -150,8 +150,9 @@ type client struct {
 
 type base struct {
 	API                       string
-	StartBlock                int64 `mapstructure:"start-block"`
-	EndBlock                  int64 `mapstructure:"end-block"`
+	StartBlock                int64  `mapstructure:"start-block"`
+	EndBlock                  int64  `mapstructure:"end-block"`
+	BlockInputFile            string `mapstructure:"block-input-file"`
 	ReIndex                   bool
 	PreventReattempts         bool `mapstructure:"prevent-reattempts"`
 	Throttling                float64
