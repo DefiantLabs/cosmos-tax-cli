@@ -1,6 +1,7 @@
 package distribution
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/DefiantLabs/cosmos-indexer/config"
@@ -74,34 +75,67 @@ func (sf *WrapperMsgWithdrawValidatorCommission) HandleMsg(msgType string, msg s
 
 	// The attribute in the log message that shows you the delegator withdrawal address and amount received
 	delegatorReceivedCoinsEvt := txModule.GetEventWithType("coin_received", log)
-	if delegatorReceivedCoinsEvt == nil {
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
-	}
-
-	receiverAddress, err := txModule.GetValueForAttribute(bankTypes.AttributeKeyReceiver, delegatorReceivedCoinsEvt)
-	if err != nil {
-		return err
-	}
-
-	sf.DelegatorReceiverAddress = receiverAddress
-	coinsReceived, err := txModule.GetValueForAttribute("amount", delegatorReceivedCoinsEvt)
-	if err != nil {
-		return err
-	}
-
-	coin, err := stdTypes.ParseCoinNormalized(coinsReceived)
-	if err != nil {
-		sf.MultiCoinsReceived, err = stdTypes.ParseCoinsNormalized(coinsReceived)
+	if delegatorReceivedCoinsEvt != nil {
+		receiverAddress, err := txModule.GetValueForAttribute(bankTypes.AttributeKeyReceiver, delegatorReceivedCoinsEvt)
 		if err != nil {
-			fmt.Println("Error parsing coins normalized")
-			fmt.Println(err)
 			return err
 		}
-	} else {
-		sf.CoinsReceived = coin
-	}
 
-	return err
+		sf.DelegatorReceiverAddress = receiverAddress
+		coinsReceived, err := txModule.GetValueForAttribute("amount", delegatorReceivedCoinsEvt)
+		if err != nil {
+			return err
+		}
+
+		coin, err := stdTypes.ParseCoinNormalized(coinsReceived)
+		if err != nil {
+			sf.MultiCoinsReceived, err = stdTypes.ParseCoinsNormalized(coinsReceived)
+			if err != nil {
+				fmt.Println("Error parsing coins normalized")
+				fmt.Println(err)
+				return err
+			}
+		} else {
+			sf.CoinsReceived = coin
+		}
+
+		return err
+	} else {
+		transferEvt := txModule.GetEventWithType("transfer", log)
+
+		if transferEvt == nil {
+			return errors.New("no transfer event found")
+		}
+
+		receiverAddress, err := txModule.GetValueForAttribute(bankTypes.AttributeKeyRecipient, transferEvt)
+
+		if err != nil {
+			return err
+		}
+
+		sf.DelegatorReceiverAddress = receiverAddress
+
+		amountRecieved, err := txModule.GetValueForAttribute("amount", transferEvt)
+
+		if err != nil {
+			return err
+		}
+
+		coin, err := stdTypes.ParseCoinNormalized(amountRecieved)
+		if err != nil {
+			sf.MultiCoinsReceived, err = stdTypes.ParseCoinsNormalized(amountRecieved)
+			if err != nil {
+				fmt.Println("Error parsing coins normalized")
+				fmt.Println(err)
+				return err
+			}
+		} else {
+			sf.CoinsReceived = coin
+		}
+
+		return nil
+
+	}
 }
 
 // CosmUnmarshal(): Unmarshal JSON for MsgWithdrawDelegatorReward
