@@ -100,42 +100,39 @@ func (sf *WrapperMsgWithdrawValidatorCommission) HandleMsg(msgType string, msg s
 		}
 
 		return err
-	} else {
-		transferEvt := txModule.GetEventWithType("transfer", log)
-
-		if transferEvt == nil {
-			return errors.New("no transfer event found")
-		}
-
-		receiverAddress, err := txModule.GetValueForAttribute(bankTypes.AttributeKeyRecipient, transferEvt)
-
-		if err != nil {
-			return err
-		}
-
-		sf.DelegatorReceiverAddress = receiverAddress
-
-		amountRecieved, err := txModule.GetValueForAttribute("amount", transferEvt)
-
-		if err != nil {
-			return err
-		}
-
-		coin, err := stdTypes.ParseCoinNormalized(amountRecieved)
-		if err != nil {
-			sf.MultiCoinsReceived, err = stdTypes.ParseCoinsNormalized(amountRecieved)
-			if err != nil {
-				fmt.Println("Error parsing coins normalized")
-				fmt.Println(err)
-				return err
-			}
-		} else {
-			sf.CoinsReceived = coin
-		}
-
-		return nil
-
 	}
+
+	transferEvt := txModule.GetEventWithType("transfer", log)
+
+	if transferEvt == nil {
+		return errors.New("no transfer event found")
+	}
+
+	receiverAddress, err := txModule.GetValueForAttribute(bankTypes.AttributeKeyRecipient, transferEvt)
+	if err != nil {
+		return err
+	}
+
+	sf.DelegatorReceiverAddress = receiverAddress
+
+	amountRecieved, err := txModule.GetValueForAttribute("amount", transferEvt)
+	if err != nil {
+		return err
+	}
+
+	coin, err := stdTypes.ParseCoinNormalized(amountRecieved)
+	if err != nil {
+		sf.MultiCoinsReceived, err = stdTypes.ParseCoinsNormalized(amountRecieved)
+		if err != nil {
+			fmt.Println("Error parsing coins normalized")
+			fmt.Println(err)
+			return err
+		}
+	} else {
+		sf.CoinsReceived = coin
+	}
+
+	return nil
 }
 
 // CosmUnmarshal(): Unmarshal JSON for MsgWithdrawDelegatorReward
