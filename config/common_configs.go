@@ -9,13 +9,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// These configs are used across multiple commands, and are not specific to a single command
 type log struct {
 	Level  string
 	Path   string
 	Pretty bool
 }
 
-// These configs are used across multiple commands, and are not specific to a single command
 type database struct {
 	Host     string
 	Port     string
@@ -108,7 +108,7 @@ func validateLensConf(lensConf lens) (lens, error) {
 }
 
 func validateThrottlingConf(throttlingConf throttlingBase) error {
-	if throttlingConf.Throttling <= 0 {
+	if throttlingConf.Throttling < 0 {
 		return errors.New("throttling must be a positive number or 0")
 	}
 	return nil

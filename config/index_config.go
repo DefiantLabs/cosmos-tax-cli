@@ -96,18 +96,41 @@ func (conf *IndexConfig) Validate() error {
 		return err
 	}
 
-	if conf.Base.StartBlock == 0 {
-		return errors.New("base start-block must be set")
+	// Check for required configs when base indexer is enabled
+	if conf.Base.ChainIndexingEnabled {
+		if conf.Base.StartBlock == 0 {
+			return errors.New("base.start-block must be set when index-chain is enabled")
+		}
+		if conf.Base.EndBlock == 0 {
+			return errors.New("base.end-block must be set when index-chain is enabled")
+		}
 	}
-	if conf.Base.EndBlock == 0 {
-		return errors.New("base end-block must be set")
+
+	// Check for required configs when block event indexer is enabled
+	if conf.Base.BlockEventIndexingEnabled {
+		// If block event indexes are not valid, error
+		if conf.Base.BlockEventsStartBlock < 0 {
+			return errors.New("base.block-events-start-block must be greater than 0 when index-block-events is enabled")
+		}
+		if conf.Base.BlockEventsEndBlock < -1 {
+			return errors.New("base.block-events-end-block must be greater than 0 or -1 when index-block-events is enabled")
+		}
 	}
-	// If block event indexes are not valid, error
-	if conf.Base.BlockEventsStartBlock < 0 {
-		return errors.New("block-events-start-block must be valid")
-	}
-	if conf.Base.BlockEventsEndBlock < -1 {
-		return errors.New("block-events-end-block must be valid")
+
+	// Check for required configs when epoch event indexer is enabled
+	if conf.Base.EpochEventIndexingEnabled {
+		// If epoch event indexes are not valid, error
+		if conf.Base.EpochEventsStartEpoch < 0 {
+			return errors.New("base.epoch-events-start-epoch must be greater than 0 when index-epoch-events is enabled")
+		}
+
+		if conf.Base.EpochEventsEndEpoch < -1 {
+			return errors.New("base.epoch-events-end-epoch must be greater than 0 or -1 when index-epoch-events is enabled")
+		}
+
+		if conf.Base.EpochIndexingIdentifier == "" {
+			return errors.New("base.epoch-indexing-identifier must be set when index-epoch-events is enabled")
+		}
 	}
 
 	// Check if API is provided, and if so, set default ports if not set
