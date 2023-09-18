@@ -5,21 +5,14 @@ import (
 	"log"
 	"os"
 	"strings"
-	"time"
 
-	"github.com/DefiantLabs/cosmos-indexer/config"
-	"github.com/go-co-op/gocron"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"gorm.io/gorm"
-
-	dbTypes "github.com/DefiantLabs/cosmos-indexer/db"
 )
 
 var (
-	cfgFile string             // config file location to load
-	conf    config.IndexConfig // stores the unmarshaled config loaded from Viper, available to all commands in the cmd package
+	cfgFile string // config file location to load
 	rootCmd = &cobra.Command{
 		Use:   "cosmos-indexer",
 		Short: "A CLI tool for indexing and querying on-chain data",
@@ -150,49 +143,4 @@ func bindFlags(cmd *cobra.Command, v *viper.Viper) {
 			}
 		}
 	})
-}
-
-// Separate the DB logic, scheduler logic, and blockchain logic into different functions.
-//
-// setup does pre-run setup configurations.
-//   - Loads the application config from config.tml, cli args and parses/merges
-//   - Connects to the database and returns the db object
-//   - Returns various values used throughout the application
-func setup(cfg config.IndexConfig) (*config.IndexConfig, bool, *gorm.DB, *gocron.Scheduler, error) {
-	// Logger
-	logLevel := cfg.Log.Level
-	logPath := cfg.Log.Path
-	prettyLogging := cfg.Log.Pretty
-	config.DoConfigureLogger(logPath, logLevel, prettyLogging)
-
-	// 0 is an invalid starting block, set it to 1
-	if cfg.Base.StartBlock == 0 {
-		cfg.Base.StartBlock = 1
-	}
-
-	db, err := dbTypes.PostgresDbConnect(cfg.Database.Host, cfg.Database.Port, cfg.Database.Database,
-		cfg.Database.User, cfg.Database.Password, strings.ToLower(cfg.Database.LogLevel))
-	if err != nil {
-		config.Log.Fatal("Could not establish connection to the database", err)
-	}
-
-	sqldb, _ := db.DB()
-	sqldb.SetMaxIdleConns(10)
-	sqldb.SetMaxOpenConns(100)
-	sqldb.SetConnMaxLifetime(time.Hour)
-
-	scheduler := gocron.NewScheduler(time.UTC)
-
-	// run database migrations at every runtime
-	err = dbTypes.MigrateModels(db)
-	if err != nil {
-		config.Log.Error("Error running DB migrations", err)
-		return nil, false, nil, nil, err
-	}
-
-	// We should stop relying on the denom cache now that we are running this as a CLI tool only
-	dbTypes.CacheDenoms(db)
-	dbTypes.CacheIBCDenoms(db)
-
-	return &cfg, cfg.Base.Dry, db, scheduler, nil
 }

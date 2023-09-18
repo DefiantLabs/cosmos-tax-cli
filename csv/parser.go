@@ -45,7 +45,7 @@ func GetParser(parserKey string) parsers.Parser {
 	return nil
 }
 
-func ParseForAddress(addresses []string, startDate, endDate *time.Time, pgSQL *gorm.DB, parserKey string, cfg config.Config) ([]parsers.CsvRow, []string, error) {
+func ParseForAddress(addresses []string, startDate, endDate *time.Time, pgSQL *gorm.DB, parserKey string, cfg config.QueryConfig) ([]parsers.CsvRow, []string, error) {
 	parser := GetParser(parserKey)
 	if parser == nil {
 		return nil, nil, errors.New("invalid parser key")
