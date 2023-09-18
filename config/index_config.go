@@ -46,7 +46,7 @@ type indexBase struct {
 
 func SetupIndexSpecificFlags(conf *IndexConfig, cmd *cobra.Command) {
 	// chain indexing
-	cmd.PersistentFlags().BoolVar(&conf.Base.ChainIndexingEnabled, "base.index-chain", true, "enable chain indexing?")
+	cmd.PersistentFlags().BoolVar(&conf.Base.ChainIndexingEnabled, "base.index-chain", false, "enable chain indexing?")
 	cmd.PersistentFlags().Int64Var(&conf.Base.StartBlock, "base.start-block", 0, "block to start indexing at (use -1 to resume from highest block indexed)")
 	cmd.PersistentFlags().Int64Var(&conf.Base.EndBlock, "base.end-block", -1, "block to stop indexing at (use -1 to index indefinitely")
 	cmd.PersistentFlags().StringVar(&conf.Base.BlockInputFile, "base.block-input-file", "", "A file location containing a JSON list of block heights to index. Will override start and end block flags.")
@@ -54,7 +54,7 @@ func SetupIndexSpecificFlags(conf *IndexConfig, cmd *cobra.Command) {
 	cmd.PersistentFlags().BoolVar(&conf.Base.PreventReattempts, "base.prevent-reattempts", false, "prevent reattempts of failed blocks.")
 	cmd.PersistentFlags().StringVar(&conf.Base.ReindexMessageType, "base.reindex-message-type", "", "a Cosmos message type URL. When set, the block enqueue method will reindex all blocks between start and end block that contain this message type.")
 	// block event indexing
-	cmd.PersistentFlags().BoolVar(&conf.Base.BlockEventIndexingEnabled, "base.index-block-events", true, "enable block beginblocker and endblocker event indexing?")
+	cmd.PersistentFlags().BoolVar(&conf.Base.BlockEventIndexingEnabled, "base.index-block-events", false, "enable block beginblocker and endblocker event indexing?")
 	cmd.PersistentFlags().Int64Var(&conf.Base.BlockEventsStartBlock, "base.block-events-start-block", 0, "block to start indexing block events at")
 	cmd.PersistentFlags().Int64Var(&conf.Base.BlockEventsEndBlock, "base.block-events-end-block", 0, "block to stop indexing block events at (use -1 to index indefinitely")
 	// epoch event indexing

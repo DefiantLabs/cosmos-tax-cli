@@ -19,7 +19,7 @@ var (
 		Long: `Cosmos Tax CLI is a CLI tool for indexing and querying Cosmos-based blockchains,
 		with a heavy focus on taxable events.`,
 	}
-	viperConf = getViperConfig()
+	viperConf = viper.New()
 )
 
 // Execute executes the root command.
@@ -28,11 +28,13 @@ func Execute() error {
 }
 
 func init() {
+	cobra.OnInitialize(getViperConfig)
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.cosmos-indexer/config.yaml)")
 }
 
-func getViperConfig() *viper.Viper {
+func getViperConfig() {
 	v := viper.New()
+
 	if cfgFile != "" {
 		v.SetConfigFile(cfgFile)
 		v.SetConfigType("toml")
@@ -76,7 +78,7 @@ func getViperConfig() *viper.Viper {
 		log.Println("CFG successfully read from: ", cfgFile)
 	}
 
-	return v
+	viperConf = v
 }
 
 // Set config vars from cpnfig file not already specified on command line.
