@@ -141,8 +141,6 @@ func (sf *WrapperMsgWithdrawValidatorCommission) HandleMsg(msgType string, msg s
 		if amountRecieved != "" {
 			return errors.New("unexpected amount received in withdraw commission event, unparsed amount and receiver")
 		}
-
-		fmt.Println("Here")
 	default:
 		return errors.New("no valid withdrawvalidatorcommission events found")
 	}
