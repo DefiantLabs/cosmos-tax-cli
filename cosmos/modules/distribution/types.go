@@ -75,7 +75,11 @@ func (sf *WrapperMsgWithdrawValidatorCommission) HandleMsg(msgType string, msg s
 
 	// The attribute in the log message that shows you the delegator withdrawal address and amount received
 	delegatorReceivedCoinsEvt := txModule.GetEventWithType("coin_received", log)
-	if delegatorReceivedCoinsEvt != nil {
+	transferEvt := txModule.GetEventWithType("transfer", log)
+	withdrawCommissionEvt := txModule.GetEventWithType("withdraw_commission", log)
+
+	switch {
+	case delegatorReceivedCoinsEvt != nil:
 		receiverAddress, err := txModule.GetValueForAttribute(bankTypes.AttributeKeyReceiver, delegatorReceivedCoinsEvt)
 		if err != nil {
 			return err
@@ -99,37 +103,48 @@ func (sf *WrapperMsgWithdrawValidatorCommission) HandleMsg(msgType string, msg s
 			sf.CoinsReceived = coin
 		}
 
-		return err
-	}
-
-	transferEvt := txModule.GetEventWithType("transfer", log)
-
-	if transferEvt == nil {
-		return errors.New("no transfer event found")
-	}
-
-	receiverAddress, err := txModule.GetValueForAttribute(bankTypes.AttributeKeyRecipient, transferEvt)
-	if err != nil {
-		return err
-	}
-
-	sf.DelegatorReceiverAddress = receiverAddress
-
-	amountRecieved, err := txModule.GetValueForAttribute("amount", transferEvt)
-	if err != nil {
-		return err
-	}
-
-	coin, err := stdTypes.ParseCoinNormalized(amountRecieved)
-	if err != nil {
-		sf.MultiCoinsReceived, err = stdTypes.ParseCoinsNormalized(amountRecieved)
+		return nil
+	case transferEvt != nil:
+		receiverAddress, err := txModule.GetValueForAttribute(bankTypes.AttributeKeyRecipient, transferEvt)
 		if err != nil {
-			fmt.Println("Error parsing coins normalized")
-			fmt.Println(err)
 			return err
 		}
-	} else {
-		sf.CoinsReceived = coin
+
+		sf.DelegatorReceiverAddress = receiverAddress
+
+		amountRecieved, err := txModule.GetValueForAttribute("amount", transferEvt)
+		if err != nil {
+			return err
+		}
+
+		coin, err := stdTypes.ParseCoinNormalized(amountRecieved)
+		if err != nil {
+			sf.MultiCoinsReceived, err = stdTypes.ParseCoinsNormalized(amountRecieved)
+			if err != nil {
+				fmt.Println("Error parsing coins normalized")
+				fmt.Println(err)
+				return err
+			}
+		} else {
+			sf.CoinsReceived = coin
+		}
+	case withdrawCommissionEvt != nil:
+		// This case was found on Osmosis block 4,196,212 with TX DD5C6AC933BE08C210F7CD8AB6BCEC7B2AEC13524905F47661AE908D47C1250A
+		// It is a withdraw commission event with 0 amount received, so we will ignore it
+		// However, lets throw errors up if this case finds an amount because we will need to capture Address info
+
+		amountRecieved, err := txModule.GetValueForAttribute("amount", withdrawCommissionEvt)
+		if err != nil {
+			return err
+		}
+
+		if amountRecieved != "" {
+			return errors.New("unexpected amount received in withdraw commission event, unparsed amount and receiver")
+		}
+
+		fmt.Println("Here")
+	default:
+		return errors.New("no valid withdrawvalidatorcommission events found")
 	}
 
 	return nil
@@ -206,6 +221,11 @@ func (sf *WrapperMsgWithdrawValidatorCommission) ParseRelevantData() []parsingTy
 
 		return relevantData
 	}
+
+	if sf.CoinsReceived.IsZero() {
+		return nil
+	}
+
 	relevantData := make([]parsingTypes.MessageRelevantInformation, 1)
 	relevantData[0] = parsingTypes.MessageRelevantInformation{
 		AmountReceived:       sf.CoinsReceived.Amount.BigInt(),
