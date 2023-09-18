@@ -10,7 +10,6 @@ import (
 
 type IndexConfig struct {
 	Database           database
-	API                api // deprecated in favor of lens.Rpc (at least in this app)
 	ConfigFileLocation string
 	Base               indexBase
 	Log                log

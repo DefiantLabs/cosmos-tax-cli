@@ -15,7 +15,7 @@ import (
 )
 
 func TestAccointingIbcMsgTransferSelf(t *testing.T) {
-	cfg := config.Config{}
+	cfg := config.IndexConfig{}
 	cfg.Lens.ChainID = osmosis.ChainID
 	parser := GetParser(accointing.ParserKey)
 	parser.InitializeParsingGroups()
@@ -60,7 +60,7 @@ func TestAccointingIbcMsgTransferSelf(t *testing.T) {
 
 // Test behavior of an IBC message transfer to someone else's address (e.g. NOT a self transfer)
 func TestAccointingIbcMsgTransferExternal(t *testing.T) {
-	cfg := config.Config{}
+	cfg := config.IndexConfig{}
 	cfg.Lens.ChainID = osmosis.ChainID
 	parser := GetParser(accointing.ParserKey)
 	parser.InitializeParsingGroups()
@@ -104,7 +104,7 @@ func TestAccointingIbcMsgTransferExternal(t *testing.T) {
 }
 
 func TestAccointingOsmoLPParsing(t *testing.T) {
-	cfg := config.Config{}
+	cfg := config.IndexConfig{}
 	cfg.Lens.ChainID = osmosis.ChainID
 	parser := GetParser(accointing.ParserKey)
 	parser.InitializeParsingGroups()
@@ -140,7 +140,7 @@ func TestAccointingOsmoLPParsing(t *testing.T) {
 }
 
 func TestAccointingOsmoRewardParsing(t *testing.T) {
-	cfg := config.Config{}
+	cfg := config.IndexConfig{}
 	cfg.Lens.ChainID = osmosis.ChainID
 	parser := GetParser(accointing.ParserKey)
 	parser.InitializeParsingGroups()

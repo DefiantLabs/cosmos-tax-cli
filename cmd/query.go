@@ -51,7 +51,7 @@ var queryCmd = &cobra.Command{
 			endDate = &parsedDate
 		}
 
-		csvRows, headers, err := csv.ParseForAddress(queryConfig.Base.Addresses, startDate, endDate, db, queryConfig.Base.Format, queryConfig)
+		csvRows, headers, err := csv.ParseForAddress(queryConfig.Base.Addresses, startDate, endDate, db, queryConfig.Base.Format)
 		if err != nil {
 			log.Println(queryConfig.Base.Addresses)
 			config.Log.Fatal("Error calling parser for address", err)

@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/BurntSushi/toml"
+	"github.com/DefiantLabs/cosmos-indexer/config"
 	"github.com/DefiantLabs/cosmos-indexer/osmosis"
 
-	configUtils "github.com/DefiantLabs/cosmos-indexer/config"
 	"github.com/DefiantLabs/cosmos-indexer/core"
 	dbUtils "github.com/DefiantLabs/cosmos-indexer/db"
 	"github.com/DefiantLabs/cosmos-indexer/util"
@@ -62,12 +63,18 @@ func ensureTestAddress(db *gorm.DB) dbUtils.Address {
 	return addr
 }
 
+func getConfig(configFileLocation string) (config.IndexConfig, error) {
+	var conf config.IndexConfig
+	_, err := toml.DecodeFile(configFileLocation, &conf)
+	return conf, err
+}
+
 // setup does pre-run setup configurations.
 //   - Loads the application config from config.tml, cli args and parses/merges
 //   - Connects to the database and returns the db object
 //   - Returns various values used throughout the application
 func dbSetup(addressRegex string, addressPrefix string) (*gorm.DB, error) {
-	config, err := configUtils.GetConfig("../config.toml")
+	config, err := getConfig("../config.toml")
 	if err != nil {
 		fmt.Println("Error opening configuration file", err)
 		return nil, err
