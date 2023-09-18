@@ -16,9 +16,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var queryConfig config.QueryConfig
-var queryDbConnection *gorm.DB
-var validParserKeys = csvParsers.GetParserKeys()
+var (
+	queryConfig       config.QueryConfig
+	queryDbConnection *gorm.DB
+	validParserKeys   = csvParsers.GetParserKeys()
+)
 
 func init() {
 	config.SetupLogFlags(&queryConfig.Log, queryCmd)
@@ -34,7 +36,6 @@ var queryCmd = &cobra.Command{
 	your address to the command and a CSV export with your data for your address will be generated.`,
 	PreRunE: setupQuery,
 	Run: func(cmd *cobra.Command, args []string) {
-
 		db := queryDbConnection
 
 		// Validate and set dates
@@ -71,7 +72,6 @@ func setupQuery(cmd *cobra.Command, args []string) error {
 
 	bindFlags(cmd, viperConf)
 	err := queryConfig.Validate(validParserKeys)
-
 	if err != nil {
 		return err
 	}

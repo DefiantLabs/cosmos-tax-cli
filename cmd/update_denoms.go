@@ -12,8 +12,10 @@ import (
 	"gorm.io/gorm"
 )
 
-var updateDenomsConfig config.UpdateDenomsConfig
-var updateDenomsDbConnection *gorm.DB
+var (
+	updateDenomsConfig       config.UpdateDenomsConfig
+	updateDenomsDbConnection *gorm.DB
+)
 
 func init() {
 	config.SetupLogFlags(&updateDenomsConfig.Log, updateDenomsCmd)
@@ -39,7 +41,6 @@ func setupUpdateDenoms(cmd *cobra.Command, args []string) error {
 	bindFlags(cmd, viperConf)
 
 	err := updateDenomsConfig.Validate()
-
 	if err != nil {
 		return err
 	}
@@ -97,7 +98,6 @@ func updateDenoms(cmd *cobra.Command, args []string) {
 	}
 
 	err := tasks.ValidateDenoms(db)
-
 	if err != nil {
 		config.Log.Error("Error running post-validation for update-denoms")
 		os.Exit(1)

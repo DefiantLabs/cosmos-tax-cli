@@ -18,9 +18,7 @@ func SetupUpdateDenomsSpecificFlags(conf *UpdateDenomsConfig, cmd *cobra.Command
 }
 
 func (conf *UpdateDenomsConfig) Validate() error {
-
 	err := validateDatabaseConf(conf.Database)
-
 	if err != nil {
 		return err
 	}

@@ -106,7 +106,6 @@ func setupIndex(cmd *cobra.Command, args []string) error {
 // The Indexer struct is used to perform index operations
 
 func setupIndexer() *Indexer {
-
 	var err error
 
 	// Setup chain specific stuff

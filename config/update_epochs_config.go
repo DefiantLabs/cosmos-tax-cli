@@ -23,9 +23,7 @@ func SetupUpdateEpochsSpecificFlags(conf *UpdateEpochsConfig, cmd *cobra.Command
 }
 
 func (conf *UpdateEpochsConfig) Validate() error {
-
 	err := validateDatabaseConf(conf.Database)
-
 	if err != nil {
 		return err
 	}

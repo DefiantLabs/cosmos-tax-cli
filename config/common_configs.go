@@ -83,7 +83,6 @@ func validateDatabaseConf(dbConf database) error {
 }
 
 func validateLensConf(lensConf lens) (lens, error) {
-
 	if util.StrNotSet(lensConf.RPC) {
 		return lensConf, errors.New("lens rpc must be set")
 	}

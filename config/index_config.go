@@ -77,7 +77,6 @@ func SetupIndexSpecificFlags(conf *IndexConfig, cmd *cobra.Command) {
 
 func (conf *IndexConfig) Validate() error {
 	err := validateDatabaseConf(conf.Database)
-
 	if err != nil {
 		return err
 	}

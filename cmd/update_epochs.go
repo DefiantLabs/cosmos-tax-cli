@@ -14,8 +14,10 @@ import (
 	"gorm.io/gorm"
 )
 
-var updateEpochsConfig config.UpdateEpochsConfig
-var updateEpochsDbConnection *gorm.DB
+var (
+	updateEpochsConfig       config.UpdateEpochsConfig
+	updateEpochsDbConnection *gorm.DB
+)
 
 func init() {
 	config.SetupLogFlags(&updateEpochsConfig.Log, updateEpochsCmd)
@@ -39,7 +41,6 @@ func setupUpdateEpochs(cmd *cobra.Command, args []string) error {
 	bindFlags(cmd, viperConf)
 
 	err := updateEpochsConfig.Validate()
-
 	if err != nil {
 		return err
 	}
