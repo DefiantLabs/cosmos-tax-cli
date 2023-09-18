@@ -124,22 +124,6 @@ func (conf *Config) ValidateClientConfig() error {
 	return nil
 }
 
-type database struct {
-	Host     string
-	Port     string
-	Database string
-	User     string
-	Password string
-	LogLevel string `mapstructure:"log-level"`
-}
-
-type lens struct {
-	RPC           string
-	AccountPrefix string `mapstructure:"account-prefix"`
-	ChainID       string `mapstructure:"chain-id"`
-	ChainName     string `mapstructure:"chain-name"`
-}
-
 type api struct {
 	Host string
 }
@@ -149,13 +133,13 @@ type client struct {
 }
 
 type base struct {
+	throttlingBase
 	API                       string
 	StartBlock                int64  `mapstructure:"start-block"`
 	EndBlock                  int64  `mapstructure:"end-block"`
 	BlockInputFile            string `mapstructure:"block-input-file"`
 	ReIndex                   bool
-	PreventReattempts         bool `mapstructure:"prevent-reattempts"`
-	Throttling                float64
+	PreventReattempts         bool  `mapstructure:"prevent-reattempts"`
 	RPCWorkers                int64 `mapstructure:"rpc-workers"`
 	BlockTimer                int64 `mapstructure:"block-timer"`
 	WaitForChain              bool  `mapstructure:"wait-for-chain"`
@@ -172,12 +156,6 @@ type base struct {
 	EpochEventsEndEpoch       int64  `mapstructure:"epoch-events-end-epoch"`
 	RPCRetryAttempts          int64  `mapstructure:"rpc-retry-attempts"`
 	RPCRetryMaxWait           uint64 `mapstructure:"rpc-retry-max-wait"`
-}
-
-type log struct {
-	Level  string
-	Path   string
-	Pretty bool
 }
 
 func GetConfig(configFileLocation string) (Config, error) {
