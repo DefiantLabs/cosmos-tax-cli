@@ -134,7 +134,6 @@ func (sf *WrapperMsgWithdrawValidatorCommission) HandleMsg(msgType string, msg s
 		// However, lets throw errors up if this case finds an amount because we will need to capture Address info
 
 		amountRecieved, err := txModule.GetValueForAttribute("amount", withdrawCommissionEvt)
-
 		if err != nil {
 			return err
 		}
