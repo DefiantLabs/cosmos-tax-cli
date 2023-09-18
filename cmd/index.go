@@ -31,7 +31,6 @@ type Indexer struct {
 	scheduler *gocron.Scheduler
 }
 
-var reindexMsgType string
 var indexer Indexer
 
 func init() {
@@ -41,7 +40,6 @@ func init() {
 	config.SetupLensFlags(&indexer.cfg.Lens, indexCmd)
 	config.SetupThrottlingFlag(&indexer.cfg.Base.Throttling, indexCmd)
 	config.SetupIndexSpecificFlags(indexer.cfg, indexCmd)
-	// indexCmd.Flags().StringVar(&reindexMsgType, "re-index-message-type", "", "If specified, the indexer will reindex only the blocks containing the message type provided.")
 
 	rootCmd.AddCommand(indexCmd)
 }
@@ -248,8 +246,8 @@ func index(cmd *cobra.Command, args []string) {
 	// Add jobs to the queue to be processed
 	if idxr.cfg.Base.ChainIndexingEnabled {
 		switch {
-		case reindexMsgType != "":
-			idxr.enqueueBlocksToProcessByMsgType(blockChan, dbChainID, reindexMsgType)
+		case idxr.cfg.Base.ReindexMessageType != "":
+			idxr.enqueueBlocksToProcessByMsgType(blockChan, dbChainID, idxr.cfg.Base.ReindexMessageType)
 		case idxr.cfg.Base.BlockInputFile != "":
 			idxr.enqueueBlocksToProcessFromBlockInputFile(blockChan, idxr.cfg.Base.BlockInputFile)
 		default:

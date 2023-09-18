@@ -18,27 +18,23 @@ type IndexConfig struct {
 	Client             client
 }
 
-type reindexingConf struct {
-	ReindexMessageType string `mapstructure:"re-index-message-type"`
-	PreventReattempts  bool   `mapstructure:"prevent-reattempts"`
-}
-
 type indexBase struct {
-	reindexingConf
 	throttlingBase
-	API                       string
+	ReindexMessageType        string `mapstructure:"re-index-message-type"`
+	PreventReattempts         bool   `mapstructure:"prevent-reattempts"`
+	API                       string `mapstructure:"api"`
 	StartBlock                int64  `mapstructure:"start-block"`
 	EndBlock                  int64  `mapstructure:"end-block"`
 	BlockInputFile            string `mapstructure:"block-input-file"`
-	ReIndex                   bool
-	RPCWorkers                int64 `mapstructure:"rpc-workers"`
-	BlockTimer                int64 `mapstructure:"block-timer"`
-	WaitForChain              bool  `mapstructure:"wait-for-chain"`
-	WaitForChainDelay         int64 `mapstructure:"wait-for-chain-delay"`
-	ChainIndexingEnabled      bool  `mapstructure:"index-chain"`
-	ExitWhenCaughtUp          bool  `mapstructure:"exit-when-caught-up"`
-	BlockEventIndexingEnabled bool  `mapstructure:"index-block-events"`
-	Dry                       bool
+	ReIndex                   bool   `mapstructure:"re-index"`
+	RPCWorkers                int64  `mapstructure:"rpc-workers"`
+	BlockTimer                int64  `mapstructure:"block-timer"`
+	WaitForChain              bool   `mapstructure:"wait-for-chain"`
+	WaitForChainDelay         int64  `mapstructure:"wait-for-chain-delay"`
+	ChainIndexingEnabled      bool   `mapstructure:"index-chain"`
+	ExitWhenCaughtUp          bool   `mapstructure:"exit-when-caught-up"`
+	BlockEventIndexingEnabled bool   `mapstructure:"index-block-events"`
+	Dry                       bool   `mapstructure:"dry"`
 	BlockEventsStartBlock     int64  `mapstructure:"block-events-start-block"`
 	BlockEventsEndBlock       int64  `mapstructure:"block-events-end-block"`
 	EpochEventIndexingEnabled bool   `mapstructure:"index-epoch-events"`
@@ -57,6 +53,7 @@ func SetupIndexSpecificFlags(conf *IndexConfig, cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVar(&conf.Base.BlockInputFile, "base.block-input-file", "", "A file location containing a JSON list of block heights to index. Will override start and end block flags.")
 	cmd.PersistentFlags().BoolVar(&conf.Base.ReIndex, "base.reindex", false, "if true, this will re-attempt to index blocks we have already indexed (defaults to false)")
 	cmd.PersistentFlags().BoolVar(&conf.Base.PreventReattempts, "base.prevent-reattempts", false, "prevent reattempts of failed blocks.")
+	cmd.PersistentFlags().StringVar(&conf.Base.ReindexMessageType, "base.reindex-message-type", "", "a Cosmos message type URL. When set, the block enqueue method will reindex all blocks between start and end block that contain this message type.")
 	// block event indexing
 	cmd.PersistentFlags().BoolVar(&conf.Base.BlockEventIndexingEnabled, "base.index-block-events", true, "enable block beginblocker and endblocker event indexing?")
 	cmd.PersistentFlags().Int64Var(&conf.Base.BlockEventsStartBlock, "base.block-events-start-block", 0, "block to start indexing block events at")
