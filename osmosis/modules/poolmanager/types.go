@@ -127,7 +127,6 @@ func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, lo
 		return nil
 	case transferEvt != nil:
 		transferEvts, err := txModule.ParseTransferEvent(*transferEvt)
-
 		if err != nil {
 			return err
 		}
@@ -140,7 +139,6 @@ func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, lo
 		}
 
 		tokenOut, err := sdk.ParseCoinNormalized(lastTransferEvt.Amount)
-
 		if err != nil {
 			return err
 		}
