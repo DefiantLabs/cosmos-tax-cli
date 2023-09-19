@@ -428,7 +428,8 @@ func ProcessTx(db *gorm.DB, tx txtypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 					config.Log.Error(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed for msg of type '%v'.", tx.TxResponse.Height, msgType), err)
 					config.Log.Error(fmt.Sprint(messageLog))
 					config.Log.Error(tx.TxResponse.TxHash)
-					config.Log.Fatal("Issue parsing a cosmos msg that we DO have a parser for! PLEASE INVESTIGATE")
+					config.Log.Error("Issue parsing a cosmos msg that we DO have a parser for! PLEASE INVESTIGATE")
+					return txDBWapper, txTime, fmt.Errorf("error parsing message we have a parser for: '%v'", msgType)
 				}
 				// if this msg isn't include in our list of those we are explicitly ignoring, do something about it.
 				// we have decided to throw the error back up the call stack, which will prevent any indexing from happening on this block and add this to the failed block table
