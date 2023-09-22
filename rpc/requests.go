@@ -1,8 +1,11 @@
 package rpc
 
 import (
+	"time"
+
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 
+	"github.com/DefiantLabs/cosmos-indexer/config"
 	lensClient "github.com/DefiantLabs/lens/client"
 	lensQuery "github.com/DefiantLabs/lens/client/query"
 	lensEpochsTypes "github.com/DefiantLabs/lens/osmosis/x/epochs/types"
@@ -96,6 +99,46 @@ func GetLatestBlockHeight(cl *lensClient.ChainClient) (int64, error) {
 		return 0, err
 	}
 	return resStatus.SyncInfo.LatestBlockHeight, nil
+}
+
+func GetLatestBlockHeightWithRetry(cl *lensClient.ChainClient, retryMaxAttempts int64, retryMaxWaitSeconds uint64) (int64, error) {
+	if retryMaxAttempts == 0 {
+		return GetLatestBlockHeight(cl)
+	}
+
+	if retryMaxWaitSeconds < 2 {
+		retryMaxWaitSeconds = 2
+	}
+
+	var attempts int64
+	maxRetryTime := time.Duration(retryMaxWaitSeconds) * time.Second
+	if maxRetryTime < 0 {
+		config.Log.Warn("Detected maxRetryTime overflow, setting time to sane maximum of 30s")
+		maxRetryTime = 30 * time.Second
+	}
+
+	currentBackoffDuration, maxReached := getBackoffDurationForAttempts(attempts, maxRetryTime)
+
+	for {
+		resp, err := GetLatestBlockHeight(cl)
+		attempts++
+		if err != nil && (retryMaxAttempts < 0 || (attempts <= retryMaxAttempts)) {
+			config.Log.Error("Error getting RPC response, backing off and trying again", err)
+			config.Log.Debugf("Attempt %d with wait time %+v", attempts, currentBackoffDuration)
+			time.Sleep(currentBackoffDuration)
+
+			// guard against overflow
+			if !maxReached {
+				currentBackoffDuration, maxReached = getBackoffDurationForAttempts(attempts, maxRetryTime)
+			}
+
+		} else {
+			if err != nil {
+				config.Log.Error("Error getting RPC response, reached max retry attempts")
+			}
+			return resp, err
+		}
+	}
 }
 
 func GetEarliestAndLatestBlockHeights(cl *lensClient.ChainClient) (int64, int64, error) {
