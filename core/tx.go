@@ -125,12 +125,25 @@ var messageTypeIgnorer = map[string]interface{}{
 	liquidity.MsgWithdrawWithinBatch: nil,
 	liquidity.MsgSwapWithinBatch:     nil,
 
-	///////////////////////////////////////////
-	/////// Taxable Events, future work ///////
-	///////////////////////////////////////////
+	////////////////////////////////////////////////////
+	/////// Possible Taxable Events, future work ///////
+	////////////////////////////////////////////////////
 	// CosmWasm
-	wasm.MsgExecuteContract:     nil,
-	wasm.MsgInstantiateContract: nil,
+	wasm.MsgExecuteContract:                 nil,
+	wasm.MsgInstantiateContract:             nil,
+	wasm.MsgStoreCode:                       nil,
+	wasm.MsgMigrateContract:                 nil,
+	wasm.MsgUpdateAdmin:                     nil,
+	wasm.MsgClearAdmin:                      nil,
+	wasm.MsgUpdateInstantiationAdmin:        nil,
+	wasm.MsgUpdateParams:                    nil,
+	wasm.MsgSudoContract:                    nil,
+	wasm.MsgPinCodes:                        nil,
+	wasm.MsgUnpinCodes:                      nil,
+	wasm.MsgStoreAndInstantiateContract:     nil,
+	wasm.MsgRemoveCodeUploadParamsAddresses: nil,
+	wasm.MsgAddCodeUploadParamsAddresses:    nil,
+	wasm.MsgStoreAndMigrateContract:         nil,
 }
 
 // Merge the chain specific message type handlers into the core message type handler map.
