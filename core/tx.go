@@ -67,6 +67,8 @@ var messageTypeIgnorer = map[string]interface{}{
 	authz.MsgRevoke: nil,
 	// Making a config change is not taxable
 	distribution.MsgSetWithdrawAddress: nil,
+	// Making a stableswap config change is not taxable
+	gamm.MsgStableSwapAdjustScalingFactors: nil,
 	// Voting is not taxable
 	gov.MsgVote:         nil,
 	gov.MsgVoteWeighted: nil,
@@ -132,6 +134,7 @@ var messageTypeIgnorer = map[string]interface{}{
 	// CosmWasm
 	wasm.MsgExecuteContract:                 nil,
 	wasm.MsgInstantiateContract:             nil,
+	wasm.MsgInstantiateContract2:            nil,
 	wasm.MsgStoreCode:                       nil,
 	wasm.MsgMigrateContract:                 nil,
 	wasm.MsgUpdateAdmin:                     nil,

@@ -3,6 +3,7 @@ package wasm
 const (
 	MsgExecuteContract                 = "/cosmwasm.wasm.v1.MsgExecuteContract"
 	MsgInstantiateContract             = "/cosmwasm.wasm.v1.MsgInstantiateContract"
+	MsgInstantiateContract2            = "/cosmwasm.wasm.v1.MsgInstantiateContract2"
 	MsgStoreCode                       = "/cosmwasm.wasm.v1.MsgStoreCode"
 	MsgMigrateContract                 = "/cosmwasm.wasm.v1.MsgMigrateContract"
 	MsgUpdateAdmin                     = "/cosmwasm.wasm.v1.MsgUpdateAdmin"
