@@ -30,6 +30,7 @@ EVENTS_BY_HEIGHT_AND_SOURCE_QUERY = "SELECT COUNT(*) FROM taxable_event WHERE bl
 # 5. Outputs the counts for each epoch
 if __name__ == "__main__":
     env = get_env()
+    os.makedirs("./output", exist_ok=True)
 
     conn = psycopg2.connect(f"dbname={env['db_name']} user={env['user']} host={env['host']} password={env['password']} port={env['port']}")
     try:
@@ -87,6 +88,6 @@ if __name__ == "__main__":
 
     except Exception as err:
         print(err)
-        traceback.print_exc(err)
+        traceback.print_exc()
     finally:
         conn.close()
