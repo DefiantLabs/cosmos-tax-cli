@@ -68,7 +68,8 @@ var messageTypeIgnorer = map[string]interface{}{
 	// Making a config change is not taxable
 	distribution.MsgSetWithdrawAddress: nil,
 	// Voting is not taxable
-	gov.MsgVote: nil,
+	gov.MsgVote:         nil,
+	gov.MsgVoteWeighted: nil,
 	// The IBC msgs below do not create taxable events
 	ibc.MsgTransfer:              nil,
 	ibc.MsgUpdateClient:          nil,
