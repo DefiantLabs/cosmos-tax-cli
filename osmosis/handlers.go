@@ -21,7 +21,7 @@ var MessageTypeHandler = map[string][]func() txTypes.CosmosMessage{
 	gamm.MsgExitPool:                                {func() txTypes.CosmosMessage { return &gamm.WrapperMsgExitPool{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgExitPool2{} }},
 	gamm.MsgCreatePool:                              {func() txTypes.CosmosMessage { return &gamm.WrapperMsgCreatePool{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgCreatePool2{} }},
 	gamm.MsgCreateBalancerPool:                      {func() txTypes.CosmosMessage { return &gamm.WrapperMsgCreateBalancerPool{} }},
-	gamm.OldMsgCreateBalancerPool:                   {func() txTypes.CosmosMessage { return &gamm.WrapperOldMsgCreateBalancerPool{} }},
+	gamm.PoolModelsMsgCreateBalancerPool:            {func() txTypes.CosmosMessage { return &gamm.WrapperPoolModelsMsgCreateBalancerPool{} }},
 	poolmanager.MsgSwapExactAmountIn:                {func() txTypes.CosmosMessage { return &poolmanager.WrapperMsgSwapExactAmountIn{} }},
 	poolmanager.MsgSwapExactAmountOut:               {func() txTypes.CosmosMessage { return &poolmanager.WrapperMsgSwapExactAmountOut{} }},
 	poolmanager.MsgSplitRouteSwapExactAmountIn:      {func() txTypes.CosmosMessage { return &poolmanager.WrapperMsgSplitRouteSwapExactAmountIn{} }},
