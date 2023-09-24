@@ -3,6 +3,7 @@ package osmosis
 import (
 	txTypes "github.com/DefiantLabs/cosmos-indexer/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-indexer/osmosis/modules/concentratedliquidity"
+	"github.com/DefiantLabs/cosmos-indexer/osmosis/modules/cosmwasmpool"
 	"github.com/DefiantLabs/cosmos-indexer/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-indexer/osmosis/modules/poolmanager"
 	"github.com/DefiantLabs/cosmos-indexer/osmosis/modules/valsetpref"
@@ -30,6 +31,7 @@ var MessageTypeHandler = map[string][]func() txTypes.CosmosMessage{
 	concentratedliquidity.MsgCreateConcentratedPool: {func() txTypes.CosmosMessage { return &concentratedliquidity.WrappeMsgCreateConcentratedPool{} }},
 	concentratedliquidity.MsgCollectIncentives:      {func() txTypes.CosmosMessage { return &concentratedliquidity.WrapperMsgCollectIncentives{} }},
 	concentratedliquidity.MsgAddToPosition:          {func() txTypes.CosmosMessage { return &concentratedliquidity.WrapperMsgAddToPosition{} }},
+	cosmwasmpool.MsgCreateCosmWasmPool:              {func() txTypes.CosmosMessage { return &cosmwasmpool.WrapperMsgCreateCosmWasmPool{} }},
 	valsetpref.MsgDelegateToValidatorSet:            {func() txTypes.CosmosMessage { return &valsetpref.WrapperMsgDelegateToValidatorSet{} }},
 	valsetpref.MsgUndelegateFromValidatorSet:        {func() txTypes.CosmosMessage { return &valsetpref.WrapperMsgUndelegateFromValidatorSet{} }},
 	valsetpref.MsgWithdrawDelegationRewards:         {func() txTypes.CosmosMessage { return &valsetpref.WrapperMsgWithdrawDelegationRewards{} }},
