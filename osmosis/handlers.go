@@ -11,7 +11,7 @@ import (
 
 // MessageTypeHandler is used to unmarshal JSON to a particular type.
 var MessageTypeHandler = map[string][]func() txTypes.CosmosMessage{
-	gamm.MsgSwapExactAmountIn:                       {func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn2{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn3{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn4{} }},
+	gamm.MsgSwapExactAmountIn:                       {func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn2{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn3{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn4{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn5{} }},
 	gamm.MsgSwapExactAmountOut:                      {func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountOut{} }},
 	gamm.MsgJoinSwapExternAmountIn:                  {func() txTypes.CosmosMessage { return &gamm.WrapperMsgJoinSwapExternAmountIn{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgJoinSwapExternAmountIn2{} }},
 	gamm.MsgJoinSwapShareAmountOut:                  {func() txTypes.CosmosMessage { return &gamm.WrapperMsgJoinSwapShareAmountOut{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgJoinSwapShareAmountOut2{} }},

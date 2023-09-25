@@ -1,6 +1,7 @@
 package gamm
 
 import (
+	"errors"
 	"fmt"
 
 	parsingTypes "github.com/DefiantLabs/cosmos-indexer/cosmos/modules"
@@ -41,6 +42,12 @@ type WrapperMsgSwapExactAmountIn4 struct {
 	WrapperMsgSwapExactAmountIn
 }
 
+// Same as WrapperMsgSwapExactAmountIn but with different handlers.
+// This is due to the Osmosis SDK emitting different Events (chain upgrades).
+type WrapperMsgSwapExactAmountIn5 struct {
+	WrapperMsgSwapExactAmountIn
+}
+
 type WrapperMsgSwapExactAmountOut struct {
 	txModule.Message
 	OsmosisMsgSwapExactAmountOut *gammTypes.MsgSwapExactAmountOut
@@ -72,6 +79,10 @@ func (sf *WrapperMsgSwapExactAmountIn3) String() string {
 }
 
 func (sf *WrapperMsgSwapExactAmountIn4) String() string {
+	return sf.WrapperMsgSwapExactAmountIn.String()
+}
+
+func (sf *WrapperMsgSwapExactAmountIn5) String() string {
 	return sf.WrapperMsgSwapExactAmountIn.String()
 }
 
@@ -320,6 +331,68 @@ func (sf *WrapperMsgSwapExactAmountIn4) HandleMsg(msgType string, msg sdk.Msg, l
 	sf.TokenOut = amountReceived
 
 	return err
+}
+
+func (sf *WrapperMsgSwapExactAmountIn5) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.OsmosisMsgSwapExactAmountIn = msg.(*gammTypes.MsgSwapExactAmountIn)
+
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
+	}
+
+	// The attribute in the log message that shows you the tokens transferred
+	tokensTransferredEvt := txModule.GetEventWithType(EventTypeTransfer, log)
+	if tokensTransferredEvt == nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	transferEvents, err := txModule.ParseTransferEvent(*tokensTransferredEvt)
+	if err != nil {
+		return fmt.Errorf("error parsing transfer event: %w", err)
+	}
+
+	// pull out transfer events that do not have empty amounts
+	var properTransferEvents []txModule.TransferEvent
+	for _, transferEvent := range transferEvents {
+		if transferEvent.Amount != "" {
+			properTransferEvents = append(properTransferEvents, transferEvent)
+		}
+	}
+
+	firstTransfer := properTransferEvents[0]
+
+	// Sanity check transfer events
+	if firstTransfer.Amount != sf.OsmosisMsgSwapExactAmountIn.TokenIn.String() {
+		return errors.New("first transfer amount does not match token in")
+	} else if firstTransfer.Sender != sf.OsmosisMsgSwapExactAmountIn.Sender {
+		return errors.New("first transfer sender does not match sender")
+	}
+
+	// last transfer contains the final amount out
+
+	lastTransfer := properTransferEvents[len(properTransferEvents)-1]
+
+	lastAmountReceived, err := sdk.ParseCoinNormalized(lastTransfer.Amount)
+	if err != nil {
+		return err
+	}
+
+	outDenom := sf.OsmosisMsgSwapExactAmountIn.Routes[len(sf.OsmosisMsgSwapExactAmountIn.Routes)-1].TokenOutDenom
+
+	if lastAmountReceived.Denom != outDenom {
+		return fmt.Errorf("amount received denom %s is not equal to last route denom %s", lastAmountReceived.Denom, outDenom)
+	}
+
+	sf.TokenOut = lastAmountReceived
+
+	// First token swapped in (if there are multiple pools we do not care about intermediates)
+	sf.TokenIn = sf.OsmosisMsgSwapExactAmountIn.TokenIn
+	sf.Address = sf.OsmosisMsgSwapExactAmountIn.Sender
+
+	return nil
 }
 
 func (sf *WrapperMsgSwapExactAmountOut) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
