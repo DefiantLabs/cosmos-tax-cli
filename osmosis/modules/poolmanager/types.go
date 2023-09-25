@@ -98,11 +98,13 @@ func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, lo
 	tokensSwappedEvt := txModule.GetEventWithType("token_swapped", log)
 	transferEvt := txModule.GetEventWithType("transfer", log)
 
-	switch {
-	case tokensSwappedEvt != nil:
-		if tokensSwappedEvt == nil {
-			return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
-		}
+	// We prefer the tokensSwappedEvt if it exists, but it is prone to error
+	// If it does exist, attempt a parse. If parsing fails, try other methods.
+	// If it does not exist, we will use the transfer event.
+
+	parsed := false
+
+	if tokensSwappedEvt != nil {
 
 		// The last route in the hops gives the token out denom and pool ID for the final output
 		lastRoute := sf.OsmosisMsgSwapExactAmountIn.Routes[len(sf.OsmosisMsgSwapExactAmountIn.Routes)-1]
@@ -113,19 +115,14 @@ func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, lo
 		tokenOutPoolID := txModule.GetLastValueForAttribute("pool_id", tokensSwappedEvt)
 
 		tokenOut, err := sdk.ParseCoinNormalized(tokenOutStr)
-		if err != nil {
-			return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
-		}
-
 		// Sanity check last route swap
-		if tokenOut.Denom != lastRouteDenom || strconv.FormatUint(lastRoutePoolID, 10) != tokenOutPoolID {
-			return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		if err == nil && tokenOut.Denom == lastRouteDenom && strconv.FormatUint(lastRoutePoolID, 10) == tokenOutPoolID {
+			sf.TokenOut = tokenOut
+			parsed = true
 		}
+	}
 
-		sf.TokenOut = tokenOut
-
-		return nil
-	case transferEvt != nil:
+	if !parsed && transferEvt != nil {
 		transferEvts, err := txModule.ParseTransferEvent(*transferEvt)
 		if err != nil {
 			return err
@@ -153,11 +150,14 @@ func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, lo
 
 		sf.TokenOut = tokenOut
 
-		return nil
+		parsed = true
+	}
 
-	default:
+	if !parsed {
 		return errors.New("no processable events for poolmanager MsgSwapExactAmountIn")
 	}
+
+	return nil
 }
 
 // This code is currently untested since I cannot find a TX execution for this
