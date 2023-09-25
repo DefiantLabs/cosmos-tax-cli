@@ -33,7 +33,7 @@ services:
 
   indexer:
     restart: "no"
-    image: ghcr.io/defiantlabs/cosmos-indexer:pr-420
+    image: ghcr.io/defiantlabs/cosmos-indexer:main
     user: defiant
     stop_grace_period: 10s
     volumes:
@@ -53,18 +53,39 @@ services:
     - /bin/sh
     - -c
     - |
+      cosmos-indexer update-denoms \
+      --update-all \
+      --log.pretty = true \
+      --log.level = debug \
+      --base.index-chain = false \
+      --base.start-block 11569404 \
+      --base.end-block -1 \
+      --base.throttling 2.005 \
+      --base.rpc-workers 1 \
+      --base.reindex true \
+      --base.prevent-reattempts true \
+      --base.api https://a-osmosis--changeme.gw.notionalapi.com:443 \
+      --lens.rpc https://r-osmosis--changeme.gw.notionalapi.com:443 \
+      --lens.account-prefix osmo \
+      --lens.chain-id osmosis-1 \
+      --lens.chain-name osmosis \
+      --database.host postgres \
+      --database.database postgres \
+      --database.user taxuser \
+      --database.password password
+      
       cosmos-indexer index \
       --log.pretty = true \
       --log.level = debug \
       --base.index-chain = false \
-      --base.start-block 2723300 \
-      --base.end-block 2723464 \
-      --base.throttling 0.005 \
-      --base.rpc-workers 4 \
+      --base.start-block 11569404 \
+      --base.end-block -1 \
+      --base.throttling 2.005 \
+      --base.rpc-workers 1 \
       --base.reindex true \
       --base.prevent-reattempts true \
-      --base.api http://34.168.39.1:1317 \
-      --lens.rpc http://34.168.39.1:26657 \
+      --base.api https://a-osmosis--changeme.gw.notionalapi.com:443 \
+      --lens.rpc https://r-osmosis--changeme.gw.notionalapi.com:443 \
       --lens.account-prefix osmo \
       --lens.chain-id osmosis-1 \
       --lens.chain-name osmosis \
