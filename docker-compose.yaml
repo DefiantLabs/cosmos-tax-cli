@@ -73,7 +73,7 @@ services:
       --database.database postgres \
       --database.user taxuser \
       --database.password password
-      
+
       cosmos-indexer index \
       --log.pretty = true \
       --log.level = debug \
