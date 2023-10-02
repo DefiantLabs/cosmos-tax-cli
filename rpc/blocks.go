@@ -205,7 +205,7 @@ func GetBlockResultWithRetry(client URIClient, height int64, retryMaxAttempts in
 		maxRetryTime = 30 * time.Second
 	}
 
-	currentBackoffDuration, maxReached := getBackoffDurationForAttempts(attempts, maxRetryTime)
+	currentBackoffDuration, maxReached := GetBackoffDurationForAttempts(attempts, maxRetryTime)
 
 	for {
 		resp, err := GetBlockResult(client, height)
@@ -217,7 +217,7 @@ func GetBlockResultWithRetry(client URIClient, height int64, retryMaxAttempts in
 
 			// guard against overflow
 			if !maxReached {
-				currentBackoffDuration, maxReached = getBackoffDurationForAttempts(attempts, maxRetryTime)
+				currentBackoffDuration, maxReached = GetBackoffDurationForAttempts(attempts, maxRetryTime)
 			}
 
 		} else {
@@ -229,7 +229,7 @@ func GetBlockResultWithRetry(client URIClient, height int64, retryMaxAttempts in
 	}
 }
 
-func getBackoffDurationForAttempts(numAttempts int64, maxRetryTime time.Duration) (time.Duration, bool) {
+func GetBackoffDurationForAttempts(numAttempts int64, maxRetryTime time.Duration) (time.Duration, bool) {
 	backoffBase := 1.5
 	backoffDuration := time.Duration(math.Pow(backoffBase, float64(numAttempts)) * float64(time.Second))
 
