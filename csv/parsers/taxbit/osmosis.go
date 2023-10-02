@@ -6,7 +6,7 @@ import (
 	"github.com/DefiantLabs/cosmos-indexer/util"
 )
 
-func ParseGroup(sf *parsers.WrapperLpTxGroup) error {
+func ParseLpTxGroup(sf *parsers.WrapperLpTxGroup) error {
 	// cbClient := coinbasepro.NewClient()
 	for _, txMessages := range sf.GroupedTxes {
 		for _, message := range txMessages {

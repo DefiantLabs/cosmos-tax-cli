@@ -17,6 +17,10 @@ var IsOsmosisExit = map[string]bool{
 	gamm.MsgExitPool:                true,
 }
 
+var IsOsmosisCreatePool = map[string]bool{
+	gamm.MsgCreatePool: true,
+}
+
 // IsOsmosisLpTxGroup is used as a guard for adding messages to the group.
 var IsOsmosisLpTxGroup = make(map[string]bool)
 
@@ -33,10 +37,6 @@ func init() {
 type WrapperLpTxGroup struct {
 	GroupedTxes map[uint][]db.TaxableTransaction // TX db ID to its messages
 	Rows        []CsvRow
-}
-
-func (sf *WrapperLpTxGroup) ParseGroup(parsingFunc func(sf *WrapperLpTxGroup) error) error {
-	return parsingFunc(sf)
 }
 
 func (sf *WrapperLpTxGroup) GetRowsForParsingGroup() []CsvRow {
@@ -67,6 +67,39 @@ func (sf *WrapperLpTxGroup) AddTxToGroup(tx db.TaxableTransaction) {
 	}
 }
 
+type WrapperPoolCreateGroup struct {
+	GroupedTxes map[uint][]db.TaxableTransaction // TX db ID to its messages
+	Rows        []CsvRow
+}
+
+func (sf *WrapperPoolCreateGroup) GetRowsForParsingGroup() []CsvRow {
+	return sf.Rows
+}
+
+func (sf *WrapperPoolCreateGroup) BelongsToGroup(message db.TaxableTransaction) bool {
+	_, isInGroup := IsOsmosisCreatePool[message.Message.MessageType.MessageType]
+	return isInGroup
+}
+
+func (sf *WrapperPoolCreateGroup) String() string {
+	return "OsmosisLpTxGroup"
+}
+
+func (sf *WrapperPoolCreateGroup) GetGroupedTxes() map[uint][]db.TaxableTransaction {
+	return sf.GroupedTxes
+}
+
+func (sf *WrapperPoolCreateGroup) AddTxToGroup(tx db.TaxableTransaction) {
+	// Add tx to group using the TX ID as key and appending to array
+	if _, ok := sf.GroupedTxes[tx.Message.Tx.ID]; ok {
+		sf.GroupedTxes[tx.Message.Tx.ID] = append(sf.GroupedTxes[tx.Message.Tx.ID], tx)
+	} else {
+		var txGrouping []db.TaxableTransaction
+		txGrouping = append(txGrouping, tx)
+		sf.GroupedTxes[tx.Message.Tx.ID] = txGrouping
+	}
+}
+
 func GetOsmosisTxParsingGroups() []ParsingGroup {
 	var messageGroups []ParsingGroup
 
@@ -75,7 +108,11 @@ func GetOsmosisTxParsingGroups() []ParsingGroup {
 	// Which means parsers further up the array will be preferred
 	LpTxGroup := WrapperLpTxGroup{}
 	LpTxGroup.GroupedTxes = make(map[uint][]db.TaxableTransaction)
+	PoolCreateGroup := WrapperPoolCreateGroup{}
+	PoolCreateGroup.GroupedTxes = make(map[uint][]db.TaxableTransaction)
+
 	messageGroups = append(messageGroups, &LpTxGroup)
+	messageGroups = append(messageGroups, &PoolCreateGroup)
 
 	return messageGroups
 }

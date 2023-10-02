@@ -71,10 +71,17 @@ func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransac
 
 	// Parse all the TXs found in the Parsing Groups
 	for _, txParsingGroup := range p.ParsingGroups {
-		err := txParsingGroup.ParseGroup(ParseGroup)
-		if err != nil {
-			return err
+		lpTxParsingGroup, ok := txParsingGroup.(*parsers.WrapperLpTxGroup)
+		if ok {
+			err := ParseLpTxGroup(lpTxParsingGroup)
+			if err != nil {
+				return err
+			}
 		}
+		// err := txParsingGroup.ParseGroup(ParseGroup)
+		// if err != nil {
+		// 	return err
+		// }
 	}
 
 	// Handle fees on all taxableTxs at once, we don't do this in the regular parser or in the parsing groups
