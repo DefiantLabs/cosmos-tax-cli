@@ -117,7 +117,7 @@ func GetLatestBlockHeightWithRetry(cl *lensClient.ChainClient, retryMaxAttempts 
 		maxRetryTime = 30 * time.Second
 	}
 
-	currentBackoffDuration, maxReached := getBackoffDurationForAttempts(attempts, maxRetryTime)
+	currentBackoffDuration, maxReached := GetBackoffDurationForAttempts(attempts, maxRetryTime)
 
 	for {
 		resp, err := GetLatestBlockHeight(cl)
@@ -129,7 +129,7 @@ func GetLatestBlockHeightWithRetry(cl *lensClient.ChainClient, retryMaxAttempts 
 
 			// guard against overflow
 			if !maxReached {
-				currentBackoffDuration, maxReached = getBackoffDurationForAttempts(attempts, maxRetryTime)
+				currentBackoffDuration, maxReached = GetBackoffDurationForAttempts(attempts, maxRetryTime)
 			}
 
 		} else {

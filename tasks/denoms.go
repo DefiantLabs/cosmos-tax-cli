@@ -11,6 +11,7 @@ import (
 	"github.com/DefiantLabs/cosmos-indexer/juno"
 	"github.com/DefiantLabs/cosmos-indexer/osmosis"
 	"github.com/DefiantLabs/cosmos-indexer/rest"
+	"github.com/DefiantLabs/cosmos-indexer/rpc"
 
 	"gorm.io/gorm"
 )
@@ -32,18 +33,18 @@ type DenomUnit struct {
 	Aliases  []string
 }
 
-var ChainSpecificDenomUpsertFunctions = map[string]func(db *gorm.DB){
+var ChainSpecificDenomUpsertFunctions = map[string]func(db *gorm.DB, retryMaxAttempts int64, retryMaxWaitSeconds uint64){
 	osmosis.ChainID: UpsertOsmosisDenoms,
 	juno.ChainID:    UpsertJunoDenoms,
 }
 
-func DoChainSpecificUpsertDenoms(db *gorm.DB, chain string) {
+func DoChainSpecificUpsertDenoms(db *gorm.DB, chain string, retryMaxAttempts int64, retryMaxWaitSeconds uint64) {
 	if chain == osmosis.ChainID {
-		UpsertOsmosisDenoms(db)
+		UpsertOsmosisDenoms(db, retryMaxAttempts, retryMaxWaitSeconds)
 	}
 
 	if chain == juno.ChainID {
-		UpsertJunoDenoms(db)
+		UpsertJunoDenoms(db, retryMaxAttempts, retryMaxWaitSeconds)
 	}
 	// may want to move this elsewhere, or eliminate entirely
 	// I would prefer we just grab the denoms when needed always
@@ -52,11 +53,11 @@ func DoChainSpecificUpsertDenoms(db *gorm.DB, chain string) {
 	dbTypes.CacheIBCDenoms(db)
 }
 
-func UpsertOsmosisDenoms(db *gorm.DB) {
+func UpsertOsmosisDenoms(db *gorm.DB, retryMaxAttempts int64, retryMaxWaitSeconds uint64) {
 	config.Log.Info("Updating Omsosis specific denoms")
 	url := "https://raw.githubusercontent.com/osmosis-labs/assetlists/main/osmosis-1/osmosis-1.assetlist.json"
 
-	denomAssets, err := getAssetsList(url)
+	denomAssets, err := getAssetsListWithRetry(url, retryMaxAttempts, retryMaxWaitSeconds)
 	if err != nil {
 		config.Log.Fatal("Download Osmosis Denom Metadata", err)
 	} else {
@@ -68,11 +69,11 @@ func UpsertOsmosisDenoms(db *gorm.DB) {
 	}
 }
 
-func UpsertJunoDenoms(db *gorm.DB) {
+func UpsertJunoDenoms(db *gorm.DB, retryMaxAttempts int64, retryMaxWaitSeconds uint64) {
 	config.Log.Info("Updating Juno specific denoms")
 	url := "https://raw.githubusercontent.com/cosmos/chain-registry/master/juno/assetlist.json"
 
-	denomAssets, err := getAssetsList(url)
+	denomAssets, err := getAssetsListWithRetry(url, retryMaxAttempts, retryMaxWaitSeconds)
 	if err != nil {
 		config.Log.Fatal("Error downloading Juno Denom Metadata", err)
 	} else {
@@ -96,6 +97,46 @@ func assetListToDenoms(assets *AssetList) []dbTypes.DenomDBWrapper {
 	}
 
 	return denoms
+}
+
+func getAssetsListWithRetry(assetsURL string, retryMaxAttempts int64, retryMaxWaitSeconds uint64) (*AssetList, error) {
+	if retryMaxAttempts == 0 {
+		return getAssetsList(assetsURL)
+	}
+
+	if retryMaxWaitSeconds < 2 {
+		retryMaxWaitSeconds = 2
+	}
+
+	var attempts int64
+	maxRetryTime := time.Duration(retryMaxWaitSeconds) * time.Second
+	if maxRetryTime < 0 {
+		config.Log.Warn("Detected maxRetryTime overflow, setting time to sane maximum of 30s")
+		maxRetryTime = 30 * time.Second
+	}
+
+	currentBackoffDuration, maxReached := rpc.GetBackoffDurationForAttempts(attempts, maxRetryTime)
+
+	for {
+		resp, err := getAssetsList(assetsURL)
+		attempts++
+		if err != nil && (retryMaxAttempts < 0 || (attempts <= retryMaxAttempts)) {
+			config.Log.Error("Error getting HTTP response, backing off and trying again", err)
+			config.Log.Debugf("Attempt %d with wait time %+v", attempts, currentBackoffDuration)
+			time.Sleep(currentBackoffDuration)
+
+			// guard against overflow
+			if !maxReached {
+				currentBackoffDuration, maxReached = rpc.GetBackoffDurationForAttempts(attempts, maxRetryTime)
+			}
+
+		} else {
+			if err != nil {
+				config.Log.Error("Error getting HTTP response, reached max retry attempts")
+			}
+			return resp, err
+		}
+	}
 }
 
 func getAssetsList(assetsURL string) (*AssetList, error) {
