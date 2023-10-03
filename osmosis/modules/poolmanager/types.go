@@ -1,6 +1,7 @@
 package poolmanager
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -95,31 +96,68 @@ func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, lo
 
 	// The attribute in the log message that shows you the tokens swapped
 	tokensSwappedEvt := txModule.GetEventWithType("token_swapped", log)
-	if tokensSwappedEvt == nil {
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	transferEvt := txModule.GetEventWithType("transfer", log)
+
+	// We prefer the tokensSwappedEvt if it exists, but it is prone to error
+	// If it does exist, attempt a parse. If parsing fails, try other methods.
+	// If it does not exist, we will use the transfer event.
+
+	parsed := false
+
+	if tokensSwappedEvt != nil {
+
+		// The last route in the hops gives the token out denom and pool ID for the final output
+		lastRoute := sf.OsmosisMsgSwapExactAmountIn.Routes[len(sf.OsmosisMsgSwapExactAmountIn.Routes)-1]
+		lastRouteDenom := lastRoute.TokenOutDenom
+		lastRoutePoolID := lastRoute.PoolId
+
+		tokenOutStr := txModule.GetLastValueForAttribute("tokens_out", tokensSwappedEvt)
+		tokenOutPoolID := txModule.GetLastValueForAttribute("pool_id", tokensSwappedEvt)
+
+		tokenOut, err := sdk.ParseCoinNormalized(tokenOutStr)
+		// Sanity check last route swap
+		if err == nil && tokenOut.Denom == lastRouteDenom && strconv.FormatUint(lastRoutePoolID, 10) == tokenOutPoolID {
+			sf.TokenOut = tokenOut
+			parsed = true
+		}
 	}
 
-	// The last route in the hops gives the token out denom and pool ID for the final output
-	lastRoute := sf.OsmosisMsgSwapExactAmountIn.Routes[len(sf.OsmosisMsgSwapExactAmountIn.Routes)-1]
-	lastRouteDenom := lastRoute.TokenOutDenom
-	lastRoutePoolID := lastRoute.PoolId
+	if !parsed && transferEvt != nil {
+		transferEvts, err := txModule.ParseTransferEvent(*transferEvt)
+		if err != nil {
+			return err
+		}
 
-	tokenOutStr := txModule.GetLastValueForAttribute("tokens_out", tokensSwappedEvt)
-	tokenOutPoolID := txModule.GetLastValueForAttribute("pool_id", tokensSwappedEvt)
+		// The last transfer event should contain the final transfer to the sender
+		lastTransferEvt := transferEvts[len(transferEvts)-1]
 
-	tokenOut, err := sdk.ParseCoinNormalized(tokenOutStr)
-	if err != nil {
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		if lastTransferEvt.Recipient != sf.Address {
+			return errors.New("transfer event recipient does not match message sender")
+		}
+
+		tokenOut, err := sdk.ParseCoinNormalized(lastTransferEvt.Amount)
+		if err != nil {
+			return err
+		}
+
+		// The last route in the hops gives the token out denom and pool ID for the final output
+		lastRoute := sf.OsmosisMsgSwapExactAmountIn.Routes[len(sf.OsmosisMsgSwapExactAmountIn.Routes)-1]
+		lastRouteDenom := lastRoute.TokenOutDenom
+
+		if tokenOut.Denom != lastRouteDenom {
+			return errors.New("final transfer denom does not match last route denom")
+		}
+
+		sf.TokenOut = tokenOut
+
+		parsed = true
 	}
 
-	// Sanity check last route swap
-	if tokenOut.Denom != lastRouteDenom || strconv.FormatUint(lastRoutePoolID, 10) != tokenOutPoolID {
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	if !parsed {
+		return errors.New("no processable events for poolmanager MsgSwapExactAmountIn")
 	}
 
-	sf.TokenOut = tokenOut
-
-	return err
+	return nil
 }
 
 // This code is currently untested since I cannot find a TX execution for this

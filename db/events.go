@@ -91,13 +91,16 @@ func IndexBlockEvents(db *gorm.DB, dryRun bool, blockHeight int64, blockTime tim
 }
 
 func UpdateEpochIndexingStatus(db *gorm.DB, dryRun bool, epochNumber uint, epochIdentifier string, dbChainID string, dbChainName string) error {
-	epochToUpdate := Epoch{
-		EpochNumber: epochNumber,
-		Chain:       Chain{ChainID: dbChainID, Name: dbChainName},
-		Identifier:  epochIdentifier,
-	}
+	if !dryRun {
+		epochToUpdate := Epoch{
+			EpochNumber: epochNumber,
+			Chain:       Chain{ChainID: dbChainID, Name: dbChainName},
+			Identifier:  epochIdentifier,
+		}
 
-	return db.Model(&Epoch{}).Where(&epochToUpdate).Update("indexed", true).Error
+		return db.Model(&Epoch{}).Where(&epochToUpdate).Update("indexed", true).Error
+	}
+	return nil
 }
 
 func createTaxableEvents(db *gorm.DB, events []TaxableEvent) error {

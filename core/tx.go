@@ -67,8 +67,11 @@ var messageTypeIgnorer = map[string]interface{}{
 	authz.MsgRevoke: nil,
 	// Making a config change is not taxable
 	distribution.MsgSetWithdrawAddress: nil,
+	// Making a stableswap config change is not taxable
+	gamm.MsgStableSwapAdjustScalingFactors: nil,
 	// Voting is not taxable
-	gov.MsgVote: nil,
+	gov.MsgVote:         nil,
+	gov.MsgVoteWeighted: nil,
 	// The IBC msgs below do not create taxable events
 	ibc.MsgTransfer:              nil,
 	ibc.MsgUpdateClient:          nil,
@@ -125,12 +128,26 @@ var messageTypeIgnorer = map[string]interface{}{
 	liquidity.MsgWithdrawWithinBatch: nil,
 	liquidity.MsgSwapWithinBatch:     nil,
 
-	///////////////////////////////////////////
-	/////// Taxable Events, future work ///////
-	///////////////////////////////////////////
+	////////////////////////////////////////////////////
+	/////// Possible Taxable Events, future work ///////
+	////////////////////////////////////////////////////
 	// CosmWasm
-	wasm.MsgExecuteContract:     nil,
-	wasm.MsgInstantiateContract: nil,
+	wasm.MsgExecuteContract:                 nil,
+	wasm.MsgInstantiateContract:             nil,
+	wasm.MsgInstantiateContract2:            nil,
+	wasm.MsgStoreCode:                       nil,
+	wasm.MsgMigrateContract:                 nil,
+	wasm.MsgUpdateAdmin:                     nil,
+	wasm.MsgClearAdmin:                      nil,
+	wasm.MsgUpdateInstantiationAdmin:        nil,
+	wasm.MsgUpdateParams:                    nil,
+	wasm.MsgSudoContract:                    nil,
+	wasm.MsgPinCodes:                        nil,
+	wasm.MsgUnpinCodes:                      nil,
+	wasm.MsgStoreAndInstantiateContract:     nil,
+	wasm.MsgRemoveCodeUploadParamsAddresses: nil,
+	wasm.MsgAddCodeUploadParamsAddresses:    nil,
+	wasm.MsgStoreAndMigrateContract:         nil,
 }
 
 // Merge the chain specific message type handlers into the core message type handler map.
@@ -428,7 +445,8 @@ func ProcessTx(db *gorm.DB, tx txtypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 					config.Log.Error(fmt.Sprintf("[Block: %v] ParseCosmosMessage failed for msg of type '%v'.", tx.TxResponse.Height, msgType), err)
 					config.Log.Error(fmt.Sprint(messageLog))
 					config.Log.Error(tx.TxResponse.TxHash)
-					config.Log.Fatal("Issue parsing a cosmos msg that we DO have a parser for! PLEASE INVESTIGATE")
+					config.Log.Error("Issue parsing a cosmos msg that we DO have a parser for! PLEASE INVESTIGATE")
+					return txDBWapper, txTime, fmt.Errorf("error parsing message we have a parser for: '%v'", msgType)
 				}
 				// if this msg isn't include in our list of those we are explicitly ignoring, do something about it.
 				// we have decided to throw the error back up the call stack, which will prevent any indexing from happening on this block and add this to the failed block table

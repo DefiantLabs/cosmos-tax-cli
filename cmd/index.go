@@ -129,7 +129,7 @@ func setupIndexer() *Indexer {
 	}
 
 	// Some chains do not have the denom metadata URL available on chain, so we do chain specific downloads instead.
-	tasks.DoChainSpecificUpsertDenoms(indexer.db, indexer.cfg.Lens.ChainID)
+	tasks.DoChainSpecificUpsertDenoms(indexer.db, indexer.cfg.Lens.ChainID, indexer.cfg.Base.RPCRetryAttempts, indexer.cfg.Base.RPCRetryMaxWait)
 	indexer.cl = config.GetLensClient(indexer.cfg.Lens)
 
 	// Depending on the app configuration, wait for the chain to catch up

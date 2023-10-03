@@ -160,7 +160,7 @@ func (idxr *Indexer) enqueueBlocksToProcess(blockChan chan int64, chainID uint) 
 		if len(blockChan) <= cap(blockChan)/4 {
 			// This is the latest block height available on the Node.
 			var err error
-			latestBlock, err = rpc.GetLatestBlockHeight(idxr.cl)
+			latestBlock, err = rpc.GetLatestBlockHeightWithRetry(idxr.cl, idxr.cfg.Base.RPCRetryAttempts, idxr.cfg.Base.RPCRetryMaxWait)
 			if err != nil {
 				config.Log.Fatal("Error getting blockchain latest height. Err: %v", err)
 			}
