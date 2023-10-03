@@ -19,6 +19,7 @@ type IndexConfig struct {
 
 type indexBase struct {
 	throttlingBase
+	retryBase
 	ReindexMessageType        string `mapstructure:"re-index-message-type"`
 	PreventReattempts         bool   `mapstructure:"prevent-reattempts"`
 	API                       string `mapstructure:"api"`
@@ -40,8 +41,6 @@ type indexBase struct {
 	EpochIndexingIdentifier   string `mapstructure:"epoch-indexing-identifier"`
 	EpochEventsStartEpoch     int64  `mapstructure:"epoch-events-start-epoch"`
 	EpochEventsEndEpoch       int64  `mapstructure:"epoch-events-end-epoch"`
-	RPCRetryAttempts          int64  `mapstructure:"rpc-retry-attempts"`
-	RPCRetryMaxWait           uint64 `mapstructure:"rpc-retry-max-wait"`
 }
 
 func SetupIndexSpecificFlags(conf *IndexConfig, cmd *cobra.Command) {
@@ -70,8 +69,8 @@ func SetupIndexSpecificFlags(conf *IndexConfig, cmd *cobra.Command) {
 	cmd.PersistentFlags().Int64Var(&conf.Base.WaitForChainDelay, "base.wait-for-chain-delay", 10, "seconds to wait between each check for node to catch up to the chain")
 	cmd.PersistentFlags().Int64Var(&conf.Base.BlockTimer, "base.block-timer", 10000, "print out how long it takes to process this many blocks")
 	cmd.PersistentFlags().BoolVar(&conf.Base.ExitWhenCaughtUp, "base.exit-when-caught-up", true, "mainly used for Osmosis rewards indexing")
-	cmd.PersistentFlags().Int64Var(&conf.Base.RPCRetryAttempts, "base.rpc-retry-attempts", 0, "number of RPC query retries to make")
-	cmd.PersistentFlags().Uint64Var(&conf.Base.RPCRetryMaxWait, "base.rpc-retry-max-wait", 30, "max retry incremental backoff wait time in seconds")
+	cmd.PersistentFlags().Int64Var(&conf.Base.RequestRetryAttempts, "base.request-retry-attempts", 0, "number of RPC query retries to make")
+	cmd.PersistentFlags().Uint64Var(&conf.Base.RequestRetryMaxWait, "base.request-retry-max-wait", 30, "max retry incremental backoff wait time in seconds")
 }
 
 func (conf *IndexConfig) Validate() error {

@@ -36,6 +36,11 @@ type throttlingBase struct {
 	Throttling float64
 }
 
+type retryBase struct {
+	RequestRetryAttempts int64  `mapstructure:"request-retry-attempts"`
+	RequestRetryMaxWait  uint64 `mapstructure:"request-retry-max-wait"`
+}
+
 func SetupLogFlags(logConf *log, cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVar(&logConf.Level, "log.level", "info", "log level")
 	cmd.PersistentFlags().BoolVar(&logConf.Pretty, "log.pretty", false, "pretty logs")

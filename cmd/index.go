@@ -129,7 +129,7 @@ func setupIndexer() *Indexer {
 	}
 
 	// Some chains do not have the denom metadata URL available on chain, so we do chain specific downloads instead.
-	tasks.DoChainSpecificUpsertDenoms(indexer.db, indexer.cfg.Lens.ChainID, indexer.cfg.Base.RPCRetryAttempts, indexer.cfg.Base.RPCRetryMaxWait)
+	tasks.DoChainSpecificUpsertDenoms(indexer.db, indexer.cfg.Lens.ChainID, indexer.cfg.Base.RequestRetryAttempts, indexer.cfg.Base.RequestRetryMaxWait)
 	indexer.cl = config.GetLensClient(indexer.cfg.Lens)
 
 	// Depending on the app configuration, wait for the chain to catch up
@@ -462,7 +462,7 @@ func (idxr *Indexer) indexBlockEvents(wg *sync.WaitGroup, failedBlockHandler cor
 	currentHeight := startHeight
 
 	for endHeight == -1 || currentHeight <= endHeight {
-		bresults, err := rpc.GetBlockResultWithRetry(rpcClient, currentHeight, idxr.cfg.Base.RPCRetryAttempts, idxr.cfg.Base.RPCRetryMaxWait)
+		bresults, err := rpc.GetBlockResultWithRetry(rpcClient, currentHeight, idxr.cfg.Base.RequestRetryAttempts, idxr.cfg.Base.RequestRetryMaxWait)
 		if err != nil {
 			config.Log.Error(fmt.Sprintf("Error receiving block result for block %d", currentHeight), err)
 			failedBlockHandler(currentHeight, core.FailedBlockEventHandling, err)
@@ -583,7 +583,7 @@ func (idxr *Indexer) indexEpochEvents(wg *sync.WaitGroup, failedBlockHandler cor
 	for _, epoch := range epochsBetween {
 		config.Log.Infof("Indexing epoch events for epoch %v at height %d", epoch.EpochNumber, epoch.StartHeight)
 
-		bresults, err := rpc.GetBlockResultWithRetry(rpcClient, int64(epoch.StartHeight), idxr.cfg.Base.RPCRetryAttempts, idxr.cfg.Base.RPCRetryMaxWait)
+		bresults, err := rpc.GetBlockResultWithRetry(rpcClient, int64(epoch.StartHeight), idxr.cfg.Base.RequestRetryAttempts, idxr.cfg.Base.RequestRetryMaxWait)
 		if err != nil {
 			config.Log.Error(fmt.Sprintf("Error receiving block result for block %d", epoch.StartHeight), err)
 			failedBlockHandler(int64(epoch.StartHeight), core.FailedBlockEventHandling, err)
