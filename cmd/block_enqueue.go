@@ -134,7 +134,7 @@ func (idxr *Indexer) enqueueBlocksToProcessFromBlockInputFile(blockChan chan int
 // enqueueBlocksToProcess will pass the blocks that need to be processed to the blockchannel
 func (idxr *Indexer) enqueueBlocksToProcess(blockChan chan int64, chainID uint) {
 	// Unless explicitly prevented, lets attempt to enqueue any failed blocks
-	if !idxr.cfg.Base.PreventReattempts {
+	if idxr.cfg.Base.ReattemptFailedBlocks {
 		idxr.enqueueFailedBlocks(blockChan, chainID)
 	}
 
