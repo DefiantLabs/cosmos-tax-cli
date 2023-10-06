@@ -23,6 +23,7 @@ func (l *Logger) ZDeubg() *zerolog.Event {
 func (l *Logger) Debug(msg string, err ...error) {
 	if len(err) == 1 {
 		zlog.Debug().Err(err[0]).Msg(msg)
+		return
 	}
 	zlog.Debug().Msg(msg)
 }
@@ -38,6 +39,7 @@ func (l *Logger) ZInfo() *zerolog.Event {
 func (l *Logger) Info(msg string, err ...error) {
 	if len(err) == 1 {
 		zlog.Info().Err(err[0]).Msg(msg)
+		return
 	}
 	zlog.Info().Msg(msg)
 }
@@ -49,6 +51,7 @@ func (l *Logger) Infof(msg string, args ...interface{}) {
 func (l *Logger) Warn(msg string, err ...error) {
 	if len(err) == 1 {
 		zlog.Warn().Err(err[0]).Msg(msg)
+		return
 	}
 	zlog.Warn().Msg(msg)
 }
@@ -60,6 +63,7 @@ func (l *Logger) Warnf(msg string, args ...interface{}) {
 func (l *Logger) Error(msg string, err ...error) {
 	if len(err) == 1 {
 		zlog.Error().Err(err[0]).Msg(msg)
+		return
 	}
 	zlog.Error().Msg(msg)
 }
@@ -71,6 +75,7 @@ func (l *Logger) Errorf(msg string, args ...interface{}) {
 func (l *Logger) Fatal(msg string, err ...error) {
 	if len(err) == 1 {
 		zlog.Fatal().Err(err[0]).Msg(msg)
+		return
 	}
 	zlog.Fatal().Msg(msg)
 }
@@ -82,6 +87,7 @@ func (l *Logger) Fatalf(msg string, args ...interface{}) {
 func (l *Logger) Panic(msg string, err ...error) {
 	if len(err) == 1 {
 		zlog.Panic().Err(err[0]).Msg(msg)
+		return
 	}
 	zlog.Panic().Msg(msg)
 }
