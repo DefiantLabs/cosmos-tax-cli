@@ -171,7 +171,7 @@ func (idxr *Indexer) enqueueBlocksToProcess(blockChan chan int64, chainID uint) 
 			}
 
 			// Already at the latest block, wait for the next block to be available.
-			for currBlock <= latestBlock && (currBlock <= lastBlock || lastBlock == -1) && len(blockChan) != cap(blockChan) {
+			for currBlock < latestBlock && (currBlock <= lastBlock || lastBlock == -1) && len(blockChan) != cap(blockChan) {
 				// if we are not re-indexing, skip curr block if already indexed
 				if !idxr.cfg.Base.ReIndex && blockAlreadyIndexed(currBlock, chainID, idxr.db) {
 					currBlock++
