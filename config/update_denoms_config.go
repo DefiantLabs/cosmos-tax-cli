@@ -3,7 +3,7 @@ package config
 import "github.com/spf13/cobra"
 
 type UpdateDenomsConfig struct {
-	Database database
+	Database Database
 	Lens     lens
 	Log      log
 	Base     updateDenomsBase

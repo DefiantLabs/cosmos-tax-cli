@@ -5,10 +5,14 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/DefiantLabs/cosmos-indexer/config"
+	"github.com/DefiantLabs/cosmos-indexer/db"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"gorm.io/gorm"
 )
 
 var (
@@ -95,4 +99,27 @@ func bindFlags(cmd *cobra.Command, v *viper.Viper) {
 			}
 		}
 	})
+}
+
+func setupLogger(logLevel string, logPath string, prettyLogging bool) {
+	config.DoConfigureLogger(logPath, logLevel, prettyLogging)
+}
+
+func connectToDBAndMigrate(dbConfig config.Database) (*gorm.DB, error) {
+	database, err := db.PostgresDbConnect(dbConfig.Host, dbConfig.Port, dbConfig.Database, dbConfig.User, dbConfig.Password, strings.ToLower(dbConfig.LogLevel))
+	if err != nil {
+		config.Log.Fatal("Could not establish connection to the database", err)
+	}
+
+	sqldb, _ := database.DB()
+	sqldb.SetMaxIdleConns(10)
+	sqldb.SetMaxOpenConns(100)
+	sqldb.SetConnMaxLifetime(time.Hour)
+
+	err = db.MigrateModels(database)
+	if err != nil {
+		config.Log.Error("Error running DB migrations", err)
+	}
+
+	return database, nil
 }

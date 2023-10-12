@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"strings"
 	"time"
 
 	"github.com/DefiantLabs/cosmos-indexer/config"
@@ -45,28 +44,11 @@ func setupUpdateEpochs(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Logger
-	logLevel := updateEpochsConfig.Log.Level
-	logPath := updateEpochsConfig.Log.Path
-	prettyLogging := updateEpochsConfig.Log.Pretty
-	config.DoConfigureLogger(logPath, logLevel, prettyLogging)
+	setupLogger(updateEpochsConfig.Log.Level, updateEpochsConfig.Log.Path, updateEpochsConfig.Log.Pretty)
 
-	db, err := dbTypes.PostgresDbConnect(updateEpochsConfig.Database.Host, updateEpochsConfig.Database.Port, updateEpochsConfig.Database.Database,
-		updateEpochsConfig.Database.User, updateEpochsConfig.Database.Password, strings.ToLower(updateEpochsConfig.Database.LogLevel))
+	db, err := connectToDBAndMigrate(updateEpochsConfig.Database)
 	if err != nil {
 		config.Log.Fatal("Could not establish connection to the database", err)
-	}
-
-	sqldb, _ := db.DB()
-	sqldb.SetMaxIdleConns(10)
-	sqldb.SetMaxOpenConns(100)
-	sqldb.SetConnMaxLifetime(time.Hour)
-
-	// run database migrations at every runtime
-	err = dbTypes.MigrateModels(db)
-	if err != nil {
-		config.Log.Error("Error running DB migrations", err)
-		return err
 	}
 
 	updateEpochsDbConnection = db

@@ -2,11 +2,8 @@ package cmd
 
 import (
 	"os"
-	"strings"
-	"time"
 
 	"github.com/DefiantLabs/cosmos-indexer/config"
-	dbTypes "github.com/DefiantLabs/cosmos-indexer/db"
 	"github.com/DefiantLabs/cosmos-indexer/tasks"
 	"github.com/spf13/cobra"
 	"gorm.io/gorm"
@@ -45,27 +42,11 @@ func setupUpdateDenoms(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Logger
-	logLevel := updateDenomsConfig.Log.Level
-	logPath := updateDenomsConfig.Log.Path
-	prettyLogging := updateDenomsConfig.Log.Pretty
-	config.DoConfigureLogger(logPath, logLevel, prettyLogging)
+	setupLogger(updateDenomsConfig.Log.Level, updateDenomsConfig.Log.Path, updateDenomsConfig.Log.Pretty)
 
-	db, err := dbTypes.PostgresDbConnect(updateDenomsConfig.Database.Host, updateDenomsConfig.Database.Port, updateDenomsConfig.Database.Database,
-		updateDenomsConfig.Database.User, updateDenomsConfig.Database.Password, strings.ToLower(updateDenomsConfig.Database.LogLevel))
+	db, err := connectToDBAndMigrate(updateDenomsConfig.Database)
 	if err != nil {
 		config.Log.Fatal("Could not establish connection to the database", err)
-	}
-
-	sqldb, _ := db.DB()
-	sqldb.SetMaxIdleConns(10)
-	sqldb.SetMaxOpenConns(100)
-	sqldb.SetConnMaxLifetime(time.Hour)
-
-	err = dbTypes.MigrateModels(db)
-	if err != nil {
-		config.Log.Error("Error running DB migrations", err)
-		return err
 	}
 
 	updateDenomsDbConnection = db

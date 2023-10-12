@@ -9,7 +9,7 @@ import (
 )
 
 type IndexConfig struct {
-	Database           database
+	Database           Database
 	ConfigFileLocation string
 	Base               indexBase
 	Log                log

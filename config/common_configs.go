@@ -16,7 +16,7 @@ type log struct {
 	Pretty bool
 }
 
-type database struct {
+type Database struct {
 	Host     string
 	Port     string
 	Database string
@@ -47,7 +47,7 @@ func SetupLogFlags(logConf *log, cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVar(&logConf.Path, "log.path", "", "log path (default is $HOME/.cosmos-indexer/logs.txt")
 }
 
-func SetupDatabaseFlags(databaseConf *database, cmd *cobra.Command) {
+func SetupDatabaseFlags(databaseConf *Database, cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVar(&databaseConf.Host, "database.host", "", "database host")
 	cmd.PersistentFlags().StringVar(&databaseConf.Port, "database.port", "5432", "database port")
 	cmd.PersistentFlags().StringVar(&databaseConf.Database, "database.database", "", "database name")
@@ -67,7 +67,7 @@ func SetupThrottlingFlag(throttlingValue *float64, cmd *cobra.Command) {
 	cmd.PersistentFlags().Float64Var(throttlingValue, "base.throttling", 0.5, "throttle delay")
 }
 
-func validateDatabaseConf(dbConf database) error {
+func validateDatabaseConf(dbConf Database) error {
 	if util.StrNotSet(dbConf.Host) {
 		return errors.New("database host must be set")
 	}
