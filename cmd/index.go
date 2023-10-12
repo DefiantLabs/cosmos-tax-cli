@@ -62,37 +62,21 @@ func setupIndex(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	logLevel := indexer.cfg.Log.Level
-	logPath := indexer.cfg.Log.Path
-	prettyLogging := indexer.cfg.Log.Pretty
-	config.DoConfigureLogger(logPath, logLevel, prettyLogging)
+	setupLogger(indexer.cfg.Log.Level, indexer.cfg.Log.Path, indexer.cfg.Log.Pretty)
 
 	// 0 is an invalid starting block, set it to 1
 	if indexer.cfg.Base.StartBlock == 0 {
 		indexer.cfg.Base.StartBlock = 1
 	}
 
-	db, err := dbTypes.PostgresDbConnect(indexer.cfg.Database.Host, indexer.cfg.Database.Port, indexer.cfg.Database.Database,
-		indexer.cfg.Database.User, indexer.cfg.Database.Password, strings.ToLower(indexer.cfg.Database.LogLevel))
+	db, err := connectToDBAndMigrate(indexer.cfg.Database)
 	if err != nil {
 		config.Log.Fatal("Could not establish connection to the database", err)
 	}
 
 	indexer.db = db
 
-	sqldb, _ := db.DB()
-	sqldb.SetMaxIdleConns(10)
-	sqldb.SetMaxOpenConns(100)
-	sqldb.SetConnMaxLifetime(time.Hour)
-
 	indexer.scheduler = gocron.NewScheduler(time.UTC)
-
-	// run database migrations at every runtime
-	err = dbTypes.MigrateModels(db)
-	if err != nil {
-		config.Log.Error("Error running DB migrations", err)
-		return err
-	}
 
 	// We should stop relying on the denom cache now that we are running this as a CLI tool only
 	dbTypes.CacheDenoms(db)

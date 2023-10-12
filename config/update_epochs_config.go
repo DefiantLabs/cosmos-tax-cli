@@ -7,7 +7,7 @@ import (
 )
 
 type UpdateEpochsConfig struct {
-	Database database
+	Database Database
 	Lens     lens
 	Base     updateEpochsBase
 	Log      log

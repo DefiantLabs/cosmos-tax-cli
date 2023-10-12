@@ -9,7 +9,7 @@ import (
 )
 
 type QueryConfig struct {
-	Database database
+	Database Database
 	Log      log
 	Base     queryBase
 }

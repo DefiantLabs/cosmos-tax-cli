@@ -13,7 +13,7 @@ import (
 
 type ClientConfig struct {
 	ConfigFileLocation string
-	Database           database
+	Database           Database
 	Client             client
 	Log                log
 }

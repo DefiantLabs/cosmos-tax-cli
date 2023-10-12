@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/DefiantLabs/cosmos-indexer/config"
@@ -76,28 +75,11 @@ func setupQuery(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Logger
-	logLevel := queryConfig.Log.Level
-	logPath := queryConfig.Log.Path
-	prettyLogging := queryConfig.Log.Pretty
-	config.DoConfigureLogger(logPath, logLevel, prettyLogging)
+	setupLogger(queryConfig.Log.Level, queryConfig.Log.Path, queryConfig.Log.Pretty)
 
-	db, err := dbTypes.PostgresDbConnect(queryConfig.Database.Host, queryConfig.Database.Port, queryConfig.Database.Database,
-		queryConfig.Database.User, queryConfig.Database.Password, strings.ToLower(queryConfig.Database.LogLevel))
+	db, err := connectToDBAndMigrate(queryConfig.Database)
 	if err != nil {
 		config.Log.Fatal("Could not establish connection to the database", err)
-	}
-
-	sqldb, _ := db.DB()
-	sqldb.SetMaxIdleConns(10)
-	sqldb.SetMaxOpenConns(100)
-	sqldb.SetConnMaxLifetime(time.Hour)
-
-	// run database migrations at every runtime
-	err = dbTypes.MigrateModels(db)
-	if err != nil {
-		config.Log.Error("Error running DB migrations", err)
-		return err
 	}
 
 	queryDbConnection = db
