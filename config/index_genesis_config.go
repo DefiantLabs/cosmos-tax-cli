@@ -7,7 +7,7 @@ import (
 )
 
 type IndexGenesisConfig struct {
-	Database           database
+	Database           Database
 	ConfigFileLocation string
 	Base               indexGenesisBase
 	Log                log

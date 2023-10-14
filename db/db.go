@@ -30,9 +30,15 @@ func PostgresDbConnect(host string, port string, database string, user string, p
 	dsn := fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=disable", host, port, database, user, password)
 	gormLogLevel := logger.Silent
 
-	if level == "info" {
+	switch level {
+	case "info":
 		gormLogLevel = logger.Info
+	case "warn":
+		gormLogLevel = logger.Warn
+	case "error":
+		gormLogLevel = logger.Error
 	}
+
 	return gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(gormLogLevel)})
 }
 
@@ -350,5 +356,13 @@ func UpsertIBCDenoms(db *gorm.DB, denoms []IBCDenom) error {
 			}
 		}
 		return nil
+	})
+}
+
+func UpsertAddresses(db *gorm.DB, addresses []Address) error {
+	return db.Transaction(func(dbTransaction *gorm.DB) error {
+		// Batch insert with conflict handling, address currently has unique index on the address string
+		err := dbTransaction.Clauses(clause.OnConflict{DoNothing: true}).Create(&addresses).Error
+		return err
 	})
 }

@@ -31,10 +31,10 @@ def main():
                 print(curr_chunked_resp.status_code)
                 print(curr_chunked_resp.text)
                 sys.exit(1)
-            
+
             print("Got chunk", curr_chunk)
             curr_chunked_data = curr_chunked_resp.json()["result"]
-            
+
             if not total_set:
                 total = int(curr_chunked_data['total'])
                 total_set = True
