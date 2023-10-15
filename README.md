@@ -1,19 +1,21 @@
-# Cosmos Indexer
+# Cosmos Tax CLI
 
-The Cosmos Indexer is an open-source application designed to index a Cosmos chain to a generalized DB schema. Its mission is to offer a flexible DB schema compatible with all Cosmos SDK Chains while simplifying the correlation of transactions with addresses and storing relevant data.
+The Cosmos Tax CLI is an open-source application designed to index a Cosmos chain to a generalized Taxable Transaction/Event DB schema. Its mission is to offer a flexible DB schema compatible with all Cosmos SDK Chains while simplifying the correlation of transactions with addresses and storing relevant data.
 
 In addition to indexing a chain, this tool also queries the indexed data to find all transactions associated with one or more addresses on a specific chain.
 
+**Note**: Work is actively being done on a more generalized Cosmos Indexer model. That work can be seen in the [Cosmos Tax CLI](https://github.com/DefiantLabs/cosmos-indexer) project.
+
 **Watch our Tool Overview and How-To Videos:**
-- [Overview of Cosmos Indexer](https://www.youtube.com/watch?v=Vx3t8uCnHqE)
+- [Overview of Cosmos Tax CLI](https://www.youtube.com/watch?v=Vx3t8uCnHqE)
 
 ## :star: Funding
 
-The development and evolution of Cosmos Indexer across versions v0.1.0, v0.2.0, and v0.3.0 were significantly supported by the **Interchain Foundation**, facilitated by **Strangelove-Ventures**. After December 31, 2022, all subsequent development has been self-funded by **Defiant Labs**, demonstrating our commitment to this project and its potential.
+The development and evolution of Cosmos Tax CLI across versions v0.1.0, v0.2.0, and v0.3.0 were significantly supported by the **Interchain Foundation**, facilitated by **Strangelove-Ventures**. After December 31, 2022, all subsequent development has been self-funded by **Defiant Labs**, demonstrating our commitment to this project and its potential.
 
 ## :handshake: Integrations
 
-Applications like [Sycamore](https://app.sycamore.tax/) have been built on top of our Cosmos Indexer, showcasing its functionality and adaptability. If you're looking to integrate our indexer into your project, you can do so in the following ways:
+Applications like [Sycamore](https://app.sycamore.tax/) have been built on top of our Cosmos Tax CLI, showcasing its functionality and adaptability. If you're looking to integrate our indexer into your project, you can do so in the following ways:
 
 1. **Direct Indexing**: Directly index the chain data into your own Database.
 2. **API Usage**: Use our APIs to access the data and incorporate it into your service.
@@ -50,13 +52,13 @@ You are now ready to index and query the chain. For detailed steps, check out th
 
 ## CLI Syntax
 
-The Cosmos Indexer tool provides several settings and commands which are accessible via a config file or through CLI flags. You can learn about the CLI flags and their function by running `go run main.go` to display the application help text.
+The Cosmos Tax CLI tool provides several settings and commands which are accessible via a config file or through CLI flags. You can learn about the CLI flags and their function by running `go run main.go` to display the application help text.
 
 For more detailed information on the settings, refer to the [Config](#config) section.
 
 ### Config
 
-The config file, used to set up the Cosmos Indexer tool, is broken into four main
+The config file, used to set up the Cosmos Tax CLI tool, is broken into four main
 
  sections:
 
@@ -99,7 +101,7 @@ The applications current data model is oriented toward indexing data with taxabl
 
 While we strive to expand our list of supported messages, we acknowledge that we do not yet cover every possible message across all chains. If you identify a missing or improperly handled message type, we encourage you to **open an issue or submit a PR**.
 
-For the most recent, comprehensive list of supported messages, please refer to the code [**here**](https://github.com/DefiantLabs/cosmos-indexer/blob/main/core/tx.go).
+For the most recent, comprehensive list of supported messages, please refer to the code [**here**](https://github.com/DefiantLabs/cosmos-tax-cli/blob/main/core/tx.go).
 
 Below is the rundown of our current support for different types of messages:
 
