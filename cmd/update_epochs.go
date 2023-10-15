@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"log"
 	"time"
 
 	"github.com/DefiantLabs/cosmos-indexer/config"
@@ -14,10 +13,17 @@ import (
 	"gorm.io/gorm"
 )
 
-var epochIdentifier string
+var (
+	updateEpochsConfig       config.UpdateEpochsConfig
+	updateEpochsDbConnection *gorm.DB
+)
 
 func init() {
-	updateEpochsCmd.Flags().StringVar(&epochIdentifier, "epoch-identifier", "day", "If provided, the update script will ignore the config chain-id and update all denoms by reaching out to all assetlists supported.")
+	config.SetupLogFlags(&updateEpochsConfig.Log, updateEpochsCmd)
+	config.SetupDatabaseFlags(&updateEpochsConfig.Database, updateEpochsCmd)
+	config.SetupLensFlags(&updateEpochsConfig.Lens, updateEpochsCmd)
+	config.SetupThrottlingFlag(&updateEpochsConfig.Base.Throttling, updateEpochsCmd)
+	config.SetupUpdateEpochsSpecificFlags(&updateEpochsConfig, updateEpochsCmd)
 	rootCmd.AddCommand(updateEpochsCmd)
 }
 
@@ -26,16 +32,37 @@ var updateEpochsCmd = &cobra.Command{
 	Short: "Gather Epoch information from the blockchain and index it. Currently only supports the Osmosis Epochs module.",
 	Long: `Indexes Epoch information from the blockchain. This command currently only support the Osmosis Epochs module.
 	Future versions will support the same concept of Epochs for other Cosmos chains if they exist.`,
-	Run: updateEpochs,
+	PreRunE: setupUpdateEpochs,
+	Run:     updateEpochs,
+}
+
+func setupUpdateEpochs(cmd *cobra.Command, args []string) error {
+	bindFlags(cmd, viperConf)
+
+	err := updateEpochsConfig.Validate()
+	if err != nil {
+		return err
+	}
+
+	setupLogger(updateEpochsConfig.Log.Level, updateEpochsConfig.Log.Path, updateEpochsConfig.Log.Pretty)
+
+	db, err := connectToDBAndMigrate(updateEpochsConfig.Database)
+	if err != nil {
+		config.Log.Fatal("Could not establish connection to the database", err)
+	}
+
+	updateEpochsDbConnection = db
+
+	return nil
 }
 
 func updateEpochs(cmd *cobra.Command, args []string) {
-	cfg, _, db, _, err := setup(conf)
-	if err != nil {
-		log.Fatalf("Error during application setup. Err: %v", err)
-	}
+	cfg := updateEpochsConfig
+	db := updateEpochsDbConnection
 
 	cl := config.GetLensClient(cfg.Lens)
+
+	epochIdentifier := cfg.Base.EpochIdentifier
 
 	if cl.Config.ChainID == osmosis.ChainID {
 		// Setup Chain model item
@@ -45,7 +72,7 @@ func updateEpochs(cmd *cobra.Command, args []string) {
 		res := db.FirstOrCreate(&chain)
 
 		if res.Error != nil {
-			config.Log.Fatalf("Error setting up Chain model. Err: %v", err)
+			config.Log.Fatalf("Error setting up Chain model. Err: %v", res.Error)
 		}
 
 		config.Log.Infof("Running Epoch indexer for %s and identifier %s", cl.Config.ChainID, epochIdentifier)
@@ -164,7 +191,7 @@ func indexEpochsAtStartingHeight(db *gorm.DB, cl *client.ChainClient, startingHe
 		}
 
 		if !found {
-			config.Log.Fatalf("Epoch with identifier %s not found at %d", epochIdentifier, currentHeight)
+			config.Log.Fatalf("Epoch with identifier %s not found at %d", updateEpochsConfig.Base.EpochIdentifier, currentHeight)
 		}
 
 		dbResp := db.Where(&newItem).FirstOrCreate(&newItem)

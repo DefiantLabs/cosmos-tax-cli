@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/DefiantLabs/cosmos-indexer/config"
-
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"

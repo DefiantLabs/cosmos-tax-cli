@@ -29,7 +29,7 @@ func (idxr *Indexer) enqueueBlocksToProcessByMsgType(blockChan chan int64, chain
 							JOIN messages ON messages.tx_id = txes.id
 							JOIN message_types ON message_types.id = messages.message_type_id
 							AND message_types.message_type = ?
-							WHERE height > ? AND height < ? AND blockchain_id = ?::int;
+							WHERE height >= ? AND height <= ? AND blockchain_id = ?::int;
 							`, msgType, startBlock, endBlock, chainID).Rows()
 	if err != nil {
 		config.Log.Fatalf("Error checking DB for blocks to reindex. Err: %v", err)
@@ -134,7 +134,7 @@ func (idxr *Indexer) enqueueBlocksToProcessFromBlockInputFile(blockChan chan int
 // enqueueBlocksToProcess will pass the blocks that need to be processed to the blockchannel
 func (idxr *Indexer) enqueueBlocksToProcess(blockChan chan int64, chainID uint) {
 	// Unless explicitly prevented, lets attempt to enqueue any failed blocks
-	if !idxr.cfg.Base.PreventReattempts {
+	if idxr.cfg.Base.ReattemptFailedBlocks {
 		idxr.enqueueFailedBlocks(blockChan, chainID)
 	}
 
@@ -160,7 +160,7 @@ func (idxr *Indexer) enqueueBlocksToProcess(blockChan chan int64, chainID uint) 
 		if len(blockChan) <= cap(blockChan)/4 {
 			// This is the latest block height available on the Node.
 			var err error
-			latestBlock, err = rpc.GetLatestBlockHeightWithRetry(idxr.cl, idxr.cfg.Base.RPCRetryAttempts, idxr.cfg.Base.RPCRetryMaxWait)
+			latestBlock, err = rpc.GetLatestBlockHeightWithRetry(idxr.cl, idxr.cfg.Base.RequestRetryAttempts, idxr.cfg.Base.RequestRetryMaxWait)
 			if err != nil {
 				config.Log.Fatal("Error getting blockchain latest height. Err: %v", err)
 			}

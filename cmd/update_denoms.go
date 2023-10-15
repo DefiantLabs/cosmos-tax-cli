@@ -1,18 +1,24 @@
 package cmd
 
 import (
-	"log"
 	"os"
 
 	"github.com/DefiantLabs/cosmos-indexer/config"
 	"github.com/DefiantLabs/cosmos-indexer/tasks"
 	"github.com/spf13/cobra"
+	"gorm.io/gorm"
 )
 
-var updateAll bool
+var (
+	updateDenomsConfig       config.UpdateDenomsConfig
+	updateDenomsDbConnection *gorm.DB
+)
 
 func init() {
-	updateDenomsCmd.Flags().BoolVar(&updateAll, "update-all", false, "If provided, the update script will ignore the config chain-id and update all denoms by reaching out to all assetlists supported.")
+	config.SetupLogFlags(&updateDenomsConfig.Log, updateDenomsCmd)
+	config.SetupDatabaseFlags(&updateDenomsConfig.Database, updateDenomsCmd)
+	config.SetupLensFlags(&updateDenomsConfig.Lens, updateDenomsCmd)
+	config.SetupUpdateDenomsSpecificFlags(&updateDenomsConfig, updateDenomsCmd)
 	rootCmd.AddCommand(updateDenomsCmd)
 }
 
@@ -24,27 +30,46 @@ var updateDenomsCmd = &cobra.Command{
 	This command will prepopulate the Cosmos Tax CLI database with values found in regsitries for the specific chains we provide support for.
 	It will either use the chain-id specified in the application configuration to update the specific assetlist, or update-all if provided.
 	`,
-	Run: updateDenoms,
+	PreRunE: setupUpdateDenoms,
+	Run:     updateDenoms,
+}
+
+func setupUpdateDenoms(cmd *cobra.Command, args []string) error {
+	bindFlags(cmd, viperConf)
+
+	err := updateDenomsConfig.Validate()
+	if err != nil {
+		return err
+	}
+
+	setupLogger(updateDenomsConfig.Log.Level, updateDenomsConfig.Log.Path, updateDenomsConfig.Log.Pretty)
+
+	db, err := connectToDBAndMigrate(updateDenomsConfig.Database)
+	if err != nil {
+		config.Log.Fatal("Could not establish connection to the database", err)
+	}
+
+	updateDenomsDbConnection = db
+
+	return nil
 }
 
 func updateDenoms(cmd *cobra.Command, args []string) {
-	cfg, _, db, _, err := setup(conf)
-	if err != nil {
-		log.Fatalf("Error during application setup. Err: %v", err)
-	}
+	cfg := updateDenomsConfig
+	db := updateDenomsDbConnection
 
 	switch {
-	case updateAll:
+	case cfg.Base.UpdateAll:
 		config.Log.Infof("Running denom update task for all supported chains")
 		for chainID, function := range tasks.ChainSpecificDenomUpsertFunctions {
 			config.Log.Infof("Running denom update task for chain %s", chainID)
-			function(db, cfg.Base.RPCRetryAttempts, cfg.Base.RPCRetryMaxWait)
+			function(db, cfg.Base.RequestRetryAttempts, cfg.Base.RequestRetryMaxWait)
 		}
 	case cfg.Lens.ChainID != "":
 		function, ok := tasks.ChainSpecificDenomUpsertFunctions[cfg.Lens.ChainID]
 		if ok {
 			config.Log.Infof("Running denom update task for chain %s found in config", cfg.Lens.ChainID)
-			function(db, cfg.Base.RPCRetryAttempts, cfg.Base.RPCRetryMaxWait)
+			function(db, cfg.Base.RequestRetryAttempts, cfg.Base.RequestRetryMaxWait)
 			config.Log.Info("Done")
 		} else {
 			config.Log.Fatalf("No denom update functionality for chain-id %s", cfg.Lens.ChainID)
@@ -53,8 +78,7 @@ func updateDenoms(cmd *cobra.Command, args []string) {
 		config.Log.Fatal("Please pass the flag --update-all or provide a chain-id in your application configuration")
 	}
 
-	err = tasks.ValidateDenoms(db)
-
+	err := tasks.ValidateDenoms(db)
 	if err != nil {
 		config.Log.Error("Error running post-validation for update-denoms")
 		os.Exit(1)

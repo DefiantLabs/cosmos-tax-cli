@@ -23,37 +23,6 @@ func getHomePath(t *testing.T) string {
 	return fmt.Sprintf("%v/.lens", homeDir)
 }
 
-// nolint:unused
-var testConfig *config.Config
-
-// nolint:unused
-func setupConfig(t *testing.T) {
-	argConfig, _, _, err := config.ParseArgs(os.Stderr, os.Args[1:])
-	if err != nil {
-		assert.Nil(t, err)
-	}
-
-	var location string
-	if argConfig.ConfigFileLocation != "" {
-		location = argConfig.ConfigFileLocation
-	} else {
-		location = "./config.toml"
-	}
-
-	fileConfig, err := config.GetConfig(location)
-	if err != nil {
-		assert.Nil(t, err)
-	}
-
-	cfg := config.MergeConfigs(fileConfig, argConfig)
-
-	// 0 is an invalid starting block, set it to 1
-	if cfg.Base.StartBlock == 0 {
-		cfg.Base.StartBlock = 1
-	}
-	testConfig = &cfg
-}
-
 func TestRPC(t *testing.T) {
 	block := 2620000
 	err := lensQueryBank(t, int64(block))

@@ -21,11 +21,11 @@ import (
 
 var (
 	DB        *gorm.DB
-	GlobalCfg *config.Config
+	ClientCfg *config.ClientConfig
 )
 
-func setup() (*gorm.DB, *config.Config, int, string, error) {
-	argConfig, flagSet, svcPort, err := config.ParseArgs(os.Stderr, os.Args[1:])
+func setup() (*gorm.DB, *config.ClientConfig, int, string, error) {
+	argConfig, flagSet, svcPort, err := config.ParseClientArgs(os.Stderr, os.Args[1:])
 	if err != nil {
 		if strings.Contains(err.Error(), "help requested") {
 			config.Log.Info("Please see valid flags above.")
@@ -45,7 +45,7 @@ func setup() (*gorm.DB, *config.Config, int, string, error) {
 		location = "./config.toml"
 	}
 
-	fileConfig, err := config.GetConfig(location)
+	fileConfig, err := config.GetClientConfig(location)
 	if err != nil {
 		if !strings.Contains(err.Error(), "no such file or directory") {
 			config.Log.Panicf("Error opening configuration file. Err: %v", err)
@@ -54,7 +54,7 @@ func setup() (*gorm.DB, *config.Config, int, string, error) {
 	}
 
 	// merge and validate configs
-	cfg := config.MergeConfigs(fileConfig, argConfig)
+	cfg := config.MergeClientConfigs(fileConfig, argConfig)
 	err = cfg.ValidateClientConfig()
 	if err != nil {
 		flagSet.PrintDefaults()
@@ -96,7 +96,7 @@ func main() {
 	}
 
 	DB = db
-	GlobalCfg = cfg
+	ClientCfg = cfg
 
 	// Have to keep this here so that import of docs subfolder (which contains proper init()) stays
 	docs.SwaggerInfo.Title = "Cosmos Tax CLI"
@@ -227,7 +227,7 @@ func GetTaxableEventsCSV(c *gin.Context) {
 		return
 	}
 
-	accountRows, headers, err := csv.ParseForAddress(addresses, startDate, endDate, DB, format, *GlobalCfg)
+	accountRows, headers, err := csv.ParseForAddress(addresses, startDate, endDate, DB, format)
 	if err != nil {
 		// the error returned here has already been pushed to the context... I think.
 		config.Log.Errorf("Error getting rows for addresses: %v", addresses)
@@ -275,7 +275,7 @@ func GetTaxableEventsJSON(c *gin.Context) {
 		return
 	}
 
-	accountRows, _, err := csv.ParseForAddress(addresses, startDate, endDate, DB, format, *GlobalCfg)
+	accountRows, _, err := csv.ParseForAddress(addresses, startDate, endDate, DB, format)
 	if err != nil {
 		// the error returned here has already been pushed to the context... I think.
 		config.Log.Errorf("Error getting rows for addresses: %v", addresses)
