@@ -4,7 +4,7 @@ The Cosmos Tax CLI is an open-source application designed to index a Cosmos chai
 
 In addition to indexing a chain, this tool also queries the indexed data to find all transactions associated with one or more addresses on a specific chain.
 
-**Note**: Work is actively being done on a more generalized Cosmos Indexer model. That work can be seen in the [Cosmos Tax CLI](https://github.com/DefiantLabs/cosmos-indexer) project.
+**Note**: Work is actively being done on a more generalized Cosmos Indexer model. That work can be seen in the [Cosmos Indexer](https://github.com/DefiantLabs/cosmos-indexer) project.
 
 **Watch our Tool Overview and How-To Videos:**
 - [Overview of Cosmos Tax CLI](https://www.youtube.com/watch?v=Vx3t8uCnHqE)
