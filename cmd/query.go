@@ -75,6 +75,12 @@ func setupQuery(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	ignoredKeys := config.CheckSuperfluousQueryKeys(viperConf.AllKeys())
+
+	if len(ignoredKeys) > 0 {
+		config.Log.Warnf("Warning, the following invalid keys will be ignored: %v", ignoredKeys)
+	}
+
 	setupLogger(queryConfig.Log.Level, queryConfig.Log.Path, queryConfig.Log.Pretty)
 
 	db, err := connectToDBAndMigrate(queryConfig.Database)

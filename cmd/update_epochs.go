@@ -44,6 +44,12 @@ func setupUpdateEpochs(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	ignoredKeys := config.CheckSuperfluousUpdateDenomsKeys(viperConf.AllKeys())
+
+	if len(ignoredKeys) > 0 {
+		config.Log.Warnf("Warning, the following invalid keys will be ignored: %v", ignoredKeys)
+	}
+
 	setupLogger(updateEpochsConfig.Log.Level, updateEpochsConfig.Log.Path, updateEpochsConfig.Log.Pretty)
 
 	db, err := connectToDBAndMigrate(updateEpochsConfig.Database)

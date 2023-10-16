@@ -38,3 +38,30 @@ func (conf *UpdateDenomsConfig) Validate() error {
 
 	return nil
 }
+
+func CheckSuperfluousUpdateDenomsKeys(keys []string) []string {
+	validKeys := make(map[string]struct{})
+
+	addDatabaseConfigKeys(validKeys)
+	addLogConfigKeys(validKeys)
+	addLensConfigKeys(validKeys)
+
+	// add base keys
+	for _, key := range getValidConfigKeys(updateDenomsBase{}, "base") {
+		validKeys[key] = struct{}{}
+	}
+
+	for _, key := range getValidConfigKeys(retryBase{}, "base") {
+		validKeys[key] = struct{}{}
+	}
+
+	// Check keys
+	ignoredKeys := make([]string, 0)
+	for _, key := range keys {
+		if _, ok := validKeys[key]; !ok {
+			ignoredKeys = append(ignoredKeys, key)
+		}
+	}
+
+	return ignoredKeys
+}

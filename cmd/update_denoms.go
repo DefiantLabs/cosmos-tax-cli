@@ -42,6 +42,12 @@ func setupUpdateDenoms(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	ignoredKeys := config.CheckSuperfluousUpdateDenomsKeys(viperConf.AllKeys())
+
+	if len(ignoredKeys) > 0 {
+		config.Log.Warnf("Warning, the following invalid keys will be ignored: %v", ignoredKeys)
+	}
+
 	setupLogger(updateDenomsConfig.Log.Level, updateDenomsConfig.Log.Path, updateDenomsConfig.Log.Pretty)
 
 	db, err := connectToDBAndMigrate(updateDenomsConfig.Database)

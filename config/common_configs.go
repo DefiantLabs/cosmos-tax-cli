@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/DefiantLabs/cosmos-indexer/util"
@@ -33,7 +34,7 @@ type lens struct {
 }
 
 type throttlingBase struct {
-	Throttling float64
+	Throttling float64 `mapstructure:"throttling"`
 }
 
 type retryBase struct {
@@ -117,4 +118,48 @@ func validateThrottlingConf(throttlingConf throttlingBase) error {
 		return errors.New("throttling must be a positive number or 0")
 	}
 	return nil
+}
+
+// Reads the Viper mapstructure tag to get the valid keys for a given config struct
+func getValidConfigKeys(section any, baseName string) (keys []string) {
+	v := reflect.ValueOf(section)
+	typeOfS := v.Type()
+
+	if baseName == "" {
+		baseName = strings.ToLower(typeOfS.Name())
+	}
+
+	for i := 0; i < v.NumField(); i++ {
+		field := typeOfS.Field(i)
+
+		// Hack to get around the fact that we have embedded struct inside a struct in some of our definitions
+		if !strings.HasPrefix(field.Type.String(), "config.") {
+			name := field.Tag.Get("mapstructure")
+			if name == "" {
+				name = field.Name
+			}
+
+			key := fmt.Sprintf("%v.%v", baseName, strings.ReplaceAll(strings.ToLower(name), " ", ""))
+			keys = append(keys, key)
+		}
+	}
+	return
+}
+
+func addDatabaseConfigKeys(validKeys map[string]struct{}) {
+	for _, key := range getValidConfigKeys(Database{}, "") {
+		validKeys[key] = struct{}{}
+	}
+}
+
+func addLogConfigKeys(validKeys map[string]struct{}) {
+	for _, key := range getValidConfigKeys(log{}, "") {
+		validKeys[key] = struct{}{}
+	}
+}
+
+func addLensConfigKeys(validKeys map[string]struct{}) {
+	for _, key := range getValidConfigKeys(lens{}, "") {
+		validKeys[key] = struct{}{}
+	}
 }
