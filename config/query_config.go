@@ -73,3 +73,25 @@ func (conf *QueryConfig) Validate(validCsvParsers []string) error {
 
 	return nil
 }
+
+func CheckSuperfluousQueryKeys(keys []string) []string {
+	validKeys := make(map[string]struct{})
+
+	addDatabaseConfigKeys(validKeys)
+	addLogConfigKeys(validKeys)
+
+	// add base keys
+	for _, key := range getValidConfigKeys(queryBase{}, "base") {
+		validKeys[key] = struct{}{}
+	}
+
+	// Check keys
+	ignoredKeys := make([]string, 0)
+	for _, key := range keys {
+		if _, ok := validKeys[key]; !ok {
+			ignoredKeys = append(ignoredKeys, key)
+		}
+	}
+
+	return ignoredKeys
+}

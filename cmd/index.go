@@ -62,6 +62,12 @@ func setupIndex(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	ignoredKeys := config.CheckSuperfluousIndexKeys(viperConf.AllKeys())
+
+	if len(ignoredKeys) > 0 {
+		config.Log.Warnf("Warning, the following invalid keys will be ignored: %v", ignoredKeys)
+	}
+
 	setupLogger(indexer.cfg.Log.Level, indexer.cfg.Log.Path, indexer.cfg.Log.Pretty)
 
 	// 0 is an invalid starting block, set it to 1
