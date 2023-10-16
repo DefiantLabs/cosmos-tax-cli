@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/csv"
 
-	"github.com/DefiantLabs/cosmos-indexer/config"
-	"github.com/DefiantLabs/cosmos-indexer/csv/parsers"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
 )
 
 // Create the CSV and write it to byte buffer

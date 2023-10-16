@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/DefiantLabs/cosmos-indexer/config"
-	dbTypes "github.com/DefiantLabs/cosmos-indexer/db"
-	"github.com/DefiantLabs/cosmos-indexer/rpc"
-	"github.com/DefiantLabs/cosmos-indexer/util"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/rpc"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 )
 
 // enqueueBlocksToProcessByMsgType will pass the blocks containing the specified msg type to the indexer

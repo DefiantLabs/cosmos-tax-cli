@@ -5,7 +5,7 @@ import (
 
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 
-	"github.com/DefiantLabs/cosmos-indexer/config"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	lensClient "github.com/DefiantLabs/lens/client"
 	lensQuery "github.com/DefiantLabs/lens/client/query"
 	lensEpochsTypes "github.com/DefiantLabs/lens/osmosis/x/epochs/types"

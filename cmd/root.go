@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/DefiantLabs/cosmos-indexer/config"
-	"github.com/DefiantLabs/cosmos-indexer/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"github.com/DefiantLabs/cosmos-tax-cli/db"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -18,7 +18,7 @@ import (
 var (
 	cfgFile string // config file location to load
 	rootCmd = &cobra.Command{
-		Use:   "cosmos-indexer",
+		Use:   "cosmos-tax-cli",
 		Short: "A CLI tool for indexing and querying on-chain data",
 		Long: `Cosmos Tax CLI is a CLI tool for indexing and querying Cosmos-based blockchains,
 		with a heavy focus on taxable events.`,
@@ -33,7 +33,7 @@ func Execute() error {
 
 func init() {
 	cobra.OnInitialize(getViperConfig)
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.cosmos-indexer/config.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.cosmos-tax-cli/config.yaml)")
 }
 
 func getViperConfig() {
@@ -57,7 +57,7 @@ func getViperConfig() {
 			if err != nil {
 				log.Fatalf("Failed to find user home dir. Err: %v", err)
 			}
-			cfgFile = fmt.Sprintf("%s/.cosmos-indexer", home)
+			cfgFile = fmt.Sprintf("%s/.cosmos-tax-cli", home)
 		}
 		v.AddConfigPath(cfgFile)
 		v.SetConfigType("toml")

@@ -33,11 +33,11 @@ services:
 
   indexer:
     restart: "no"
-    image: ghcr.io/defiantlabs/cosmos-indexer:main
+    image: ghcr.io/defiantlabs/cosmos-tax-cli:main
     user: defiant
     stop_grace_period: 10s
     volumes:
-      # - indexer:/var/lib/cosmos-indexer-index
+      # - indexer:/var/lib/cosmos-tax-cli-index
       - /etc/localtime:/etc/localtime:ro
     depends_on:
       postgres:
@@ -53,7 +53,7 @@ services:
     - /bin/sh
     - -c
     - |
-      cosmos-indexer update-denoms \
+      cosmos-tax-cli update-denoms \
       --update-all \
       --log.pretty = true \
       --log.level = debug \
@@ -74,7 +74,7 @@ services:
       --database.user taxuser \
       --database.password password
 
-      cosmos-indexer index \
+      cosmos-tax-cli index \
       --log.pretty = true \
       --log.level = debug \
       --base.index-chain = false \
@@ -96,11 +96,11 @@ services:
 
   # client:
   #   restart: "unless-stopped"
-  #   image: ghcr.io/defiantlabs/cosmos-indexer:sha-56866e1
+  #   image: ghcr.io/defiantlabs/cosmos-tax-cli:sha-56866e1
   #   user: defiant
   #   stop_grace_period: 1m
   #   volumes:
-  #     # - client:/var/lib/cosmos-indexer-client
+  #     # - client:/var/lib/cosmos-tax-cli-client
   #     - /etc/localtime:/etc/localtime:ro
   #   depends_on:
   #     postgres:
@@ -118,11 +118,11 @@ services:
 
   # web:
   #   restart: "unless-stopped"
-  #   image: ghcr.io/defiantlabs/cosmos-indexer-web:v0.1.0
+  #   image: ghcr.io/defiantlabs/cosmos-tax-cli-web:v0.1.0
   #   # user: defiant
   #   stop_grace_period: 1m
   #   volumes:
-  #     # - web:/var/lib/cosmos-indexer-web
+  #     # - web:/var/lib/cosmos-tax-cli-web
   #     - /etc/localtime:/etc/localtime:ro
   #   depends_on:
   #     postgres:

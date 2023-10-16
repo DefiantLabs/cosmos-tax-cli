@@ -3,11 +3,11 @@ package cmd
 import (
 	"time"
 
-	"github.com/DefiantLabs/cosmos-indexer/config"
-	dbTypes "github.com/DefiantLabs/cosmos-indexer/db"
-	"github.com/DefiantLabs/cosmos-indexer/osmosis"
-	epochsTypes "github.com/DefiantLabs/cosmos-indexer/osmosis/modules/epochs"
-	"github.com/DefiantLabs/cosmos-indexer/rpc"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
+	epochsTypes "github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/epochs"
+	"github.com/DefiantLabs/cosmos-tax-cli/rpc"
 	"github.com/DefiantLabs/lens/client"
 	"github.com/spf13/cobra"
 	"gorm.io/gorm"

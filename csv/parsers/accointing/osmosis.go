@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/DefiantLabs/cosmos-indexer/config"
-	"github.com/DefiantLabs/cosmos-indexer/csv/parsers"
-	"github.com/DefiantLabs/cosmos-indexer/db"
-	"github.com/DefiantLabs/cosmos-indexer/util"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
+	"github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 
 	"github.com/preichenberger/go-coinbasepro/v2"
 )

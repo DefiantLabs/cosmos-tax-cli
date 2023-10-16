@@ -3,9 +3,9 @@ package ibc
 import (
 	"fmt"
 
-	parsingTypes "github.com/DefiantLabs/cosmos-indexer/cosmos/modules"
-	txModule "github.com/DefiantLabs/cosmos-indexer/cosmos/modules/tx"
-	"github.com/DefiantLabs/cosmos-indexer/util"
+	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
+	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 	stdTypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/ibc-go/v4/modules/apps/transfer/types"
 	chantypes "github.com/cosmos/ibc-go/v4/modules/core/04-channel/types"

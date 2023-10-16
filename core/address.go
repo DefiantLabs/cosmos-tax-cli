@@ -8,8 +8,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/DefiantLabs/cosmos-indexer/cosmos/modules/tx"
-	"github.com/DefiantLabs/cosmos-indexer/util"
+	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"

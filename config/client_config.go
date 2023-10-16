@@ -7,7 +7,7 @@ import (
 	lg "log"
 
 	"github.com/BurntSushi/toml"
-	"github.com/DefiantLabs/cosmos-indexer/util"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 	"github.com/imdario/mergo"
 )
 

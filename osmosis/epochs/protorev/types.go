@@ -6,9 +6,9 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/DefiantLabs/cosmos-indexer/cosmos/events"
-	dbTypes "github.com/DefiantLabs/cosmos-indexer/db"
-	osmosisEvents "github.com/DefiantLabs/cosmos-indexer/osmosis/events"
+	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/events"
+	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
+	osmosisEvents "github.com/DefiantLabs/cosmos-tax-cli/osmosis/events"
 )
 
 // protorevDeveloperAddress is the address of the developer account that receives rewards on the weekly Epoch.

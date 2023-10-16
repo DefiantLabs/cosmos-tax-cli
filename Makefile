@@ -13,7 +13,7 @@ ifeq (,$(VERSION))
 endif
 
 # default value, overide with: make -e FQCN="foo"
-FQCN = ghcr.io/defiantlabs/cosmos-indexer
+FQCN = ghcr.io/defiantlabs/cosmos-tax-cli
 
 all: install
 
@@ -21,7 +21,7 @@ install: go.sum
 	go install .
 
 build:
-	go build -o bin/cosmos-indexer .
+	go build -o bin/cosmos-tax-cli .
 
 clean:
 	rm -rf build

@@ -1,4 +1,4 @@
-module github.com/DefiantLabs/cosmos-indexer
+module github.com/DefiantLabs/cosmos-tax-cli
 
 go 1.19
 

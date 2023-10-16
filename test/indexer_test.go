@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/DefiantLabs/cosmos-indexer/csv"
-	"github.com/DefiantLabs/cosmos-indexer/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv"
+	"github.com/DefiantLabs/cosmos-tax-cli/db"
 )
 
 const (

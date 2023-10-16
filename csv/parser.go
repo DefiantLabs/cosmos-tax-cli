@@ -5,14 +5,14 @@ import (
 	"sort"
 	"time"
 
-	"github.com/DefiantLabs/cosmos-indexer/config"
-	"github.com/DefiantLabs/cosmos-indexer/csv/parsers"
-	"github.com/DefiantLabs/cosmos-indexer/csv/parsers/accointing"
-	"github.com/DefiantLabs/cosmos-indexer/csv/parsers/cointracker"
-	"github.com/DefiantLabs/cosmos-indexer/csv/parsers/cryptotaxcalculator"
-	"github.com/DefiantLabs/cosmos-indexer/csv/parsers/koinly"
-	"github.com/DefiantLabs/cosmos-indexer/csv/parsers/taxbit"
-	"github.com/DefiantLabs/cosmos-indexer/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers/accointing"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers/cointracker"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers/cryptotaxcalculator"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers/koinly"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers/taxbit"
+	"github.com/DefiantLabs/cosmos-tax-cli/db"
 
 	"gorm.io/gorm"
 )

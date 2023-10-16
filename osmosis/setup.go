@@ -1,10 +1,10 @@
 package osmosis
 
 import (
-	"github.com/DefiantLabs/cosmos-indexer/config"
-	"github.com/DefiantLabs/cosmos-indexer/osmosis/epochs/protorev"
-	"github.com/DefiantLabs/cosmos-indexer/osmosis/modules/epochs"
-	"github.com/DefiantLabs/cosmos-indexer/rpc"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/epochs/protorev"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/epochs"
+	"github.com/DefiantLabs/cosmos-tax-cli/rpc"
 	"github.com/DefiantLabs/lens/client"
 )
 

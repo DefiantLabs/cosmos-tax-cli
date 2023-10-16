@@ -3,8 +3,8 @@ package cmd
 import (
 	"os"
 
-	"github.com/DefiantLabs/cosmos-indexer/config"
-	"github.com/DefiantLabs/cosmos-indexer/tasks"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"github.com/DefiantLabs/cosmos-tax-cli/tasks"
 	"github.com/spf13/cobra"
 	"gorm.io/gorm"
 )

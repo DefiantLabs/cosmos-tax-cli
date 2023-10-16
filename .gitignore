@@ -2,9 +2,9 @@ config.toml
 config.osmosis.toml
 cosmos-exporter
 cosmos-exporter-backend
-cosmos-indexer
-cosmos-indexer-private
-cosmos-indexer-backend
+cosmos-tax-cli
+cosmos-tax-cli-private
+cosmos-tax-cli-backend
 client/client
 env
 vendor/
