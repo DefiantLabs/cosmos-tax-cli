@@ -1,9 +1,9 @@
 package taxbit
 
 import (
-	"github.com/DefiantLabs/cosmos-indexer/csv/parsers"
-	"github.com/DefiantLabs/cosmos-indexer/db"
-	"github.com/DefiantLabs/cosmos-indexer/util"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
+	"github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 )
 
 func ParseGroup(sf *parsers.WrapperLpTxGroup) error {

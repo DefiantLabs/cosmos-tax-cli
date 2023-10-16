@@ -6,10 +6,10 @@ import (
 	"log"
 	"time"
 
-	"github.com/DefiantLabs/cosmos-indexer/config"
-	"github.com/DefiantLabs/cosmos-indexer/csv"
-	csvParsers "github.com/DefiantLabs/cosmos-indexer/csv/parsers"
-	dbTypes "github.com/DefiantLabs/cosmos-indexer/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv"
+	csvParsers "github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
+	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
 	"gorm.io/gorm"
 
 	"github.com/spf13/cobra"

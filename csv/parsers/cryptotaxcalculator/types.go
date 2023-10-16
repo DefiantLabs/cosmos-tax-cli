@@ -3,7 +3,7 @@ package cryptotaxcalculator
 import (
 	"time"
 
-	"github.com/DefiantLabs/cosmos-indexer/csv/parsers"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
 )
 
 const (

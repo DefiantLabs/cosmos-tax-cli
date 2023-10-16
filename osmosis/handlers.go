@@ -1,12 +1,12 @@
 package osmosis
 
 import (
-	txTypes "github.com/DefiantLabs/cosmos-indexer/cosmos/modules/tx"
-	"github.com/DefiantLabs/cosmos-indexer/osmosis/modules/concentratedliquidity"
-	"github.com/DefiantLabs/cosmos-indexer/osmosis/modules/cosmwasmpool"
-	"github.com/DefiantLabs/cosmos-indexer/osmosis/modules/gamm"
-	"github.com/DefiantLabs/cosmos-indexer/osmosis/modules/poolmanager"
-	"github.com/DefiantLabs/cosmos-indexer/osmosis/modules/valsetpref"
+	txTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/concentratedliquidity"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/cosmwasmpool"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/poolmanager"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/valsetpref"
 )
 
 // MessageTypeHandler is used to unmarshal JSON to a particular type.

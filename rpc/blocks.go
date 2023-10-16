@@ -12,7 +12,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/DefiantLabs/cosmos-indexer/config"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	tmjson "github.com/tendermint/tendermint/libs/json"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 	jsonrpc "github.com/tendermint/tendermint/rpc/jsonrpc/client"

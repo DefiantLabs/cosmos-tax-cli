@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/DefiantLabs/cosmos-indexer/util"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 	"github.com/spf13/cobra"
 )
 
@@ -45,7 +45,7 @@ type retryBase struct {
 func SetupLogFlags(logConf *log, cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVar(&logConf.Level, "log.level", "info", "log level")
 	cmd.PersistentFlags().BoolVar(&logConf.Pretty, "log.pretty", false, "pretty logs")
-	cmd.PersistentFlags().StringVar(&logConf.Path, "log.path", "", "log path (default is $HOME/.cosmos-indexer/logs.txt")
+	cmd.PersistentFlags().StringVar(&logConf.Path, "log.path", "", "log path (default is $HOME/.cosmos-tax-cli/logs.txt")
 }
 
 func SetupDatabaseFlags(databaseConf *Database, cmd *cobra.Command) {

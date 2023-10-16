@@ -3,8 +3,8 @@ package accointing
 import (
 	"fmt"
 
-	"github.com/DefiantLabs/cosmos-indexer/db"
-	"github.com/DefiantLabs/cosmos-indexer/util"
+	"github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 )
 
 func (row Row) GetRowForCsv() []string {

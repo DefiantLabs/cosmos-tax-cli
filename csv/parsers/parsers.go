@@ -1,6 +1,6 @@
 package parsers
 
-import "github.com/DefiantLabs/cosmos-indexer/db"
+import "github.com/DefiantLabs/cosmos-tax-cli/db"
 
 // Parsers should be used to check in your parsers.
 var Parsers map[string]bool

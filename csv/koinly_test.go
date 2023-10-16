@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/DefiantLabs/cosmos-indexer/config"
-	"github.com/DefiantLabs/cosmos-indexer/csv/parsers/koinly"
-	"github.com/DefiantLabs/cosmos-indexer/osmosis"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
+	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers/koinly"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 	"github.com/stretchr/testify/assert"
 )
 

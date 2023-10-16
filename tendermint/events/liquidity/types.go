@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/DefiantLabs/cosmos-indexer/cosmos/events"
-	dbTypes "github.com/DefiantLabs/cosmos-indexer/db"
-	tendermintEvents "github.com/DefiantLabs/cosmos-indexer/tendermint/events"
+	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/events"
+	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
+	tendermintEvents "github.com/DefiantLabs/cosmos-tax-cli/tendermint/events"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 )
