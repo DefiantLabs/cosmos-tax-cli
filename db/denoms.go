@@ -69,6 +69,21 @@ func GetDenomUnitForDenom(denom Denom) (DenomUnit, error) {
 }
 
 func GetBaseDenomUnitForDenom(denom Denom) (DenomUnit, error) {
+	// Code hack for IBC MsgAck denoms
+	// MsgAcks have a denom of the form transfer/{channel/{base denom}. Attempt to use that to parse out the base denom unit first.
+	if strings.HasPrefix(denom.Base, "transfer/") {
+		splitString := strings.Split(denom.Base, "/")
+		base := splitString[len(splitString)-1]
+		searchDenom, err := GetDenomForBase(base)
+		if err == nil {
+			for _, denomUnit := range CachedDenomUnits {
+				if denomUnit.DenomID == searchDenom.ID && denomUnit.Exponent == 0 {
+					return denomUnit, nil
+				}
+			}
+		}
+	}
+
 	for _, denomUnit := range CachedDenomUnits {
 		if denomUnit.DenomID == denom.ID && denomUnit.Exponent == 0 {
 			return denomUnit, nil
