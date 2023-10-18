@@ -12,10 +12,11 @@ import (
 )
 
 type ClientConfig struct {
-	ConfigFileLocation string
-	Database           Database
-	Client             client
-	Log                log
+	ConfigFileLocation    string
+	ChainRegistryLocation string
+	Database              Database
+	Client                client
+	Log                   log
 }
 
 type client struct {
@@ -28,6 +29,7 @@ func ParseClientArgs(w io.Writer, args []string) (ClientConfig, *flag.FlagSet, i
 
 	fs.SetOutput(w)
 	fs.StringVar(&c.ConfigFileLocation, "config", "", "The file to load for configuration variables")
+	fs.StringVar(&c.ChainRegistryLocation, "chain-registry", "./registry", "The folder containing the chain registry files")
 
 	// Database
 	fs.StringVar(&c.Database.Host, "db.host", "", "The PostgreSQL hostname for the indexer db")

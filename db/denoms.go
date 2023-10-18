@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/DefiantLabs/cosmos-tax-cli/chainregistry"
 	"gorm.io/gorm"
 )
 
@@ -120,30 +121,57 @@ func ConvertUnits(amount *big.Int, denom Denom) (*big.Float, string, error) {
 		return new(big.Float).Quo(convertedAmount, new(big.Float).SetFloat64(power)), denom.Base, nil
 	}
 
-	// Try denom unit first
-	// We were originally just using GetDenomUnitForDenom, but since CachedDenoms is an array, it would sometimes
-	// return the non-Base denom unit (exponent != 0), which would break the power conversion process below i.e.
-	// it would sometimes do highestDenomUnit.Exponent = 6, denomUnit.Exponent = 6 -> pow = 0
-	denomUnit, err := GetBaseDenomUnitForDenom(denom)
-	if err != nil {
-		fmt.Println("Error getting denom unit for denom", denom)
-		return nil, "", fmt.Errorf("error getting denom unit for denom %+v", denom)
+	// Try chainregistry asset lists first
+	// We are experimenting with a full pull-down of the asset list entries in the chain registry to see if
+	// they provide good coverage for parsing items into symbols.
+	base := denom.Base
+	if strings.HasPrefix(base, "transfer/") {
+		splitString := strings.Split(denom.Base, "/")
+		base = splitString[len(splitString)-1]
 	}
 
-	highestDenomUnit, err := GetHighestDenomUnit(denomUnit, CachedDenomUnits)
-	if err != nil {
-		fmt.Println("Error getting highest denom unit for denom", denom)
-		return nil, "", fmt.Errorf("error getting highest denom unit for denom %+v", denom)
+	assetEntry, ok := chainregistry.GetCachedAssetEntry(base)
+
+	var symbol string
+	var highestExponent uint
+	var baseExponent uint
+	var highestExponentName string
+	if ok {
+		baseExponent = chainregistry.GetBaseDenomUnitForAsset(assetEntry).Exponent
+		highestDenomUnit := chainregistry.GetHighestDenomUnitForAsset(assetEntry)
+		highestExponent = highestDenomUnit.Exponent
+		highestExponentName = highestDenomUnit.Denom
+		symbol = assetEntry.Symbol
+	} else {
+
+		// Try denom unit second
+		// We were originally just using GetDenomUnitForDenom, but since CachedDenoms is an array, it would sometimes
+		// return the non-Base denom unit (exponent != 0), which would break the power conversion process below i.e.
+		// it would sometimes do highestDenomUnit.Exponent = 6, denomUnit.Exponent = 6 -> pow = 0
+		denomUnit, err := GetBaseDenomUnitForDenom(denom)
+		if err != nil {
+			fmt.Println("Error getting denom unit for denom", denom)
+			return nil, "", fmt.Errorf("error getting denom unit for denom %+v", denom)
+		}
+
+		highestDenomUnit, err := GetHighestDenomUnit(denomUnit, CachedDenomUnits)
+		if err != nil {
+			fmt.Println("Error getting highest denom unit for denom", denom)
+			return nil, "", fmt.Errorf("error getting highest denom unit for denom %+v", denom)
+		}
+
+		symbol = denomUnit.Denom.Symbol
+		highestExponent = highestDenomUnit.Exponent
+		baseExponent = denomUnit.Exponent
+		highestExponentName = highestDenomUnit.Name
 	}
-
-	symbol := denomUnit.Denom.Symbol
-
 	// We were converting the units to big.Int, which would cause a Token to appear 0 if the conversion resulted in an amount < 1
-	power := math.Pow(10, float64(highestDenomUnit.Exponent-denomUnit.Exponent))
+	power := math.Pow(10, float64(highestExponent-baseExponent))
 	dividedAmount := new(big.Float).Quo(convertedAmount, new(big.Float).SetFloat64(power))
 	if symbol == "UNKNOWN" || symbol == "" {
-		symbol = highestDenomUnit.Name
+		symbol = highestExponentName
 	}
+
 	return dividedAmount, symbol, nil
 }
 
