@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/DefiantLabs/cosmos-tax-cli/chainregistry"
 	"github.com/DefiantLabs/cosmos-tax-cli/client/docs"
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	"github.com/DefiantLabs/cosmos-tax-cli/csv"
@@ -23,6 +24,29 @@ var (
 	DB        *gorm.DB
 	ClientCfg *config.ClientConfig
 )
+
+var chainRegBlacklist = map[string]bool{
+	"_IBC":        true,
+	"_memo_keys":  true,
+	"_non-cosmos": true,
+	"_template":   true,
+	".github":     true,
+	".git":        true,
+	"testnets":    true,
+	"thorchain":   true,
+	"xion":        true,
+}
+
+func loadChainRegistryAssetLists(cfg *config.ClientConfig) (map[string]chainregistry.Asset, error) {
+	err := chainregistry.UpdateChainRegistryOnDisk(cfg.ChainRegistryLocation)
+	if err != nil {
+		return nil, err
+	}
+
+	assetMap, err := chainregistry.GetAssetMapOnDisk(cfg.ChainRegistryLocation, chainRegBlacklist)
+
+	return assetMap, err
+}
 
 func setup() (*gorm.DB, *config.ClientConfig, int, string, error) {
 	argConfig, flagSet, svcPort, err := config.ParseClientArgs(os.Stderr, os.Args[1:])
@@ -97,6 +121,13 @@ func main() {
 
 	DB = db
 	ClientCfg = cfg
+
+	assetMap, err := loadChainRegistryAssetLists(ClientCfg)
+	if err != nil {
+		config.Log.Fatalf("Error loading chain registry. Err: %v", err)
+	}
+
+	chainregistry.CacheAssetMap(assetMap)
 
 	// Have to keep this here so that import of docs subfolder (which contains proper init()) stays
 	docs.SwaggerInfo.Title = "Cosmos Tax CLI"
