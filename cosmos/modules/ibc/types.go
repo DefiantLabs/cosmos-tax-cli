@@ -2,6 +2,7 @@ package ibc
 
 import (
 	"fmt"
+	"strings"
 
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
 	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
@@ -76,6 +77,13 @@ func (w *WrapperMsgRecvPacket) HandleMsg(msgType string, msg stdTypes.Msg, log *
 	if err := types.ModuleCdc.UnmarshalJSON(w.MsgRecvPacket.Packet.GetData(), &data); err != nil {
 		// If there was a failure then this recv was not for a token transfer packet,
 		// currently we only consider successful token transfers taxable events.
+		return nil
+	}
+
+	senderAddress := data.Sender
+	receiverAddress := data.Receiver
+
+	if strings.Contains(senderAddress, "wormhole") || strings.Contains(receiverAddress, "wormhole") {
 		return nil
 	}
 
