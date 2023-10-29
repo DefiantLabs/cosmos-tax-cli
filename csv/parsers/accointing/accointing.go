@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
-	"github.com/DefiantLabs/cosmos-tax-cli/core"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/bank"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/distribution"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/gov"
@@ -370,19 +369,6 @@ func ParseMsgSwapExactAmountOut(event db.TaxableTransaction) (Row, error) {
 func ParseMsgTransfer(address string, event db.TaxableTransaction) (Row, error) {
 	row := &Row{}
 	err := row.ParseBasic(address, event)
-	selfTransfer := false
-
-	senderAddrPrefix := core.GetAddressPrefix(event.SenderAddress.Address)
-	receiverAddrPrefix := core.GetAddressPrefix(event.ReceiverAddress.Address)
-	if senderAddrPrefix != "" && receiverAddrPrefix != "" {
-		selfTransfer = core.IsAddressEqual(event.SenderAddress.Address, senderAddrPrefix, event.ReceiverAddress.Address, receiverAddrPrefix)
-	}
-
-	// The base bech32 address was the same, so this was a self transfer and is not taxable
-	if selfTransfer {
-		row.Classification = Ignored
-	}
-
 	if err != nil {
 		config.Log.Error("Error with ParseMsgTransfer.", err)
 	}
