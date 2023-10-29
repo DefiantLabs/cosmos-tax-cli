@@ -54,7 +54,7 @@ func TestAccointingIbcMsgTransferSelf(t *testing.T) {
 		cols := row.GetRowForCsv()
 		// transfer message should be a 'withdraw' from the sender's perspective
 		assert.Equal(t, "withdraw", cols[0], "transaction type should be a withdrawal")
-		assert.Equal(t, "ignored", cols[8], "transaction should not have a classification")
+		assert.Equal(t, "", cols[8], "transaction should not have a classification")
 	}
 }
 
