@@ -95,8 +95,14 @@ func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, lo
 	sf.Address = sf.OsmosisMsgSwapExactAmountIn.Sender
 
 	// The attribute in the log message that shows you the tokens swapped
-	tokensSwappedEvt := txModule.GetEventWithType("token_swapped", log)
-	transferEvt := txModule.GetEventWithType("transfer", log)
+	tokensSwappedEvents := txModule.GetEventsWithType("token_swapped", log)
+
+	var tokensSwappedEvt *txModule.LogMessageEvent
+	if len(tokensSwappedEvents) == 0 {
+		tokensSwappedEvt = nil
+	} else {
+		tokensSwappedEvt = &tokensSwappedEvents[len(tokensSwappedEvents)-1]
+	}
 
 	// We prefer the tokensSwappedEvt if it exists, but it is prone to error
 	// If it does exist, attempt a parse. If parsing fails, try other methods.
@@ -104,7 +110,7 @@ func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, lo
 
 	parsed := false
 
-	if tokensSwappedEvt != nil {
+	if tokensSwappedEvt == nil {
 
 		// The last route in the hops gives the token out denom and pool ID for the final output
 		lastRoute := sf.OsmosisMsgSwapExactAmountIn.Routes[len(sf.OsmosisMsgSwapExactAmountIn.Routes)-1]
@@ -120,6 +126,15 @@ func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, lo
 			sf.TokenOut = tokenOut
 			parsed = true
 		}
+	}
+
+	transferEvents := txModule.GetEventsWithType("transfer", log)
+
+	var transferEvt *txModule.LogMessageEvent
+	if len(transferEvents) == 0 {
+		transferEvt = nil
+	} else {
+		transferEvt = &transferEvents[len(transferEvents)-1]
 	}
 
 	if !parsed && transferEvt != nil {
