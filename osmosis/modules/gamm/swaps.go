@@ -362,6 +362,10 @@ func (sf *WrapperMsgSwapExactAmountIn5) HandleMsg(msgType string, msg sdk.Msg, l
 		}
 	}
 
+	if len(properTransferEvents) == 0 {
+		return errors.New("no transfer events with non-empty amounts")
+	}
+
 	firstTransfer := properTransferEvents[0]
 
 	// Sanity check transfer events

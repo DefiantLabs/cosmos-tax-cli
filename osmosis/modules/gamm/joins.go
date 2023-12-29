@@ -1,6 +1,7 @@
 package gamm
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -51,6 +52,10 @@ type WrapperMsgJoinPool struct {
 	TokenOut           sdk.Coin
 	TokensIn           []sdk.Coin // joins can be done with multiple tokens in
 	Claim              *sdk.Coin  // option claim
+}
+
+type WrapperMsgJoinPool2 struct {
+	WrapperMsgJoinPool
 }
 
 func (sf *WrapperMsgJoinSwapExternAmountIn) String() string {
@@ -405,6 +410,74 @@ func (sf *WrapperMsgJoinPool) HandleMsg(msgType string, msg sdk.Msg, log *txModu
 		}
 		return nil
 	}
+
+	// Address of whoever initiated the join.
+	senderAddress, err := txModule.GetValueForAttribute("sender", poolJoinedEvent)
+	if err != nil {
+		return err
+	}
+
+	if senderAddress == "" {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	sf.Address = senderAddress
+
+	// String value for the tokens in, which can be multiple
+	tokensInString, err := txModule.GetValueForAttribute(gammTypes.AttributeKeyTokensIn, poolJoinedEvent)
+	if err != nil {
+		return err
+	}
+
+	if tokensInString == "" {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	sf.TokensIn, err = sdk.ParseCoinsNormalized(tokensInString)
+	if err != nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	return err
+}
+
+func (sf *WrapperMsgJoinPool2) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.OsmosisMsgJoinPool = msg.(*gammTypes.MsgJoinPool)
+
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
+	}
+
+	// The attribute in the log message that shows you the sent GAMM tokens during the exit
+	transferEvts := txModule.GetAllEventsWithType(bankTypes.EventTypeTransfer, log)
+	if len(transferEvts) == 0 {
+		return errors.New("no transfer events found")
+	}
+
+	gammTokenOutStr := ""
+
+	for _, evt := range transferEvts {
+		// This gets the amount of GAMM tokens sent
+		gammTokenOutStr = txModule.GetLastValueForAttribute(EventAttributeAmount, &evt)
+		if strings.Contains(gammTokenOutStr, "gamm") {
+			break
+		}
+
+	}
+
+	if !strings.Contains(gammTokenOutStr, "gamm") {
+		return errors.New("gamm token out string must contain gamm")
+	}
+
+	gammTokenOut, err := sdk.ParseCoinNormalized(gammTokenOutStr)
+	if err != nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+	sf.TokenOut = gammTokenOut
+
+	// Address of whoever initiated the join
+	poolJoinedEvent := txModule.GetEventWithType(gammTypes.TypeEvtPoolJoined, log)
 
 	// Address of whoever initiated the join.
 	senderAddress, err := txModule.GetValueForAttribute("sender", poolJoinedEvent)
