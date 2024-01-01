@@ -31,11 +31,11 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/tendermint/modules/liquidity"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
 	"github.com/DefiantLabs/lens/client"
+	coretypes "github.com/cometbft/cometbft/rpc/core/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
 	cryptoTypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types"
 	cosmosTx "github.com/cosmos/cosmos-sdk/types/tx"
-	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 	"gorm.io/gorm"
 )
 
@@ -398,7 +398,7 @@ func AnalyzeSwaps() {
 		if swap.TokenOut.Denom == "uosmo" && swap.TokenIn.Denom == "uosmo" {
 			amount := swap.TokenOut.Amount.Sub(swap.TokenIn.Amount)
 			if amount.GT(types.ZeroInt()) {
-				txProfit := amount.ToDec().Quo(types.NewDec(1000000)).MustFloat64()
+				txProfit := amount.ToLegacyDec().Quo(types.NewDec(1000000)).MustFloat64()
 				profit += txProfit
 			}
 

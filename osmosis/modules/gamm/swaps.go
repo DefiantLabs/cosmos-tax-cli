@@ -8,7 +8,7 @@ import (
 	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	gammTypes "github.com/osmosis-labs/osmosis/v19/x/gamm/types"
+	gammTypes "github.com/osmosis-labs/osmosis/v21/x/gamm/types"
 )
 
 const (

@@ -13,10 +13,12 @@ import (
 	"time"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
-	tmjson "github.com/tendermint/tendermint/libs/json"
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
-	jsonrpc "github.com/tendermint/tendermint/rpc/jsonrpc/client"
-	types "github.com/tendermint/tendermint/rpc/jsonrpc/types"
+	lensClient "github.com/DefiantLabs/lens/client"
+	abci "github.com/cometbft/cometbft/abci/types"
+	tmjson "github.com/cometbft/cometbft/libs/json"
+	ctypes "github.com/cometbft/cometbft/rpc/core/types"
+	jsonrpc "github.com/cometbft/cometbft/rpc/jsonrpc/client"
+	types "github.com/cometbft/cometbft/rpc/jsonrpc/types"
 )
 
 func argsToURLValues(args map[string]interface{}) (url.Values, error) {
@@ -162,8 +164,28 @@ func (c *URIClient) DoBlockSearch(ctx context.Context, query string, page, perPa
 	return result, nil
 }
 
-func (c *URIClient) DoBlockResults(ctx context.Context, height *int64) (*ctypes.ResultBlockResults, error) {
-	result := new(ctypes.ResultBlockResults)
+type ResultBlockResults struct {
+	Height                int64                  `json:"height"`
+	TxsResults            []*json.RawMessage     `json:"txs_results"`
+	BeginBlockEvents      []Event                `json:"begin_block_events"`
+	EndBlockEvents        []Event                `json:"end_block_events"`
+	ValidatorUpdates      []abci.ValidatorUpdate `json:"validator_updates"`
+	ConsensusParamUpdates *json.RawMessage       `json:"consensus_param_updates"`
+}
+
+type Event struct {
+	Type       string           `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	Attributes []EventAttribute `protobuf:"bytes,2,rep,name=attributes,proto3" json:"attributes,omitempty"`
+}
+
+type EventAttribute struct {
+	Key   string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value string `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	Index bool   `protobuf:"varint,3,opt,name=index,proto3" json:"index,omitempty"`
+}
+
+func (c *URIClient) DoBlockResults(ctx context.Context, height *int64) (*ResultBlockResults, error) {
+	result := new(ResultBlockResults)
 	params := make(map[string]interface{})
 	if height != nil {
 		params["height"] = height
@@ -177,7 +199,7 @@ func (c *URIClient) DoBlockResults(ctx context.Context, height *int64) (*ctypes.
 	return result, nil
 }
 
-func GetBlockResult(client URIClient, height int64) (*ctypes.ResultBlockResults, error) {
+func GetBlockResult(client URIClient, height int64) (*ResultBlockResults, error) {
 	brctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 	defer cancel()
 
@@ -189,9 +211,9 @@ func GetBlockResult(client URIClient, height int64) (*ctypes.ResultBlockResults,
 	return bresults, nil
 }
 
-func GetBlockResultWithRetry(client URIClient, height int64, retryMaxAttempts int64, retryMaxWaitSeconds uint64) (*ctypes.ResultBlockResults, error) {
+func GetBlockResultWithRetry(cl *lensClient.ChainClient, height int64, retryMaxAttempts int64, retryMaxWaitSeconds uint64) (*ctypes.ResultBlockResults, error) {
 	if retryMaxAttempts == 0 {
-		return GetBlockResult(client, height)
+		return GetBlockResultRPC(cl, height)
 	}
 
 	if retryMaxWaitSeconds < 2 {
@@ -208,7 +230,7 @@ func GetBlockResultWithRetry(client URIClient, height int64, retryMaxAttempts in
 	currentBackoffDuration, maxReached := GetBackoffDurationForAttempts(attempts, maxRetryTime)
 
 	for {
-		resp, err := GetBlockResult(client, height)
+		resp, err := GetBlockResultRPC(cl, height)
 		attempts++
 		if err != nil && (retryMaxAttempts < 0 || (attempts <= retryMaxAttempts)) {
 			config.Log.Error("Error getting RPC response, backing off and trying again", err)
