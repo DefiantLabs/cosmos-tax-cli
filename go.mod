@@ -25,6 +25,7 @@ require (
 )
 
 require (
+	cosmossdk.io/math v1.1.3-rc.1
 	github.com/cometbft/cometbft v0.37.2
 	github.com/cosmos/ibc-go/v7 v7.3.1
 	github.com/go-git/go-git/v5 v5.9.0
@@ -48,7 +49,6 @@ require (
 	cosmossdk.io/depinject v1.0.0-alpha.4 // indirect
 	cosmossdk.io/errors v1.0.0 // indirect
 	cosmossdk.io/log v1.2.1 // indirect
-	cosmossdk.io/math v1.1.3-rc.1 // indirect
 	cosmossdk.io/tools/rosetta v0.2.1 // indirect
 	dario.cat/mergo v1.0.0 // indirect
 	filippo.io/edwards25519 v1.0.0 // indirect
