@@ -3,8 +3,8 @@ package protorev
 import (
 	"fmt"
 
+	abciTypes "github.com/cometbft/cometbft/abci/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	abciTypes "github.com/tendermint/tendermint/abci/types"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/events"
 	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
@@ -35,11 +35,11 @@ func (sf *WrapperBlockCoinReceived) HandleEvent(eventType string, event abciType
 	var receiverAmount string
 
 	for _, attr := range event.Attributes {
-		if string(attr.Key) == "receiver" {
-			receiverAddr = string(attr.Value)
+		if attr.Key == "receiver" {
+			receiverAddr = attr.Value
 		}
-		if string(attr.Key) == "amount" {
-			receiverAmount = string(attr.Value)
+		if attr.Key == "amount" {
+			receiverAmount = attr.Value
 		}
 	}
 

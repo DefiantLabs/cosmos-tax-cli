@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -444,15 +443,10 @@ func (idxr *Indexer) indexBlockEvents(wg *sync.WaitGroup, failedBlockHandler cor
 
 	config.Log.Infof("Indexing block events from block: %v to %v", startHeight, endHeight)
 
-	rpcClient := rpc.URIClient{
-		Address: idxr.cl.Config.RPCAddr,
-		Client:  &http.Client{},
-	}
-
 	currentHeight := startHeight
 
 	for endHeight == -1 || currentHeight <= endHeight {
-		bresults, err := rpc.GetBlockResultWithRetry(rpcClient, currentHeight, idxr.cfg.Base.RequestRetryAttempts, idxr.cfg.Base.RequestRetryMaxWait)
+		bresults, err := rpc.GetBlockResultWithRetry(idxr.cl, currentHeight, idxr.cfg.Base.RequestRetryAttempts, idxr.cfg.Base.RequestRetryMaxWait)
 		if err != nil {
 			config.Log.Error(fmt.Sprintf("Error receiving block result for block %d", currentHeight), err)
 			failedBlockHandler(currentHeight, core.FailedBlockEventHandling, err)
@@ -565,15 +559,10 @@ func (idxr *Indexer) indexEpochEvents(wg *sync.WaitGroup, failedBlockHandler cor
 
 	config.Log.Infof("Indexing epoch events from epoch: %v to %v", epochsBetween[0].EpochNumber, epochsBetween[len(epochsBetween)-1].EpochNumber)
 
-	rpcClient := rpc.URIClient{
-		Address: idxr.cl.Config.RPCAddr,
-		Client:  &http.Client{},
-	}
-
 	for _, epoch := range epochsBetween {
 		config.Log.Infof("Indexing epoch events for epoch %v at height %d", epoch.EpochNumber, epoch.StartHeight)
 
-		bresults, err := rpc.GetBlockResultWithRetry(rpcClient, int64(epoch.StartHeight), idxr.cfg.Base.RequestRetryAttempts, idxr.cfg.Base.RequestRetryMaxWait)
+		bresults, err := rpc.GetBlockResultWithRetry(idxr.cl, int64(epoch.StartHeight), idxr.cfg.Base.RequestRetryAttempts, idxr.cfg.Base.RequestRetryMaxWait)
 		if err != nil {
 			config.Log.Error(fmt.Sprintf("Error receiving block result for block %d", epoch.StartHeight), err)
 			failedBlockHandler(int64(epoch.StartHeight), core.FailedBlockEventHandling, err)
