@@ -162,6 +162,9 @@ func (sf *WrapperMsgCollectSpreadRewards) String() string {
 			tokensRecv = append(tokensRecv, v.String())
 		}
 	}
+	if len(tokensRecv) == 0 {
+		return fmt.Sprintf("MsgCollectSpreadRewards: %s received no rewards", sf.Address)
+	}
 	return fmt.Sprintf("MsgCollectSpreadRewards: %s received rewards of amount %s",
 		sf.Address, strings.Join(tokensRecv, ", "))
 }
@@ -171,19 +174,35 @@ func (sf *WrapperMsgCollectSpreadRewards) HandleMsg(msgType string, msg sdk.Msg,
 	sf.OsmosisMsgCollectSpreadRewards = msg.(*clTypes.MsgCollectSpreadRewards)
 
 	coinReceivedEvents := txModule.GetEventsWithType("coin_received", log)
-	if len(coinReceivedEvents) == 0 {
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
-	}
+	totalCollectSpreadRewardsEvents := txModule.GetEventsWithType("total_collect_spread_rewards", log)
 
-	senderCoinsReceivedStrings := txModule.GetCoinsReceived(sf.OsmosisMsgCollectSpreadRewards.Sender, coinReceivedEvents)
+	switch {
+	case len(coinReceivedEvents) != 0:
+		senderCoinsReceivedStrings := txModule.GetCoinsReceived(sf.OsmosisMsgCollectSpreadRewards.Sender, coinReceivedEvents)
 
-	for _, coinReceivedString := range senderCoinsReceivedStrings {
-		coinsReceived, err := sdk.ParseCoinsNormalized(coinReceivedString)
-		if err != nil {
-			return errors.New("error parsing coins received from event")
+		for _, coinReceivedString := range senderCoinsReceivedStrings {
+			coinsReceived, err := sdk.ParseCoinsNormalized(coinReceivedString)
+			if err != nil {
+				return errors.New("error parsing coins received from event")
+			}
+
+			sf.TokensRecieved = append(sf.TokensRecieved, coinsReceived...)
 		}
+	case len(totalCollectSpreadRewardsEvents) != 0:
+		for _, collectSpreadRewardsEvent := range totalCollectSpreadRewardsEvents {
+			for _, attribute := range collectSpreadRewardsEvent.Attributes {
+				if attribute.Key == tokensOutEvent && attribute.Value != "" {
+					coinsReceived, err := sdk.ParseCoinsNormalized(attribute.Value)
+					if err != nil {
+						return errors.New("error parsing coins received from spread rewards event")
+					}
 
-		sf.TokensRecieved = append(sf.TokensRecieved, coinsReceived...)
+					sf.TokensRecieved = append(sf.TokensRecieved, coinsReceived...)
+				}
+			}
+		}
+	default:
+		return errors.New("no processible events found")
 	}
 
 	sf.Address = sf.OsmosisMsgCollectSpreadRewards.Sender
