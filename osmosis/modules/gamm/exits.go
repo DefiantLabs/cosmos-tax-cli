@@ -384,8 +384,7 @@ func (sf *WrapperMsgExitPool2) HandleMsg(msgType string, msg sdk.Msg, log *txMod
 	// This gets the amount of GAMM tokens sent
 	gammTokenOutStr := txModule.GetLastValueForAttribute(EventAttributeAmount, transferEvt)
 	if !strings.Contains(gammTokenOutStr, "gamm") {
-		fmt.Println("Gamm token out string must contain gamm")
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		return errors.New("gamm token out string must contain gamm")
 	}
 	gammTokenOut, err := sdk.ParseCoinNormalized(gammTokenOutStr)
 	if err != nil {
@@ -437,8 +436,9 @@ func (sf *WrapperMsgExitPool3) HandleMsg(msgType string, msg sdk.Msg, log *txMod
 	gammTokenOutStr := ""
 
 	for _, evt := range transferEvts {
+		event := evt
 		// This gets the amount of GAMM tokens sent
-		gammTokenOutStr = txModule.GetLastValueForAttribute(EventAttributeAmount, &evt)
+		gammTokenOutStr = txModule.GetLastValueForAttribute(EventAttributeAmount, &event)
 		if strings.Contains(gammTokenOutStr, "gamm") {
 			break
 		}
@@ -503,8 +503,7 @@ func (sf *WrapperMsgExitPool) HandleMsg(msgType string, msg sdk.Msg, log *txModu
 	// This gets the amount of GAMM tokens sent
 	gammTokenOutStr := txModule.GetLastValueForAttribute(EventAttributeAmount, transverEvt)
 	if !strings.Contains(gammTokenOutStr, "gamm") {
-		fmt.Println("Gamm token out string must contain gamm")
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		return errors.New("gamm token out string must contain gamm")
 	}
 	gammTokenOut, err := sdk.ParseCoinNormalized(gammTokenOutStr)
 	if err != nil {

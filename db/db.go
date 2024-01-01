@@ -167,7 +167,8 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 			return err
 		}
 
-		for _, transaction := range txs {
+		for _, tx := range txs {
+			transaction := tx
 			txOnly := Tx{
 				Hash:            transaction.Tx.Hash,
 				Code:            transaction.Tx.Code,
@@ -194,7 +195,8 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 				return err
 			}
 
-			for _, fee := range transaction.Tx.Fees {
+			for _, feeL := range transaction.Tx.Fees {
+				fee := feeL
 				feeOnly := Fee{
 					TxID:           txOnly.ID,
 					Amount:         fee.Amount,
@@ -225,7 +227,8 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 				}
 			}
 
-			for _, message := range transaction.Messages {
+			for _, msg := range transaction.Messages {
+				message := msg
 				if message.Message.MessageType.MessageType == "" {
 					config.Log.Fatal("Message type not getting to DB")
 				}
@@ -246,7 +249,8 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 					return err
 				}
 
-				for _, taxableTx := range message.TaxableTxs {
+				for _, taxableTxL := range message.TaxableTxs {
+					taxableTx := taxableTxL
 					if len(taxableTx.SenderAddress.Address) > maxAddrLen || len(taxableTx.ReceiverAddress.Address) > maxAddrLen {
 						continue
 					}
@@ -316,7 +320,8 @@ func IndexNewBlock(db *gorm.DB, blockHeight int64, blockTime time.Time, txs []Tx
 
 func UpsertDenoms(db *gorm.DB, denoms []DenomDBWrapper) error {
 	return db.Transaction(func(dbTransaction *gorm.DB) error {
-		for _, denom := range denoms {
+		for _, denomL := range denoms {
+			denom := denomL
 			if err := dbTransaction.Clauses(clause.OnConflict{
 				Columns:   []clause.Column{{Name: "base"}},
 				DoUpdates: clause.AssignmentColumns([]string{"symbol", "name"}),
@@ -324,7 +329,8 @@ func UpsertDenoms(db *gorm.DB, denoms []DenomDBWrapper) error {
 				return err
 			}
 
-			for _, denomUnit := range denom.DenomUnits {
+			for _, denomUnitL := range denom.DenomUnits {
+				denomUnit := denomUnitL
 				denomUnit.DenomUnit.Denom = denom.Denom
 
 				if err := dbTransaction.Clauses(clause.OnConflict{

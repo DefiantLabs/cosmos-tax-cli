@@ -26,11 +26,11 @@ func (sf *WrapperBlockDistribution) HandleEvent(eventType string, event abciType
 	var receiverAmount string
 
 	for _, attr := range event.Attributes {
-		if string(attr.Key) == "receiver" {
-			receiverAddr = string(attr.Value)
+		if attr.Key == "receiver" {
+			receiverAddr = attr.Value
 		}
-		if string(attr.Key) == "amount" {
-			receiverAmount = string(attr.Value)
+		if attr.Key == "amount" {
+			receiverAmount = attr.Value
 		}
 	}
 

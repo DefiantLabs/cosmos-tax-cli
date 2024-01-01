@@ -366,9 +366,7 @@ func (sf *WrapperMsgJoinPool) HandleMsg(msgType string, msg sdk.Msg, log *txModu
 		gammTokenOutStr = txModule.GetLastValueForAttribute(EventAttributeAmount, transferEvt)
 	}
 	if !strings.Contains(gammTokenOutStr, "gamm") {
-		fmt.Println(gammTokenOutStr)
-		fmt.Println("Gamm token out string must contain gamm")
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		return errors.New("gamm token out string must contain gamm")
 	}
 
 	gammTokenOut, err := sdk.ParseCoinNormalized(gammTokenOutStr)
@@ -457,8 +455,9 @@ func (sf *WrapperMsgJoinPool2) HandleMsg(msgType string, msg sdk.Msg, log *txMod
 
 	gammTokenOutStr := ""
 
-	for _, evt := range transferEvts {
+	for _, evtL := range transferEvts {
 		// This gets the amount of GAMM tokens sent
+		evt := evtL
 		gammTokenOutStr = txModule.GetLastValueForAttribute(EventAttributeAmount, &evt)
 		if strings.Contains(gammTokenOutStr, "gamm") {
 			break

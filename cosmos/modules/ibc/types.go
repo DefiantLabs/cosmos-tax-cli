@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"cosmossdk.io/math"
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
 	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
@@ -56,7 +57,7 @@ type WrapperMsgRecvPacket struct {
 	Sequence        uint64
 	SenderAddress   string
 	ReceiverAddress string
-	Amount          stdTypes.Int
+	Amount          math.Int
 	Denom           string
 }
 
@@ -134,7 +135,7 @@ type WrapperMsgAcknowledgement struct {
 	Sequence           uint64
 	SenderAddress      string
 	ReceiverAddress    string
-	Amount             stdTypes.Int
+	Amount             math.Int
 	Denom              string
 	AckType            int
 	AckResult          int
