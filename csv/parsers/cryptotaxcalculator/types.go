@@ -44,4 +44,5 @@ const (
 	FlatWithdrawal = "flat-withdrawal"
 	Receive        = "receive"
 	Sell           = "sell"
+	Fee            = "fee"
 )

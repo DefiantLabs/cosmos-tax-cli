@@ -38,9 +38,10 @@ func TestAccointingIbcMsgTransferSelf(t *testing.T) {
 
 	// make transactions for this user entering and leaving LPs
 	transferTxs := getTestIbcTransferTXs(t, sourceAddress, destAddress, sourceChain, targetChain)
+	emptyFees := []db.Fee{}
 
 	// attempt to parse
-	err := parser.ProcessTaxableTx(sourceAddress.Address, transferTxs)
+	err := parser.ProcessTaxableTx(sourceAddress.Address, transferTxs, emptyFees)
 	assert.Nil(t, err, "should not get error from parsing these transactions")
 
 	// validate output
@@ -83,9 +84,10 @@ func TestAccointingIbcMsgTransferExternal(t *testing.T) {
 
 	// make transactions for this user entering and leaving LPs
 	transferTxs := getTestIbcTransferTXs(t, sourceAddress, destAddress, sourceChain, targetChain)
+	emptyFees := []db.Fee{}
 
 	// attempt to parse
-	err := parser.ProcessTaxableTx(sourceAddress.Address, transferTxs)
+	err := parser.ProcessTaxableTx(sourceAddress.Address, transferTxs, emptyFees)
 	assert.Nil(t, err, "should not get error from parsing these transactions")
 
 	// validate output
@@ -115,9 +117,10 @@ func TestAccointingOsmoLPParsing(t *testing.T) {
 
 	// make transactions for this user entering and leaving LPs
 	transferTxs := getTestSwapTXs(t, targetAddress, chain)
+	emptyFees := []db.Fee{}
 
 	// attempt to parse
-	err := parser.ProcessTaxableTx(targetAddress.Address, transferTxs)
+	err := parser.ProcessTaxableTx(targetAddress.Address, transferTxs, emptyFees)
 	assert.Nil(t, err, "should not get error from parsing these transactions")
 
 	// validate output
