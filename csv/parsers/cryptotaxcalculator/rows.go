@@ -87,6 +87,22 @@ func (row *Row) ParseBasic(address string, event db.TaxableTransaction) error {
 	return nil
 }
 
+func (row *Row) ParseFee(address string, fee db.Fee) error {
+	row.Date = fee.Tx.Block.TimeStamp
+	row.ID = fee.Tx.Hash
+	row.Type = Fee
+
+	sentConversionAmount, sentConversionSymbol, err := db.ConvertUnits(util.FromNumeric(fee.Amount), fee.Denomination)
+	if err != nil {
+		return fmt.Errorf("cannot parse denom units for TX %s (classification: swap sent)", row.ID)
+	}
+
+	row.BaseAmount = sentConversionAmount.Text('f', -1)
+	row.BaseCurrency = sentConversionSymbol
+
+	return nil
+}
+
 func (row *Row) ParseSwap(event db.TaxableTransaction, address, eventType string) error {
 	row.Date = event.Message.Tx.Block.TimeStamp
 	row.ID = event.Message.Tx.Hash

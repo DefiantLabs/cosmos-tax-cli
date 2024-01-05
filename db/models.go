@@ -49,6 +49,7 @@ type Tx struct {
 type Fee struct {
 	ID             uint            `gorm:"primaryKey"`
 	TxID           uint            `gorm:"uniqueIndex:txDenomFee"`
+	Tx             Tx              `gorm:"foreignKey:tx_id"`
 	Amount         decimal.Decimal `gorm:"type:decimal(78,0);"`
 	DenominationID uint            `gorm:"uniqueIndex:txDenomFee"`
 	Denomination   Denom           `gorm:"foreignKey:DenominationID"`

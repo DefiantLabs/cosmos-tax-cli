@@ -20,6 +20,13 @@ func GetTaxableTransactions(address string, db *gorm.DB) ([]TaxableTransaction, 
 	return taxableTransactions, result.Error
 }
 
+func GetTaxableFees(address string, db *gorm.DB) ([]Fee, error) {
+	var fees []Fee
+	result := db.Joins("JOIN addresses ON addresses.id = fees.payer_address_id").
+		Where("addresses.address = ?", address).Preload("PayerAddress").Preload("Denomination").Preload("Tx").Find(&fees)
+	return fees, result.Error
+}
+
 func GetTaxableEvents(address string, db *gorm.DB) ([]TaxableEvent, error) {
 	// Look up all TaxableEvents for the addresses
 	var taxableEvents []TaxableEvent

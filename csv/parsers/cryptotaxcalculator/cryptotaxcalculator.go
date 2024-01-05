@@ -20,9 +20,16 @@ func (p *Parser) TimeLayout() string {
 	return TimeLayout
 }
 
-func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransaction) error {
+func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransaction, taxableFees []db.Fee) error {
 	// Build a map, so we know which TX go with which messages
 	txMap := parsers.MakeTXMap(taxableTxs)
+
+	feesWithoutTx := []db.Fee{}
+	for _, fee := range taxableFees {
+		if _, ok := txMap[fee.Tx.ID]; !ok {
+			feesWithoutTx = append(feesWithoutTx, fee)
+		}
+	}
 
 	// Pull messages out of txMap that must be grouped together
 	parsers.SeparateParsingGroups(txMap, p.ParsingGroups)
@@ -49,6 +56,16 @@ func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransac
 		if err != nil {
 			return err
 		}
+	}
+
+	for _, fee := range feesWithoutTx {
+		row := Row{}
+		err := row.ParseFee(address, fee)
+		if err != nil {
+			return err
+		}
+
+		p.Rows = append(p.Rows, row)
 	}
 
 	return nil

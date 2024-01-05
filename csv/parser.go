@@ -62,7 +62,15 @@ func ParseForAddress(addresses []string, startDate, endDate *time.Time, pgSQL *g
 			return nil, nil, err
 		}
 
-		err = parser.ProcessTaxableTx(address, taxableTxs)
+		// Some TXs may have fees while the address had no taxable TXs
+		// We gather all fees and pass them to the parser
+		taxableFees, err := db.GetTaxableFees(address, pgSQL)
+		if err != nil {
+			config.Log.Error("Error getting taxable fees.", err)
+			return nil, nil, err
+		}
+
+		err = parser.ProcessTaxableTx(address, taxableTxs, taxableFees)
 		if err != nil {
 			config.Log.Error("Error processing taxable transaction.", err)
 			return nil, nil, err

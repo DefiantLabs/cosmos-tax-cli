@@ -21,7 +21,7 @@ func (p *Parser) TimeLayout() string {
 	return TimeLayout
 }
 
-func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransaction) error {
+func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransaction, taxableFees []db.Fee) error {
 	// Build a map, so we know which TX go with which messages
 	txMap := parsers.MakeTXMap(taxableTxs)
 
@@ -55,7 +55,7 @@ func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransac
 	// Handle fees on all taxableTxs at once, we don't do this in the regular parser or in the parsing groups
 	// This requires HandleFees to process the fees into unique mappings of tx -> fees (since we gather Taxable Messages in the taxableTxs)
 	// If we move it into the ParseTx function or into the ParseGroup function, we may be able to reduce the logic in the HandleFees func
-	feeRows, err := HandleFees(address, taxableTxs)
+	feeRows, err := HandleFees(address, taxableTxs, taxableFees)
 	if err != nil {
 		return err
 	}
@@ -166,9 +166,9 @@ func (p Parser) GetHeaders() []string {
 // If the transaction lists the same amount of fees as there are rows in the CSV,
 // then we spread the fees out one per row. Otherwise we add a line for the fees,
 // where each fee has a separate line.
-func HandleFees(address string, events []db.TaxableTransaction) (rows []Row, err error) {
+func HandleFees(address string, events []db.TaxableTransaction, allFees []db.Fee) (rows []Row, err error) {
 	// No events -- This address didn't pay any fees
-	if len(events) == 0 {
+	if len(events) == 0 && len(allFees) == 0 {
 		return rows, nil
 	}
 
@@ -181,6 +181,15 @@ func HandleFees(address string, events []db.TaxableTransaction) (rows []Row, err
 		feeStore := event.Message.Tx.Fees
 		txToFeesMap[txID] = feeStore
 		txIdsToTx[txID] = event.Message.Tx
+	}
+
+	// Due to the way we are parsing, we may have fees for TX that we don't have events for
+	for _, fee := range allFees {
+		txID := fee.Tx.ID
+		if _, ok := txToFeesMap[txID]; !ok {
+			txToFeesMap[txID] = []db.Fee{fee}
+			txIdsToTx[txID] = fee.Tx
+		}
 	}
 
 	for id, txFees := range txToFeesMap {
