@@ -251,13 +251,13 @@ func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.Csv
 			newRow, err = ParseMsgWithdrawDelegatorReward(address, event)
 		case staking.MsgBeginRedelegate:
 			newRow, err = ParseMsgWithdrawDelegatorReward(address, event)
-		case gov.MsgSubmitProposal:
+		case gov.MsgSubmitProposal, gov.MsgSubmitProposalV1:
 			newRow, err = ParseMsgSubmitProposal(address, event)
 		case gamm.MsgSwapExactAmountIn:
 			newRow, err = ParseMsgSwapExactAmountIn(event)
 		case gamm.MsgSwapExactAmountOut:
 			newRow, err = ParseMsgSwapExactAmountOut(event)
-		case gov.MsgDeposit:
+		case gov.MsgDeposit, gov.MsgDepositV1:
 			newRow, err = ParseMsgDeposit(address, event)
 		case ibc.MsgTransfer:
 			newRow, err = ParseMsgTransfer(address, event)

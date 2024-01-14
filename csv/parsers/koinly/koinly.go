@@ -327,9 +327,9 @@ func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.Csv
 			newRow, err = ParseMsgSwapExactAmountOut(event)
 		case ibc.MsgTransfer:
 			newRow, err = ParseMsgTransfer(address, event)
-		case gov.MsgSubmitProposal:
+		case gov.MsgSubmitProposal, gov.MsgSubmitProposalV1:
 			newRow, err = ParseMsgSubmitProposal(address, event)
-		case gov.MsgDeposit:
+		case gov.MsgDeposit, gov.MsgDepositV1:
 			newRow, err = ParseMsgDeposit(address, event)
 		case ibc.MsgAcknowledgement:
 			newRow, err = ParseMsgTransfer(address, event)

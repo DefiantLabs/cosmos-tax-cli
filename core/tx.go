@@ -48,6 +48,8 @@ var messageTypeHandler = map[string][]func() txtypes.CosmosMessage{
 	distribution.MsgFundCommunityPool:           {func() txtypes.CosmosMessage { return &distribution.WrapperMsgFundCommunityPool{} }},
 	gov.MsgDeposit:                              {func() txtypes.CosmosMessage { return &gov.WrapperMsgDeposit{} }},
 	gov.MsgSubmitProposal:                       {func() txtypes.CosmosMessage { return &gov.WrapperMsgSubmitProposal{} }},
+	gov.MsgDepositV1:                            {func() txtypes.CosmosMessage { return &gov.WrapperMsgDepositV1{} }},
+	gov.MsgSubmitProposalV1:                     {func() txtypes.CosmosMessage { return &gov.WrapperMsgSubmitProposalV1{} }},
 	staking.MsgDelegate:                         {func() txtypes.CosmosMessage { return &staking.WrapperMsgDelegate{} }},
 	staking.MsgUndelegate:                       {func() txtypes.CosmosMessage { return &staking.WrapperMsgUndelegate{} }},
 	staking.MsgBeginRedelegate:                  {func() txtypes.CosmosMessage { return &staking.WrapperMsgBeginRedelegate{} }},
@@ -70,8 +72,10 @@ var messageTypeIgnorer = map[string]interface{}{
 	// Making a stableswap config change is not taxable
 	gamm.MsgStableSwapAdjustScalingFactors: nil,
 	// Voting is not taxable
-	gov.MsgVote:         nil,
-	gov.MsgVoteWeighted: nil,
+	gov.MsgVote:           nil,
+	gov.MsgVoteWeighted:   nil,
+	gov.MsgVoteV1:         nil,
+	gov.MsgVoteWeightedV1: nil,
 	// The IBC msgs below do not create taxable events
 	ibc.MsgTransfer:              nil,
 	ibc.MsgUpdateClient:          nil,
