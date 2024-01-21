@@ -14,6 +14,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/poolmanager"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 )
 
 func (p *Parser) TimeLayout() string {
@@ -24,6 +25,13 @@ func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransac
 	// Build a map, so we know which TX go with which messages
 	txMap := parsers.MakeTXMap(taxableTxs)
 
+	feesWithoutTx := []db.Fee{}
+	for _, fee := range taxableFees {
+		if _, ok := txMap[fee.Tx.ID]; !ok {
+			feesWithoutTx = append(feesWithoutTx, fee)
+		}
+	}
+
 	// Pull messages out of txMap that must be grouped together
 	parsers.SeparateParsingGroups(txMap, p.ParsingGroups)
 
@@ -31,9 +39,14 @@ func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransac
 	for _, txGroup := range txMap {
 		// All messages have been removed into a parsing group
 		if len(txGroup) != 0 {
+			var fees []db.Fee
+
+			if len(txGroup) > 0 {
+				fees = txGroup[0].Message.Tx.Fees
+			}
 			// For the current transaction group, generate the rows for the CSV.
 			// Usually (but not always) a transaction will only have a single row in the CSV.
-			txRows, err := ParseTx(address, txGroup)
+			txRows, err := ParseTx(address, txGroup, fees)
 			if err != nil {
 				return err
 			}
@@ -51,15 +64,15 @@ func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransac
 		}
 	}
 
-	// Handle fees on all taxableTxs at once, we don't do this in the regular parser or in the parsing groups
-	// This requires HandleFees to process the fees into unique mappings of tx -> fees (since we gather Taxable Messages in the taxableTxs)
-	// If we move it into the ParseTx function or into the ParseGroup function, we may be able to reduce the logic in the HandleFees func
-	feeRows, err := HandleFees(address, taxableTxs, taxableFees)
-	if err != nil {
-		return err
-	}
+	for _, fee := range feesWithoutTx {
+		row := Row{}
+		err := row.ParseFee(fee.Tx, fee)
+		if err != nil {
+			return err
+		}
 
-	p.Rows = append(p.Rows, feeRows...)
+		p.Rows = append(p.Rows, row)
+	}
 
 	return nil
 }
@@ -157,52 +170,6 @@ func (p Parser) GetHeaders() []string {
 	return []string{"Date", "Received Quantity", "Received Currency", "Sent Quantity", "Sent Currency", "Fee Amount", "Fee Currency", "Tag"}
 }
 
-// HandleFees:
-// If the transaction lists the same amount of fees as there are rows in the CSV,
-// then we spread the fees out one per row. Otherwise we add a line for the fees,
-// where each fee has a separate line.
-func HandleFees(address string, events []db.TaxableTransaction, allFees []db.Fee) (rows []Row, err error) {
-	// No events -- This address didn't pay any fees
-	if len(events) == 0 && len(allFees) == 0 {
-		return rows, nil
-	}
-
-	// We need to gather all unique fees, but we are receiving Messages not Txes
-	// Make a map from TX hash to fees array to keep unique
-	txToFeesMap := make(map[uint][]db.Fee)
-	txIdsToTx := make(map[uint]db.Tx)
-	for _, event := range events {
-		txID := event.Message.Tx.ID
-		feeStore := event.Message.Tx.Fees
-		txToFeesMap[txID] = feeStore
-		txIdsToTx[txID] = event.Message.Tx
-	}
-
-	// Due to the way we are parsing, we may have fees for TX that we don't have events for
-	for _, fee := range allFees {
-		txID := fee.Tx.ID
-		if _, ok := txToFeesMap[txID]; !ok {
-			txToFeesMap[txID] = []db.Fee{fee}
-			txIdsToTx[txID] = fee.Tx
-		}
-	}
-
-	for id, txFees := range txToFeesMap {
-		for _, fee := range txFees {
-			if fee.PayerAddress.Address == address {
-				newRow := Row{}
-				err = newRow.ParseFee(txIdsToTx[id], fee)
-				if err != nil {
-					return nil, err
-				}
-				rows = append(rows, newRow)
-			}
-		}
-	}
-
-	return rows, nil
-}
-
 // ParseEvent: Parse the potentially taxable event
 func ParseEvent(event db.TaxableEvent) (rows []Row, err error) {
 	if event.Source == db.OsmosisRewardDistribution {
@@ -220,7 +187,8 @@ func ParseEvent(event db.TaxableEvent) (rows []Row, err error) {
 // ParseTx: Parse the potentially taxable TX and Messages
 // This function is used for parsing a single TX that will not need to relate to any others
 // Use TX Parsing Groups to parse txes as a group
-func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.CsvRow, err error) {
+func ParseTx(address string, events []db.TaxableTransaction, fees []db.Fee) (rows []parsers.CsvRow, err error) {
+	currFeeIndex := 0
 	for _, event := range events {
 		var newRow Row
 		var err error
@@ -273,8 +241,39 @@ func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.Csv
 			continue
 		}
 
+		// Attach fees to the transaction events
+		if currFeeIndex < len(fees) {
+			if fees[currFeeIndex].PayerAddress.Address == address {
+				conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(fees[currFeeIndex].Amount), fees[currFeeIndex].Denomination)
+				if err != nil {
+					config.Log.Errorf("error parsing fee: %v", err)
+				} else {
+					newRow.FeeAmount = conversionAmount.String()
+					newRow.FeeCurrency = conversionSymbol
+				}
+			}
+			currFeeIndex++
+		}
+
 		rows = append(rows, newRow)
 	}
+
+	// Check if fees have all been processed based on last processed index
+	if currFeeIndex < len(fees) {
+		// Create empty row for the fees that weren't processed
+		for i := currFeeIndex; i < len(fees); i++ {
+			if fees[i].PayerAddress.Address == address {
+				newRow := Row{}
+				err = newRow.ParseFee(fees[i].Tx, fees[i])
+				if err != nil {
+					config.Log.Errorf("error parsing fee: %v", err)
+					continue
+				}
+				rows = append(rows, newRow)
+			}
+		}
+	}
+
 	return rows, nil
 }
 
