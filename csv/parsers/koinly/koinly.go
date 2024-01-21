@@ -15,6 +15,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/staking"
 	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/concentratedliquidity"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/poolmanager"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
@@ -316,6 +317,8 @@ func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.Csv
 			newRow, err = ParseMsgRecvPacket(address, event)
 		case poolmanager.MsgSplitRouteSwapExactAmountIn, poolmanager.MsgSwapExactAmountIn, poolmanager.MsgSwapExactAmountOut:
 			newRow, err = ParsePoolManagerSwap(event)
+		case concentratedliquidity.MsgCollectIncentives, concentratedliquidity.MsgCollectSpreadRewards:
+			newRow, err = ParseConcentratedLiquidityCollection(event)
 		default:
 			config.Log.Errorf("no parser for message type '%v'", event.Message.MessageType.MessageType)
 			continue
@@ -501,5 +504,25 @@ func ParsePoolManagerSwap(event db.TaxableTransaction) (Row, error) {
 	if err != nil {
 		config.Log.Error("Error with ParseMsgSwapExactAmountOut.", err)
 	}
+	return *row, err
+}
+
+func ParseConcentratedLiquidityCollection(event db.TaxableTransaction) (Row, error) {
+	row := &Row{}
+	denomToUse := event.DenominationReceived
+	amountToUse := event.AmountReceived
+
+	conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(amountToUse), denomToUse)
+	if err != nil {
+		config.Log.Error("Error with ParseConcentratedLiquidityCollection.", err)
+		return *row, fmt.Errorf("cannot parse denom units for TX %s (classification: deposit)", event.Message.Tx.Hash)
+	}
+
+	row.ReceivedAmount = conversionAmount.Text('f', -1)
+	row.ReceivedCurrency = conversionSymbol
+	row.Label = Income
+	row.Date = event.Message.Tx.Block.TimeStamp.Format(TimeLayout)
+	row.TxHash = event.Message.Tx.Hash
+
 	return *row, err
 }
