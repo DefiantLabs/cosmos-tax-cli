@@ -23,7 +23,7 @@ func GetTaxableTransactions(address string, db *gorm.DB) ([]TaxableTransaction, 
 func GetTaxableFees(address string, db *gorm.DB) ([]Fee, error) {
 	var fees []Fee
 	result := db.Joins("JOIN addresses ON addresses.id = fees.payer_address_id").
-		Where("addresses.address = ?", address).Preload("PayerAddress").Preload("Denomination").Preload("Tx").Find(&fees)
+		Where("addresses.address = ?", address).Preload("PayerAddress").Preload("Denomination").Preload("Tx").Preload("Tx.Block").Find(&fees)
 	return fees, result.Error
 }
 

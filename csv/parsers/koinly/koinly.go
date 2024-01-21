@@ -17,6 +17,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/poolmanager"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 )
 
 var unsupportedCoins = []string{
@@ -150,50 +151,28 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) ([]parse
 		}
 		return leftDate.Before(rightDate)
 	})
-
-	// Now that we are sorted, if we have a start date, drop everything from before it, if end date is set, drop everything after it
-	var firstToKeep *int
-	var lastToKeep *int
-	for i := range koinlyRows {
-		if startDate != nil && firstToKeep == nil {
-			rowDate, err := time.Parse(TimeLayout, koinlyRows[i].Date)
-			if err != nil {
-				config.Log.Error("Error parsing row date.", err)
-				return nil, err
-			}
-			if rowDate.Before(*startDate) {
-				continue
-			}
-			startIdx := i
-			firstToKeep = &startIdx
-		} else if endDate != nil && lastToKeep == nil {
-			rowDate, err := time.Parse(TimeLayout, koinlyRows[i].Date)
-			if err != nil {
-				config.Log.Error("Error parsing row date.", err)
-				return nil, err
-			}
-			if rowDate.Before(*endDate) {
-				continue
-			} else if i > 0 {
-				endIdx := i - 1
-				lastToKeep = &endIdx
-				break
-			}
-		}
-	}
-	if firstToKeep != nil && lastToKeep != nil { // nolint:gocritic
-		koinlyRows = koinlyRows[*firstToKeep:*lastToKeep]
-	} else if firstToKeep != nil {
-		koinlyRows = koinlyRows[*firstToKeep:]
-	} else if lastToKeep != nil {
-		koinlyRows = koinlyRows[:*lastToKeep]
-	}
-
 	mapUnsupportedCoints(koinlyRows)
 
+	// Now that we are sorted, if we have a start date, drop everything from before it, if end date is set, drop everything after it
+	var rowsToKeep []*Row
+	for i := range koinlyRows {
+		rowDate, err := time.Parse(TimeLayout, koinlyRows[i].Date)
+		if err != nil {
+			config.Log.Error("Error parsing row date.", err)
+			return nil, err
+		}
+		if startDate != nil && rowDate.Before(*startDate) {
+			continue
+		}
+		if endDate != nil && rowDate.After(*endDate) {
+			break
+		}
+		rowsToKeep = append(rowsToKeep, &koinlyRows[i])
+	}
+
 	// Copy AccointingRows into csvRows for return val
-	csvRows := make([]parsers.CsvRow, len(koinlyRows))
-	for i, v := range koinlyRows {
+	csvRows := make([]parsers.CsvRow, len(rowsToKeep))
+	for i, v := range rowsToKeep {
 		if _, isUnsuppored := coinReplacementMap[v.ReceivedCurrency]; isUnsuppored {
 			v.ReceivedCurrency = coinReplacementMap[v.ReceivedCurrency]
 		}
@@ -332,9 +311,9 @@ func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.Csv
 		case gov.MsgDeposit, gov.MsgDepositV1:
 			newRow, err = ParseMsgDeposit(address, event)
 		case ibc.MsgAcknowledgement:
-			newRow, err = ParseMsgTransfer(address, event)
+			newRow, err = ParseMsgAcknowledgement(address, event)
 		case ibc.MsgRecvPacket:
-			newRow, err = ParseMsgTransfer(address, event)
+			newRow, err = ParseMsgRecvPacket(address, event)
 		case poolmanager.MsgSplitRouteSwapExactAmountIn, poolmanager.MsgSwapExactAmountIn, poolmanager.MsgSwapExactAmountOut:
 			newRow, err = ParsePoolManagerSwap(event)
 		default:
@@ -430,6 +409,62 @@ func ParseMsgTransfer(address string, event db.TaxableTransaction) (Row, error) 
 	if err != nil {
 		config.Log.Error("Error with ParseMsgTransfer.", err)
 	}
+	return *row, err
+}
+
+func ParseMsgAcknowledgement(address string, event db.TaxableTransaction) (Row, error) {
+	row := &Row{}
+
+	denomToUse := event.DenominationSent
+	amountToUse := event.AmountSent
+
+	conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(amountToUse), denomToUse)
+	if err != nil {
+		config.Log.Error("Error with ParseMsgRecvPacket.", err)
+		return *row, fmt.Errorf("cannot parse denom units for TX %s (classification: deposit)", event.Message.Tx.Hash)
+	}
+
+	if event.ReceiverAddress.Address == address {
+		row.ReceivedAmount = conversionAmount.Text('f', -1)
+		row.ReceivedCurrency = conversionSymbol
+		row.Label = Income
+	} else if event.SenderAddress.Address == address { // withdrawal
+		row.SentAmount = conversionAmount.Text('f', -1)
+		row.SentCurrency = conversionSymbol
+		row.Label = Cost
+	}
+
+	row.Date = event.Message.Tx.Block.TimeStamp.Format(TimeLayout)
+	row.TxHash = event.Message.Tx.Hash
+
+	return *row, err
+}
+
+func ParseMsgRecvPacket(address string, event db.TaxableTransaction) (Row, error) {
+	row := &Row{}
+
+	denomToUse := event.DenominationReceived
+	amountToUse := event.AmountReceived
+
+	conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(amountToUse), denomToUse)
+	if err != nil {
+		config.Log.Error("Error with ParseMsgRecvPacket.", err)
+		return *row, fmt.Errorf("cannot parse denom units for TX %s (classification: deposit)", event.Message.Tx.Hash)
+	}
+
+	if event.ReceiverAddress.Address == address {
+		row.ReceivedAmount = conversionAmount.Text('f', -1)
+		row.ReceivedCurrency = conversionSymbol
+		row.Label = Income
+	} else if event.SenderAddress.Address == address { // withdrawal
+		row.SentAmount = conversionAmount.Text('f', -1)
+		row.SentCurrency = conversionSymbol
+		row.Label = Cost
+	}
+
+	row.Date = event.Message.Tx.Block.TimeStamp.Format(TimeLayout)
+	row.TxHash = event.Message.Tx.Hash
+
 	return *row, err
 }
 

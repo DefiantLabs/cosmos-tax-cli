@@ -9,7 +9,7 @@ import (
 
 func (row Row) GetRowForCsv() []string {
 	return []string{
-		row.Date.Format(TimeLayout),
+		row.Date,
 		row.Type,
 		row.BaseCurrency,
 		row.BaseAmount,
@@ -28,11 +28,11 @@ func (row Row) GetRowForCsv() []string {
 }
 
 func (row Row) GetDate() string {
-	return row.Date.Format(TimeLayout)
+	return row.Date
 }
 
 func (row *Row) EventParseBasic(event db.TaxableEvent) error {
-	row.Date = event.Block.TimeStamp
+	row.Date = event.Block.TimeStamp.Format(TimeLayout)
 
 	conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.Amount), event.Denomination)
 	if err == nil {
@@ -48,7 +48,7 @@ func (row *Row) EventParseBasic(event db.TaxableEvent) error {
 
 // ParseBasic: Handles the fields that are shared between most types.
 func (row *Row) ParseBasic(address string, event db.TaxableTransaction) error {
-	row.Date = event.Message.Tx.Block.TimeStamp
+	row.Date = event.Message.Tx.Block.TimeStamp.Format(TimeLayout)
 	row.ID = event.Message.Tx.Hash
 
 	// deposit
@@ -88,7 +88,7 @@ func (row *Row) ParseBasic(address string, event db.TaxableTransaction) error {
 }
 
 func (row *Row) ParseFee(address string, fee db.Fee) error {
-	row.Date = fee.Tx.Block.TimeStamp
+	row.Date = fee.Tx.Block.TimeStamp.Format(TimeLayout)
 	row.ID = fee.Tx.Hash
 	row.Type = Fee
 
@@ -104,7 +104,7 @@ func (row *Row) ParseFee(address string, fee db.Fee) error {
 }
 
 func (row *Row) ParseSwap(event db.TaxableTransaction, address, eventType string) error {
-	row.Date = event.Message.Tx.Block.TimeStamp
+	row.Date = event.Message.Tx.Block.TimeStamp.Format(TimeLayout)
 	row.ID = event.Message.Tx.Hash
 	row.Type = eventType
 

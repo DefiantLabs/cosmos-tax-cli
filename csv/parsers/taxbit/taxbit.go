@@ -107,46 +107,25 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) ([]parse
 	})
 
 	// Now that we are sorted, if we have a start date, drop everything from before it, if end date is set, drop everything after it
-	var firstToKeep *int
-	var lastToKeep *int
+	var rowsToKeep []*Row
 	for i := range taxbitRows {
-		if startDate != nil && firstToKeep == nil {
-			rowDate, err := time.Parse(TimeLayout, taxbitRows[i].Date)
-			if err != nil {
-				config.Log.Error("Error parsing row date.", err)
-				return nil, err
-			}
-			if rowDate.Before(*startDate) {
-				continue
-			}
-			startIdx := i
-			firstToKeep = &startIdx
-		} else if endDate != nil && lastToKeep == nil {
-			rowDate, err := time.Parse(TimeLayout, taxbitRows[i].Date)
-			if err != nil {
-				config.Log.Error("Error parsing row date.", err)
-				return nil, err
-			}
-			if rowDate.Before(*endDate) {
-				continue
-			} else if i > 0 {
-				endIdx := i - 1
-				lastToKeep = &endIdx
-				break
-			}
+		rowDate, err := time.Parse(TimeLayout, taxbitRows[i].Date)
+		if err != nil {
+			config.Log.Error("Error parsing row date.", err)
+			return nil, err
 		}
-	}
-	if firstToKeep != nil && lastToKeep != nil { // nolint:gocritic
-		taxbitRows = taxbitRows[*firstToKeep:*lastToKeep]
-	} else if firstToKeep != nil {
-		taxbitRows = taxbitRows[*firstToKeep:]
-	} else if lastToKeep != nil {
-		taxbitRows = taxbitRows[:*lastToKeep]
+		if startDate != nil && rowDate.Before(*startDate) {
+			continue
+		}
+		if endDate != nil && rowDate.After(*endDate) {
+			break
+		}
+		rowsToKeep = append(rowsToKeep, &taxbitRows[i])
 	}
 
 	// Copy cointrackerRows into csvRows for return val
-	csvRows := make([]parsers.CsvRow, len(taxbitRows))
-	for i, v := range taxbitRows {
+	csvRows := make([]parsers.CsvRow, len(rowsToKeep))
+	for i, v := range rowsToKeep {
 		csvRows[i] = v
 	}
 

@@ -1,8 +1,6 @@
 package cryptotaxcalculator
 
 import (
-	"time"
-
 	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
 )
 
@@ -20,7 +18,7 @@ type Parser struct {
 }
 
 type Row struct {
-	Date                   time.Time
+	Date                   string
 	Type                   string
 	BaseCurrency           string
 	BaseAmount             string
