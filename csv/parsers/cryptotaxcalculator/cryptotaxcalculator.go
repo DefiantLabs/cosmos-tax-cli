@@ -1,6 +1,7 @@
 package cryptotaxcalculator
 
 import (
+	"fmt"
 	"sort"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/poolmanager"
+	"github.com/DefiantLabs/cosmos-tax-cli/util"
 )
 
 func (p *Parser) TimeLayout() string {
@@ -208,9 +210,9 @@ func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.Csv
 		case ibc.MsgTransfer:
 			newRow, err = ParseMsgTransfer(address, event)
 		case ibc.MsgAcknowledgement:
-			newRow, err = ParseMsgTransfer(address, event)
+			newRow, err = ParseMsgAcknowledgement(address, event)
 		case ibc.MsgRecvPacket:
-			newRow, err = ParseMsgTransfer(address, event)
+			newRow, err = ParseMsgRecvPacket(address, event)
 		case poolmanager.MsgSplitRouteSwapExactAmountIn, poolmanager.MsgSwapExactAmountIn, poolmanager.MsgSwapExactAmountOut:
 			newRow, err = ParsePoolManagerSwap(address, event)
 		default:
@@ -304,6 +306,66 @@ func ParseMsgTransfer(address string, event db.TaxableTransaction) (Row, error) 
 	if err != nil {
 		config.Log.Error("Error with ParseMsgTransfer.", err)
 	}
+	return *row, err
+}
+
+func ParseMsgAcknowledgement(address string, event db.TaxableTransaction) (Row, error) {
+	row := &Row{}
+
+	denomToUse := event.DenominationSent
+	amountToUse := event.AmountSent
+
+	conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(amountToUse), denomToUse)
+
+	if err != nil {
+		config.Log.Error("Error with ParseMsgAcknowledgement.", err)
+		return *row, fmt.Errorf("cannot parse denom units for TX %s", event.Message.Tx.Hash)
+	}
+
+	row.BaseAmount = conversionAmount.Text('f', -1)
+	row.BaseCurrency = conversionSymbol
+
+	if event.ReceiverAddress.Address == address {
+		row.Type = Buy
+	} else if event.SenderAddress.Address == address { // withdrawal
+		row.Type = Sell
+	}
+
+	row.From = event.SenderAddress.Address
+	row.To = event.ReceiverAddress.Address
+
+	row.Date = event.Message.Tx.Block.TimeStamp
+	row.ID = event.Message.Tx.Hash
+	return *row, err
+}
+
+func ParseMsgRecvPacket(address string, event db.TaxableTransaction) (Row, error) {
+	row := &Row{}
+
+	denomToUse := event.DenominationReceived
+	amountToUse := event.AmountReceived
+
+	conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(amountToUse), denomToUse)
+
+	if err != nil {
+		config.Log.Error("Error with ParseMsgAcknowledgement.", err)
+		return *row, fmt.Errorf("cannot parse denom units for TX %s", event.Message.Tx.Hash)
+	}
+
+	row.BaseAmount = conversionAmount.Text('f', -1)
+	row.BaseCurrency = conversionSymbol
+
+	if event.ReceiverAddress.Address == address {
+		row.Type = Buy
+	} else if event.SenderAddress.Address == address { // withdrawal
+		row.Type = Sell
+	}
+
+	row.From = event.SenderAddress.Address
+	row.To = event.ReceiverAddress.Address
+
+	row.Date = event.Message.Tx.Block.TimeStamp
+	row.ID = event.Message.Tx.Hash
 	return *row, err
 }
 

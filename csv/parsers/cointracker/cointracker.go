@@ -1,6 +1,7 @@
 package cointracker
 
 import (
+	"fmt"
 	"sort"
 	"time"
 
@@ -226,9 +227,9 @@ func ParseTx(address string, events []db.TaxableTransaction, fees []db.Fee) (row
 		case ibc.MsgTransfer:
 			newRow, err = ParseMsgTransfer(address, event)
 		case ibc.MsgAcknowledgement:
-			newRow, err = ParseMsgTransfer(address, event)
+			newRow, err = ParseMsgAcknowledgement(address, event)
 		case ibc.MsgRecvPacket:
-			newRow, err = ParseMsgTransfer(address, event)
+			newRow, err = ParseMsgRecvPacket(address, event)
 		case poolmanager.MsgSplitRouteSwapExactAmountIn, poolmanager.MsgSwapExactAmountIn, poolmanager.MsgSwapExactAmountOut:
 			newRow, err = ParsePoolManagerSwap(event)
 		default:
@@ -355,6 +356,56 @@ func ParseMsgTransfer(address string, event db.TaxableTransaction) (Row, error) 
 	if err != nil {
 		config.Log.Error("Error with ParseMsgTransfer.", err)
 	}
+	return *row, err
+}
+
+func ParseMsgAcknowledgement(address string, event db.TaxableTransaction) (Row, error) {
+	row := &Row{}
+
+	denomToUse := event.DenominationSent
+	amountToUse := event.AmountSent
+
+	conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(amountToUse), denomToUse)
+
+	if err != nil {
+		config.Log.Error("Error with ParseMsgAcknowledgement.", err)
+		return *row, fmt.Errorf("cannot parse denom units for TX %s (classification: withdrawal)", event.Message.Tx.Hash)
+	}
+
+	if event.ReceiverAddress.Address == address {
+		row.ReceivedAmount = conversionAmount.Text('f', -1)
+		row.ReceivedCurrency = conversionSymbol
+	} else if event.SenderAddress.Address == address { // withdrawal
+		row.SentAmount = conversionAmount.Text('f', -1)
+		row.SentCurrency = conversionSymbol
+	}
+
+	row.Date = event.Message.Tx.Block.TimeStamp.Format(TimeLayout)
+	return *row, err
+}
+
+func ParseMsgRecvPacket(address string, event db.TaxableTransaction) (Row, error) {
+	row := &Row{}
+
+	denomToUse := event.DenominationReceived
+	amountToUse := event.AmountReceived
+
+	conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(amountToUse), denomToUse)
+
+	if err != nil {
+		config.Log.Error("Error with ParseMsgAcknowledgement.", err)
+		return *row, fmt.Errorf("cannot parse denom units for TX %s (classification: withdrawal)", event.Message.Tx.Hash)
+	}
+
+	if event.ReceiverAddress.Address == address {
+		row.ReceivedAmount = conversionAmount.Text('f', -1)
+		row.ReceivedCurrency = conversionSymbol
+	} else if event.SenderAddress.Address == address { // withdrawal
+		row.SentAmount = conversionAmount.Text('f', -1)
+		row.SentCurrency = conversionSymbol
+	}
+
+	row.Date = event.Message.Tx.Block.TimeStamp.Format(TimeLayout)
 	return *row, err
 }
 
