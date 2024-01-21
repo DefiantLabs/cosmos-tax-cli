@@ -314,7 +314,6 @@ func ParseMsgAcknowledgement(address string, event db.TaxableTransaction) (Row, 
 	amountToUse := event.AmountSent
 
 	conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(amountToUse), denomToUse)
-
 	if err != nil {
 		config.Log.Error("Error with ParseMsgAcknowledgement.", err)
 		return *row, fmt.Errorf("cannot parse denom units for TX %s", event.Message.Tx.Hash)
@@ -344,7 +343,6 @@ func ParseMsgRecvPacket(address string, event db.TaxableTransaction) (Row, error
 	amountToUse := event.AmountReceived
 
 	conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(amountToUse), denomToUse)
-
 	if err != nil {
 		config.Log.Error("Error with ParseMsgAcknowledgement.", err)
 		return *row, fmt.Errorf("cannot parse denom units for TX %s", event.Message.Tx.Hash)
