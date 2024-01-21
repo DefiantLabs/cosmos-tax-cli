@@ -121,46 +121,26 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) ([]parse
 	})
 
 	// Now that we are sorted, if we have a start date, drop everything from before it, if end date is set, drop everything after it
-	var firstToKeep *int
-	var lastToKeep *int
+	// Now that we are sorted, if we have a start date, drop everything from before it, if end date is set, drop everything after it
+	var rowsToKeep []*Row
 	for i := range cointrackerRows {
-		if startDate != nil && firstToKeep == nil {
-			rowDate, err := time.Parse(TimeLayout, cointrackerRows[i].Date)
-			if err != nil {
-				config.Log.Error("Error parsing row date.", err)
-				return nil, err
-			}
-			if rowDate.Before(*startDate) {
-				continue
-			}
-			startIdx := i
-			firstToKeep = &startIdx
-		} else if endDate != nil && lastToKeep == nil {
-			rowDate, err := time.Parse(TimeLayout, cointrackerRows[i].Date)
-			if err != nil {
-				config.Log.Error("Error parsing row date.", err)
-				return nil, err
-			}
-			if rowDate.Before(*endDate) {
-				continue
-			} else if i > 0 {
-				endIdx := i - 1
-				lastToKeep = &endIdx
-				break
-			}
+		rowDate, err := time.Parse(TimeLayout, cointrackerRows[i].Date)
+		if err != nil {
+			config.Log.Error("Error parsing row date.", err)
+			return nil, err
 		}
-	}
-	if firstToKeep != nil && lastToKeep != nil { // nolint:gocritic
-		cointrackerRows = cointrackerRows[*firstToKeep:*lastToKeep]
-	} else if firstToKeep != nil {
-		cointrackerRows = cointrackerRows[*firstToKeep:]
-	} else if lastToKeep != nil {
-		cointrackerRows = cointrackerRows[:*lastToKeep]
+		if startDate != nil && rowDate.Before(*startDate) {
+			continue
+		}
+		if endDate != nil && rowDate.After(*endDate) {
+			break
+		}
+		rowsToKeep = append(rowsToKeep, &cointrackerRows[i])
 	}
 
 	// Copy cointrackerRows into csvRows for return val
-	csvRows := make([]parsers.CsvRow, len(cointrackerRows))
-	for i, v := range cointrackerRows {
+	csvRows := make([]parsers.CsvRow, len(rowsToKeep))
+	for i, v := range rowsToKeep {
 		csvRows[i] = v
 	}
 

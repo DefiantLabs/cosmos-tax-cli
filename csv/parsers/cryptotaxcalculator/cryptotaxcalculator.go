@@ -98,40 +98,38 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) ([]parse
 
 	// Sort by date
 	sort.Slice(cryptoRows, func(i int, j int) bool {
-		return cryptoRows[i].Date.Before(cryptoRows[j].Date)
+		leftDate, err := time.Parse(TimeLayout, cryptoRows[i].Date)
+		if err != nil {
+			config.Log.Error("Error sorting left date.", err)
+			return false
+		}
+		rightDate, err := time.Parse(TimeLayout, cryptoRows[j].Date)
+		if err != nil {
+			config.Log.Error("Error sorting right date.", err)
+			return false
+		}
+		return leftDate.Before(rightDate)
 	})
 
-	// Now that we are sorted, if we have a start date, drop everything from before it, if end date is set, drop everything after it
-	var firstToKeep *int
-	var lastToKeep *int
+	var rowsToKeep []*Row
 	for i := range cryptoRows {
-		if startDate != nil && firstToKeep == nil {
-			if cryptoRows[i].Date.Before(*startDate) {
-				continue
-			}
-			startIdx := i
-			firstToKeep = &startIdx
-		} else if endDate != nil && lastToKeep == nil {
-			if cryptoRows[i].Date.Before(*endDate) {
-				continue
-			} else if i > 0 {
-				endIdx := i - 1
-				lastToKeep = &endIdx
-				break
-			}
+		rowDate, err := time.Parse(TimeLayout, cryptoRows[i].Date)
+		if err != nil {
+			config.Log.Error("Error parsing row date.", err)
+			return nil, err
 		}
-	}
-	if firstToKeep != nil && lastToKeep != nil { // nolint:gocritic
-		cryptoRows = cryptoRows[*firstToKeep:*lastToKeep]
-	} else if firstToKeep != nil {
-		cryptoRows = cryptoRows[*firstToKeep:]
-	} else if lastToKeep != nil {
-		cryptoRows = cryptoRows[:*lastToKeep]
+		if startDate != nil && rowDate.Before(*startDate) {
+			continue
+		}
+		if endDate != nil && rowDate.After(*endDate) {
+			break
+		}
+		rowsToKeep = append(rowsToKeep, &cryptoRows[i])
 	}
 
 	// Copy AccointingRows into csvRows for return val
-	csvRows := make([]parsers.CsvRow, len(cryptoRows))
-	for i, v := range cryptoRows {
+	csvRows := make([]parsers.CsvRow, len(rowsToKeep))
+	for i, v := range rowsToKeep {
 		csvRows[i] = v
 	}
 
@@ -334,7 +332,7 @@ func ParseMsgAcknowledgement(address string, event db.TaxableTransaction) (Row, 
 	row.From = event.SenderAddress.Address
 	row.To = event.ReceiverAddress.Address
 
-	row.Date = event.Message.Tx.Block.TimeStamp
+	row.Date = event.Message.Tx.Block.TimeStamp.Format(TimeLayout)
 	row.ID = event.Message.Tx.Hash
 	return *row, err
 }
@@ -364,7 +362,7 @@ func ParseMsgRecvPacket(address string, event db.TaxableTransaction) (Row, error
 	row.From = event.SenderAddress.Address
 	row.To = event.ReceiverAddress.Address
 
-	row.Date = event.Message.Tx.Block.TimeStamp
+	row.Date = event.Message.Tx.Block.TimeStamp.Format(TimeLayout)
 	row.ID = event.Message.Tx.Hash
 	return *row, err
 }

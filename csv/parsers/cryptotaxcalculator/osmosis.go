@@ -12,7 +12,7 @@ func ParseGroup(sf *parsers.WrapperLpTxGroup) error {
 		for _, message := range txMessages {
 			row := Row{}
 			row.ID = message.Message.Tx.Hash
-			row.Date = message.Message.Tx.Block.TimeStamp
+			row.Date = message.Message.Tx.Block.TimeStamp.Format(TimeLayout)
 
 			if message.Message.MessageType.MessageType == gamm.MsgJoinSwapExternAmountIn ||
 				message.Message.MessageType.MessageType == gamm.MsgExitSwapShareAmountIn ||

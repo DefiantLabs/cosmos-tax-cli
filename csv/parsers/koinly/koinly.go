@@ -151,50 +151,28 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) ([]parse
 		}
 		return leftDate.Before(rightDate)
 	})
-
-	// Now that we are sorted, if we have a start date, drop everything from before it, if end date is set, drop everything after it
-	var firstToKeep *int
-	var lastToKeep *int
-	for i := range koinlyRows {
-		if startDate != nil && firstToKeep == nil {
-			rowDate, err := time.Parse(TimeLayout, koinlyRows[i].Date)
-			if err != nil {
-				config.Log.Error("Error parsing row date.", err)
-				return nil, err
-			}
-			if rowDate.Before(*startDate) {
-				continue
-			}
-			startIdx := i
-			firstToKeep = &startIdx
-		} else if endDate != nil && lastToKeep == nil {
-			rowDate, err := time.Parse(TimeLayout, koinlyRows[i].Date)
-			if err != nil {
-				config.Log.Error("Error parsing row date.", err)
-				return nil, err
-			}
-			if rowDate.Before(*endDate) {
-				continue
-			} else if i > 0 {
-				endIdx := i - 1
-				lastToKeep = &endIdx
-				break
-			}
-		}
-	}
-	if firstToKeep != nil && lastToKeep != nil { // nolint:gocritic
-		koinlyRows = koinlyRows[*firstToKeep:*lastToKeep]
-	} else if firstToKeep != nil {
-		koinlyRows = koinlyRows[*firstToKeep:]
-	} else if lastToKeep != nil {
-		koinlyRows = koinlyRows[:*lastToKeep]
-	}
-
 	mapUnsupportedCoints(koinlyRows)
 
+	// Now that we are sorted, if we have a start date, drop everything from before it, if end date is set, drop everything after it
+	var rowsToKeep []*Row
+	for i := range koinlyRows {
+		rowDate, err := time.Parse(TimeLayout, koinlyRows[i].Date)
+		if err != nil {
+			config.Log.Error("Error parsing row date.", err)
+			return nil, err
+		}
+		if startDate != nil && rowDate.Before(*startDate) {
+			continue
+		}
+		if endDate != nil && rowDate.After(*endDate) {
+			break
+		}
+		rowsToKeep = append(rowsToKeep, &koinlyRows[i])
+	}
+
 	// Copy AccointingRows into csvRows for return val
-	csvRows := make([]parsers.CsvRow, len(koinlyRows))
-	for i, v := range koinlyRows {
+	csvRows := make([]parsers.CsvRow, len(rowsToKeep))
+	for i, v := range rowsToKeep {
 		if _, isUnsuppored := coinReplacementMap[v.ReceivedCurrency]; isUnsuppored {
 			v.ReceivedCurrency = coinReplacementMap[v.ReceivedCurrency]
 		}
