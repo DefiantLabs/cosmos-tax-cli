@@ -105,8 +105,9 @@ var messageTypeIgnorer = map[string]interface{}{
 	slashing.MsgUnjail:       nil,
 	slashing.MsgUpdateParams: nil,
 	// Creating and editing validator is not taxable
-	staking.MsgCreateValidator: nil,
-	staking.MsgEditValidator:   nil,
+	staking.MsgCreateValidator:           nil,
+	staking.MsgEditValidator:             nil,
+	staking.MsgCancelUnbondingDelegation: nil, // No rewards are withdrawn when cancelling an unbonding delegation
 	// Delegating and Locking are not taxable
 	superfluid.MsgSuperfluidDelegate:                                    nil,
 	superfluid.MsgSuperfluidUndelegate:                                  nil,

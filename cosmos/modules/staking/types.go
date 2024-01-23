@@ -14,11 +14,12 @@ import (
 )
 
 const (
-	MsgDelegate        = "/cosmos.staking.v1beta1.MsgDelegate"
-	MsgUndelegate      = "/cosmos.staking.v1beta1.MsgUndelegate"
-	MsgBeginRedelegate = "/cosmos.staking.v1beta1.MsgBeginRedelegate"
-	MsgCreateValidator = "/cosmos.staking.v1beta1.MsgCreateValidator" // An explicitly ignored msg for tx parsing purposes
-	MsgEditValidator   = "/cosmos.staking.v1beta1.MsgEditValidator"   // An explicitly ignored msg for tx parsing purposes
+	MsgDelegate                  = "/cosmos.staking.v1beta1.MsgDelegate"
+	MsgUndelegate                = "/cosmos.staking.v1beta1.MsgUndelegate"
+	MsgBeginRedelegate           = "/cosmos.staking.v1beta1.MsgBeginRedelegate"
+	MsgCreateValidator           = "/cosmos.staking.v1beta1.MsgCreateValidator" // An explicitly ignored msg for tx parsing purposes
+	MsgEditValidator             = "/cosmos.staking.v1beta1.MsgEditValidator"   // An explicitly ignored msg for tx parsing purposes
+	MsgCancelUnbondingDelegation = "/cosmos.staking.v1beta1.MsgCancelUnbondingDelegation"
 )
 
 type WrapperMsgDelegate struct {
