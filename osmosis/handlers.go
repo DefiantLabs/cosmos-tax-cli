@@ -32,6 +32,7 @@ var MessageTypeHandler = map[string][]func() txTypes.CosmosMessage{
 	concentratedliquidity.MsgCreateConcentratedPool:    {func() txTypes.CosmosMessage { return &concentratedliquidity.WrappeMsgCreateConcentratedPool{} }},
 	concentratedliquidity.MsgCollectIncentives:         {func() txTypes.CosmosMessage { return &concentratedliquidity.WrapperMsgCollectIncentives{} }},
 	concentratedliquidity.MsgAddToPosition:             {func() txTypes.CosmosMessage { return &concentratedliquidity.WrapperMsgAddToPosition{} }},
+	concentratedliquidity.MsgTransferPositions:         {func() txTypes.CosmosMessage { return &concentratedliquidity.WrapperMsgTransferPositions{} }},
 	cosmwasmpool.MsgCreateCosmWasmPool:                 {func() txTypes.CosmosMessage { return &cosmwasmpool.WrapperMsgCreateCosmWasmPool{} }},
 	valsetpref.MsgDelegateToValidatorSet:               {func() txTypes.CosmosMessage { return &valsetpref.WrapperMsgDelegateToValidatorSet{} }},
 	valsetpref.MsgUndelegateFromValidatorSet:           {func() txTypes.CosmosMessage { return &valsetpref.WrapperMsgUndelegateFromValidatorSet{} }},
