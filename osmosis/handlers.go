@@ -6,6 +6,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/cosmwasmpool"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/poolmanager"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/tokenfactory"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/valsetpref"
 )
 
@@ -38,4 +39,6 @@ var MessageTypeHandler = map[string][]func() txTypes.CosmosMessage{
 	valsetpref.MsgUndelegateFromValidatorSet:           {func() txTypes.CosmosMessage { return &valsetpref.WrapperMsgUndelegateFromValidatorSet{} }},
 	valsetpref.MsgWithdrawDelegationRewards:            {func() txTypes.CosmosMessage { return &valsetpref.WrapperMsgWithdrawDelegationRewards{} }},
 	valsetpref.MsgUndelegateFromRebalancedValidatorSet: {func() txTypes.CosmosMessage { return &valsetpref.WrapperMsgUndelegateFromRebalancedValidatorSet{} }},
+	tokenfactory.MsgMint:                               {func() txTypes.CosmosMessage { return &tokenfactory.WrapperMsgMint{} }},
+	tokenfactory.MsgBurn:                               {func() txTypes.CosmosMessage { return &tokenfactory.WrapperMsgBurn{} }},
 }
