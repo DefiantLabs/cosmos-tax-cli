@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -96,12 +97,19 @@ func (conf *IndexConfig) Validate() error {
 	}
 
 	// Check for required configs when base indexer is enabled
-	if conf.Base.ChainIndexingEnabled {
+	if conf.Base.ChainIndexingEnabled && conf.Base.BlockInputFile == "" {
 		if conf.Base.StartBlock == 0 {
 			return errors.New("base.start-block must be set when index-chain is enabled")
 		}
 		if conf.Base.EndBlock == 0 {
 			return errors.New("base.end-block must be set when index-chain is enabled")
+		}
+	}
+
+	if conf.Base.ChainIndexingEnabled && conf.Base.BlockInputFile != "" {
+		// Check if block input file exists
+		if _, err := os.Stat(conf.Base.BlockInputFile); os.IsNotExist(err) {
+			return errors.New("base.block-input-file does not exist")
 		}
 	}
 
