@@ -7,7 +7,43 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
 )
 
-func ParseGroup(sf *parsers.WrapperLpTxGroup) error {
+type OsmosisLpTxGroup struct {
+	GroupedTxes map[uint][]db.TaxableTransaction // TX db ID to its messages
+	Rows        []parsers.CsvRow
+}
+
+func (sf *OsmosisLpTxGroup) GetRowsForParsingGroup() []parsers.CsvRow {
+	return sf.Rows
+}
+
+func (sf *OsmosisLpTxGroup) BelongsToGroup(message db.TaxableTransaction) bool {
+	_, isInGroup := parsers.IsOsmosisLpTxGroup[message.Message.MessageType.MessageType]
+	return isInGroup
+}
+
+func (sf *OsmosisLpTxGroup) GetGroupedTxes() map[uint][]db.TaxableTransaction {
+	return sf.GroupedTxes
+}
+
+func (sf *OsmosisLpTxGroup) String() string {
+	return "OsmosisLpTxGroup"
+}
+
+func (sf *OsmosisLpTxGroup) AddTxToGroup(tx db.TaxableTransaction) {
+	if sf.GroupedTxes == nil {
+		sf.GroupedTxes = make(map[uint][]db.TaxableTransaction)
+	}
+	// Add tx to group using the TX ID as key and appending to array
+	if _, ok := sf.GroupedTxes[tx.Message.Tx.ID]; ok {
+		sf.GroupedTxes[tx.Message.Tx.ID] = append(sf.GroupedTxes[tx.Message.Tx.ID], tx)
+	} else {
+		var txGrouping []db.TaxableTransaction
+		txGrouping = append(txGrouping, tx)
+		sf.GroupedTxes[tx.Message.Tx.ID] = txGrouping
+	}
+}
+
+func (sf *OsmosisLpTxGroup) ParseGroup() error {
 	for _, txMessages := range sf.GroupedTxes {
 		for _, message := range txMessages {
 			row := Row{}
