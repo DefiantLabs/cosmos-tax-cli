@@ -12,18 +12,6 @@ import (
 	"github.com/preichenberger/go-coinbasepro/v2"
 )
 
-func addTxToGroupMap(groupedTxs map[uint][]db.TaxableTransaction, tx db.TaxableTransaction) map[uint][]db.TaxableTransaction {
-	// Add tx to group using the TX ID as key and appending to array
-	if _, ok := groupedTxs[tx.Message.Tx.ID]; ok {
-		groupedTxs[tx.Message.Tx.ID] = append(groupedTxs[tx.Message.Tx.ID], tx)
-	} else {
-		var txGrouping []db.TaxableTransaction
-		txGrouping = append(txGrouping, tx)
-		groupedTxs[tx.Message.Tx.ID] = txGrouping
-	}
-	return groupedTxs
-}
-
 type OsmosisLpTxGroup struct {
 	GroupedTxes map[uint][]db.TaxableTransaction // TX db ID to its messages
 	Rows        []parsers.CsvRow
@@ -51,7 +39,7 @@ func (sf *OsmosisLpTxGroup) AddTxToGroup(tx db.TaxableTransaction) {
 	if sf.GroupedTxes == nil {
 		sf.GroupedTxes = make(map[uint][]db.TaxableTransaction)
 	}
-	sf.GroupedTxes = addTxToGroupMap(sf.GroupedTxes, tx)
+	sf.GroupedTxes = parsers.AddTxToGroupMap(sf.GroupedTxes, tx)
 }
 
 func (sf *OsmosisLpTxGroup) ParseGroup() error {
@@ -128,7 +116,7 @@ func (sf *OsmosisConcentratedLiquidityTxGroup) AddTxToGroup(tx db.TaxableTransac
 	if sf.GroupedTxes == nil {
 		sf.GroupedTxes = make(map[uint][]db.TaxableTransaction)
 	}
-	sf.GroupedTxes = addTxToGroupMap(sf.GroupedTxes, tx)
+	sf.GroupedTxes = parsers.AddTxToGroupMap(sf.GroupedTxes, tx)
 }
 
 // Concentrated liquidit txs are grouped to be parsed together. Complex analysis may be require later, so group them now for later extension.

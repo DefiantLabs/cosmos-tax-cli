@@ -107,7 +107,7 @@ func (p *Parser) ProcessTaxableEvent(taxableEvents []db.TaxableEvent) error {
 }
 
 func (p *Parser) InitializeParsingGroups() {
-	p.ParsingGroups = append(p.ParsingGroups, &OsmosisLpTxGroup{})
+	p.ParsingGroups = append(p.ParsingGroups, &OsmosisLpTxGroup{}, &OsmosisConcentratedLiquidityTxGroup{})
 }
 
 func (p *Parser) GetRows(address string, startDate, endDate *time.Time) ([]parsers.CsvRow, error) {

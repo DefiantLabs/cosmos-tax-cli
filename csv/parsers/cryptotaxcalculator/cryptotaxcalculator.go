@@ -63,7 +63,7 @@ func (p *Parser) ProcessTaxableTx(address string, taxableTxs []db.TaxableTransac
 
 	for _, fee := range feesWithoutTx {
 		row := Row{}
-		err := row.ParseFee(address, fee)
+		err := row.ParseFee(fee)
 		if err != nil {
 			return err
 		}
@@ -369,7 +369,7 @@ func ParseMsgRecvPacket(address string, event db.TaxableTransaction) (Row, error
 }
 
 func (p *Parser) InitializeParsingGroups() {
-	p.ParsingGroups = append(p.ParsingGroups, &OsmosisLpTxGroup{})
+	p.ParsingGroups = append(p.ParsingGroups, &OsmosisLpTxGroup{}, &OsmosisConcentratedLiquidityTxGroup{})
 }
 
 func ParseOsmosisReward(event db.TaxableEvent) (Row, error) {

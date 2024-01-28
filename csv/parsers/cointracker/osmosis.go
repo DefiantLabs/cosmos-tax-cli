@@ -7,18 +7,6 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
 )
 
-func addTxToGroupMap(groupedTxs map[uint][]db.TaxableTransaction, tx db.TaxableTransaction) map[uint][]db.TaxableTransaction {
-	// Add tx to group using the TX ID as key and appending to array
-	if _, ok := groupedTxs[tx.Message.Tx.ID]; ok {
-		groupedTxs[tx.Message.Tx.ID] = append(groupedTxs[tx.Message.Tx.ID], tx)
-	} else {
-		var txGrouping []db.TaxableTransaction
-		txGrouping = append(txGrouping, tx)
-		groupedTxs[tx.Message.Tx.ID] = txGrouping
-	}
-	return groupedTxs
-}
-
 type OsmosisLpTxGroup struct {
 	GroupedTxes map[uint][]db.TaxableTransaction // TX db ID to its messages
 	Rows        []parsers.CsvRow
@@ -45,7 +33,7 @@ func (sf *OsmosisLpTxGroup) AddTxToGroup(tx db.TaxableTransaction) {
 	if sf.GroupedTxes == nil {
 		sf.GroupedTxes = make(map[uint][]db.TaxableTransaction)
 	}
-	sf.GroupedTxes = addTxToGroupMap(sf.GroupedTxes, tx)
+	sf.GroupedTxes = parsers.AddTxToGroupMap(sf.GroupedTxes, tx)
 }
 
 func (sf *OsmosisLpTxGroup) ParseGroup() error {
@@ -144,13 +132,12 @@ func (sf *OsmosisConcentratedLiquidityTxGroup) AddTxToGroup(tx db.TaxableTransac
 	if sf.GroupedTxes == nil {
 		sf.GroupedTxes = make(map[uint][]db.TaxableTransaction)
 	}
-	sf.GroupedTxes = addTxToGroupMap(sf.GroupedTxes, tx)
+	sf.GroupedTxes = parsers.AddTxToGroupMap(sf.GroupedTxes, tx)
 }
 
 // Concentrated liquidit txs are grouped to be parsed together. Complex analysis may be require later, so group them now for later extension.
 func (sf *OsmosisConcentratedLiquidityTxGroup) ParseGroup() error {
-
-	txsToFees := getTxToFeesMap(sf.GroupedTxes)
+	txsToFees := parsers.GetTxToFeesMap(sf.GroupedTxes)
 	for _, txMessages := range sf.GroupedTxes {
 		for _, message := range txMessages {
 
@@ -187,26 +174,12 @@ func (sf *OsmosisConcentratedLiquidityTxGroup) ParseGroup() error {
 	for _, fees := range txsToFees {
 		for _, fee := range fees {
 			row := Row{}
-			row.ParseFee(fee.Tx, fee)
+			err := row.ParseFee(fee.Tx, fee)
+			if err != nil {
+				return err
+			}
 			sf.Rows = append(sf.Rows, row)
 		}
 	}
 	return nil
-}
-
-func getTxToFeesMap(groupedTxes map[uint][]db.TaxableTransaction) map[uint][]db.Fee {
-
-	txToFees := make(map[uint][]db.Fee)
-
-	for _, txMessages := range groupedTxes {
-		for _, message := range txMessages {
-			messageTx := message.Message.Tx
-			if _, ok := txToFees[messageTx.ID]; !ok {
-				txToFees[messageTx.ID] = append(txToFees[messageTx.ID], messageTx.Fees...)
-				break
-			}
-		}
-	}
-
-	return txToFees
 }
