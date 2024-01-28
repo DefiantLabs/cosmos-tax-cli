@@ -27,6 +27,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/incentives"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/lockup"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/superfluid"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/tokenfactory"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/valsetpref"
 	"github.com/DefiantLabs/cosmos-tax-cli/tendermint/modules/liquidity"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
@@ -132,6 +133,11 @@ var messageTypeIgnorer = map[string]interface{}{
 	liquidity.MsgDepositWithinBatch:  nil,
 	liquidity.MsgWithdrawWithinBatch: nil,
 	liquidity.MsgSwapWithinBatch:     nil,
+
+	// These tokenfactory module messages dont create taxable events
+	tokenfactory.MsgCreateDenom:       nil,
+	tokenfactory.MsgSetBeforeSendHook: nil,
+	tokenfactory.MsgSetDenomMetadata:  nil,
 
 	////////////////////////////////////////////////////
 	/////// Possible Taxable Events, future work ///////

@@ -13,11 +13,12 @@ import (
 )
 
 const (
-	MsgSetValidatorSetPreference  = "/osmosis.valsetpref.v1beta1.MsgSetValidatorSetPreference"
-	MsgDelegateToValidatorSet     = "/osmosis.valsetpref.v1beta1.MsgDelegateToValidatorSet"
-	MsgUndelegateFromValidatorSet = "/osmosis.valsetpref.v1beta1.MsgUndelegateFromValidatorSet"
-	MsgRedelegateValidatorSet     = "/osmosis.valsetpref.v1beta1.MsgRedelegateValidatorSet"
-	MsgWithdrawDelegationRewards  = "/osmosis.valsetpref.v1beta1.MsgWithdrawDelegationRewards"
+	MsgSetValidatorSetPreference            = "/osmosis.valsetpref.v1beta1.MsgSetValidatorSetPreference"
+	MsgDelegateToValidatorSet               = "/osmosis.valsetpref.v1beta1.MsgDelegateToValidatorSet"
+	MsgUndelegateFromValidatorSet           = "/osmosis.valsetpref.v1beta1.MsgUndelegateFromValidatorSet"
+	MsgRedelegateValidatorSet               = "/osmosis.valsetpref.v1beta1.MsgRedelegateValidatorSet"
+	MsgWithdrawDelegationRewards            = "/osmosis.valsetpref.v1beta1.MsgWithdrawDelegationRewards"
+	MsgUndelegateFromRebalancedValidatorSet = "/osmosis.valsetpref.v1beta1.MsgUndelegateFromRebalancedValidatorSet"
 	// linter thinks this is a password
 	//nolint:gosec
 	MsgDelegateBondedTokens = "/osmosis.valsetpref.v1beta1.MsgDelegateBondedTokens"
@@ -251,5 +252,41 @@ func (sf *WrapperMsgDelegateBondedTokens) HandleMsg(msgType string, msg sdk.Msg,
 }
 
 func (sf *WrapperMsgDelegateBondedTokens) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	return getRelevantData(sf.RewardsOut, sf.DelegatorAddress)
+}
+
+type WrapperMsgUndelegateFromRebalancedValidatorSet struct {
+	txModule.Message
+	OsmosisMsgUndelegateFromRebalancedValidatorSet *valsetPrefTypes.MsgUndelegateFromRebalancedValidatorSet
+	DelegatorAddress                               string
+	RewardsOut                                     sdk.Coins
+}
+
+func (sf *WrapperMsgUndelegateFromRebalancedValidatorSet) String() string {
+	return getString("MsgUndelegateFromRebalancedValidatorSet", sf.RewardsOut, sf.DelegatorAddress)
+}
+
+func (sf *WrapperMsgUndelegateFromRebalancedValidatorSet) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.OsmosisMsgUndelegateFromRebalancedValidatorSet = msg.(*valsetPrefTypes.MsgUndelegateFromRebalancedValidatorSet)
+	sf.DelegatorAddress = sf.OsmosisMsgUndelegateFromRebalancedValidatorSet.Delegator
+
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
+	}
+
+	coins, err := getRewardsReceived(log, sf.DelegatorAddress)
+	if err != nil {
+		return err
+	}
+
+	sf.RewardsOut = coins
+
+	return nil
+}
+
+func (sf *WrapperMsgUndelegateFromRebalancedValidatorSet) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
 	return getRelevantData(sf.RewardsOut, sf.DelegatorAddress)
 }

@@ -20,6 +20,7 @@ const (
 	MsgCreateConcentratedPool = "/osmosis.concentratedliquidity.poolmodel.concentrated.v1beta1.MsgCreateConcentratedPool"
 	MsgCollectIncentives      = "/osmosis.concentratedliquidity.v1beta1.MsgCollectIncentives"
 	MsgAddToPosition          = "/osmosis.concentratedliquidity.v1beta1.MsgAddToPosition"
+	MsgTransferPositions      = "/osmosis.concentratedliquidity.v1beta1.MsgTransferPositions"
 	tokensOutEvent            = "tokens_out"
 )
 
@@ -450,6 +451,86 @@ func (sf *WrapperMsgAddToPosition) ParseRelevantData() []parsingTypes.MessageRel
 				AmountSent:       token.Amount.BigInt(),
 				DenominationSent: token.Denom,
 				SenderAddress:    sf.Address,
+			})
+		}
+	}
+
+	return relevantData
+}
+
+type WrapperMsgTransferPositions struct {
+	txModule.Message
+	OsmosisMsgTransferPositions *clTypes.MsgTransferPositions
+	TokensRecv                  sdk.Coins
+	Address                     string
+}
+
+func (sf *WrapperMsgTransferPositions) String() string {
+	var tokensRecv []string
+	var tokensRecvString string
+
+	if !(len(sf.TokensRecv) == 0) {
+		for _, v := range sf.TokensRecv {
+			tokensRecv = append(tokensRecv, v.String())
+		}
+
+		tokensRecvString = strings.Join(tokensRecv, ", ") + " in rewards"
+	} else {
+		tokensRecvString = "no rewards"
+	}
+
+	return fmt.Sprintf("MsgTransferPositions: %s collected %s",
+		sf.Address, tokensRecvString)
+}
+
+func (sf *WrapperMsgTransferPositions) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.OsmosisMsgTransferPositions = msg.(*clTypes.MsgTransferPositions)
+
+	// Collect spread rewards
+	spreadRewardsEvents := txModule.GetEventsWithType("collect_spread_rewards", log)
+
+	for _, spreadRewardsEvent := range spreadRewardsEvents {
+		for _, attribute := range spreadRewardsEvent.Attributes {
+			if attribute.Key == tokensOutEvent {
+				coinsReceived, err := sdk.ParseCoinsNormalized(attribute.Value)
+				if err != nil {
+					return errors.New("error parsing coins received from spread rewards event")
+				}
+				sf.TokensRecv = append(sf.TokensRecv, coinsReceived...)
+			}
+		}
+	}
+
+	// Collect incentives
+	incentivesEvents := txModule.GetEventsWithType("collect_incentives", log)
+
+	for _, incentivesEvent := range incentivesEvents {
+		for _, attribute := range incentivesEvent.Attributes {
+			if attribute.Key == tokensOutEvent {
+				coinsReceived, err := sdk.ParseCoinsNormalized(attribute.Value)
+				if err != nil {
+					return errors.New("error parsing coins received from incentives event")
+				}
+				sf.TokensRecv = append(sf.TokensRecv, coinsReceived...)
+			}
+		}
+	}
+
+	sf.Address = sf.OsmosisMsgTransferPositions.Sender
+
+	return nil
+}
+
+func (sf *WrapperMsgTransferPositions) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	relevantData := make([]parsingTypes.MessageRelevantInformation, 0)
+
+	for _, token := range sf.TokensRecv {
+		if token.Amount.IsPositive() {
+			relevantData = append(relevantData, parsingTypes.MessageRelevantInformation{
+				AmountReceived:       token.Amount.BigInt(),
+				DenominationReceived: token.Denom,
+				SenderAddress:        sf.Address,
 			})
 		}
 	}
