@@ -18,6 +18,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/concentratedliquidity"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/poolmanager"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/tokenfactory"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/valsetpref"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
 )
@@ -322,6 +323,8 @@ func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.Csv
 			newRow, err = ParseConcentratedLiquidityCollection(event)
 		case valsetpref.MsgDelegateBondedTokens, valsetpref.MsgUndelegateFromValidatorSet, valsetpref.MsgRedelegateValidatorSet, valsetpref.MsgWithdrawDelegationRewards, valsetpref.MsgDelegateToValidatorSet, valsetpref.MsgUndelegateFromRebalancedValidatorSet:
 			newRow, err = ParseValsetPrefRewards(event)
+		case tokenfactory.MsgMint, tokenfactory.MsgBurn:
+			newRow, err = ParseTokenFactoryEvents(address, event)
 		default:
 			config.Log.Errorf("no parser for message type '%v'", event.Message.MessageType.MessageType)
 			continue
@@ -539,6 +542,16 @@ func ParseValsetPrefRewards(event db.TaxableTransaction) (Row, error) {
 	err := parseAndAddReceivedAmount(row, event)
 	if err != nil {
 		return *row, err
+	}
+
+	return *row, nil
+}
+
+func ParseTokenFactoryEvents(address string, event db.TaxableTransaction) (Row, error) {
+	row := &Row{}
+	err := row.ParseBasic(address, event)
+	if err != nil {
+		config.Log.Error("Error with ParseMsgMultiSend.", err)
 	}
 
 	return *row, nil
