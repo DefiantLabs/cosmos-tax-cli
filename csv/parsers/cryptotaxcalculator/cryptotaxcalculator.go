@@ -16,6 +16,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/concentratedliquidity"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/poolmanager"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/valsetpref"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
 )
 
@@ -216,6 +217,8 @@ func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.Csv
 			newRow, err = ParsePoolManagerSwap(address, event)
 		case concentratedliquidity.MsgCollectIncentives, concentratedliquidity.MsgCollectSpreadRewards:
 			newRow, err = ParseConcentratedLiquidityCollection(event)
+		case valsetpref.MsgDelegateBondedTokens, valsetpref.MsgUndelegateFromValidatorSet, valsetpref.MsgRedelegateValidatorSet, valsetpref.MsgWithdrawDelegationRewards, valsetpref.MsgDelegateToValidatorSet, valsetpref.MsgUndelegateFromRebalancedValidatorSet:
+			newRow, err = ParseValsetPrefRewards(event)
 		default:
 			config.Log.Errorf("no parser for message type '%v'", event.Message.MessageType.MessageType)
 			continue
@@ -425,4 +428,17 @@ func ParseConcentratedLiquidityCollection(event db.TaxableTransaction) (Row, err
 	row.Date = event.Message.Tx.Block.TimeStamp.Format(TimeLayout)
 
 	return *row, err
+}
+
+func ParseValsetPrefRewards(event db.TaxableTransaction) (Row, error) {
+	row := &Row{}
+	row.Type = Receive
+	row.Date = event.Message.Tx.Block.TimeStamp.Format(TimeLayout)
+
+	err := parseAndAddReceivedAmount(row, event)
+	if err != nil {
+		return *row, err
+	}
+
+	return *row, nil
 }

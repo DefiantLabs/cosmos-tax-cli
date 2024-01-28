@@ -14,6 +14,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/poolmanager"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/valsetpref"
 )
 
 func (p *Parser) TimeLayout() string {
@@ -246,6 +247,8 @@ func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.Csv
 			newRow, err = ParseMsgTransfer(address, event)
 		case poolmanager.MsgSplitRouteSwapExactAmountIn, poolmanager.MsgSwapExactAmountIn, poolmanager.MsgSwapExactAmountOut:
 			newRow, err = ParsePoolManagerSwap(event)
+		case valsetpref.MsgDelegateBondedTokens, valsetpref.MsgUndelegateFromValidatorSet, valsetpref.MsgRedelegateValidatorSet, valsetpref.MsgWithdrawDelegationRewards, valsetpref.MsgDelegateToValidatorSet, valsetpref.MsgUndelegateFromRebalancedValidatorSet:
+			newRow, err = ParseValsetPrefRewards(event)
 		default:
 			config.Log.Errorf("no parser for message type '%v'", event.Message.MessageType.MessageType)
 			continue
@@ -376,4 +379,18 @@ func ParsePoolManagerSwap(event db.TaxableTransaction) (Row, error) {
 		config.Log.Error("Error with ParseMsgSwapExactAmountOut.", err)
 	}
 	return *row, err
+}
+
+func ParseValsetPrefRewards(event db.TaxableTransaction) (Row, error) {
+	row := &Row{}
+	row.Date = event.Message.Tx.Block.TimeStamp.Format(TimeLayout)
+	row.TransactionType = Income
+	row.TxHash = event.Message.Tx.Hash
+
+	err := parseAndAddReceivedAmount(row, event)
+	if err != nil {
+		return *row, err
+	}
+
+	return *row, nil
 }
