@@ -110,3 +110,41 @@ func (row *Row) ParseFee(tx db.Tx, fee db.Fee) error {
 
 	return nil
 }
+
+func parseAndAddSentAmount(row *Row, event db.TaxableTransaction) error {
+	conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountSent), event.DenominationSent)
+	if err != nil {
+		return fmt.Errorf("cannot parse denom units for TX %s (classification: withdrawal)", row.OperationID)
+	}
+	row.OutSellAmount = conversionAmount.Text('f', -1)
+	row.OutSellAsset = conversionSymbol
+
+	return nil
+}
+
+func parseAndAddSentAmountWithDefault(row *Row, event db.TaxableTransaction) {
+	err := parseAndAddSentAmount(row, event)
+	if err != nil {
+		row.OutSellAmount = util.NumericToString(event.AmountSent)
+		row.OutSellAsset = event.DenominationSent.Base
+	}
+}
+
+func parseAndAddReceivedAmount(row *Row, event db.TaxableTransaction) error {
+	conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountReceived), event.DenominationReceived)
+	if err != nil {
+		return fmt.Errorf("cannot parse denom units for TX %s (classification: deposit)", row.OperationID)
+	}
+	row.InBuyAmount = conversionAmount.Text('f', -1)
+	row.InBuyAsset = conversionSymbol
+
+	return nil
+}
+
+func parseAndAddReceivedAmountWithDefault(row *Row, event db.TaxableTransaction) {
+	err := parseAndAddReceivedAmount(row, event)
+	if err != nil {
+		row.InBuyAmount = util.NumericToString(event.AmountReceived)
+		row.InBuyAsset = event.DenominationReceived.Base
+	}
+}

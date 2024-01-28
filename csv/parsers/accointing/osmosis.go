@@ -7,12 +7,42 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	"github.com/DefiantLabs/cosmos-tax-cli/csv/parsers"
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
-	"github.com/DefiantLabs/cosmos-tax-cli/util"
 
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/concentratedliquidity"
 	"github.com/preichenberger/go-coinbasepro/v2"
 )
 
-func ParseGroup(sf *parsers.WrapperLpTxGroup) error {
+type OsmosisLpTxGroup struct {
+	GroupedTxes map[uint][]db.TaxableTransaction // TX db ID to its messages
+	Rows        []parsers.CsvRow
+}
+
+func (sf *OsmosisLpTxGroup) GetRowsForParsingGroup() []parsers.CsvRow {
+	return sf.Rows
+}
+
+func (sf *OsmosisLpTxGroup) BelongsToGroup(message db.TaxableTransaction) bool {
+	_, isInGroup := parsers.IsOsmosisLpTxGroup[message.Message.MessageType.MessageType]
+	return isInGroup
+}
+
+func (sf *OsmosisLpTxGroup) GetGroupedTxes() map[uint][]db.TaxableTransaction {
+	return sf.GroupedTxes
+}
+
+func (sf *OsmosisLpTxGroup) String() string {
+	return "OsmosisLpTxGroup"
+}
+
+func (sf *OsmosisLpTxGroup) AddTxToGroup(tx db.TaxableTransaction) {
+	// Add tx to group using the TX ID as key and appending to array
+	if sf.GroupedTxes == nil {
+		sf.GroupedTxes = make(map[uint][]db.TaxableTransaction)
+	}
+	sf.GroupedTxes = parsers.AddTxToGroupMap(sf.GroupedTxes, tx)
+}
+
+func (sf *OsmosisLpTxGroup) ParseGroup() error {
 	cbClient := coinbasepro.NewClient()
 	for _, txMessages := range sf.GroupedTxes {
 		for _, message := range txMessages {
@@ -21,27 +51,8 @@ func ParseGroup(sf *parsers.WrapperLpTxGroup) error {
 			row.OperationID = message.Message.Tx.Hash
 			row.Date = message.Message.Tx.Block.TimeStamp.Format(TimeLayout)
 
-			denomRecieved := message.DenominationReceived
-			valueRecieved := message.AmountReceived
-			conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(valueRecieved), denomRecieved)
-			if err != nil {
-				row.InBuyAmount = util.NumericToString(valueRecieved)
-				row.InBuyAsset = denomRecieved.Base
-			} else {
-				row.InBuyAmount = conversionAmount.Text('f', -1)
-				row.InBuyAsset = conversionSymbol
-			}
-
-			denomSent := message.DenominationSent
-			valueSent := message.AmountSent
-			conversionAmount, conversionSymbol, err = db.ConvertUnits(util.FromNumeric(valueSent), denomSent)
-			if err != nil {
-				row.OutSellAmount = util.NumericToString(valueSent)
-				row.OutSellAsset = denomSent.Base
-			} else {
-				row.OutSellAmount = conversionAmount.Text('f', -1)
-				row.OutSellAsset = conversionSymbol
-			}
+			parseAndAddReceivedAmountWithDefault(&row, message)
+			parseAndAddSentAmountWithDefault(&row, message)
 
 			// We deliberately exclude the GAMM tokens from OutSell/InBuy for Exits/Joins respectively
 			// Accointing has no way of using the GAMM token to determine LP cost basis etc...
@@ -70,6 +81,62 @@ func ParseGroup(sf *parsers.WrapperLpTxGroup) error {
 					}
 					gamValue := sentAmount * price
 					row.Comments = fmt.Sprintf("%v %v on %v was $%v USD", row.InBuyAmount, row.InBuyAsset, row.Date, gamValue)
+				}
+			}
+			sf.Rows = append(sf.Rows, row)
+		}
+	}
+	return nil
+}
+
+type OsmosisConcentratedLiquidityTxGroup struct {
+	GroupedTxes map[uint][]db.TaxableTransaction // TX db ID to its messages
+	Rows        []parsers.CsvRow
+}
+
+func (sf *OsmosisConcentratedLiquidityTxGroup) GetRowsForParsingGroup() []parsers.CsvRow {
+	return sf.Rows
+}
+
+func (sf *OsmosisConcentratedLiquidityTxGroup) BelongsToGroup(message db.TaxableTransaction) bool {
+	_, isInGroup := parsers.IsOsmosisConcentratedLiquidity[message.Message.MessageType.MessageType]
+	return isInGroup
+}
+
+func (sf *OsmosisConcentratedLiquidityTxGroup) GetGroupedTxes() map[uint][]db.TaxableTransaction {
+	return sf.GroupedTxes
+}
+
+func (sf *OsmosisConcentratedLiquidityTxGroup) String() string {
+	return "OsmosisLpTxGroup"
+}
+
+func (sf *OsmosisConcentratedLiquidityTxGroup) AddTxToGroup(tx db.TaxableTransaction) {
+	// Add tx to group using the TX ID as key and appending to array
+	if sf.GroupedTxes == nil {
+		sf.GroupedTxes = make(map[uint][]db.TaxableTransaction)
+	}
+	sf.GroupedTxes = parsers.AddTxToGroupMap(sf.GroupedTxes, tx)
+}
+
+// Concentrated liquidit txs are grouped to be parsed together. Complex analysis may be require later, so group them now for later extension.
+func (sf *OsmosisConcentratedLiquidityTxGroup) ParseGroup() error {
+	for _, txMessages := range sf.GroupedTxes {
+		for _, message := range txMessages {
+			row := Row{}
+			row.OperationID = message.Message.Tx.Hash
+			row.Date = message.Message.Tx.Block.TimeStamp.Format(TimeLayout)
+
+			switch message.Message.MessageType.MessageType {
+			case concentratedliquidity.MsgCreatePosition:
+				parseAndAddSentAmountWithDefault(&row, message)
+			case concentratedliquidity.MsgWithdrawPosition, concentratedliquidity.MsgTransferPositions:
+				parseAndAddReceivedAmountWithDefault(&row, message)
+			case concentratedliquidity.MsgAddToPosition:
+				if message.DenominationReceivedID != nil {
+					parseAndAddReceivedAmountWithDefault(&row, message)
+				} else {
+					parseAndAddSentAmountWithDefault(&row, message)
 				}
 			}
 			sf.Rows = append(sf.Rows, row)

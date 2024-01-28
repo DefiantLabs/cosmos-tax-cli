@@ -1,6 +1,7 @@
 package cryptotaxcalculator
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
@@ -87,7 +88,7 @@ func (row *Row) ParseBasic(address string, event db.TaxableTransaction) error {
 	return nil
 }
 
-func (row *Row) ParseFee(address string, fee db.Fee) error {
+func (row *Row) ParseFee(fee db.Fee) error {
 	row.Date = fee.Tx.Block.TimeStamp.Format(TimeLayout)
 	row.ID = fee.Tx.Hash
 	row.Type = Fee
@@ -137,4 +138,61 @@ func (row *Row) ParseSwap(event db.TaxableTransaction, address, eventType string
 	}
 
 	return nil
+}
+
+func parseAndAddSentAmount(row *Row, event db.TaxableTransaction) error {
+	conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountSent), event.DenominationSent)
+	if err != nil {
+		return errors.New("cannot parse denom units")
+	}
+	row.QuoteAmount = conversionAmount.Text('f', -1)
+	row.QuoteCurrency = conversionSymbol
+
+	return nil
+}
+
+func parseAndAddSentAmountWithDefault(row *Row, event db.TaxableTransaction) {
+	err := parseAndAddSentAmount(row, event)
+	if err != nil {
+		row.QuoteAmount = util.NumericToString(event.AmountSent)
+		row.QuoteCurrency = event.DenominationSent.Base
+	}
+}
+
+func parseAndAddReceivedAmount(row *Row, event db.TaxableTransaction) error {
+	conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountReceived), event.DenominationReceived)
+	if err != nil {
+		return errors.New("cannot parse denom units")
+	}
+	row.BaseAmount = conversionAmount.Text('f', -1)
+	row.BaseCurrency = conversionSymbol
+
+	return nil
+}
+
+func parseAndAddReceivedAmountWithDefault(row *Row, event db.TaxableTransaction) {
+	err := parseAndAddReceivedAmount(row, event)
+	if err != nil {
+		row.BaseAmount = util.NumericToString(event.AmountReceived)
+		row.BaseCurrency = event.DenominationReceived.Base
+	}
+}
+
+func parseAndAddFee(row *Row, fee db.Fee) error {
+	conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(fee.Amount), fee.Denomination)
+	if err != nil {
+		return errors.New("cannot parse denom units")
+	}
+	row.FeeAmount = conversionAmount.Text('f', -1)
+	row.FeeCurrency = conversionSymbol
+
+	return nil
+}
+
+func parseAndAddFeeWithDefault(row *Row, fee db.Fee) {
+	err := parseAndAddFee(row, fee)
+	if err != nil {
+		row.FeeAmount = util.NumericToString(fee.Amount)
+		row.FeeCurrency = fee.Denomination.Base
+	}
 }

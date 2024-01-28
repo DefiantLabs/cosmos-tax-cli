@@ -20,7 +20,7 @@ type ParsingGroup interface {
 	String() string
 	AddTxToGroup(db.TaxableTransaction)
 	GetGroupedTxes() map[uint][]db.TaxableTransaction
-	ParseGroup(parsingFunc func(sf *WrapperLpTxGroup) error) error
+	ParseGroup() error
 	GetRowsForParsingGroup() []CsvRow
 }
 

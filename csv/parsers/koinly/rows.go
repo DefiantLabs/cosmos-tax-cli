@@ -1,6 +1,7 @@
 package koinly
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/db"
@@ -109,4 +110,61 @@ func (row *Row) ParseFee(tx db.Tx, fee db.Fee) error {
 	row.SentCurrency = sentConversionSymbol
 
 	return nil
+}
+
+func parseAndAddSentAmount(row *Row, event db.TaxableTransaction) error {
+	conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountSent), event.DenominationSent)
+	if err != nil {
+		return fmt.Errorf("cannot parse denom units")
+	}
+	row.SentAmount = conversionAmount.Text('f', -1)
+	row.SentCurrency = conversionSymbol
+
+	return nil
+}
+
+func parseAndAddSentAmountWithDefault(row *Row, event db.TaxableTransaction) {
+	err := parseAndAddSentAmount(row, event)
+	if err != nil {
+		row.SentAmount = util.NumericToString(event.AmountSent)
+		row.SentCurrency = event.DenominationSent.Base
+	}
+}
+
+func parseAndAddReceivedAmount(row *Row, event db.TaxableTransaction) error {
+	conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(event.AmountReceived), event.DenominationReceived)
+	if err != nil {
+		return fmt.Errorf("cannot parse denom units")
+	}
+	row.ReceivedAmount = conversionAmount.Text('f', -1)
+	row.ReceivedCurrency = conversionSymbol
+
+	return nil
+}
+
+func parseAndAddReceivedAmountWithDefault(row *Row, event db.TaxableTransaction) {
+	err := parseAndAddReceivedAmount(row, event)
+	if err != nil {
+		row.ReceivedAmount = util.NumericToString(event.AmountReceived)
+		row.ReceivedCurrency = event.DenominationReceived.Base
+	}
+}
+
+func parseAndAddFee(row *Row, fee db.Fee) error {
+	conversionAmount, conversionSymbol, err := db.ConvertUnits(util.FromNumeric(fee.Amount), fee.Denomination)
+	if err != nil {
+		return errors.New("cannot parse denom units")
+	}
+	row.FeeAmount = conversionAmount.Text('f', -1)
+	row.FeeCurrency = conversionSymbol
+
+	return nil
+}
+
+func parseAndAddFeeWithDefault(row *Row, fee db.Fee) {
+	err := parseAndAddFee(row, fee)
+	if err != nil {
+		row.FeeAmount = util.NumericToString(fee.Amount)
+		row.FeeCurrency = fee.Denomination.Base
+	}
 }
