@@ -214,7 +214,7 @@ func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.Csv
 			newRow, err = ParseMsgAcknowledgement(address, event)
 		case ibc.MsgRecvPacket:
 			newRow, err = ParseMsgRecvPacket(address, event)
-		case poolmanager.MsgSplitRouteSwapExactAmountIn, poolmanager.MsgSwapExactAmountIn, poolmanager.MsgSwapExactAmountOut:
+		case poolmanager.MsgSplitRouteSwapExactAmountIn, poolmanager.MsgSwapExactAmountIn, poolmanager.MsgSwapExactAmountOut, poolmanager.MsgSplitRouteSwapExactAmountOut:
 			newRow, err = ParsePoolManagerSwap(address, event)
 		case concentratedliquidity.MsgCollectIncentives, concentratedliquidity.MsgCollectSpreadRewards:
 			newRow, err = ParseConcentratedLiquidityCollection(event)

@@ -246,7 +246,7 @@ func ParseTx(address string, events []db.TaxableTransaction) (rows []parsers.Csv
 			newRow, err = ParseMsgTransfer(address, event)
 		case ibc.MsgRecvPacket:
 			newRow, err = ParseMsgTransfer(address, event)
-		case poolmanager.MsgSplitRouteSwapExactAmountIn, poolmanager.MsgSwapExactAmountIn, poolmanager.MsgSwapExactAmountOut:
+		case poolmanager.MsgSplitRouteSwapExactAmountIn, poolmanager.MsgSwapExactAmountIn, poolmanager.MsgSwapExactAmountOut, poolmanager.MsgSplitRouteSwapExactAmountOut:
 			newRow, err = ParsePoolManagerSwap(event)
 		case valsetpref.MsgDelegateBondedTokens, valsetpref.MsgUndelegateFromValidatorSet, valsetpref.MsgRedelegateValidatorSet, valsetpref.MsgWithdrawDelegationRewards, valsetpref.MsgDelegateToValidatorSet, valsetpref.MsgUndelegateFromRebalancedValidatorSet:
 			newRow, err = ParseValsetPrefRewards(event)
