@@ -48,6 +48,10 @@ type WrapperMsgSwapExactAmountIn5 struct {
 	WrapperMsgSwapExactAmountIn
 }
 
+type WrapperMsgSwapExactAmountIn6 struct {
+	WrapperMsgSwapExactAmountIn
+}
+
 type WrapperMsgSwapExactAmountOut struct {
 	txModule.Message
 	OsmosisMsgSwapExactAmountOut *gammTypes.MsgSwapExactAmountOut
@@ -83,6 +87,10 @@ func (sf *WrapperMsgSwapExactAmountIn4) String() string {
 }
 
 func (sf *WrapperMsgSwapExactAmountIn5) String() string {
+	return sf.WrapperMsgSwapExactAmountIn.String()
+}
+
+func (sf *WrapperMsgSwapExactAmountIn6) String() string {
 	return sf.WrapperMsgSwapExactAmountIn.String()
 }
 
@@ -491,6 +499,52 @@ func (sf *WrapperMsgSwapExactAmountOut) HandleMsg(msgType string, msg sdk.Msg, l
 	return nil
 }
 
+func (sf *WrapperMsgSwapExactAmountIn6) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.OsmosisMsgSwapExactAmountIn = msg.(*gammTypes.MsgSwapExactAmountIn)
+
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
+	}
+
+	// get all transfer events
+	transferEvents := txModule.GetEventsWithType("transfer", log)
+
+	// loop backwards through transfer events
+	for i := len(transferEvents) - 1; i >= 0; i-- {
+		transferEvt := transferEvents[i]
+
+		for _, attr := range transferEvt.Attributes {
+			if attr.Key == "amount" && attr.Value != "" {
+				amount, err := sdk.ParseCoinNormalized(attr.Value)
+				if err != nil {
+					return err
+				}
+
+				// if the amount denom matches the last route denom, then it is the amount received
+				if amount.Denom == sf.OsmosisMsgSwapExactAmountIn.Routes[len(sf.OsmosisMsgSwapExactAmountIn.Routes)-1].TokenOutDenom {
+					sf.TokenOut = amount
+					break
+				}
+			}
+		}
+
+		if !sf.TokenOut.IsNil() {
+			break
+		}
+	}
+
+	if sf.TokenOut.IsNil() {
+		return errors.New("no amount received")
+	}
+
+	sf.TokenIn = sf.OsmosisMsgSwapExactAmountIn.TokenIn
+	sf.Address = sf.OsmosisMsgSwapExactAmountIn.Sender
+	return nil
+}
+
 func (sf *WrapperMsgSwapExactAmountIn) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
 	relevantData := make([]parsingTypes.MessageRelevantInformation, 1)
 	relevantData[0] = parsingTypes.MessageRelevantInformation{
@@ -519,4 +573,8 @@ func (sf *WrapperMsgSwapExactAmountOut) ParseRelevantData() []parsingTypes.Messa
 		ReceiverAddress:      sf.Address,
 	}
 	return relevantData
+}
+
+func (sf *WrapperMsgSwapExactAmountIn6) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	return sf.WrapperMsgSwapExactAmountIn.ParseRelevantData()
 }

@@ -12,7 +12,7 @@ import (
 
 // MessageTypeHandler is used to unmarshal JSON to a particular type.
 var MessageTypeHandler = map[string][]func() txTypes.CosmosMessage{
-	gamm.MsgSwapExactAmountIn:                          {func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn2{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn3{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn4{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn5{} }},
+	gamm.MsgSwapExactAmountIn:                          {func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn2{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn3{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn4{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn5{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountIn6{} }},
 	gamm.MsgSwapExactAmountOut:                         {func() txTypes.CosmosMessage { return &gamm.WrapperMsgSwapExactAmountOut{} }},
 	gamm.MsgJoinSwapExternAmountIn:                     {func() txTypes.CosmosMessage { return &gamm.WrapperMsgJoinSwapExternAmountIn{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgJoinSwapExternAmountIn2{} }},
 	gamm.MsgJoinSwapShareAmountOut:                     {func() txTypes.CosmosMessage { return &gamm.WrapperMsgJoinSwapShareAmountOut{} }, func() txTypes.CosmosMessage { return &gamm.WrapperMsgJoinSwapShareAmountOut2{} }},
@@ -27,6 +27,7 @@ var MessageTypeHandler = map[string][]func() txTypes.CosmosMessage{
 	poolmanager.MsgSwapExactAmountIn:                   {func() txTypes.CosmosMessage { return &poolmanager.WrapperMsgSwapExactAmountIn{} }},
 	poolmanager.MsgSwapExactAmountOut:                  {func() txTypes.CosmosMessage { return &poolmanager.WrapperMsgSwapExactAmountOut{} }},
 	poolmanager.MsgSplitRouteSwapExactAmountIn:         {func() txTypes.CosmosMessage { return &poolmanager.WrapperMsgSplitRouteSwapExactAmountIn{} }},
+	poolmanager.MsgSplitRouteSwapExactAmountOut:        {func() txTypes.CosmosMessage { return &poolmanager.WrapperMsgSplitRouteSwapExactAmountOut{} }},
 	concentratedliquidity.MsgCreatePosition:            {func() txTypes.CosmosMessage { return &concentratedliquidity.WrapperMsgCreatePosition{} }},
 	concentratedliquidity.MsgWithdrawPosition:          {func() txTypes.CosmosMessage { return &concentratedliquidity.WrapperMsgWithdrawPosition{} }},
 	concentratedliquidity.MsgCollectSpreadRewards:      {func() txTypes.CosmosMessage { return &concentratedliquidity.WrapperMsgCollectSpreadRewards{} }},

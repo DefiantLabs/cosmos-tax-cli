@@ -13,9 +13,10 @@ import (
 )
 
 const (
-	MsgSwapExactAmountIn           = "/osmosis.poolmanager.v1beta1.MsgSwapExactAmountIn"
-	MsgSwapExactAmountOut          = "/osmosis.poolmanager.v1beta1.MsgSwapExactAmountOut"
-	MsgSplitRouteSwapExactAmountIn = "/osmosis.poolmanager.v1beta1.MsgSplitRouteSwapExactAmountIn"
+	MsgSwapExactAmountIn            = "/osmosis.poolmanager.v1beta1.MsgSwapExactAmountIn"
+	MsgSwapExactAmountOut           = "/osmosis.poolmanager.v1beta1.MsgSwapExactAmountOut"
+	MsgSplitRouteSwapExactAmountIn  = "/osmosis.poolmanager.v1beta1.MsgSplitRouteSwapExactAmountIn"
+	MsgSplitRouteSwapExactAmountOut = "/osmosis.poolmanager.v1beta1.MsgSplitRouteSwapExactAmountOut"
 )
 
 type WrapperMsgSwapExactAmountIn struct {
@@ -40,6 +41,14 @@ type WrapperMsgSplitRouteSwapExactAmountIn struct {
 	Address                               string
 	TokenOut                              sdk.Coin
 	TokenIn                               sdk.Coin
+}
+
+type WrapperMsgSplitRouteSwapExactAmountOut struct {
+	txModule.Message
+	OsmosisMsgSplitRouteSwapExactAmountOut *poolManagerTypes.MsgSplitRouteSwapExactAmountOut
+	Address                                string
+	TokenOut                               sdk.Coin
+	TokenIn                                sdk.Coin
 }
 
 func (sf *WrapperMsgSwapExactAmountIn) String() string {
@@ -79,6 +88,19 @@ func (sf *WrapperMsgSplitRouteSwapExactAmountIn) String() string {
 		tokenSwappedIn = sf.TokenIn.String()
 	}
 	return fmt.Sprintf("MsgSplitRouteSwapExactAmountIn (pool-manager): %s swapped in %s and received %s",
+		sf.Address, tokenSwappedIn, tokenSwappedOut)
+}
+
+func (sf *WrapperMsgSplitRouteSwapExactAmountOut) String() string {
+	var tokenSwappedOut string
+	var tokenSwappedIn string
+	if !sf.TokenOut.IsNil() {
+		tokenSwappedOut = sf.TokenOut.String()
+	}
+	if !sf.TokenIn.IsNil() {
+		tokenSwappedIn = sf.TokenIn.String()
+	}
+	return fmt.Sprintf("MsgSplitRouteSwapExactAmountOut (pool-manager): %s swapped in %s and received %s",
 		sf.Address, tokenSwappedIn, tokenSwappedOut)
 }
 
@@ -267,6 +289,60 @@ func (sf *WrapperMsgSplitRouteSwapExactAmountIn) HandleMsg(msgType string, msg s
 	return nil
 }
 
+func (sf *WrapperMsgSplitRouteSwapExactAmountOut) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.OsmosisMsgSplitRouteSwapExactAmountOut = msg.(*poolManagerTypes.MsgSplitRouteSwapExactAmountOut)
+
+	sf.Address = sf.OsmosisMsgSplitRouteSwapExactAmountOut.Sender
+
+	denomOut := sf.OsmosisMsgSplitRouteSwapExactAmountOut.TokenOutDenom
+
+	// Contains the addition of all tokens swapped in by the user
+	splitRouteFinalEvent := txModule.GetEventWithType("split_route_swap_exact_amount_out", log)
+
+	if splitRouteFinalEvent == nil {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	// Mislabled event
+	tokensOutString, err := txModule.GetValueForAttribute("tokens_out", splitRouteFinalEvent)
+	if err != nil {
+		return err
+	}
+
+	tokenInAmount, ok := sdk.NewIntFromString(tokensOutString)
+	if !ok {
+		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	}
+
+	tokenInDenom := ""
+	tokenOutAmount := sdk.NewInt(0)
+
+	for _, routes := range sf.OsmosisMsgSplitRouteSwapExactAmountOut.Routes {
+		if len(routes.Pools) == 0 {
+			continue
+		}
+
+		firstPool := routes.Pools[0]
+		if tokenInDenom == "" {
+			tokenInDenom = firstPool.TokenInDenom
+		} else if tokenInDenom != firstPool.TokenInDenom {
+			return errors.New("token in denom does not match across routes first pool")
+		}
+
+		tokenOutAmount = tokenOutAmount.Add(routes.TokenOutAmount)
+
+	}
+
+	finalTokensIn := sdk.NewCoin(tokenInDenom, tokenInAmount)
+	finalTokensOut := sdk.NewCoin(denomOut, tokenOutAmount)
+
+	sf.TokenIn = finalTokensIn
+	sf.TokenOut = finalTokensOut
+
+	return nil
+}
+
 func (sf *WrapperMsgSwapExactAmountIn) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
 	relevantData := make([]parsingTypes.MessageRelevantInformation, 1)
 	relevantData[0] = parsingTypes.MessageRelevantInformation{
@@ -294,6 +370,19 @@ func (sf *WrapperMsgSwapExactAmountOut) ParseRelevantData() []parsingTypes.Messa
 }
 
 func (sf *WrapperMsgSplitRouteSwapExactAmountIn) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	relevantData := make([]parsingTypes.MessageRelevantInformation, 1)
+	relevantData[0] = parsingTypes.MessageRelevantInformation{
+		AmountSent:           sf.TokenIn.Amount.BigInt(),
+		DenominationSent:     sf.TokenIn.Denom,
+		AmountReceived:       sf.TokenOut.Amount.BigInt(),
+		DenominationReceived: sf.TokenOut.Denom,
+		SenderAddress:        sf.Address,
+		ReceiverAddress:      sf.Address,
+	}
+	return relevantData
+}
+
+func (sf *WrapperMsgSplitRouteSwapExactAmountOut) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
 	relevantData := make([]parsingTypes.MessageRelevantInformation, 1)
 	relevantData[0] = parsingTypes.MessageRelevantInformation{
 		AmountSent:           sf.TokenIn.Amount.BigInt(),
