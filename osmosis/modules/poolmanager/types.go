@@ -152,42 +152,56 @@ func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, lo
 
 	transferEvents := txModule.GetEventsWithType("transfer", log)
 
-	var transferEvt *txModule.LogMessageEvent
-	if len(transferEvents) == 0 {
-		transferEvt = nil
-	} else {
-		transferEvt = &transferEvents[len(transferEvents)-1]
-	}
+	if !parsed && len(transferEvents) > 0 {
 
-	if !parsed && transferEvt != nil {
-		transferEvts, err := txModule.ParseTransferEvent(*transferEvt)
-		if err != nil {
-			return err
+		var parserError error
+		var lastParsedIndex int
+		// We will attempt to get the last transfer event that executed for the sender
+		// We are scoping it for now so as not to blast all the way to the beginning but to address
+		// poolmanager CosmWasm pool executions that seem to send some small amount to a different address right at the end
+		for i := len(transferEvents) - 1; !parsed && len(transferEvents)-2 >= 0 && i >= len(transferEvents)-2; i-- {
+			lastParsedIndex = i
+			transferEvt := &transferEvents[i]
+
+			transferEvts, err := txModule.ParseTransferEvent(*transferEvt)
+			if err != nil {
+				parserError = err
+				continue
+			}
+
+			// The last transfer event should contain the final transfer to the sender
+			lastTransferEvt := transferEvts[len(transferEvts)-1]
+
+			if lastTransferEvt.Recipient != sf.Address {
+				parserError = errors.New("transfer event recipient does not match message sender")
+				continue
+			}
+
+			tokenOut, err := sdk.ParseCoinNormalized(lastTransferEvt.Amount)
+			if err != nil {
+				parserError = err
+				continue
+			}
+
+			// The last route in the hops gives the token out denom and pool ID for the final output
+			lastRoute := sf.OsmosisMsgSwapExactAmountIn.Routes[len(sf.OsmosisMsgSwapExactAmountIn.Routes)-1]
+			lastRouteDenom := lastRoute.TokenOutDenom
+
+			if tokenOut.Denom != lastRouteDenom {
+				parserError = errors.New("final transfer denom does not match last route denom")
+				continue
+			}
+
+			sf.TokenOut = tokenOut
+
+			parsed = true
+			parserError = nil
 		}
 
-		// The last transfer event should contain the final transfer to the sender
-		lastTransferEvt := transferEvts[len(transferEvts)-1]
-
-		if lastTransferEvt.Recipient != sf.Address {
-			return errors.New("transfer event recipient does not match message sender")
+		if parserError != nil {
+			return fmt.Errorf("error parsing transfer event. Last processed index (%d): %s", lastParsedIndex, parserError)
 		}
 
-		tokenOut, err := sdk.ParseCoinNormalized(lastTransferEvt.Amount)
-		if err != nil {
-			return err
-		}
-
-		// The last route in the hops gives the token out denom and pool ID for the final output
-		lastRoute := sf.OsmosisMsgSwapExactAmountIn.Routes[len(sf.OsmosisMsgSwapExactAmountIn.Routes)-1]
-		lastRouteDenom := lastRoute.TokenOutDenom
-
-		if tokenOut.Denom != lastRouteDenom {
-			return errors.New("final transfer denom does not match last route denom")
-		}
-
-		sf.TokenOut = tokenOut
-
-		parsed = true
 	}
 
 	if !parsed {
