@@ -101,6 +101,12 @@ func setup() (*gorm.DB, *config.ClientConfig, int, string, error) {
 	dbTypes.CacheDenoms(db)
 	dbTypes.CacheIBCDenoms(db)
 
+	err = db.AutoMigrate(&dbTypes.Address{}, &AddressUsageCSV{}, &AddressUsageJSON{})
+
+	if err != nil {
+		config.Log.Fatalf("Error migrating client models. Err: %v", err)
+	}
+
 	return db, &cfg, svcPort, cfg.Client.Model, nil
 }
 
@@ -258,13 +264,35 @@ func GetTaxableEventsCSV(c *gin.Context) {
 		return
 	}
 
-	accountRows, headers, err := csv.ParseForAddress(addresses, startDate, endDate, DB, format)
+	// We only want to process and return data on addresses we know are valid (in our DB)
+	validAddresses, validAddressDBObjects, err := GetValidAddresses(addresses)
+	if err != nil {
+		config.Log.Errorf("Error getting valid addresses: %v", addresses)
+		c.AbortWithError(500, errors.New("error getting rows for address")) // nolint:staticcheck,errcheck
+		return
+	}
+
+	accountRows, headers, addressRowsCount, err := csv.ParseForAddress(validAddresses, startDate, endDate, DB, format)
 	if err != nil {
 		// the error returned here has already been pushed to the context... I think.
-		config.Log.Errorf("Error getting rows for addresses: %v", addresses)
+		config.Log.Errorf("Error getting valid addresses %v: %s", addresses, err)
 		fmt.Println(err)
 		c.AbortWithError(500, errors.New("error getting rows for address")) // nolint:staticcheck,errcheck
 		return
+	}
+
+	for _, address := range validAddressDBObjects {
+		usage := AddressUsageCSV{
+			Address:       address,
+			AddressID:     address.ID,
+			RowsRetrieved: addressRowsCount[address.Address],
+			Timestamp:     time.Now(),
+		}
+
+		err = DB.Create(&usage).Error
+		if err != nil {
+			config.Log.Errorf("Error saving address usage: %v", err)
+		}
 	}
 
 	if len(accountRows) == 0 {
@@ -306,12 +334,34 @@ func GetTaxableEventsJSON(c *gin.Context) {
 		return
 	}
 
-	accountRows, _, err := csv.ParseForAddress(addresses, startDate, endDate, DB, format)
+	// We only want to process and return data on addresses we know are valid (in our DB)
+	validAddresses, validAddressDBObjects, err := GetValidAddresses(addresses)
 	if err != nil {
-		// the error returned here has already been pushed to the context... I think.
-		config.Log.Errorf("Error getting rows for addresses: %v", addresses)
+		config.Log.Errorf("Error getting valid addresses %v: %s", addresses, err)
 		c.AbortWithError(500, errors.New("error getting rows for address")) // nolint:staticcheck,errcheck
 		return
+	}
+
+	accountRows, _, addressRowsCount, err := csv.ParseForAddress(validAddresses, startDate, endDate, DB, format)
+	if err != nil {
+		// the error returned here has already been pushed to the context... I think.
+		config.Log.Errorf("Error getting rows for addresses: %v", validAddresses)
+		c.AbortWithError(500, errors.New("error getting rows for address")) // nolint:staticcheck,errcheck
+		return
+	}
+
+	for _, address := range validAddressDBObjects {
+		usage := AddressUsageJSON{
+			Address:       address,
+			AddressID:     address.ID,
+			RowsRetrieved: addressRowsCount[address.Address],
+			Timestamp:     time.Now(),
+		}
+
+		err = DB.Create(&usage).Error
+		if err != nil {
+			config.Log.Errorf("Error saving address usage: %v", err)
+		}
 	}
 
 	if len(accountRows) == 0 {
@@ -373,4 +423,50 @@ func ParseTaxableEventsBody(c *gin.Context) ([]string, string, *time.Time, *time
 	}
 
 	return addresses, format, startDate, endDate, nil
+}
+
+func GetValidAddresses(addresses []string) ([]string, []dbTypes.Address, error) {
+	validAddresses, err := dbTypes.GetAddresses(addresses, DB)
+	if err != nil {
+		config.Log.Errorf("Error getting addresses: %v", addresses)
+		return nil, nil, err
+	}
+
+	var validAddressesStr []string
+	if len(validAddresses) != len(addresses) {
+		for _, address := range addresses {
+			found := false
+			for _, validAddress := range validAddresses {
+				if address == validAddress.Address {
+					found = true
+					break
+				}
+			}
+			if found {
+				validAddressesStr = append(validAddressesStr, address)
+			} else {
+				config.Log.Infof("Invalid address not found in DB, skipping: %v", address)
+			}
+		}
+	} else {
+		validAddressesStr = addresses
+	}
+
+	return validAddressesStr, validAddresses, nil
+}
+
+type AddressUsageCSV struct {
+	ID            uint
+	Address       dbTypes.Address
+	AddressID     uint
+	RowsRetrieved uint
+	Timestamp     time.Time
+}
+
+type AddressUsageJSON struct {
+	ID            uint
+	Address       dbTypes.Address
+	AddressID     uint
+	RowsRetrieved uint
+	Timestamp     time.Time
 }

@@ -45,21 +45,24 @@ func GetParser(parserKey string) parsers.Parser {
 	return nil
 }
 
-func ParseForAddress(addresses []string, startDate, endDate *time.Time, pgSQL *gorm.DB, parserKey string) ([]parsers.CsvRow, []string, error) {
+func ParseForAddress(addresses []string, startDate, endDate *time.Time, pgSQL *gorm.DB, parserKey string) ([]parsers.CsvRow, []string, map[string]uint, error) {
 	parser := GetParser(parserKey)
 	if parser == nil {
-		return nil, nil, errors.New("invalid parser key")
+		return nil, nil, nil, errors.New("invalid parser key")
 	}
 	parser.InitializeParsingGroups()
 
 	// Get data for each address
 	var headers []string
 	var csvRows []parsers.CsvRow
+
+	addressRowsCount := make(map[string]uint)
+
 	for _, address := range addresses {
 		taxableTxs, err := db.GetTaxableTransactions(address, pgSQL)
 		if err != nil {
 			config.Log.Error("Error getting taxable transaction.", err)
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		// Some TXs may have fees while the address had no taxable TXs
@@ -67,41 +70,42 @@ func ParseForAddress(addresses []string, startDate, endDate *time.Time, pgSQL *g
 		taxableFees, err := db.GetTaxableFees(address, pgSQL)
 		if err != nil {
 			config.Log.Error("Error getting taxable fees.", err)
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		err = parser.ProcessTaxableTx(address, taxableTxs, taxableFees)
 		if err != nil {
 			config.Log.Error("Error processing taxable transaction.", err)
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		taxableEvents, err := db.GetTaxableEvents(address, pgSQL)
 		if err != nil {
 			config.Log.Error("Error getting taxable events.", err)
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		err = parser.ProcessTaxableEvent(taxableEvents)
 		if err != nil {
 			config.Log.Error("Error processing taxable events.", err)
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		// Get rows once right at the end, also filter them by date
 		rows, err := parser.GetRows(address, startDate, endDate)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		csvRows = append(csvRows, rows...)
+		addressRowsCount[address] = uint(len(rows))
 		headers = parser.GetHeaders()
 	}
 	// re-sort rows if needed
 	if len(addresses) > 1 {
 		SortRows(csvRows, parser.TimeLayout())
 	}
-	return csvRows, headers, nil
+	return csvRows, headers, addressRowsCount, nil
 }
 
 func SortRows(csvRows []parsers.CsvRow, timeLayout string) {

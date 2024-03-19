@@ -24,7 +24,7 @@ func TestOsmosisCsvForAddress(t *testing.T) {
 	addressPrefix := OsmosisAddressPrefix
 	gorm, _ := dbSetup(addressRegex, addressPrefix)
 	address := "osmo14mmus5h7m6vkp0pteks8wawaj4wf3sx7fy3s2r" // local test key address
-	csvRows, headers, err := csv.ParseForAddress([]string{address}, nil, nil, gorm, "accointing")
+	csvRows, headers, _, err := csv.ParseForAddress([]string{address}, nil, nil, gorm, "accointing")
 	if err != nil || len(csvRows) == 0 {
 		t.Fatal("Failed to lookup taxable events")
 	}
@@ -51,7 +51,7 @@ func TestCsvForAddress(t *testing.T) {
 	// address := "juno1mt72y3jny20456k247tc5gf2dnat76l4ynvqwl"
 	// address := "juno130mdu9a0etmeuw52qfxk73pn0ga6gawk4k539x" // strangelove's delegator
 	address := "juno1m2hg5t7n8f6kzh8kmh98phenk8a4xp5wyuz34y" // local test key address
-	csvRows, headers, err := csv.ParseForAddress([]string{address}, nil, nil, gorm, "accointing")
+	csvRows, headers, _, err := csv.ParseForAddress([]string{address}, nil, nil, gorm, "accointing")
 	if err != nil || len(csvRows) == 0 {
 		t.Fatal("Failed to lookup taxable events")
 	}
