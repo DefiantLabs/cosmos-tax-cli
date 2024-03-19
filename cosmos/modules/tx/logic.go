@@ -78,32 +78,50 @@ func ParseTransferEvent(evt LogMessageEvent) ([]TransferEvent, error) {
 		return nil, errInvalidTransfer
 	}
 
-	for i := 0; i < len(evt.Attributes); i++ {
-		attrRecipient := evt.Attributes[i]
-		if attrRecipient.Key == "recipient" {
-			attrSenderIdx := i + 1
-			attrAmountIdx := i + 2
-			if attrAmountIdx < len(evt.Attributes) {
-				attrSender := evt.Attributes[attrSenderIdx]
-				attrAmount := evt.Attributes[attrAmountIdx]
-				if attrSender.Key == "sender" && attrAmount.Key == EventAttributeAmount {
-					transfers = append(transfers, TransferEvent{
-						Recipient: attrRecipient.Value,
-						Sender:    attrSender.Value,
-						Amount:    attrAmount.Value,
-					})
-				} else {
-					return nil, errInvalidTransfer
-				}
-			} else {
-				return nil, errInvalidTransfer
-			}
-		} else if i%3 == 0 { // every third attr should be "recipient"
+	if len(evt.Attributes)%3 != 0 {
+		return nil, errInvalidTransfer
+	}
+
+	// chunk the attributes into groups of 3
+	for i := 0; i < len(evt.Attributes); i += 3 {
+		transferEvent := TransferEvent{}
+		err := parseTransferAttributeIntoEvent(evt.Attributes[i], &transferEvent)
+		if err != nil {
+			return nil, err
+		}
+		err = parseTransferAttributeIntoEvent(evt.Attributes[i+1], &transferEvent)
+		if err != nil {
+			return nil, err
+		}
+		err = parseTransferAttributeIntoEvent(evt.Attributes[i+2], &transferEvent)
+		if err != nil {
+			return nil, err
+		}
+
+		// validate the transfer event
+		if transferEvent.Recipient == "" || transferEvent.Sender == "" || transferEvent.Amount == "" {
 			return nil, errInvalidTransfer
 		}
+
+		transfers = append(transfers, transferEvent)
 	}
 
 	return transfers, nil
+}
+
+func parseTransferAttributeIntoEvent(attr Attribute, evt *TransferEvent) error {
+	switch attr.Key {
+	case "recipient":
+		evt.Recipient = attr.Value
+	case "sender":
+		evt.Sender = attr.Value
+	case "amount":
+		evt.Amount = attr.Value
+	default:
+		return fmt.Errorf("unknown attribute %s", attr.Key)
+	}
+
+	return nil
 }
 
 // If order is reversed, the last attribute containing the given key will be returned
