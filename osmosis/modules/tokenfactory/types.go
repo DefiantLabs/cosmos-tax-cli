@@ -16,6 +16,7 @@ const (
 	MsgBurn              = "/osmosis.tokenfactory.v1beta1.MsgBurn"
 	MsgSetDenomMetadata  = "/osmosis.tokenfactory.v1beta1.MsgSetDenomMetadata"
 	MsgSetBeforeSendHook = "/osmosis.tokenfactory.v1beta1.MsgSetBeforeSendHook"
+	MsgChangeAdmin       = "/osmosis.tokenfactory.v1beta1.MsgChangeAdmin"
 )
 
 // Create interface definition for MsgMint
