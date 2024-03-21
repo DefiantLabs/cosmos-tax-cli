@@ -132,7 +132,7 @@ func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, lo
 
 	parsed := false
 
-	if tokensSwappedEvt == nil {
+	if tokensSwappedEvt != nil {
 
 		// The last route in the hops gives the token out denom and pool ID for the final output
 		lastRoute := sf.OsmosisMsgSwapExactAmountIn.Routes[len(sf.OsmosisMsgSwapExactAmountIn.Routes)-1]
@@ -159,7 +159,7 @@ func (sf *WrapperMsgSwapExactAmountIn) HandleMsg(msgType string, msg sdk.Msg, lo
 		// We will attempt to get the last transfer event that executed for the sender
 		// We are scoping it for now so as not to blast all the way to the beginning but to address
 		// poolmanager CosmWasm pool executions that seem to send some small amount to a different address right at the end
-		for i := len(transferEvents) - 1; !parsed && len(transferEvents)-2 >= 0 && i >= len(transferEvents)-2; i-- {
+		for i := len(transferEvents) - 1; !parsed && i >= len(transferEvents)-2 && i >= 0; i-- {
 			lastParsedIndex = i
 			transferEvt := &transferEvents[i]
 
