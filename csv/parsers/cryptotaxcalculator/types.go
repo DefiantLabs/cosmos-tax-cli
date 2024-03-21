@@ -43,4 +43,5 @@ const (
 	Receive        = "receive"
 	Sell           = "sell"
 	Fee            = "fee"
+	Staking        = "staking"
 )

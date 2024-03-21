@@ -276,7 +276,7 @@ func ParseMsgWithdrawDelegatorReward(address string, event db.TaxableTransaction
 	if err != nil {
 		config.Log.Error("Error with ParseMsgWithdrawDelegatorReward.", err)
 	}
-	// row.Label = Unstake
+	row.Type = Staking
 	return *row, err
 }
 
@@ -435,7 +435,7 @@ func ParseConcentratedLiquidityCollection(event db.TaxableTransaction) (Row, err
 
 func ParseValsetPrefRewards(event db.TaxableTransaction) (Row, error) {
 	row := &Row{}
-	row.Type = Receive
+	row.Type = Staking
 	row.Date = event.Message.Tx.Block.TimeStamp.Format(TimeLayout)
 
 	err := parseAndAddReceivedAmount(row, event)
