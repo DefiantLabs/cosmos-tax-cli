@@ -98,8 +98,18 @@ func ParseTransferEvent(evt LogMessageEvent) ([]TransferEvent, error) {
 			return nil, err
 		}
 
-		// validate the transfer event
-		if transferEvent.Recipient == "" || transferEvent.Sender == "" || transferEvent.Amount == "" {
+		// Osmosis tends to emit large volumes of empty transfer events, just skip these
+		if transferEvent.Recipient == "" && transferEvent.Sender == "" && transferEvent.Amount == "" {
+			continue
+		}
+
+		// We skip empty amounts as well
+		if transferEvent.Amount == "" {
+			continue
+		}
+
+		// we require a transfer actually have addresses
+		if transferEvent.Recipient == "" || transferEvent.Sender == "" {
 			return nil, errInvalidTransfer
 		}
 

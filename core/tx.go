@@ -138,6 +138,7 @@ var messageTypeIgnorer = map[string]interface{}{
 	tokenfactory.MsgCreateDenom:       nil,
 	tokenfactory.MsgSetBeforeSendHook: nil,
 	tokenfactory.MsgSetDenomMetadata:  nil,
+	tokenfactory.MsgChangeAdmin:       nil,
 
 	////////////////////////////////////////////////////
 	/////// Possible Taxable Events, future work ///////
