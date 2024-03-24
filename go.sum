@@ -562,8 +562,8 @@ github.com/CosmWasm/wasmvm v1.5.0/go.mod h1:fXB+m2gyh4v9839zlIXdMZGeLAxqUdYdFQqY
 github.com/DATA-DOG/go-sqlmock v1.3.3/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
 github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
 github.com/DataDog/zstd v1.5.0/go.mod h1:g4AWEaM3yOg3HYfnJ3YIawPnVdXJh9QME85blwSAmyw=
-github.com/DefiantLabs/lens v0.3.1-0.20240101000419-bb969d3477ae h1:7M4OG9kQiYpZzrW6h27ZrRDRPBk8GKgE91k0bFpOQa0=
-github.com/DefiantLabs/lens v0.3.1-0.20240101000419-bb969d3477ae/go.mod h1:ekVRslkfBkX2+qSbsJxZ+lcB6Yi22M7Tk4a7cvaDbCM=
+github.com/DefiantLabs/lens v0.3.1-0.20240324163350-914cc2a29ee6 h1:I64YDD/RIyROZZNGBv5GhiOzIL+twLvCZ7CD96J3i/8=
+github.com/DefiantLabs/lens v0.3.1-0.20240324163350-914cc2a29ee6/go.mod h1:ekVRslkfBkX2+qSbsJxZ+lcB6Yi22M7Tk4a7cvaDbCM=
 github.com/JohnCGriffin/overflow v0.0.0-20211019200055-46fa312c352c/go.mod h1:X0CRv0ky0k6m906ixxpzmDRLvX58TFUKS2eePweuyxk=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
 github.com/KyleBanks/depth v1.2.1 h1:5h8fQADFrWtarTdtDudMmGsC7GPbOAu6RVB3ffsVFHc=

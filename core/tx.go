@@ -26,6 +26,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/incentives"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/lockup"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/protorev"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/superfluid"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/tokenfactory"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/valsetpref"
@@ -93,6 +94,7 @@ var messageTypeIgnorer = map[string]interface{}{
 	ibc.MsgChannelOpenAck:        nil,
 	ibc.MsgChannelCloseConfirm:   nil,
 	ibc.MsgChannelCloseInit:      nil,
+	ibc.MsgSubmitMisbehaviour:    nil,
 	// Creating and modifying gauges does not create taxable events
 	incentives.MsgCreateGauge: nil,
 	incentives.MsgAddToGauge:  nil,
@@ -102,6 +104,8 @@ var messageTypeIgnorer = map[string]interface{}{
 	lockup.MsgBeginUnlockingAll: nil,
 	lockup.MsgUnlockPeriodLock:  nil,
 	lockup.MsgUnlockTokens:      nil,
+	// Protorev taxable events are handled in epoch BeginBlock events
+	protorev.MsgSetDeveloperAccount: nil,
 	// Unjailing and updating params is not taxable
 	slashing.MsgUnjail:       nil,
 	slashing.MsgUpdateParams: nil,
