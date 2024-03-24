@@ -38,6 +38,8 @@ const (
 	MsgCreateClient = "/ibc.core.client.v1.MsgCreateClient"
 	MsgUpdateClient = "/ibc.core.client.v1.MsgUpdateClient"
 
+	MsgSubmitMisbehaviour = "/ibc.core.client.v1.MsgSubmitMisbehaviour"
+
 	// Consts used for classifying Ack messages
 	// We may need to keep extending these consts for other types
 	AckFungibleTokenTransfer    = 0
