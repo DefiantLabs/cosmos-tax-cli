@@ -317,7 +317,7 @@ func ProcessRPCBlockByHeightTXs(db *gorm.DB, cl *client.ChainClient, blockResult
 		indexerMergedTx.Tx = indexerTx
 		indexerMergedTx.Tx.AuthInfo = *txFull.AuthInfo
 
-		processedTx, _, err := ProcessTx(db, indexerMergedTx)
+		processedTx, _, err := ProcessTx(cl, db, indexerMergedTx)
 		if err != nil {
 			return currTxDbWrappers, blockTime, err
 		}
@@ -330,7 +330,7 @@ func ProcessRPCBlockByHeightTXs(db *gorm.DB, cl *client.ChainClient, blockResult
 }
 
 // ProcessRPCTXs - Given an RPC response, build out the more specific data used by the parser.
-func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]dbTypes.TxDBWrapper, *time.Time, error) {
+func ProcessRPCTXs(db *gorm.DB, cl *client.ChainClient, txEventResp *cosmosTx.GetTxsEventResponse) ([]dbTypes.TxDBWrapper, *time.Time, error) {
 	currTxDbWrappers := make([]dbTypes.TxDBWrapper, len(txEventResp.Txs))
 	var blockTime *time.Time
 
@@ -386,7 +386,7 @@ func ProcessRPCTXs(db *gorm.DB, txEventResp *cosmosTx.GetTxsEventResponse) ([]db
 		indexerMergedTx.Tx = indexerTx
 		indexerMergedTx.Tx.AuthInfo = *currTx.AuthInfo
 
-		processedTx, txTime, err := ProcessTx(db, indexerMergedTx)
+		processedTx, txTime, err := ProcessTx(cl, db, indexerMergedTx)
 		if err != nil {
 			return currTxDbWrappers, blockTime, err
 		}
@@ -430,7 +430,7 @@ func AnalyzeSwaps() {
 	fmt.Printf("Profit (OSMO): %.10f, days: %f\n", profit, latestTime.Sub(earliestTime).Hours()/24)
 }
 
-func ProcessTx(db *gorm.DB, tx txtypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper, txTime time.Time, err error) {
+func ProcessTx(cl *client.ChainClient, db *gorm.DB, tx txtypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper, txTime time.Time, err error) {
 	txTime, err = time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
 	if err != nil {
 		config.Log.Error("Error parsing tx timestamp.", err)
@@ -535,7 +535,7 @@ func ProcessTx(db *gorm.DB, tx txtypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 		}
 	}
 
-	fees, err := ProcessFees(db, tx.Tx.AuthInfo, tx.Tx.Signers)
+	fees, err := ProcessFees(cl, db, tx.Tx.AuthInfo, tx.Tx.Signers)
 	if err != nil {
 		return txDBWapper, txTime, err
 	}
@@ -547,7 +547,7 @@ func ProcessTx(db *gorm.DB, tx txtypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 }
 
 // ProcessFees returns a comma delimited list of fee amount/denoms
-func ProcessFees(db *gorm.DB, authInfo cosmosTx.AuthInfo, signers []types.AccAddress) ([]dbTypes.Fee, error) {
+func ProcessFees(cl *client.ChainClient, db *gorm.DB, authInfo cosmosTx.AuthInfo, signers []types.AccAddress) ([]dbTypes.Fee, error) {
 	feeCoins := authInfo.Fee.Amount
 	payer := authInfo.Fee.GetPayer()
 	fees := []dbTypes.Fee{}
@@ -576,14 +576,24 @@ func ProcessFees(db *gorm.DB, authInfo cosmosTx.AuthInfo, signers []types.AccAdd
 					payerAddr.Address = signers[0].String()
 				} else {
 					var pubKey cryptoTypes.PubKey
-					cpk := authInfo.SignerInfos[0].PublicKey.GetCachedValue()
 
-					// if this is a multisig msg, handle it specially
-					if strings.Contains(authInfo.SignerInfos[0].ModeInfo.GetMulti().String(), "mode:SIGN_MODE_LEGACY_AMINO_JSON") {
-						pubKey = cpk.(*multisig.LegacyAminoPubKey).GetPubKeys()[0]
-					} else {
-						pubKey = cpk.(cryptoTypes.PubKey)
+					pubKeyType, err := cl.Codec.InterfaceRegistry.Resolve(authInfo.SignerInfos[0].PublicKey.TypeUrl)
+					if err != nil {
+						return nil, err
 					}
+					err = cl.Codec.InterfaceRegistry.UnpackAny(authInfo.SignerInfos[0].PublicKey, &pubKeyType)
+					if err != nil {
+						return nil, err
+					}
+
+					multisigKey, ok := pubKeyType.(*multisig.LegacyAminoPubKey)
+
+					if ok {
+						pubKey = multisigKey.GetPubKeys()[0]
+					} else {
+						pubKey = pubKeyType.(cryptoTypes.PubKey)
+					}
+
 					hexPub := hex.EncodeToString(pubKey.Bytes())
 					bechAddr, err := ParseSignerAddress(hexPub, "")
 					if err != nil {

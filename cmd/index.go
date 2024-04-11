@@ -369,7 +369,7 @@ func processBlock(cl *client.ChainClient, dbConn *gorm.DB, failedBlockHandler fu
 			}
 		}
 	} else {
-		txDBWrappers, blockTime, err = core.ProcessRPCTXs(dbConn, txsEventResp)
+		txDBWrappers, blockTime, err = core.ProcessRPCTXs(dbConn, cl, txsEventResp)
 		if err != nil {
 			config.Log.Error("ProcessRpcTxs: unhandled error", err)
 			failedBlockHandler(blockToProcess, core.UnprocessableTxError, err)
