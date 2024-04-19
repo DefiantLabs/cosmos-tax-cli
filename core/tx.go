@@ -39,6 +39,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/types"
 	cosmosTx "github.com/cosmos/cosmos-sdk/types/tx"
 	"gorm.io/gorm"
+
+	indexerEvents "github.com/DefiantLabs/cosmos-tax-cli/cosmos/events"
 )
 
 // Unmarshal JSON to a particular type. There can be more than one handler for each type.
@@ -272,6 +274,10 @@ func ProcessRPCBlockByHeightTXs(db *gorm.DB, cl *client.ChainClient, blockResult
 		// We can entirely ignore failed TXs in downstream parsers, because according to the Cosmos specification, a single failed message in a TX fails the whole TX
 		if txResult.Code == 0 {
 			logs, err = types.ParseABCILogs(txResult.Log)
+
+			if err != nil {
+				logs, err = indexerEvents.ParseTxEventsToMessageIndexEvents(len(txFull.Body.Messages), txResult.Events)
+			}
 		} else {
 			err = nil
 		}
@@ -343,6 +349,16 @@ func ProcessRPCTXs(db *gorm.DB, cl *client.ChainClient, txEventResp *cosmosTx.Ge
 		var currLogMsgs []txtypes.LogMessage
 		currTx := txEventResp.Txs[txIdx]
 		currTxResp := txEventResp.TxResponses[txIdx]
+
+		if len(currTxResp.Logs) == 0 && len(currTxResp.Events) != 0 {
+			parsedLogs, err := indexerEvents.ParseTxEventsToMessageIndexEvents(len(currTx.Body.Messages), currTxResp.Events)
+			if err != nil {
+				config.Log.Errorf("Error parsing events to message index events to normalize: %v", err)
+				return nil, blockTime, err
+			}
+
+			currTxResp.Logs = parsedLogs
+		}
 
 		// Get the Messages and Message Logs
 		for msgIdx := range currTx.Body.Messages {
