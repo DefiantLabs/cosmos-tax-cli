@@ -27,10 +27,10 @@ def get_args():
 
 SELECT_CHAINS_QUERY = "SELECT id FROM chains WHERE chain_id=%s;"
 GAPS_QUERY = """
-SELECT height + 1 AS gap_start, 
+SELECT height + 1 AS gap_start,
        next_height - 1 AS gap_end
 FROM (
-  SELECT height, 
+  SELECT height,
          LEAD(height) OVER (ORDER BY height) AS next_height
   FROM blocks WHERE blockchain_id = %s
 ) nr
@@ -62,7 +62,7 @@ if __name__ == "__main__":
             rec = cur.fetchone()
             if rec is None:
                 raise Exception(f"Chain ID {chain_id} not found")
-        
+
         print("Executing gap finder...")
         with conn.cursor() as cur:
             cur.execute(GAPS_QUERY, (rec[0],))
