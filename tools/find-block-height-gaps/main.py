@@ -19,9 +19,9 @@ def get_env():
     return ret
 
 def get_args():
-    parser = argparse.ArgumentParser(description="Dump failed block heights")
+    parser = argparse.ArgumentParser(description="Finds and outputs block height gaps in a chain")
     parser.add_argument("--chain-id", type=str, default="osmosis-1", help="Chain ID to dump failed block heights from")
-    parser.add_argument("--flatten-and-fill", "-ff", action="store_true", help="Flatten and fill the gaps and output to a file")
+    parser.add_argument("--flatten-and-fill", "-ff", action="store_true", help="Flatten and fill the gaps and output to a file next to the gaps file")
     args = parser.parse_args()
     return args
 
