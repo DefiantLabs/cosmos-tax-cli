@@ -9,7 +9,7 @@ import (
 	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	cosmwasmPoolModelTypes "github.com/osmosis-labs/osmosis/v21/x/cosmwasmpool/model"
+	cosmwasmPoolModelTypes "github.com/osmosis-labs/osmosis/v25/x/cosmwasmpool/model"
 )
 
 const (

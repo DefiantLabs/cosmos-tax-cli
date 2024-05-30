@@ -7,7 +7,7 @@ import (
 	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	tfTypes "github.com/osmosis-labs/osmosis/v21/x/tokenfactory/types"
+	tfTypes "github.com/osmosis-labs/osmosis/v25/x/tokenfactory/types"
 )
 
 const (
