@@ -10,6 +10,7 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/DefiantLabs/cosmos-tax-cli/block-sdk/modules/auction"
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/authz"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/bank"
@@ -59,6 +60,7 @@ var messageTypeHandler = map[string][]func() txtypes.CosmosMessage{
 	staking.MsgBeginRedelegate:                  {func() txtypes.CosmosMessage { return &staking.WrapperMsgBeginRedelegate{} }},
 	ibc.MsgRecvPacket:                           {func() txtypes.CosmosMessage { return &ibc.WrapperMsgRecvPacket{} }},
 	ibc.MsgAcknowledgement:                      {func() txtypes.CosmosMessage { return &ibc.WrapperMsgAcknowledgement{} }},
+	auction.MsgAuctionBid:                       {func() txtypes.CosmosMessage { return &auction.WrapperMsgAuctionBid{} }},
 }
 
 // These messages are ignored for tax purposes.
@@ -71,6 +73,10 @@ var messageTypeIgnorer = map[string]interface{}{
 	authz.MsgExec:   nil,
 	authz.MsgGrant:  nil,
 	authz.MsgRevoke: nil,
+
+	// block-sdk auction module parameter updates are not taxable
+	auction.MsgUpdateParams: nil,
+
 	// Making a config change is not taxable
 	distribution.MsgSetWithdrawAddress: nil,
 	// Making a stableswap config change is not taxable
