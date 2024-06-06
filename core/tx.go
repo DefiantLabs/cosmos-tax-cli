@@ -109,11 +109,12 @@ var messageTypeIgnorer = map[string]interface{}{
 	incentives.MsgCreateGauge: nil,
 	incentives.MsgAddToGauge:  nil,
 	// Locking/unlocking is not taxable
-	lockup.MsgBeginUnlocking:    nil,
-	lockup.MsgLockTokens:        nil,
-	lockup.MsgBeginUnlockingAll: nil,
-	lockup.MsgUnlockPeriodLock:  nil,
-	lockup.MsgUnlockTokens:      nil,
+	lockup.MsgBeginUnlocking:           nil,
+	lockup.MsgLockTokens:               nil,
+	lockup.MsgBeginUnlockingAll:        nil,
+	lockup.MsgUnlockPeriodLock:         nil,
+	lockup.MsgUnlockTokens:             nil,
+	lockup.MsgSetRewardReceiverAddress: nil,
 	// Protorev taxable events are handled in epoch BeginBlock events
 	protorev.MsgSetDeveloperAccount: nil,
 	// Unjailing and updating params is not taxable
