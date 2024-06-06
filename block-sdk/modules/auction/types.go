@@ -11,8 +11,9 @@ const (
 	MsgAuctionBid   = "/sdk.auction.v1.MsgAuctionBid"
 )
 
-// WrapperMsgAuctionBid is a wrapper for MsgAuctionBid
-
+// The Skip Block SDK MsgAuctionBid message allows for the creation of a bid to execute a set of Transactions at the top of a block.
+// It is part of the MEV Lane x/auction module (https://docs.skip.money/blocksdk/lanes/existing-lanes/mev).
+// Research is being done on how the application should handle this message in the TX message parser.
 type WrapperMsgAuctionBid struct {
 	txModule.Message
 }

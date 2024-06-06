@@ -60,7 +60,8 @@ var messageTypeHandler = map[string][]func() txtypes.CosmosMessage{
 	staking.MsgBeginRedelegate:                  {func() txtypes.CosmosMessage { return &staking.WrapperMsgBeginRedelegate{} }},
 	ibc.MsgRecvPacket:                           {func() txtypes.CosmosMessage { return &ibc.WrapperMsgRecvPacket{} }},
 	ibc.MsgAcknowledgement:                      {func() txtypes.CosmosMessage { return &ibc.WrapperMsgAcknowledgement{} }},
-	auction.MsgAuctionBid:                       {func() txtypes.CosmosMessage { return &auction.WrapperMsgAuctionBid{} }},
+	// Support is not fully built out for this message parser
+	// auction.MsgAuctionBid:                       {func() txtypes.CosmosMessage { return &auction.WrapperMsgAuctionBid{} }},
 }
 
 // These messages are ignored for tax purposes.
@@ -76,6 +77,7 @@ var messageTypeIgnorer = map[string]interface{}{
 
 	// block-sdk auction module parameter updates are not taxable
 	auction.MsgUpdateParams: nil,
+	auction.MsgAuctionBid:   nil,
 
 	// Making a config change is not taxable
 	distribution.MsgSetWithdrawAddress: nil,
