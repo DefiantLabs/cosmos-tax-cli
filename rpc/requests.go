@@ -4,7 +4,7 @@ import (
 	"time"
 
 	coretypes "github.com/cometbft/cometbft/rpc/core/types"
-	osmosisProtorev "github.com/osmosis-labs/osmosis/v21/x/protorev/types"
+	osmosisProtorev "github.com/osmosis-labs/osmosis/v25/x/protorev/types"
 	osmosisEpochs "github.com/osmosis-labs/osmosis/x/epochs/types"
 
 	"github.com/DefiantLabs/cosmos-tax-cli/config"

@@ -10,6 +10,7 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/DefiantLabs/cosmos-tax-cli/block-sdk/modules/auction"
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/authz"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/bank"
@@ -59,6 +60,8 @@ var messageTypeHandler = map[string][]func() txtypes.CosmosMessage{
 	staking.MsgBeginRedelegate:                  {func() txtypes.CosmosMessage { return &staking.WrapperMsgBeginRedelegate{} }},
 	ibc.MsgRecvPacket:                           {func() txtypes.CosmosMessage { return &ibc.WrapperMsgRecvPacket{} }},
 	ibc.MsgAcknowledgement:                      {func() txtypes.CosmosMessage { return &ibc.WrapperMsgAcknowledgement{} }},
+	// Support is not fully built out for this message parser
+	// auction.MsgAuctionBid:                       {func() txtypes.CosmosMessage { return &auction.WrapperMsgAuctionBid{} }},
 }
 
 // These messages are ignored for tax purposes.
@@ -71,6 +74,11 @@ var messageTypeIgnorer = map[string]interface{}{
 	authz.MsgExec:   nil,
 	authz.MsgGrant:  nil,
 	authz.MsgRevoke: nil,
+
+	// block-sdk auction module parameter updates are not taxable
+	auction.MsgUpdateParams: nil,
+	auction.MsgAuctionBid:   nil,
+
 	// Making a config change is not taxable
 	distribution.MsgSetWithdrawAddress: nil,
 	// Making a stableswap config change is not taxable
@@ -101,11 +109,12 @@ var messageTypeIgnorer = map[string]interface{}{
 	incentives.MsgCreateGauge: nil,
 	incentives.MsgAddToGauge:  nil,
 	// Locking/unlocking is not taxable
-	lockup.MsgBeginUnlocking:    nil,
-	lockup.MsgLockTokens:        nil,
-	lockup.MsgBeginUnlockingAll: nil,
-	lockup.MsgUnlockPeriodLock:  nil,
-	lockup.MsgUnlockTokens:      nil,
+	lockup.MsgBeginUnlocking:           nil,
+	lockup.MsgLockTokens:               nil,
+	lockup.MsgBeginUnlockingAll:        nil,
+	lockup.MsgUnlockPeriodLock:         nil,
+	lockup.MsgUnlockTokens:             nil,
+	lockup.MsgSetRewardReceiverAddress: nil,
 	// Protorev taxable events are handled in epoch BeginBlock events
 	protorev.MsgSetDeveloperAccount: nil,
 	// Unjailing and updating params is not taxable

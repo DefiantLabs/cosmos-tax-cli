@@ -9,8 +9,8 @@ import (
 	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	clPoolTypes "github.com/osmosis-labs/osmosis/v21/x/concentrated-liquidity/model"
-	clTypes "github.com/osmosis-labs/osmosis/v21/x/concentrated-liquidity/types"
+	clPoolTypes "github.com/osmosis-labs/osmosis/v25/x/concentrated-liquidity/model"
+	clTypes "github.com/osmosis-labs/osmosis/v25/x/concentrated-liquidity/types"
 )
 
 const (
