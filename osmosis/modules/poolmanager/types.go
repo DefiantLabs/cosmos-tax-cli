@@ -285,7 +285,6 @@ func (sf *WrapperMsgSwapExactAmountOut) HandleMsg(msgType string, msg sdk.Msg, l
 				if transfer.Sender == sf.OsmosisMsgSwapExactAmountOut.Sender && transfer.Recipient == contractAddress {
 
 					transferredAmount, err := sdk.ParseCoinNormalized(transfer.Amount)
-
 					if err != nil {
 						return errors.New("error parsing contract to user transfer amount")
 					}
@@ -320,7 +319,6 @@ func (sf *WrapperMsgSwapExactAmountOut) HandleMsg(msgType string, msg sdk.Msg, l
 				if transfer.Recipient == sf.OsmosisMsgSwapExactAmountOut.Sender && transfer.Sender == contractAddress {
 
 					transferredAmount, err := sdk.ParseCoinNormalized(transfer.Amount)
-
 					if err != nil {
 						return errors.New("error parsing contract to user transfer amount")
 					}
@@ -342,7 +340,6 @@ func (sf *WrapperMsgSwapExactAmountOut) HandleMsg(msgType string, msg sdk.Msg, l
 
 		// Subtract the two to get the token in
 		tokenInAmount, err := userToContractAmount.SafeSub(*contractToUserAmount)
-
 		if err != nil {
 			return errors.New("error subtracting contract to user amount from user to contract amount")
 		}
