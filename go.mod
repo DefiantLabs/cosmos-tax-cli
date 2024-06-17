@@ -2,7 +2,7 @@ module github.com/DefiantLabs/cosmos-tax-cli
 
 go 1.21.8
 
-toolchain go1.21.10
+toolchain go1.21.11
 
 require (
 	github.com/BurntSushi/toml v1.3.2
