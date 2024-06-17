@@ -30,6 +30,7 @@ type WrapperMsgSwapExactAmountIn struct {
 type WrapperMsgSwapExactAmountOut struct {
 	txModule.Message
 	OsmosisMsgSwapExactAmountOut *poolManagerTypes.MsgSwapExactAmountOut
+	Parser                       string
 	Address                      string
 	TokenOut                     sdk.Coin
 	TokenIn                      sdk.Coin
@@ -74,8 +75,8 @@ func (sf *WrapperMsgSwapExactAmountOut) String() string {
 	if !sf.TokenIn.IsNil() {
 		tokenSwappedIn = sf.TokenIn.String()
 	}
-	return fmt.Sprintf("MsgSwapExactAmountOut (pool-manager): %s swapped in %s and received %s",
-		sf.Address, tokenSwappedIn, tokenSwappedOut)
+	return fmt.Sprintf("MsgSwapExactAmountOut (pool-manager - %s): %s swapped in %s and received %s",
+		sf.Parser, sf.Address, tokenSwappedIn, tokenSwappedOut)
 }
 
 func (sf *WrapperMsgSplitRouteSwapExactAmountIn) String() string {
@@ -219,25 +220,139 @@ func (sf *WrapperMsgSwapExactAmountOut) HandleMsg(msgType string, msg sdk.Msg, l
 
 	// The attribute in the log message that shows you the tokens swapped
 	tokensSwappedEvt := txModule.GetEventWithType("token_swapped", log)
-	if tokensSwappedEvt == nil {
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+	// Hallmark of a cosmwasm pool swap execution
+	wasmEvt := txModule.GetEventWithType("wasm", log)
+
+	if tokensSwappedEvt == nil && wasmEvt == nil {
+		return errors.New("no processable events for poolmanager MsgSwapExactAmountOut")
 	}
 
-	// This gets the first token swapped in (if there are multiple pools we do not care about intermediates)
-	tokenInStr, err := txModule.GetValueForAttribute("tokens_in", tokensSwappedEvt)
-	if err != nil {
-		return err
-	}
+	switch {
+	case tokensSwappedEvt != nil:
+		sf.Parser = "tokens_swapped"
 
-	tokenIn, err := sdk.ParseCoinNormalized(tokenInStr)
-	if err != nil {
-		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		// This gets the first token swapped in (if there are multiple pools we do not care about intermediates)
+		tokenInStr, err := txModule.GetValueForAttribute("tokens_in", tokensSwappedEvt)
+		if err != nil {
+			return err
+		}
+
+		tokenIn, err := sdk.ParseCoinNormalized(tokenInStr)
+		if err != nil {
+			return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
+		}
+		sf.TokenIn = tokenIn
+	case wasmEvt != nil:
+		sf.Parser = "wasm"
+		// As of Osmosis testing block 14709690 CosmWasm pools have the following chars:
+		// 1. The contract receives funds from the user for the max amount in from the message executor
+		// 2. The contract executes the swap
+		// 3. The contract refunds the funds that were not needed in the message execution
+		// 4. The contract sends the swapped funds to the user
+		if len(sf.OsmosisMsgSwapExactAmountOut.Routes) == 0 {
+			return errors.New("no routes provided in the message")
+		}
+
+		firstPoolDenom := sf.OsmosisMsgSwapExactAmountOut.Routes[0].TokenInDenom
+
+		// contract address is in the wasm event
+		contractAddress := txModule.GetLastValueForAttribute("_contract_address", wasmEvt)
+
+		if contractAddress == "" {
+			return errors.New("no contract address found in wasm event")
+		}
+
+		transferEvents := txModule.GetEventsWithType("transfer", log)
+
+		if len(transferEvents) == 0 {
+			return errors.New("no transfer events found in log")
+		}
+
+		// Get the transfer event from the user to the contract
+		var userToContractAmount *sdk.Coin
+
+		for _, transferEvt := range transferEvents {
+			transferEvts, err := txModule.ParseTransferEvent(transferEvt)
+			if err != nil {
+				continue
+			}
+
+			if len(transferEvts) == 0 {
+				continue
+			}
+
+			for _, transfer := range transferEvts {
+				if transfer.Sender == sf.OsmosisMsgSwapExactAmountOut.Sender && transfer.Recipient == contractAddress {
+
+					transferredAmount, err := sdk.ParseCoinNormalized(transfer.Amount)
+
+					if err != nil {
+						return errors.New("error parsing contract to user transfer amount")
+					}
+
+					if transferredAmount.Denom != firstPoolDenom {
+						continue
+					}
+
+					userToContractAmount = &transferredAmount
+					break
+				}
+			}
+		}
+
+		if userToContractAmount == nil {
+			return errors.New("no transfer event from user to contract found")
+		}
+
+		// Get the transfer event from the contract back to the user
+		var contractToUserAmount *sdk.Coin
+		for _, transferEvt := range transferEvents {
+			transferEvts, err := txModule.ParseTransferEvent(transferEvt)
+			if err != nil {
+				continue
+			}
+
+			if len(transferEvts) == 0 {
+				continue
+			}
+
+			for _, transfer := range transferEvts {
+				if transfer.Recipient == sf.OsmosisMsgSwapExactAmountOut.Sender && transfer.Sender == contractAddress {
+
+					transferredAmount, err := sdk.ParseCoinNormalized(transfer.Amount)
+
+					if err != nil {
+						return errors.New("error parsing contract to user transfer amount")
+					}
+
+					if transferredAmount.Denom != firstPoolDenom {
+						continue
+					}
+
+					contractToUserAmount = &transferredAmount
+					break
+				}
+			}
+		}
+
+		// Can this happen if the contract uses the max amount in? This case is probably very unlikely
+		if contractToUserAmount == nil {
+			return errors.New("no transfer event from contract to user found")
+		}
+
+		// Subtract the two to get the token in
+		tokenInAmount, err := userToContractAmount.SafeSub(*contractToUserAmount)
+
+		if err != nil {
+			return errors.New("error subtracting contract to user amount from user to contract amount")
+		}
+
+		sf.TokenIn = tokenInAmount
 	}
-	sf.TokenIn = tokenIn
 
 	sf.Address = sf.OsmosisMsgSwapExactAmountOut.Sender
 	sf.TokenOut = sf.OsmosisMsgSwapExactAmountOut.TokenOut
-	return err
+	return nil
 }
 
 // This message behaves like the following:
