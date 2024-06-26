@@ -6,9 +6,8 @@ toolchain go1.21.11
 
 require (
 	github.com/BurntSushi/toml v1.3.2
-	// FYI, you can do go get github.com/DefiantLabs/lens@1f6f34841280df179c6e098f040bd584ced43a4c
-	// (using the commit hash from github) to pin to a specific commit.
-	github.com/DefiantLabs/lens v0.3.1-0.20240530040544-3ad0f04acd32
+	// Our lens library is pinned to this specific SHA and branch: 7732945f81598e4d6aff47e0d4ca81b0ec26d8b3, https://github.com/DefiantLabs/lens/tree/v0.0.21-dl
+	github.com/DefiantLabs/lens v0.3.1-0.20240626071018-7732945f8159
 	github.com/cosmos/cosmos-sdk v0.47.8
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-co-op/gocron v1.13.0
@@ -93,6 +92,9 @@ require (
 	github.com/cosmos/gogogateway v1.2.0 // indirect
 	github.com/cosmos/gogoproto v1.4.11 // indirect
 	github.com/cosmos/iavl v1.1.2-0.20240405173644-e52f7630d3b7 // indirect
+	github.com/cosmos/ibc-apps/middleware/packet-forward-middleware/v7 v7.1.3 // indirect
+	github.com/cosmos/ibc-apps/modules/async-icq/v7 v7.1.1 // indirect
+	github.com/cosmos/ibc-go/modules/light-clients/08-wasm v0.1.1-ibc-go-v7.3-wasmvm-v1.5 // indirect
 	github.com/cosmos/ics23/go v0.10.0 // indirect
 	github.com/cosmos/ledger-cosmos-go v0.12.4 // indirect
 	github.com/cosmos/rosetta-sdk-go v0.10.0 // indirect
@@ -161,6 +163,7 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hdevalence/ed25519consensus v0.1.0 // indirect
 	github.com/huandu/skiplist v1.2.0 // indirect
+	github.com/iancoleman/orderedmap v0.3.0 // indirect
 	github.com/improbable-eng/grpc-web v0.15.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
@@ -204,6 +207,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/osmosis-labs/osmosis/osmomath v0.0.13 // indirect
 	github.com/osmosis-labs/osmosis/osmoutils v0.0.13 // indirect
+	github.com/osmosis-labs/osmosis/x/ibc-hooks v0.0.15 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/petermattis/goid v0.0.0-20230317030725-371a4b8eda08 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect

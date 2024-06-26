@@ -29,7 +29,7 @@ var unsupportedCoins = []string{
 
 var coinReplacementMap = map[string]string{}
 
-var symbolsToKoinlyIds = map[string]string{}
+var symbolsToKoinlyIDs = map[string]string{}
 
 // Probably not the best place for this, but its only used in Koinly for now
 // May want to consider adding the asset list URL as a config value and passing the AssetList value down to parsers if needed
@@ -42,7 +42,7 @@ func init() {
 
 	for _, asset := range assetList.Assets {
 		// Required format for koinly IDs is ID:<val>
-		symbolsToKoinlyIds[asset.Symbol] = fmt.Sprintf("ID:%s", asset.KoinlyID)
+		symbolsToKoinlyIDs[asset.Symbol] = fmt.Sprintf("ID:%s", asset.KoinlyID)
 	}
 }
 
@@ -124,18 +124,18 @@ func (p *Parser) GetRows(address string, startDate, endDate *time.Time) ([]parse
 	for i, row := range koinlyRows {
 
 		if row.FeeCurrency != "" {
-			if _, ok := symbolsToKoinlyIds[row.FeeCurrency]; ok {
-				koinlyRows[i].FeeCurrency = symbolsToKoinlyIds[row.FeeCurrency]
+			if _, ok := symbolsToKoinlyIDs[row.FeeCurrency]; ok {
+				koinlyRows[i].FeeCurrency = symbolsToKoinlyIDs[row.FeeCurrency]
 			}
 		}
 		if row.ReceivedCurrency != "" {
-			if _, ok := symbolsToKoinlyIds[row.ReceivedCurrency]; ok {
-				koinlyRows[i].ReceivedCurrency = symbolsToKoinlyIds[row.ReceivedCurrency]
+			if _, ok := symbolsToKoinlyIDs[row.ReceivedCurrency]; ok {
+				koinlyRows[i].ReceivedCurrency = symbolsToKoinlyIDs[row.ReceivedCurrency]
 			}
 		}
 		if row.SentCurrency != "" {
-			if _, ok := symbolsToKoinlyIds[row.SentCurrency]; ok {
-				koinlyRows[i].SentCurrency = symbolsToKoinlyIds[row.SentCurrency]
+			if _, ok := symbolsToKoinlyIDs[row.SentCurrency]; ok {
+				koinlyRows[i].SentCurrency = symbolsToKoinlyIDs[row.SentCurrency]
 			}
 		}
 	}
@@ -226,12 +226,12 @@ func HandleFees(address string, events []db.TaxableTransaction, allFees []db.Fee
 	// We need to gather all unique fees, but we are receiving Messages not Txes
 	// Make a map from TX hash to fees array to keep unique
 	txToFeesMap := make(map[uint][]db.Fee)
-	txIdsToTx := make(map[uint]db.Tx)
+	txIDsToTX := make(map[uint]db.Tx)
 	for _, event := range events {
 		txID := event.Message.Tx.ID
 		feeStore := event.Message.Tx.Fees
 		txToFeesMap[txID] = feeStore
-		txIdsToTx[txID] = event.Message.Tx
+		txIDsToTX[txID] = event.Message.Tx
 	}
 
 	// Due to the way we are parsing, we may have fees for TX that we don't have events for
@@ -239,7 +239,7 @@ func HandleFees(address string, events []db.TaxableTransaction, allFees []db.Fee
 		txID := fee.Tx.ID
 		if _, ok := txToFeesMap[txID]; !ok {
 			txToFeesMap[txID] = []db.Fee{fee}
-			txIdsToTx[txID] = fee.Tx
+			txIDsToTX[txID] = fee.Tx
 		}
 	}
 
@@ -247,7 +247,7 @@ func HandleFees(address string, events []db.TaxableTransaction, allFees []db.Fee
 		for _, fee := range txFees {
 			if fee.PayerAddress.Address == address {
 				newRow := Row{}
-				err = newRow.ParseFee(txIdsToTx[id], fee)
+				err = newRow.ParseFee(txIDsToTX[id], fee)
 				if err != nil {
 					return nil, err
 				}

@@ -102,7 +102,6 @@ func setup() (*gorm.DB, *config.ClientConfig, int, string, error) {
 	dbTypes.CacheIBCDenoms(db)
 
 	err = db.AutoMigrate(&dbTypes.Address{}, &AddressUsageCSV{}, &AddressUsageJSON{})
-
 	if err != nil {
 		config.Log.Fatalf("Error migrating client models. Err: %v", err)
 	}

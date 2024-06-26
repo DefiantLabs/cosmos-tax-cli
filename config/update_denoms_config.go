@@ -29,7 +29,6 @@ func (conf *UpdateDenomsConfig) Validate() error {
 	lensConf := conf.Lens
 
 	lensConf, err = validateLensConf(lensConf)
-
 	if err != nil {
 		return err
 	}

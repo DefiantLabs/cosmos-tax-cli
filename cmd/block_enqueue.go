@@ -75,7 +75,6 @@ func (idxr *Indexer) enqueueBlocksToProcessFromBlockInputFile(blockChan chan int
 	}
 	var blocksToIndex []uint64
 	err = json.Unmarshal(plan, &blocksToIndex)
-
 	if err != nil {
 		errString := err.Error()
 

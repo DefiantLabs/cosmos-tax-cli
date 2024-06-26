@@ -31,7 +31,6 @@ func (conf *UpdateEpochsConfig) Validate() error {
 	lensConf := conf.Lens
 
 	lensConf, err = validateLensConf(lensConf)
-
 	if err != nil {
 		return err
 	}
@@ -39,7 +38,6 @@ func (conf *UpdateEpochsConfig) Validate() error {
 	conf.Lens = lensConf
 
 	err = validateThrottlingConf(conf.Base.throttlingBase)
-
 	if err != nil {
 		return err
 	}

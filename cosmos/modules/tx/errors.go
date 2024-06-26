@@ -13,5 +13,5 @@ type MessageLogFormatError struct {
 }
 
 func (e *MessageLogFormatError) Error() string {
-	return fmt.Sprintf("Type: %s could not handle message log %s\n", e.MessageType, e.Log)
+	return fmt.Sprintf("Type: %s could not handle message log %s", e.MessageType, e.Log)
 }

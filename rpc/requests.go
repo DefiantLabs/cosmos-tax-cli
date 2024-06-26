@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"fmt"
 	"time"
 
 	coretypes "github.com/cometbft/cometbft/rpc/core/types"
@@ -50,13 +51,21 @@ func GetBlock(cl *lensClient.ChainClient, height int64) (*coretypes.ResultBlock,
 }
 
 // GetTxsByBlockHeight makes a request to the Cosmos RPC API and returns all the transactions for a specific block
-func GetTxsByBlockHeight(cl *lensClient.ChainClient, height int64) (*txTypes.GetTxsEventResponse, error) {
+func GetTxsByBlockHeight(cl *lensClient.ChainClient, height int64) (resp *txTypes.GetTxsEventResponse, unpackError error, queryError error) {
 	pg := query.PageRequest{Limit: 100}
 	options := lensQuery.QueryOptions{Height: height, Pagination: &pg}
 	query := lensQuery.Query{Client: cl, Options: &options}
-	resp, err := query.TxByHeight(cl.Codec)
+	resp, unpackError, err := query.TxByHeight(cl.Codec)
 	if err != nil {
-		return nil, err
+		return nil, unpackError, err
+	}
+
+	unpackErrors := ""
+	hadUnpackErrors := false
+
+	if unpackError != nil {
+		unpackErrors = unpackError.Error()
+		hadUnpackErrors = true
 	}
 
 	// handle pagination if needed
@@ -64,16 +73,20 @@ func GetTxsByBlockHeight(cl *lensClient.ChainClient, height int64) (*txTypes.Get
 		// if there are more total objects than we have so far, keep going
 		for resp.Pagination.Total > uint64(len(resp.Txs)) {
 			query.Options.Pagination.Offset = uint64(len(resp.Txs))
-			chunkResp, err := query.TxByHeight(cl.Codec)
+			chunkResp, chunkUnpackError, err := query.TxByHeight(cl.Codec)
 			if err != nil {
-				return nil, err
+				return nil, err, chunkUnpackError
 			}
 			resp.Txs = append(resp.Txs, chunkResp.Txs...)
 			resp.TxResponses = append(resp.TxResponses, chunkResp.TxResponses...)
 		}
 	}
 
-	return resp, nil
+	if hadUnpackErrors {
+		return resp, fmt.Errorf("error unpacking the TX response: %s", unpackErrors), nil
+	}
+
+	return resp, nil, nil
 }
 
 // IsCatchingUp true if the node is catching up to the chain, false otherwise

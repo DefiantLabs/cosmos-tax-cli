@@ -65,7 +65,6 @@ func GetTxsByBlockHeight(host string, height uint64) (tx.GetTxByBlockHeightRespo
 	defer resp.Body.Close()
 
 	err = checkResponseErrorCode(requestEndpoint, resp)
-
 	if err != nil {
 		return result, err
 	}
@@ -76,7 +75,6 @@ func GetTxsByBlockHeight(host string, height uint64) (tx.GetTxByBlockHeightRespo
 	}
 
 	err = json.Unmarshal(body, &result)
-
 	if err != nil {
 		return result, err
 	}
@@ -97,7 +95,6 @@ func GetLatestBlock(host string) (tx.GetLatestBlockResponse, error) {
 	defer resp.Body.Close()
 
 	err = checkResponseErrorCode(requestEndpoint, resp)
-
 	if err != nil {
 		return result, err
 	}
@@ -108,7 +105,6 @@ func GetLatestBlock(host string) (tx.GetLatestBlockResponse, error) {
 	}
 
 	err = json.Unmarshal(body, &result)
-
 	if err != nil {
 		return result, err
 	}

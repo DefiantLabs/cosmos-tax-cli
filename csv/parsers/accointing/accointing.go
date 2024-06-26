@@ -158,12 +158,12 @@ func HandleFees(address string, events []db.TaxableTransaction, allFees []db.Fee
 	// We need to gather all unique fees, but we are receiving Messages not Txes
 	// Make a map from TX hash to fees array to keep unique
 	txToFeesMap := make(map[uint][]db.Fee)
-	txIdsToTx := make(map[uint]db.Tx)
+	txIDsToTX := make(map[uint]db.Tx)
 	for _, event := range events {
 		txID := event.Message.Tx.ID
 		feeStore := event.Message.Tx.Fees
 		txToFeesMap[txID] = feeStore
-		txIdsToTx[txID] = event.Message.Tx
+		txIDsToTX[txID] = event.Message.Tx
 	}
 
 	// Due to the way we are parsing, we may have fees for TX that we don't have events for
@@ -171,7 +171,7 @@ func HandleFees(address string, events []db.TaxableTransaction, allFees []db.Fee
 		txID := fee.Tx.ID
 		if _, ok := txToFeesMap[txID]; !ok {
 			txToFeesMap[txID] = []db.Fee{fee}
-			txIdsToTx[txID] = fee.Tx
+			txIDsToTX[txID] = fee.Tx
 		}
 	}
 
@@ -179,7 +179,7 @@ func HandleFees(address string, events []db.TaxableTransaction, allFees []db.Fee
 		for _, fee := range txFees {
 			if fee.PayerAddress.Address == address {
 				newRow := Row{}
-				err = newRow.ParseFee(txIdsToTx[id], fee)
+				err = newRow.ParseFee(txIDsToTX[id], fee)
 				if err != nil {
 					return nil, err
 				}

@@ -229,5 +229,5 @@ func (w *WrapperMsgAcknowledgement) String() string {
 		return "MsgAcknowledgement: IBC transfer was not a FungibleTokenTransfer"
 	}
 
-	return fmt.Sprintf("MsgAcknowledgement: IBC transfer of %s%s from %s to %s\n", w.Amount, w.Denom, w.SenderAddress, w.ReceiverAddress)
+	return fmt.Sprintf("MsgAcknowledgement: IBC transfer of %s%s from %s to %s", w.Amount, w.Denom, w.SenderAddress, w.ReceiverAddress)
 }
