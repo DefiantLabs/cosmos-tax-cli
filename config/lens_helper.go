@@ -38,6 +38,6 @@ func GetLensConfig(conf lens, debug bool) *lensClient.ChainClientConfig {
 		Timeout:        "30s",
 		OutputFormat:   "json",
 		SignModeStr:    "direct",
-		Modules:        lensClient.ModuleBasics,
+		Modules:        lensClient.OsmosisModuleBasics,
 	}
 }
