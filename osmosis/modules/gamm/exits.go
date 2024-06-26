@@ -195,7 +195,6 @@ func (sf *WrapperMsgExitSwapShareAmountIn) HandleMsg(msgType string, msg sdk.Msg
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 	sf.TokenOut, err = sdk.ParseCoinNormalized(tokenOut)
-
 	if err != nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
@@ -357,7 +356,6 @@ func (sf *WrapperMsgExitSwapExternAmountOut) HandleMsg(msgType string, msg sdk.M
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 	sf.TokenOut, err = sdk.ParseCoinNormalized(tokenOut)
-
 	if err != nil {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}

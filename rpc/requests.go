@@ -56,7 +56,6 @@ func GetTxsByBlockHeight(cl *lensClient.ChainClient, height int64) (resp *txType
 	options := lensQuery.QueryOptions{Height: height, Pagination: &pg}
 	query := lensQuery.Query{Client: cl, Options: &options}
 	resp, unpackError, err := query.TxByHeight(cl.Codec)
-
 	if err != nil {
 		return nil, unpackError, err
 	}

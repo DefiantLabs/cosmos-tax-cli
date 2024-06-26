@@ -86,7 +86,6 @@ func GetAssetMapOnDisk(chainRegistryLocation string, chainRegBlacklist map[strin
 
 				currAssets := &AssetList{}
 				err = json.NewDecoder(jsonFile).Decode(currAssets)
-
 				if err != nil {
 					return nil, err
 				}
