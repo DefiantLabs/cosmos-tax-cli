@@ -38,7 +38,7 @@ func TestRPC(t *testing.T) {
 
 func TestDecodeIBCTypes(t *testing.T) {
 	cl := GetOsmosisTestClient(t)
-	resp, err := GetTxsByBlockHeight(cl, 2620000)
+	resp, _, err := GetTxsByBlockHeight(cl, 2620000)
 	assert.Empty(t, err)
 	hasIbcType := false
 
@@ -146,7 +146,7 @@ func rpcQueryTx(t *testing.T, height int64) error {
 	// requestEndpoint := fmt.Sprintf(rest.GetEndpoint("txs_by_block_height_endpoint"), height)
 	options := lensQuery.QueryOptions{Height: height}
 	query := lensQuery.Query{Client: cl, Options: &options}
-	resp, err := query.TxByHeight(cl.Codec)
+	resp, _, err := query.TxByHeight(cl.Codec)
 	if err != nil {
 		return err
 	}

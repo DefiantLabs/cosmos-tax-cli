@@ -328,7 +328,7 @@ func processBlock(cl *client.ChainClient, dbConn *gorm.DB, failedBlockHandler fu
 	var err error
 	errTypeURL := false
 
-	txsEventResp, err := rpc.GetTxsByBlockHeight(cl, newBlock.Height)
+	txsEventResp, unpackError, err := rpc.GetTxsByBlockHeight(cl, newBlock.Height)
 	if err != nil {
 		if strings.Contains(err.Error(), "unable to resolve type URL") {
 			errTypeURL = true
@@ -336,6 +336,10 @@ func processBlock(cl *client.ChainClient, dbConn *gorm.DB, failedBlockHandler fu
 			config.Log.Errorf("Error getting transactions by block height (%v). Err: %v. Will reattempt", newBlock.Height, err)
 			return err
 		}
+	}
+
+	if unpackError != nil {
+		config.Log.Warn("There was an error unpacking interfaces during RPC querying, check your codecs", unpackError)
 	}
 
 	// There are two reasons this block would be hit
