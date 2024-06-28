@@ -6,8 +6,8 @@ toolchain go1.21.11
 
 require (
 	github.com/BurntSushi/toml v1.3.2
-	// Our lens library is pinned to this specific SHA and branch: 7732945f81598e4d6aff47e0d4ca81b0ec26d8b3, https://github.com/DefiantLabs/lens/tree/v0.0.21-dl
-	github.com/DefiantLabs/lens v0.3.1-0.20240626071018-7732945f8159
+	// Our lens library is pinned to this specific SHA and branch: 2ff2d8138af66fb3f3e3429b9837db1e720ed39f, https://github.com/DefiantLabs/lens/tree/v0.0.22-dl
+	github.com/DefiantLabs/lens v0.3.1-0.20240627235205-2ff2d8138af6
 	github.com/cosmos/cosmos-sdk v0.47.8
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-co-op/gocron v1.13.0
@@ -26,6 +26,7 @@ require (
 
 require (
 	cosmossdk.io/math v1.3.0
+	github.com/CosmWasm/wasmd v0.45.1-0.20231128163306-4b9b61faeaa3
 	github.com/cometbft/cometbft v0.38.0
 	github.com/cosmos/ibc-go/v7 v7.4.1
 	github.com/go-git/go-git/v5 v5.11.0
@@ -53,7 +54,6 @@ require (
 	dario.cat/mergo v1.0.0 // indirect
 	filippo.io/edwards25519 v1.0.0 // indirect
 	github.com/99designs/keyring v1.2.1 // indirect
-	github.com/CosmWasm/wasmd v0.45.1-0.20231128163306-4b9b61faeaa3 // indirect
 	github.com/CosmWasm/wasmvm v1.5.2 // indirect
 	github.com/DataDog/zstd v1.5.0 // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect

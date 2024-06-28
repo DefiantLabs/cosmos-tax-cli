@@ -100,7 +100,6 @@ func setupIndexer() *Indexer {
 	// Setup chain specific stuff
 	core.SetupAddressRegex(indexer.cfg.Lens.AccountPrefix + "(valoper)?1[a-z0-9]{38}")
 	core.SetupAddressPrefix(indexer.cfg.Lens.AccountPrefix)
-	core.ChainSpecificMessageTypeHandlerBootstrap(indexer.cfg.Lens.ChainID)
 	core.ChainSpecificBeginBlockerEventTypeHandlerBootstrap(indexer.cfg.Lens.ChainID)
 	core.ChainSpecificEndBlockerEventTypeHandlerBootstrap(indexer.cfg.Lens.ChainID)
 	core.ChainSpecificEpochIdentifierEventTypeHandlersBootstrap(indexer.cfg.Lens.ChainID)
@@ -120,6 +119,8 @@ func setupIndexer() *Indexer {
 	// Some chains do not have the denom metadata URL available on chain, so we do chain specific downloads instead.
 	tasks.DoChainSpecificUpsertDenoms(indexer.db, indexer.cfg.Lens.ChainID, indexer.cfg.Base.RequestRetryAttempts, indexer.cfg.Base.RequestRetryMaxWait)
 	indexer.cl = config.GetLensClient(indexer.cfg.Lens)
+
+	core.ChainSpecificMessageTypeHandlerBootstrap(indexer.cfg.Lens.ChainID, indexer.cl)
 
 	// Depending on the app configuration, wait for the chain to catch up
 	chainCatchingUp, err := rpc.IsCatchingUp(indexer.cl)

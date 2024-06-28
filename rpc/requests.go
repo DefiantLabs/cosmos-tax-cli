@@ -8,6 +8,7 @@ import (
 	osmosisProtorev "github.com/osmosis-labs/osmosis/v25/x/protorev/types"
 	osmosisEpochs "github.com/osmosis-labs/osmosis/x/epochs/types"
 
+	wasmTypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	lensClient "github.com/DefiantLabs/lens/client"
 	lensQuery "github.com/DefiantLabs/lens/client/query"
@@ -192,4 +193,15 @@ func GetProtorevDeveloperAccount(cl *lensClient.ChainClient) (*osmosisProtorev.Q
 	query := lensQuery.Query{Client: cl, Options: &options}
 	resp, err := query.ProtorevDeveloperAccount()
 	return resp, err
+}
+
+func GetContractsByCodeIDAtHeight(cl *lensClient.ChainClient, codeID uint64, height int64) (*wasmTypes.QueryContractsByCodeResponse, error) {
+	pg := query.PageRequest{Limit: 100}
+	options := lensQuery.QueryOptions{Height: height, Pagination: &pg}
+	query := lensQuery.Query{Client: cl, Options: &options}
+	resp, err := query.ContractsByCodeIDAtHeight(codeID, height)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }

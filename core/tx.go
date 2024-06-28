@@ -21,6 +21,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/staking"
 	txtypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/vesting"
+	"github.com/DefiantLabs/cosmos-tax-cli/cosmwasm"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmwasm/modules/wasm"
 	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis"
@@ -159,7 +160,6 @@ var messageTypeIgnorer = map[string]interface{}{
 	/////// Possible Taxable Events, future work ///////
 	////////////////////////////////////////////////////
 	// CosmWasm
-	wasm.MsgExecuteContract:                 nil,
 	wasm.MsgInstantiateContract:             nil,
 	wasm.MsgInstantiateContract2:            nil,
 	wasm.MsgStoreCode:                       nil,
@@ -179,12 +179,27 @@ var messageTypeIgnorer = map[string]interface{}{
 
 // Merge the chain specific message type handlers into the core message type handler map.
 // Chain specific handlers will be registered BEFORE any generic handlers.
-func ChainSpecificMessageTypeHandlerBootstrap(chainID string) {
+func ChainSpecificMessageTypeHandlerBootstrap(chainID string, lensClient *client.ChainClient) {
+	var customContractAddressHandlers []wasm.ContractExecutionMessageHandler
 	var chainSpecificMessageTpeHandler map[string][]func() txtypes.CosmosMessage
 	if chainID == osmosis.ChainID {
 		chainSpecificMessageTpeHandler = osmosis.MessageTypeHandler
 	}
+
 	for key, value := range chainSpecificMessageTpeHandler {
+		if list, ok := messageTypeHandler[key]; ok {
+			messageTypeHandler[key] = append(value, list...)
+		} else {
+			messageTypeHandler[key] = value
+		}
+	}
+
+	cosmWasmHandlers, err := cosmwasm.GetCosmWasmMessageTypeHandlers(customContractAddressHandlers, lensClient)
+	if err != nil {
+		config.Log.Fatal("Error getting CosmWasm message type handlers.", err)
+	}
+
+	for key, value := range cosmWasmHandlers {
 		if list, ok := messageTypeHandler[key]; ok {
 			messageTypeHandler[key] = append(value, list...)
 		} else {
