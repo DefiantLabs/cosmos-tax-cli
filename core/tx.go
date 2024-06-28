@@ -184,6 +184,7 @@ func ChainSpecificMessageTypeHandlerBootstrap(chainID string, lensClient *client
 	var chainSpecificMessageTpeHandler map[string][]func() txtypes.CosmosMessage
 	if chainID == osmosis.ChainID {
 		chainSpecificMessageTpeHandler = osmosis.MessageTypeHandler
+		customContractAddressHandlers = append(customContractAddressHandlers, osmosis.MainnetDAppContractCodeIDRegistry...)
 	}
 
 	for key, value := range chainSpecificMessageTpeHandler {

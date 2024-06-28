@@ -2,6 +2,8 @@ package osmosis
 
 import (
 	txTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
+	"github.com/DefiantLabs/cosmos-tax-cli/cosmwasm/modules/wasm"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/dapps/calcfi"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/concentratedliquidity"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/cosmwasmpool"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/gamm"
@@ -42,4 +44,8 @@ var MessageTypeHandler = map[string][]func() txTypes.CosmosMessage{
 	valsetpref.MsgUndelegateFromRebalancedValidatorSet: {func() txTypes.CosmosMessage { return &valsetpref.WrapperMsgUndelegateFromRebalancedValidatorSet{} }},
 	tokenfactory.MsgMint:                               {func() txTypes.CosmosMessage { return &tokenfactory.WrapperMsgMint{} }},
 	tokenfactory.MsgBurn:                               {func() txTypes.CosmosMessage { return &tokenfactory.WrapperMsgBurn{} }},
+}
+
+var MainnetDAppContractCodeIDRegistry = []wasm.ContractExecutionMessageHandler{
+	&calcfi.DCA575ExecutionHandler{},
 }

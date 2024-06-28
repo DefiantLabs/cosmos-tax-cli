@@ -9,7 +9,10 @@ import (
 
 var defaultMessageTypeHandler = map[string][]func() txTypes.CosmosMessage{}
 
-var contractAddressRegistry = map[string]wasm.ContractExecutionMessageHandler{}
+var (
+	contractAddressRegistry    = map[string]wasm.ContractExecutionMessageHandler{}
+	msgExecuteFieldIdentifiers = map[string][]wasm.ContractExecutionMessageHandler{}
+)
 
 func GetCosmWasmMessageTypeHandlers(customContractAddressHandlers []wasm.ContractExecutionMessageHandler, lensClient *client.ChainClient) (map[string][]func() txTypes.CosmosMessage, error) {
 	msgExecuteContractHandlers, err := configureMsgExecuteContractHandler(customContractAddressHandlers, lensClient)
@@ -38,14 +41,23 @@ func configureMsgExecuteContractHandler(customContractAddressHandlers []wasm.Con
 				contractAddressRegistry[contractAddress] = handler
 			}
 		}
-	}
 
-	configuredExecuteContractWrapper := wasm.WrapperMsgExecuteContract{
-		ContractAddressRegistry: contractAddressRegistry,
+		topLevelFieldIdentifiers := handler.TopLevelFieldIdentifiers()
+
+		for _, identifier := range topLevelFieldIdentifiers {
+			if _, ok := msgExecuteFieldIdentifiers[identifier]; !ok {
+				msgExecuteFieldIdentifiers[identifier] = []wasm.ContractExecutionMessageHandler{handler}
+			}
+
+			msgExecuteFieldIdentifiers[identifier] = append(msgExecuteFieldIdentifiers[identifier], handler)
+		}
 	}
 
 	return []func() txTypes.CosmosMessage{
 		func() txTypes.CosmosMessage {
+			configuredExecuteContractWrapper := &wasm.WrapperMsgExecuteContract{
+				ContractAddressRegistry: contractAddressRegistry,
+			}
 			return configuredExecuteContractWrapper
 		},
 	}, nil

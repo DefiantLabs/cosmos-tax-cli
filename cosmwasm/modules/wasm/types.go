@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	wasmTypes "github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
 	txTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -29,11 +30,15 @@ const (
 )
 
 type ContractExecutionMessageHandler interface {
-	txTypes.CosmosMessage
 	ContractFriendlyName() string
 	TopLevelFieldIdentifiers() []string
 	TopLevelIdentifierType() any
-	CosmosMessageType() txTypes.CosmosMessage
+	HandlerFuncs() []func() ContractExectionParserHandler
+}
+
+type ContractExectionParserHandler interface {
+	txTypes.CosmosMessage
+	SetCosmosMsgExecuteContract(*wasmTypes.MsgExecuteContract)
 }
 
 type ContractExecutionMessageHandlerByCodeID interface {
@@ -51,36 +56,60 @@ type WrapperMsgExecuteContract struct {
 	CosmosMsgExecuteContract *wasmTypes.MsgExecuteContract
 	ContractAddressRegistry  map[string]ContractExecutionMessageHandler
 	CurrentHandler           ContractExecutionMessageHandler
+	CurrentCosmosMessage     txTypes.CosmosMessage
 	ContractAddress          string
 }
 
-func (w WrapperMsgExecuteContract) HandleMsg(typeURL string, msg sdk.Msg, log *txTypes.LogMessage) error {
+func (w *WrapperMsgExecuteContract) HandleMsg(typeURL string, msg sdk.Msg, log *txTypes.LogMessage) error {
 	w.Type = typeURL
 	w.CosmosMsgExecuteContract = msg.(*wasmTypes.MsgExecuteContract)
 
 	if handler, ok := w.ContractAddressRegistry[w.CosmosMsgExecuteContract.Contract]; ok {
 		w.CurrentHandler = handler
-		return w.CurrentHandler.HandleMsg(typeURL, msg, log)
+		var handled bool
+		var handledCosmosMessage txTypes.CosmosMessage
+		for _, handlerFunc := range w.CurrentHandler.HandlerFuncs() {
+			cosmosMessage := handlerFunc()
+			// Allows us to avoid parsing twice
+			cosmosMessage.SetCosmosMsgExecuteContract(w.CosmosMsgExecuteContract)
+			err := cosmosMessage.HandleMsg(typeURL, msg, log)
+			if err != nil {
+				config.Log.Debug(fmt.Sprintf("Handler entry failed for contract address %s", w.CosmosMsgExecuteContract.Contract), err)
+				continue
+			}
+
+			handled = true
+			handledCosmosMessage = cosmosMessage
+			break
+		}
+
+		if handled {
+			w.CurrentCosmosMessage = handledCosmosMessage
+		} else {
+			return fmt.Errorf("no handler succeeded found for contract address %s using handler %s", w.CosmosMsgExecuteContract.Contract, w.CurrentHandler.ContractFriendlyName())
+		}
+
+		return nil
 	}
 
 	return nil
 }
 
-func (w WrapperMsgExecuteContract) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
-	if w.CurrentHandler != nil {
-		return w.CurrentHandler.ParseRelevantData()
+func (w *WrapperMsgExecuteContract) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	if w.CurrentCosmosMessage != nil {
+		return w.CurrentCosmosMessage.ParseRelevantData()
 	}
 
 	return nil
 }
 
-func (w WrapperMsgExecuteContract) GetType() string {
+func (w *WrapperMsgExecuteContract) GetType() string {
 	return MsgExecuteContract
 }
 
-func (w WrapperMsgExecuteContract) String() string {
-	if w.CurrentHandler != nil {
-		return w.CurrentHandler.String()
+func (w *WrapperMsgExecuteContract) String() string {
+	if w.CurrentCosmosMessage != nil {
+		return w.CurrentCosmosMessage.String()
 	}
 	return fmt.Sprintf("MsgExecuteContract: No handler found for contract address %s", w.ContractAddress)
 }
