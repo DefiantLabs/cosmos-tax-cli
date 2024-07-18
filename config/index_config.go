@@ -28,7 +28,7 @@ type indexBase struct {
 	StartBlock                int64  `mapstructure:"start-block"`
 	EndBlock                  int64  `mapstructure:"end-block"`
 	BlockInputFile            string `mapstructure:"block-input-file"`
-	ReIndex                   bool   `mapstructure:"re-index"`
+	ReIndex                   bool   `mapstructure:"reindex"`
 	RPCWorkers                int64  `mapstructure:"rpc-workers"`
 	BlockTimer                int64  `mapstructure:"block-timer"`
 	WaitForChain              bool   `mapstructure:"wait-for-chain"`
