@@ -16,6 +16,7 @@ type IndexConfig struct {
 	Log                log
 	Lens               lens
 	Client             client
+	AssetList          AssetList
 }
 
 type indexBase struct {
@@ -72,6 +73,9 @@ func SetupIndexSpecificFlags(conf *IndexConfig, cmd *cobra.Command) {
 	cmd.PersistentFlags().BoolVar(&conf.Base.ExitWhenCaughtUp, "base.exit-when-caught-up", false, "mainly used for Osmosis rewards indexing")
 	cmd.PersistentFlags().Int64Var(&conf.Base.RequestRetryAttempts, "base.request-retry-attempts", 0, "number of RPC query retries to make")
 	cmd.PersistentFlags().Uint64Var(&conf.Base.RequestRetryMaxWait, "base.request-retry-max-wait", 30, "max retry incremental backoff wait time in seconds")
+
+	// mainnet chain configs
+	cmd.PersistentFlags().StringVar(&conf.AssetList.OsmosisAssetListURL, "asset-list.osmosis-asset-list-url", "https://raw.githubusercontent.com/cosmos/chain-registry/9df81ac3e93a040e678d3fa99b9799d7061377c9/osmosis/assetlist.json", "osmosis asset list url, must fit the asset list schema")
 }
 
 func (conf *IndexConfig) Validate() error {

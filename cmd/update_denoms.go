@@ -69,13 +69,13 @@ func updateDenoms(cmd *cobra.Command, args []string) {
 		config.Log.Infof("Running denom update task for all supported chains")
 		for chainID, function := range tasks.ChainSpecificDenomUpsertFunctions {
 			config.Log.Infof("Running denom update task for chain %s", chainID)
-			function(db, cfg.Base.RequestRetryAttempts, cfg.Base.RequestRetryMaxWait)
+			function(db, cfg.Base.RequestRetryAttempts, cfg.Base.RequestRetryMaxWait, cfg.AssetList)
 		}
 	case cfg.Lens.ChainID != "":
 		function, ok := tasks.ChainSpecificDenomUpsertFunctions[cfg.Lens.ChainID]
 		if ok {
 			config.Log.Infof("Running denom update task for chain %s found in config", cfg.Lens.ChainID)
-			function(db, cfg.Base.RequestRetryAttempts, cfg.Base.RequestRetryMaxWait)
+			function(db, cfg.Base.RequestRetryAttempts, cfg.Base.RequestRetryMaxWait, cfg.AssetList)
 			config.Log.Info("Done")
 		} else {
 			config.Log.Fatalf("No denom update functionality for chain-id %s", cfg.Lens.ChainID)

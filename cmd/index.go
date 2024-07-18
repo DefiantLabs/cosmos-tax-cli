@@ -117,7 +117,7 @@ func setupIndexer() *Indexer {
 	}
 
 	// Some chains do not have the denom metadata URL available on chain, so we do chain specific downloads instead.
-	tasks.DoChainSpecificUpsertDenoms(indexer.db, indexer.cfg.Lens.ChainID, indexer.cfg.Base.RequestRetryAttempts, indexer.cfg.Base.RequestRetryMaxWait)
+	tasks.DoChainSpecificUpsertDenoms(indexer.db, indexer.cfg.Lens.ChainID, indexer.cfg.Base.RequestRetryAttempts, indexer.cfg.Base.RequestRetryMaxWait, indexer.cfg.AssetList)
 	indexer.cl = config.GetLensClient(indexer.cfg.Lens)
 
 	core.ChainSpecificMessageTypeHandlerBootstrap(indexer.cfg.Lens.ChainID, indexer.cl)
