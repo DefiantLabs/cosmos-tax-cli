@@ -33,18 +33,18 @@ type DenomUnit struct {
 	Aliases  []string
 }
 
-var ChainSpecificDenomUpsertFunctions = map[string]func(db *gorm.DB, retryMaxAttempts int64, retryMaxWaitSeconds uint64){
+var ChainSpecificDenomUpsertFunctions = map[string]func(db *gorm.DB, retryMaxAttempts int64, retryMaxWaitSeconds uint64, conf config.AssetList){
 	osmosis.ChainID: UpsertOsmosisDenoms,
 	juno.ChainID:    UpsertJunoDenoms,
 }
 
-func DoChainSpecificUpsertDenoms(db *gorm.DB, chain string, retryMaxAttempts int64, retryMaxWaitSeconds uint64) {
+func DoChainSpecificUpsertDenoms(db *gorm.DB, chain string, retryMaxAttempts int64, retryMaxWaitSeconds uint64, conf config.AssetList) {
 	if chain == osmosis.ChainID {
-		UpsertOsmosisDenoms(db, retryMaxAttempts, retryMaxWaitSeconds)
+		UpsertOsmosisDenoms(db, retryMaxAttempts, retryMaxWaitSeconds, conf)
 	}
 
 	if chain == juno.ChainID {
-		UpsertJunoDenoms(db, retryMaxAttempts, retryMaxWaitSeconds)
+		UpsertJunoDenoms(db, retryMaxAttempts, retryMaxWaitSeconds, conf)
 	}
 	// may want to move this elsewhere, or eliminate entirely
 	// I would prefer we just grab the denoms when needed always
@@ -53,9 +53,13 @@ func DoChainSpecificUpsertDenoms(db *gorm.DB, chain string, retryMaxAttempts int
 	dbTypes.CacheIBCDenoms(db)
 }
 
-func UpsertOsmosisDenoms(db *gorm.DB, retryMaxAttempts int64, retryMaxWaitSeconds uint64) {
+func UpsertOsmosisDenoms(db *gorm.DB, retryMaxAttempts int64, retryMaxWaitSeconds uint64, conf config.AssetList) {
 	config.Log.Info("Updating Omsosis specific denoms")
-	url := "https://raw.githubusercontent.com/osmosis-labs/assetlists/main/osmosis-1/osmosis-1.assetlist.json"
+	url := conf.OsmosisAssetListURL
+
+	if url == "" {
+		config.Log.Fatal("No assetlist URL provided for Osmosis Denom Metadata")
+	}
 
 	denomAssets, err := getAssetsListWithRetry(url, retryMaxAttempts, retryMaxWaitSeconds)
 	if err != nil {
@@ -67,9 +71,10 @@ func UpsertOsmosisDenoms(db *gorm.DB, retryMaxAttempts int64, retryMaxWaitSecond
 			config.Log.Fatal("Upsert Osmosis Denom Metadata", err)
 		}
 	}
+	config.Log.Info("Finished updating Omsosis specific denoms")
 }
 
-func UpsertJunoDenoms(db *gorm.DB, retryMaxAttempts int64, retryMaxWaitSeconds uint64) {
+func UpsertJunoDenoms(db *gorm.DB, retryMaxAttempts int64, retryMaxWaitSeconds uint64, conf config.AssetList) {
 	config.Log.Info("Updating Juno specific denoms")
 	url := "https://raw.githubusercontent.com/cosmos/chain-registry/master/juno/assetlist.json"
 
