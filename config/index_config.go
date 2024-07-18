@@ -75,7 +75,7 @@ func SetupIndexSpecificFlags(conf *IndexConfig, cmd *cobra.Command) {
 	cmd.PersistentFlags().Uint64Var(&conf.Base.RequestRetryMaxWait, "base.request-retry-max-wait", 30, "max retry incremental backoff wait time in seconds")
 
 	// mainnet chain configs
-	cmd.PersistentFlags().StringVar(&conf.AssetList.OsmosisAssetListURL, "asset-list.osmosis-asset-list-url", "https://raw.githubusercontent.com/cosmos/chain-registry/9df81ac3e93a040e678d3fa99b9799d7061377c9/osmosis/assetlist.json", "osmosis asset list url, must fit the asset list schema")
+	cmd.PersistentFlags().StringVar(&conf.AssetList.OsmosisAssetListURL, "asset-list.osmosis-asset-list-url", "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/assetlist.json", "osmosis asset list url, must fit the asset list schema")
 }
 
 func (conf *IndexConfig) Validate() error {
