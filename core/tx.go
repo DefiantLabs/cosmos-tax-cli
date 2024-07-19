@@ -29,6 +29,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/incentives"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/lockup"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/protorev"
+	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/smartaccount"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/superfluid"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/tokenfactory"
 	"github.com/DefiantLabs/cosmos-tax-cli/osmosis/modules/valsetpref"
@@ -106,6 +107,10 @@ var messageTypeIgnorer = map[string]interface{}{
 	ibc.MsgChannelCloseConfirm:   nil,
 	ibc.MsgChannelCloseInit:      nil,
 	ibc.MsgSubmitMisbehaviour:    nil,
+
+	// Interchain accounts are being explored for taxable types
+	ibc.InterchainAccountsMsgRegisterInterchainAccount: nil,
+	ibc.InterchainAccountsMsgSendTX:                    nil,
 	// Creating and modifying gauges does not create taxable events
 	incentives.MsgCreateGauge: nil,
 	incentives.MsgAddToGauge:  nil,
@@ -121,6 +126,11 @@ var messageTypeIgnorer = map[string]interface{}{
 	// Unjailing and updating params is not taxable
 	slashing.MsgUnjail:       nil,
 	slashing.MsgUpdateParams: nil,
+
+	// Smart accounts are being explored
+	smartaccount.MsgAddAuthenticator:    nil,
+	smartaccount.MsgRemoveAuthenticator: nil,
+
 	// Creating and editing validator is not taxable
 	staking.MsgCreateValidator:           nil,
 	staking.MsgEditValidator:             nil,
