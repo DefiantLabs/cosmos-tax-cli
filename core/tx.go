@@ -353,7 +353,6 @@ func ProcessRPCBlockByHeightTXs(db *gorm.DB, cl *client.ChainClient, blockResult
 
 		indexerTx.AuthInfo = *txFull.AuthInfo
 		txSigners, _, err := txFull.GetSigners(cl.Codec.Marshaler)
-
 		if err != nil {
 			return nil, blockTime, fmt.Errorf("error getting signers: %v", err)
 		}
@@ -446,7 +445,6 @@ func ProcessRPCTXs(db *gorm.DB, cl *client.ChainClient, txEventResp *cosmosTx.Ge
 
 		indexerTx.AuthInfo = *currTx.AuthInfo
 		txSigners, _, err := currTx.GetSigners(cl.Codec.Marshaler)
-
 		if err != nil {
 			return nil, blockTime, fmt.Errorf("error getting signers: %v", err)
 		}

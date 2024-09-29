@@ -87,7 +87,7 @@ func ExtractTransactionAddresses(tx tx.MergedTx) []string {
 func ParseSignerAddress(pubkeyString string, keytype string) (retstring string, reterror error) {
 	defer func() {
 		if r := recover(); r != nil {
-			reterror = fmt.Errorf(fmt.Sprintf("Error parsing signer address into Bech32: %v", r))
+			reterror = fmt.Errorf("error parsing signer address into Bech32: %v", r)
 			retstring = ""
 		}
 	}()

@@ -127,7 +127,6 @@ func GetBlockResultRPC(cl *lensClient.ChainClient, height int64) (*CustomBlockRe
 
 	// Normalize the block results
 	res, err := NormalizeCustomBlockResults(resBlockResults)
-
 	if err != nil {
 		return nil, err
 	}
