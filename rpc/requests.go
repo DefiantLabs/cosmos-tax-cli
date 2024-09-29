@@ -115,15 +115,23 @@ func GetLatestBlockHeight(cl *lensClient.ChainClient) (int64, error) {
 	return resStatus.SyncInfo.LatestBlockHeight, nil
 }
 
-func GetBlockResultRPC(cl *lensClient.ChainClient, height int64) (*coretypes.ResultBlockResults, error) {
+func GetBlockResultRPC(cl *lensClient.ChainClient, height int64) (*CustomBlockResults, error) {
 	query := lensQuery.Query{Client: cl, Options: &lensQuery.QueryOptions{}}
 	ctx, cancel := query.GetQueryContext()
 	defer cancel()
 
-	res, err := query.Client.RPCClient.BlockResults(ctx, &height)
+	resBlockResults, err := query.Client.RPCClient.BlockResults(ctx, &height)
 	if err != nil {
 		return nil, err
 	}
+
+	// Normalize the block results
+	res, err := NormalizeCustomBlockResults(resBlockResults)
+
+	if err != nil {
+		return nil, err
+	}
+
 	return res, nil
 }
 
