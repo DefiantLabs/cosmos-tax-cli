@@ -1,4 +1,4 @@
-FROM golang:1.21.10-alpine3.18 AS build-env
+FROM golang:1.22.4-alpine3.19 AS build-env
 
 # Customize to your build env
 
@@ -14,12 +14,12 @@ RUN apk add --update --no-cache curl make git libc-dev bash gcc linux-headers eu
 
 # Install build dependencies.
 RUN if [ "${TARGETPLATFORM}" = "linux/amd64" ] ; then \
-      wget -P /lib https://github.com/CosmWasm/wasmvm/releases/download/v1.2.3/libwasmvm_muslc.x86_64.a ; \
+      wget -P /lib https://github.com/CosmWasm/wasmvm/releases/download/v2.1.2/libwasmvm_muslc.x86_64.a ; \
       cp /lib/libwasmvm_muslc.x86_64.a /lib/libwasmvm_muslc.a ; \
     fi
 
 RUN if  [ "${TARGETPLATFORM}" = "linux/arm64" ] ; then \
-      wget -P /lib https://github.com/CosmWasm/wasmvm/releases/download/v1.2.3/libwasmvm_muslc.aarch64.a ; \
+      wget -P /lib https://github.com/CosmWasm/wasmvm/releases/download/v2.1.2/libwasmvm_muslc.aarch64.a ; \
       cp /lib/libwasmvm_muslc.aarch64.a /lib/libwasmvm_muslc.a ; \
     fi
 
