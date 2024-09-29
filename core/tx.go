@@ -43,6 +43,7 @@ import (
 	cosmosTx "github.com/cosmos/cosmos-sdk/types/tx"
 	"gorm.io/gorm"
 
+	sdkMath "cosmossdk.io/math"
 	indexerEvents "github.com/DefiantLabs/cosmos-tax-cli/cosmos/events"
 )
 
@@ -351,7 +352,15 @@ func ProcessRPCBlockByHeightTXs(db *gorm.DB, cl *client.ChainClient, blockResult
 		}
 
 		indexerTx.AuthInfo = *txFull.AuthInfo
-		indexerTx.Signers = txFull.GetSigners()
+		txSigners, _, err := txFull.GetSigners(cl.Codec.Marshaler)
+		if err != nil {
+			return nil, blockTime, fmt.Errorf("error getting signers: %v", err)
+		}
+
+		for _, signer := range txSigners {
+			indexerTx.Signers = append(indexerTx.Signers, signer)
+		}
+
 		indexerMergedTx.TxResponse = indexerTxResp
 		indexerMergedTx.Tx = indexerTx
 		indexerMergedTx.Tx.AuthInfo = *txFull.AuthInfo
@@ -361,7 +370,12 @@ func ProcessRPCBlockByHeightTXs(db *gorm.DB, cl *client.ChainClient, blockResult
 			return currTxDbWrappers, blockTime, err
 		}
 
-		processedTx.SignerAddress = dbTypes.Address{Address: txFull.FeePayer().String()}
+		if len(indexerTx.Signers) > 0 {
+			processedTx.SignerAddress = dbTypes.Address{Address: indexerTx.Signers[0].String()}
+		} else {
+			return currTxDbWrappers, blockTime, fmt.Errorf("tx signers could not be processed, no signers found")
+		}
+
 		currTxDbWrappers[txIdx] = processedTx
 	}
 
@@ -430,7 +444,15 @@ func ProcessRPCTXs(db *gorm.DB, cl *client.ChainClient, txEventResp *cosmosTx.Ge
 		}
 
 		indexerTx.AuthInfo = *currTx.AuthInfo
-		indexerTx.Signers = currTx.GetSigners()
+		txSigners, _, err := currTx.GetSigners(cl.Codec.Marshaler)
+		if err != nil {
+			return nil, blockTime, fmt.Errorf("error getting signers: %v", err)
+		}
+
+		for _, signer := range txSigners {
+			indexerTx.Signers = append(indexerTx.Signers, signer)
+		}
+
 		indexerMergedTx.TxResponse = indexerTxResp
 		indexerMergedTx.Tx = indexerTx
 		indexerMergedTx.Tx.AuthInfo = *currTx.AuthInfo
@@ -444,7 +466,12 @@ func ProcessRPCTXs(db *gorm.DB, cl *client.ChainClient, txEventResp *cosmosTx.Ge
 			blockTime = &txTime
 		}
 
-		processedTx.SignerAddress = dbTypes.Address{Address: currTx.FeePayer().String()}
+		if len(indexerTx.Signers) > 0 {
+			processedTx.SignerAddress = dbTypes.Address{Address: indexerTx.Signers[0].String()}
+		} else {
+			return currTxDbWrappers, blockTime, fmt.Errorf("tx signers could not be processed, no signers found")
+		}
+
 		currTxDbWrappers[txIdx] = processedTx
 	}
 
@@ -462,8 +489,8 @@ func AnalyzeSwaps() {
 	for _, swap := range allSwaps {
 		if swap.TokenOut.Denom == "uosmo" && swap.TokenIn.Denom == "uosmo" {
 			amount := swap.TokenOut.Amount.Sub(swap.TokenIn.Amount)
-			if amount.GT(types.ZeroInt()) {
-				txProfit := amount.ToLegacyDec().Quo(types.NewDec(1000000)).MustFloat64()
+			if amount.GT(sdkMath.ZeroInt()) {
+				txProfit := amount.ToLegacyDec().Quo(sdkMath.LegacyNewDec(1000000)).MustFloat64()
 				profit += txProfit
 			}
 

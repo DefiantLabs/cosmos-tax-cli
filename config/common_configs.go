@@ -27,10 +27,11 @@ type Database struct {
 }
 
 type lens struct {
-	RPC           string
-	AccountPrefix string `mapstructure:"account-prefix"`
-	ChainID       string `mapstructure:"chain-id"`
-	ChainName     string `mapstructure:"chain-name"`
+	RPC                    string
+	AccountPrefix          string `mapstructure:"account-prefix"`
+	ValidatorAccountPrefix string `mapstructure:"validator-account-prefix"`
+	ChainID                string `mapstructure:"chain-id"`
+	ChainName              string `mapstructure:"chain-name"`
 }
 
 type throttlingBase struct {
@@ -59,7 +60,8 @@ func SetupDatabaseFlags(databaseConf *Database, cmd *cobra.Command) {
 
 func SetupLensFlags(lensConf *lens, cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVar(&lensConf.RPC, "lens.rpc", "", "node rpc endpoint")
-	cmd.PersistentFlags().StringVar(&lensConf.AccountPrefix, "lens.account-prefix", "", "lens account prefix")
+	cmd.PersistentFlags().StringVar(&lensConf.AccountPrefix, "lens.account-prefix", "osmo", "lens account prefix")
+	cmd.PersistentFlags().StringVar(&lensConf.ValidatorAccountPrefix, "lens.validator-account-prefix", "osmovaloper", "lens validator account prefix")
 	cmd.PersistentFlags().StringVar(&lensConf.ChainID, "lens.chain-id", "", "lens chain ID")
 	cmd.PersistentFlags().StringVar(&lensConf.ChainName, "lens.chain-name", "", "lens chain name")
 }
@@ -103,6 +105,9 @@ func validateLensConf(lensConf lens) (lens, error) {
 
 	if util.StrNotSet(lensConf.AccountPrefix) {
 		return lensConf, errors.New("lens account-prefix must be set")
+	}
+	if util.StrNotSet(lensConf.ValidatorAccountPrefix) {
+		return lensConf, errors.New("lens validator-account-prefix must be set")
 	}
 	if util.StrNotSet(lensConf.ChainID) {
 		return lensConf, errors.New("lens chain-id must be set")

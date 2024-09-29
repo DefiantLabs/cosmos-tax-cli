@@ -9,7 +9,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	valsetPrefTypes "github.com/osmosis-labs/osmosis/v25/x/valset-pref/types"
+	valsetPrefTypes "github.com/osmosis-labs/osmosis/v26/x/valset-pref/types"
 )
 
 const (

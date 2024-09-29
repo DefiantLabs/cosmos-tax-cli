@@ -5,7 +5,7 @@ import (
 	"time"
 
 	coretypes "github.com/cometbft/cometbft/rpc/core/types"
-	osmosisProtorev "github.com/osmosis-labs/osmosis/v25/x/protorev/types"
+	osmosisProtorev "github.com/osmosis-labs/osmosis/v26/x/protorev/types"
 	osmosisEpochs "github.com/osmosis-labs/osmosis/x/epochs/types"
 
 	wasmTypes "github.com/CosmWasm/wasmd/x/wasm/types"
@@ -115,15 +115,22 @@ func GetLatestBlockHeight(cl *lensClient.ChainClient) (int64, error) {
 	return resStatus.SyncInfo.LatestBlockHeight, nil
 }
 
-func GetBlockResultRPC(cl *lensClient.ChainClient, height int64) (*coretypes.ResultBlockResults, error) {
+func GetBlockResultRPC(cl *lensClient.ChainClient, height int64) (*CustomBlockResults, error) {
 	query := lensQuery.Query{Client: cl, Options: &lensQuery.QueryOptions{}}
 	ctx, cancel := query.GetQueryContext()
 	defer cancel()
 
-	res, err := query.Client.RPCClient.BlockResults(ctx, &height)
+	resBlockResults, err := query.Client.RPCClient.BlockResults(ctx, &height)
 	if err != nil {
 		return nil, err
 	}
+
+	// Normalize the block results
+	res, err := NormalizeCustomBlockResults(resBlockResults)
+	if err != nil {
+		return nil, err
+	}
+
 	return res, nil
 }
 

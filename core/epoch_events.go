@@ -7,7 +7,7 @@ import (
 	eventTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/events"
 	osmosisTypes "github.com/DefiantLabs/cosmos-tax-cli/osmosis"
 	osmosisEpochTypes "github.com/DefiantLabs/cosmos-tax-cli/osmosis/epochs"
-	coretypes "github.com/cometbft/cometbft/rpc/core/types"
+	"github.com/DefiantLabs/cosmos-tax-cli/rpc"
 )
 
 var epochIdentifierEventTypeHandlers = map[string]map[string]map[string][]func() eventTypes.CosmosEvent{}
@@ -19,7 +19,7 @@ func ChainSpecificEpochIdentifierEventTypeHandlersBootstrap(chainID string) {
 	}
 }
 
-func ProcessRPCEpochEvents(blockResults *coretypes.ResultBlockResults, epochIdentifier string) ([]eventTypes.EventRelevantInformation, error) {
+func ProcessRPCEpochEvents(blockResults *rpc.CustomBlockResults, epochIdentifier string) ([]eventTypes.EventRelevantInformation, error) {
 	var taxableEvents []eventTypes.EventRelevantInformation
 
 	if handlers, ok := epochIdentifierEventTypeHandlers[epochIdentifier]; ok {

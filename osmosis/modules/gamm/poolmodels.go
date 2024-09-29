@@ -9,8 +9,8 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	gammBalancerPoolModelsTypes "github.com/osmosis-labs/osmosis/v25/x/gamm/pool-models/balancer"
-	gammStableswapPoolModelsTypes "github.com/osmosis-labs/osmosis/v25/x/gamm/pool-models/stableswap"
+	gammBalancerPoolModelsTypes "github.com/osmosis-labs/osmosis/v26/x/gamm/pool-models/balancer"
+	gammStableswapPoolModelsTypes "github.com/osmosis-labs/osmosis/v26/x/gamm/pool-models/stableswap"
 )
 
 const (

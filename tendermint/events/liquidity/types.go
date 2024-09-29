@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	sdkMath "cosmossdk.io/math"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmos/events"
 	dbTypes "github.com/DefiantLabs/cosmos-tax-cli/db"
 	tendermintEvents "github.com/DefiantLabs/cosmos-tax-cli/tendermint/events"
@@ -128,13 +129,13 @@ func (sf *WrapperBlockEventSwapTransacted) HandleEvent(eventType string, event a
 		}
 	}
 
-	offerAmount, ok := sdk.NewIntFromString(offerCoinAmount)
+	offerAmount, ok := sdkMath.NewIntFromString(offerCoinAmount)
 	if !ok {
 		return fmt.Errorf("error parsing coin amount for offerCoinAmount %s", offerCoinAmount)
 	}
 	sf.CoinSwappedIn = sdk.NewCoin(offerCoinDenom, offerAmount)
 
-	demandAmount, ok := sdk.NewIntFromString(demandCoinAmount)
+	demandAmount, ok := sdkMath.NewIntFromString(demandCoinAmount)
 	if !ok {
 		return fmt.Errorf("error parsing coin amount for demandCoinAmount %s", demandCoinAmount)
 	}
@@ -144,7 +145,7 @@ func (sf *WrapperBlockEventSwapTransacted) HandleEvent(eventType string, event a
 	if strings.Contains(offerCoinFeeAmount, ".") {
 		offerCoinFeeAmount = strings.Split(offerCoinFeeAmount, ".")[0]
 	}
-	offerFeeAmount, ok := sdk.NewIntFromString(offerCoinFeeAmount)
+	offerFeeAmount, ok := sdkMath.NewIntFromString(offerCoinFeeAmount)
 	if !ok {
 		return fmt.Errorf("error parsing coin amount for offerCoinFeeAmount %s", offerCoinFeeAmount)
 	}
@@ -154,7 +155,7 @@ func (sf *WrapperBlockEventSwapTransacted) HandleEvent(eventType string, event a
 	if strings.Contains(demandCoinFeeAmount, ".") {
 		demandCoinFeeAmount = strings.Split(demandCoinFeeAmount, ".")[0]
 	}
-	demandFeeAmount, ok := sdk.NewIntFromString(demandCoinFeeAmount)
+	demandFeeAmount, ok := sdkMath.NewIntFromString(demandCoinFeeAmount)
 	if !ok {
 		return fmt.Errorf("error parsing coin amount for demandCoinFeeAmount %s", demandCoinFeeAmount)
 	}

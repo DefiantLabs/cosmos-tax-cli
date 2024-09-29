@@ -2,7 +2,8 @@ package config
 
 import (
 	lensClient "github.com/DefiantLabs/lens/client"
-	ibcTypes "github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
+	"github.com/cosmos/cosmos-sdk/types/module"
+	ibcTypes "github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
 )
 
 func GetLensClient(conf lens) *lensClient.ChainClient {
@@ -25,6 +26,12 @@ func RegisterAdditionalTypes(cc *lensClient.ChainClient) {
 }
 
 func GetLensConfig(conf lens, debug bool) *lensClient.ChainClientConfig {
+	mods := []module.AppModuleBasic{}
+
+	for _, mod := range lensClient.OsmosisModuleBasics {
+		mods = append(mods, mod)
+	}
+
 	return &lensClient.ChainClientConfig{
 		Key:            "default",
 		ChainID:        conf.ChainID,
@@ -38,6 +45,6 @@ func GetLensConfig(conf lens, debug bool) *lensClient.ChainClientConfig {
 		Timeout:        "30s",
 		OutputFormat:   "json",
 		SignModeStr:    "direct",
-		Modules:        lensClient.OsmosisModuleBasics,
+		Modules:        mods,
 	}
 }
