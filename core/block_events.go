@@ -6,7 +6,7 @@ import (
 	"github.com/DefiantLabs/cosmos-tax-cli/config"
 	eventTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/events"
 	"github.com/DefiantLabs/cosmos-tax-cli/cosmoshub"
-	ctypes "github.com/cometbft/cometbft/rpc/core/types"
+	"github.com/DefiantLabs/cosmos-tax-cli/rpc"
 )
 
 var (
@@ -32,7 +32,7 @@ func ChainSpecificBeginBlockerEventTypeHandlerBootstrap(chainID string) {
 	// Stub, for use when we have begin blocker events
 }
 
-func ProcessRPCBlockEvents(blockResults *ctypes.ResultBlockResults) ([]eventTypes.EventRelevantInformation, error) {
+func ProcessRPCBlockEvents(blockResults *rpc.CustomBlockResults) ([]eventTypes.EventRelevantInformation, error) {
 	var taxableEvents []eventTypes.EventRelevantInformation
 	if len(endBlockerEventTypeHandlers) != 0 {
 		for _, event := range blockResults.EndBlockEvents {
