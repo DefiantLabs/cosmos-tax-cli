@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"strconv"
 
+	sdkMath "cosmossdk.io/math"
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
 	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	poolManagerTypes "github.com/osmosis-labs/osmosis/v25/x/poolmanager/types"
+	poolManagerTypes "github.com/osmosis-labs/osmosis/v26/x/poolmanager/types"
 )
 
 const (
@@ -371,7 +372,7 @@ func (sf *WrapperMsgSplitRouteSwapExactAmountIn) HandleMsg(msgType string, msg s
 	found := false
 	denomOut := ""
 
-	totalIn := sdk.NewCoin(denomIn, sdk.ZeroInt())
+	totalIn := sdk.NewCoin(denomIn, sdkMath.ZeroInt())
 
 	// Determine the token out denom from the first route that has pools and its final entry - guaranteed to be the same for every route based on the spec
 	// Also determine the amount of token in based on the routes provided in the message
@@ -401,7 +402,7 @@ func (sf *WrapperMsgSplitRouteSwapExactAmountIn) HandleMsg(msgType string, msg s
 		return err
 	}
 
-	tokenOutAmount, ok := sdk.NewIntFromString(tokensOutString)
+	tokenOutAmount, ok := sdkMath.NewIntFromString(tokensOutString)
 	if !ok {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
@@ -436,13 +437,13 @@ func (sf *WrapperMsgSplitRouteSwapExactAmountOut) HandleMsg(msgType string, msg 
 		return err
 	}
 
-	tokenInAmount, ok := sdk.NewIntFromString(tokensOutString)
+	tokenInAmount, ok := sdkMath.NewIntFromString(tokensOutString)
 	if !ok {
 		return &txModule.MessageLogFormatError{MessageType: msgType, Log: fmt.Sprintf("%+v", log)}
 	}
 
 	tokenInDenom := ""
-	tokenOutAmount := sdk.NewInt(0)
+	tokenOutAmount := sdkMath.NewInt(0)
 
 	for _, routes := range sf.OsmosisMsgSplitRouteSwapExactAmountOut.Routes {
 		if len(routes.Pools) == 0 {

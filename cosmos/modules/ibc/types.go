@@ -5,12 +5,13 @@ import (
 	"strings"
 
 	"cosmossdk.io/math"
+	sdkMath "cosmossdk.io/math"
 	parsingTypes "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules"
 	txModule "github.com/DefiantLabs/cosmos-tax-cli/cosmos/modules/tx"
 	"github.com/DefiantLabs/cosmos-tax-cli/util"
 	stdTypes "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
-	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
+	"github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
+	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 )
 
 const (
@@ -94,7 +95,7 @@ func (w *WrapperMsgRecvPacket) HandleMsg(msgType string, msg stdTypes.Msg, log *
 	w.ReceiverAddress = data.Receiver
 	w.Sequence = w.MsgRecvPacket.Packet.Sequence
 
-	amount, ok := stdTypes.NewIntFromString(data.Amount)
+	amount, ok := sdkMath.NewIntFromString(data.Amount)
 	if !ok {
 		return fmt.Errorf("failed to convert denom amount to sdk.Int, got(%s)", data.Amount)
 	}
@@ -112,7 +113,7 @@ func (w *WrapperMsgRecvPacket) ParseRelevantData() []parsingTypes.MessageRelevan
 	}
 
 	// MsgRecvPacket indicates a user has received assets on this chain so amount sent will always be 0
-	amountSent := stdTypes.NewInt(0)
+	amountSent := sdkMath.NewInt(0)
 
 	return []parsingTypes.MessageRelevantInformation{{
 		SenderAddress:        w.SenderAddress,
@@ -170,7 +171,7 @@ func (w *WrapperMsgAcknowledgement) HandleMsg(msgType string, msg stdTypes.Msg, 
 	w.ReceiverAddress = data.Receiver
 	w.Sequence = w.MsgAcknowledgement.Packet.Sequence
 
-	amount, ok := stdTypes.NewIntFromString(data.Amount)
+	amount, ok := sdkMath.NewIntFromString(data.Amount)
 	if !ok {
 		return fmt.Errorf("failed to convert denom amount to sdk.Int, got(%s)", data.Amount)
 	}
@@ -204,7 +205,7 @@ func (w *WrapperMsgAcknowledgement) ParseRelevantData() []parsingTypes.MessageRe
 
 	// MsgAcknowledgement indicates a user has successfully sent a packet
 	// so the received amount will always be zero
-	amountReceived := stdTypes.NewInt(0)
+	amountReceived := sdkMath.NewInt(0)
 
 	return []parsingTypes.MessageRelevantInformation{{
 		SenderAddress:        w.SenderAddress,

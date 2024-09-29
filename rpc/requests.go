@@ -5,7 +5,7 @@ import (
 	"time"
 
 	coretypes "github.com/cometbft/cometbft/rpc/core/types"
-	osmosisProtorev "github.com/osmosis-labs/osmosis/v25/x/protorev/types"
+	osmosisProtorev "github.com/osmosis-labs/osmosis/v26/x/protorev/types"
 	osmosisEpochs "github.com/osmosis-labs/osmosis/x/epochs/types"
 
 	wasmTypes "github.com/CosmWasm/wasmd/x/wasm/types"
