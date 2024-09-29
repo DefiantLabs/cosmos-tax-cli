@@ -7,7 +7,7 @@ toolchain go1.22.7
 require (
 	github.com/BurntSushi/toml v1.4.0
 	// Our lens library is pinned to this specific SHA and branch: 2ff2d8138af66fb3f3e3429b9837db1e720ed39f, https://github.com/DefiantLabs/lens/tree/v0.0.22-dl
-	github.com/DefiantLabs/lens v0.3.1-0.20240627235205-2ff2d8138af6
+	github.com/DefiantLabs/lens v0.3.1-0.20240929192656-26da6febf56c
 	github.com/cosmos/cosmos-sdk v0.50.9
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-co-op/gocron v1.13.0
@@ -295,5 +295,3 @@ replace (
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 	github.com/syndtr/goleveldb => github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 )
-
-replace github.com/DefiantLabs/lens => /home/piiohpii/go_code/github.com/DefiantLabs/lens

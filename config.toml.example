@@ -34,6 +34,7 @@ rpc-retry-max-wait=30 #RPC query failure backoff max wait time in seconds
 [lens]
 rpc = "https://rpc.kujira.ccvalidators.com:443" #On Kujira use one of the endpoints from the list https://github.com/Team-Kujira/networks/tree/master/mainnet
 account-prefix = "kujira"
+validator-account-prefix="kujiravaloper"
 chain-id = "kaiyo-1"
 chain-name = "Kujira"
 
